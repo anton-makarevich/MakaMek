@@ -413,6 +413,135 @@ public class PhysicalAttackEligibilityTests
     }
 
     [Fact]
+    public void Push_AttackerThatIsNotAMech_ReportsNoTargetInFront()
+    {
+        // Arrange
+        var target = CreateMech(_defendingPlayer, AttackerHex.GetNeighbour(HexDirection.Top), HexDirection.Bottom);
+
+        // Act + Assert
+        _sut.GetRestriction(Substitute.For<IUnit>(), target, PhysicalAttackType.Push, _map)
+            .ShouldBe(PhysicalAttackRestriction.NoTargetInFront);
+    }
+
+    [Fact]
+    public void Push_ProneAttacker_ReportsNoTargetInFront()
+    {
+        // Arrange
+        var (attacker, target) = CreatePair(AttackerHex.GetNeighbour(HexDirection.Top));
+        attacker.SetProne();
+
+        // Act + Assert
+        _sut.GetRestriction(attacker, target, PhysicalAttackType.Push, _map)
+            .ShouldBe(PhysicalAttackRestriction.NoTargetInFront);
+    }
+
+    [Fact]
+    public void Push_ShutDownAttacker_ReportsNoTargetInFront()
+    {
+        // Arrange
+        var (attacker, target) = CreatePair(AttackerHex.GetNeighbour(HexDirection.Top));
+        attacker.Shutdown(new ShutdownData { Reason = ShutdownReason.Voluntary, Turn = 1 });
+
+        // Act + Assert
+        _sut.GetRestriction(attacker, target, PhysicalAttackType.Push, _map)
+            .ShouldBe(PhysicalAttackRestriction.NoTargetInFront);
+    }
+
+    [Fact]
+    public void Push_UndeployedAttacker_ReportsNoTargetInFront()
+    {
+        // Arrange
+        var (attacker, target) = CreatePair(AttackerHex.GetNeighbour(HexDirection.Top));
+        attacker.RemoveFromBoard();
+
+        // Act + Assert
+        _sut.GetRestriction(attacker, target, PhysicalAttackType.Push, _map)
+            .ShouldBe(PhysicalAttackRestriction.NoTargetInFront);
+    }
+
+    [Fact]
+    public void Push_DestroyedTarget_ReportsNoTargetInFront()
+    {
+        // Arrange
+        var (attacker, target) = CreatePair(AttackerHex.GetNeighbour(HexDirection.Top));
+        Destroy(target);
+
+        // Act + Assert
+        _sut.GetEligibleLimbs(attacker, target, PhysicalAttackType.Push, _map).ShouldBeEmpty();
+        _sut.GetRestriction(attacker, target, PhysicalAttackType.Push, _map)
+            .ShouldBe(PhysicalAttackRestriction.NoTargetInFront);
+    }
+
+    [Fact]
+    public void Push_TargetOnTheAttackerSide_ReportsNoTargetInFront()
+    {
+        // Arrange
+        var (attacker, target) = CreatePair(AttackerHex.GetNeighbour(HexDirection.Top));
+        target.Owner = _attackingPlayer;
+
+        // Act + Assert
+        _sut.GetEligibleLimbs(attacker, target, PhysicalAttackType.Push, _map).ShouldBeEmpty();
+        _sut.GetRestriction(attacker, target, PhysicalAttackType.Push, _map)
+            .ShouldBe(PhysicalAttackRestriction.NoTargetInFront);
+    }
+
+    [Fact]
+    public void Push_UndeployedTarget_ReportsNoTargetInFront()
+    {
+        // Arrange
+        var (attacker, target) = CreatePair(AttackerHex.GetNeighbour(HexDirection.Top));
+        target.RemoveFromBoard();
+
+        // Act + Assert
+        _sut.GetEligibleLimbs(attacker, target, PhysicalAttackType.Push, _map).ShouldBeEmpty();
+        _sut.GetRestriction(attacker, target, PhysicalAttackType.Push, _map)
+            .ShouldBe(PhysicalAttackRestriction.NoTargetInFront);
+    }
+
+    [Fact]
+    public void Push_TargetThatIsNotAMech_IsNotAllowed()
+    {
+        // Arrange
+        var (attacker, _) = CreatePair(AttackerHex.GetNeighbour(HexDirection.Top));
+        var target = Substitute.For<IUnit>();
+        target.Position.Returns(new HexPosition(AttackerHex.GetNeighbour(HexDirection.Top), HexDirection.Bottom));
+        target.Owner.Returns(_defendingPlayer);
+        target.IsDestroyed.Returns(false);
+
+        // Act + Assert
+        _sut.GetEligibleLimbs(attacker, target, PhysicalAttackType.Push, _map).ShouldBeEmpty();
+        _sut.GetRestriction(attacker, target, PhysicalAttackType.Push, _map)
+            .ShouldBe(PhysicalAttackRestriction.TargetNotStandingMech);
+    }
+
+    [Theory]
+    [InlineData(PhysicalAttackType.Punch)]
+    [InlineData(PhysicalAttackType.Kick)]
+    public void GetRestriction_ForAnAttackWithoutAvailabilityReasons_ReportsNoReason(PhysicalAttackType attackType)
+    {
+        // Arrange
+        var (attacker, target) = CreatePair(AttackerHex.GetNeighbour(HexDirection.Top));
+
+        // Act + Assert
+        _sut.GetRestriction(attacker, target, attackType, _map).ShouldBeNull();
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Push_WhenAHexIsMissingFromTheMap_ReportsNoTargetInFront(bool attackerHexOnMap)
+    {
+        // Arrange
+        var (attacker, target) = CreatePair(AttackerHex.GetNeighbour(HexDirection.Top));
+        var map = new BattleMap(10, 10);
+        if (attackerHexOnMap) map.AddHex(new Hex(AttackerHex));
+
+        // Act + Assert
+        _sut.GetRestriction(attacker, target, PhysicalAttackType.Push, map)
+            .ShouldBe(PhysicalAttackRestriction.NoTargetInFront);
+    }
+
+    [Fact]
     public void CanResolve_PushTargetThatMovedOutOfTheFrontHex_IsFalse()
     {
         // Arrange
@@ -929,6 +1058,13 @@ public class PhysicalAttackEligibilityTests
 
     private static void FireWeaponIn(Mech mech, PartLocation location) =>
         mech.Parts[location].GetComponents<Weapon>().First().MarkAsFired();
+
+    private static void Destroy(IUnit unit)
+    {
+        var centerTorso = unit.Parts[PartLocation.CenterTorso];
+        centerTorso.ApplyDamage(centerTorso.CurrentArmor + centerTorso.CurrentStructure + 10, HitDirection.Front);
+        unit.UpdateDestroyedStatus();
+    }
 
     private static IPlayer CreatePlayer()
     {

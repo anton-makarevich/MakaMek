@@ -194,13 +194,94 @@ public class PushDisplacementResolverTests
         result.ShouldBeNull();
     }
 
+    [Fact]
+    public void Resolve_DestroyedAttacker_IsBlocked()
+    {
+        // Arrange
+        var map = CreateFlatMap();
+        var attacker = UnitAt(AttackerHex, HexDirection.Top, isDestroyed: true);
+        var target = UnitAt(TargetHex, HexDirection.Bottom);
+
+        // Act
+        var result = _sut.Resolve(attacker, target, map, [attacker, target]);
+
+        // Assert
+        result.ShouldBeNull();
+    }
+
+    [Fact]
+    public void Resolve_UndeployedAttacker_IsBlocked()
+    {
+        // Arrange
+        var map = CreateFlatMap();
+        var attacker = UnitAt(AttackerHex, HexDirection.Top, isDeployed: false);
+        var target = UnitAt(TargetHex, HexDirection.Bottom);
+
+        // Act
+        var result = _sut.Resolve(attacker, target, map, [attacker, target]);
+
+        // Assert
+        result.ShouldBeNull();
+    }
+
+    [Fact]
+    public void Resolve_UndeployedTarget_IsBlocked()
+    {
+        // Arrange
+        var map = CreateFlatMap();
+        var attacker = UnitAt(AttackerHex, HexDirection.Top);
+        var target = UnitAt(TargetHex, HexDirection.Bottom, isDeployed: false);
+
+        // Act
+        var result = _sut.Resolve(attacker, target, map, [attacker, target]);
+
+        // Assert
+        result.ShouldBeNull();
+    }
+
+    [Fact]
+    public void Resolve_DestinationHexMissingFromTheMap_IsBlocked()
+    {
+        // Arrange: the destination is inside the map bounds but has no hex
+        var map = new BattleMap(10, 10);
+        AddHex(map, new Hex(AttackerHex));
+        AddHex(map, new Hex(TargetHex));
+        var attacker = UnitAt(AttackerHex, HexDirection.Top);
+        var target = UnitAt(TargetHex, HexDirection.Bottom);
+
+        // Act
+        var result = _sut.Resolve(attacker, target, map, [attacker, target]);
+
+        // Assert
+        result.ShouldBeNull();
+    }
+
+    [Fact]
+    public void Resolve_TargetHexMissingFromTheMap_IsBlocked()
+    {
+        // Arrange: the target's own hex has no terrain data on the map
+        var map = new BattleMap(10, 10);
+        AddHex(map, new Hex(DestinationHex));
+        var attacker = UnitAt(AttackerHex, HexDirection.Top);
+        var target = UnitAt(TargetHex, HexDirection.Bottom);
+
+        // Act
+        var result = _sut.Resolve(attacker, target, map, [attacker, target]);
+
+        // Assert
+        result.ShouldBeNull();
+    }
+
     private static IUnit UnitAt(HexCoordinates coordinates, HexDirection facing,
-        HexSurface surface = HexSurface.Ground, bool isDestroyed = false)
+        HexSurface surface = HexSurface.Ground, bool isDestroyed = false, bool isDeployed = true)
     {
         var unit = Substitute.For<IUnit>();
         unit.Id.Returns(Guid.NewGuid());
-        unit.Position.Returns(new HexPosition(coordinates, facing, surface));
-        unit.IsDeployed.Returns(true);
+        if (isDeployed)
+            unit.Position.Returns(new HexPosition(coordinates, facing, surface));
+        else
+            unit.Position.Returns((HexPosition?)null);
+        unit.IsDeployed.Returns(isDeployed);
         unit.IsDestroyed.Returns(isDestroyed);
         return unit;
     }

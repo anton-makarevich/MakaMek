@@ -898,6 +898,22 @@ public class PhysicalAttackStateTests
     }
 
     [Fact]
+    public void UndeployedAttacker_DisablesPushWithNoTargetInFront()
+    {
+        // Arrange
+        DeployPair();
+        SelectAttacker();
+        Attacker.RemoveFromBoard();
+
+        // Act
+        var push = GetAction("Push");
+
+        // Assert
+        push.IsEnabled.ShouldBeFalse();
+        push.DisabledReason.ShouldBe("No unit directly in front");
+    }
+
+    [Fact]
     public void Push_OffersOneBothArmsOptionAndPublishesOneDeclaration()
     {
         // Arrange
