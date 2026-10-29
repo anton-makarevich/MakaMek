@@ -723,6 +723,8 @@ public class PhysicalAttackEligibilityTests
 
         // Act + Assert
         _sut.GetEligibleLimbs(attacker, target, PhysicalAttackType.Push, _map).ShouldBeEmpty();
+        _sut.GetRestriction(attacker, target, PhysicalAttackType.Push, _map)
+            .ShouldBe(PhysicalAttackRestriction.TargetSubmerged);
     }
 
     [Theory]

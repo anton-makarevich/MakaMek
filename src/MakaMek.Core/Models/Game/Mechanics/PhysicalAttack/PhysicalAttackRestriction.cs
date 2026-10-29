@@ -19,6 +19,9 @@ public enum PhysicalAttackRestriction
     /// <summary>The attacker and the target do not stand at the same elevation.</summary>
     ElevationMismatch,
 
+    /// <summary>The target is fully submerged and the attack would not begin underwater.</summary>
+    TargetSubmerged,
+
     /// <summary>The attacker is missing an arm or one of its arms was destroyed.</summary>
     ArmMissing,
 

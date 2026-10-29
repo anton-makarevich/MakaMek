@@ -206,6 +206,7 @@
   <data name="PhysicalAttackRestriction_TargetNotStandingMech" xml:space="preserve"><value>The target must be a standing Mech</value></data>
   <data name="PhysicalAttackRestriction_TargetPerformingDisplacementAttack" xml:space="preserve"><value>The target is performing a Charge or Death From Above</value></data>
   <data name="PhysicalAttackRestriction_ElevationMismatch" xml:space="preserve"><value>The target must be at the same elevation</value></data>
+  <data name="PhysicalAttackRestriction_TargetSubmerged" xml:space="preserve"><value>The target is submerged; the attack must begin underwater</value></data>
   <data name="PhysicalAttackRestriction_ArmMissing" xml:space="preserve"><value>Both arms are required</value></data>
   <data name="PhysicalAttackRestriction_ArmWeaponFired" xml:space="preserve"><value>An arm-mounted weapon was fired this turn</value></data>
   <data name="PhysicalAttackRestriction_TargetAlreadyDisplaced" xml:space="preserve"><value>The target is already being displaced this turn</value></data>

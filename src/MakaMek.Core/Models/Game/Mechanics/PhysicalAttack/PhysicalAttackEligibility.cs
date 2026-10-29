@@ -59,15 +59,7 @@ public class PhysicalAttackEligibility : IPhysicalAttackEligibility
             || GetEndpoint(target, map) is not { } targetEndpoint)
             return [];
 
-        // Total Warfare p.151 (Water): a physical attack against a submerged unit must begin
-        // underwater. A Mech standing in Depth 1 water keeps torso and arms above the surface, so
-        // only a kick occurs entirely underwater; in Depth 2+ water the whole Mech is underwater
-        // and any supported attack qualifies (issue #1600). Push also uses the arms, so it needs
-        // the same Depth 1 restriction as a punch.
-        if (targetEndpoint.IsSubmerged
-            && (!attackerEndpoint.IsInWater
-                || (!attackerEndpoint.IsSubmerged
-                    && attackType is PhysicalAttackType.Punch or PhysicalAttackType.Push)))
+        if (IsBlockedByWater(attackerEndpoint, targetEndpoint, attackType))
             return [];
 
         var levelDifference = GetEffectiveLevelDifference(
@@ -109,8 +101,27 @@ public class PhysicalAttackEligibility : IPhysicalAttackEligibility
             || GetEndpoint(target, map) is not { } targetEndpoint)
             return PhysicalAttackRestriction.NoTargetInFront;
 
+        // The same water rule that removes the limbs (see GetReachingLimbs) has to report a
+        // reason here, otherwise the UI offers a Push that cannot be selected.
+        if (IsBlockedByWater(attackerEndpoint, targetEndpoint, attackType))
+            return PhysicalAttackRestriction.TargetSubmerged;
+
         return GetPushRestriction(mech, target, attackerEndpoint, targetEndpoint);
     }
+
+    /// <summary>
+    /// Total Warfare p.151 (Water): a physical attack against a submerged unit must begin
+    /// underwater. A Mech standing in Depth 1 water keeps torso and arms above the surface, so
+    /// only a kick occurs entirely underwater; in Depth 2+ water the whole Mech is underwater
+    /// and any supported attack qualifies (issue #1600). Push also uses the arms, so it needs
+    /// the same Depth 1 restriction as a punch.
+    /// </summary>
+    private static bool IsBlockedByWater(UnitEndpoint attackerEndpoint, UnitEndpoint targetEndpoint,
+        PhysicalAttackType attackType) =>
+        targetEndpoint.IsSubmerged
+        && (!attackerEndpoint.IsInWater
+            || (!attackerEndpoint.IsSubmerged
+                && attackType is PhysicalAttackType.Punch or PhysicalAttackType.Push));
 
     private static PhysicalAttackRestriction? GetPushRestriction(
         Mech attacker, IUnit target, UnitEndpoint attackerEndpoint, UnitEndpoint targetEndpoint)
