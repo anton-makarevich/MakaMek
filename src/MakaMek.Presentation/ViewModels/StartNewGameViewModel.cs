@@ -65,7 +65,8 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
         IMechFactory mechFactory,
         IClipboardService clipboardService,
         IRelayHubConfigurationProvider hubConfigurationProvider,
-        IRelayRoomClient relayRoomClient)
+        IRelayRoomClient relayRoomClient,
+        IImageService imageService)
         : base(unitsLoader,
             commandPublisher,
             dispatcherService,
@@ -73,7 +74,8 @@ public class StartNewGameViewModel : NewGameViewModel, IDisposable
             cachingService,
             botManager,
             mechFactory,
-            logger)
+            logger,
+            imageService)
     {
         _gameManager = gameManager;
         _localizationService = localizationService;

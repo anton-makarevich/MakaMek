@@ -70,6 +70,7 @@ public class StartNewGameViewModelTests
     private readonly IBotManager _botManager = Substitute.For<IBotManager>();
     private readonly ILogger<StartNewGameViewModel> _vmLogger = Substitute.For<ILogger<StartNewGameViewModel>>();
     private readonly ILocalizationService _localizationService = Substitute.For<ILocalizationService>();
+    private readonly IImageService _imageService = Substitute.For<IImageService>();
     private static readonly IBattleMapFactory BattleMapFactory = new BattleMapFactory();
 
     public StartNewGameViewModelTests()
@@ -138,7 +139,8 @@ public class StartNewGameViewModelTests
             _mechFactory,
             _clipboardService,
             _hubConfigurationProvider,
-            _relayRoomClient);
+            _relayRoomClient,
+            _imageService);
         _sut.AttachHandlers();
         _sut.SetNavigationService(_navigationService);
     }
@@ -149,6 +151,12 @@ public class StartNewGameViewModelTests
         _sut.MapConfig.ShouldNotBeNull();
         _sut.ServerIpAddress.ShouldBe("LAN Disabled...");
         _sut.CanPublishCommands.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void ImageService_ShouldBeTheInjectedService()
+    {
+        _sut.ImageService.ShouldBeSameAs(_imageService);
     }
 
     [Fact]
@@ -552,7 +560,8 @@ public async Task MapReselection_DuringDebounce_RestartsWindow_AndSendsLatestMap
             _vmLogger, _localizationService, _mechFactory,
             _clipboardService,
             _hubConfigurationProvider,
-            _relayRoomClient);
+            _relayRoomClient,
+            Substitute.For<IImageService>());
 
         sut.AttachHandlers();
 
@@ -583,7 +592,8 @@ public async Task MapReselection_DuringDebounce_RestartsWindow_AndSendsLatestMap
             _vmLogger, _localizationService, _mechFactory,
             _clipboardService,
             _hubConfigurationProvider,
-            _relayRoomClient);
+            _relayRoomClient,
+            Substitute.For<IImageService>());
 
         sut.AttachHandlers();
 
@@ -1538,7 +1548,8 @@ public async Task MapReselection_DuringDebounce_RestartsWindow_AndSendsLatestMap
         _mechFactory,
         _clipboardService,
         _hubConfigurationProvider,
-        _relayRoomClient);
+        _relayRoomClient,
+        Substitute.For<IImageService>());
 
     private static IGameManager CreateOnlineGameManager(
         string? roomCode = "ABCDEF",
@@ -2012,7 +2023,8 @@ public async Task MapReselection_DuringDebounce_RestartsWindow_AndSendsLatestMap
             _mechFactory,
             _clipboardService,
             _hubConfigurationProvider,
-            _relayRoomClient);
+            _relayRoomClient,
+            Substitute.For<IImageService>());
         sut.AttachHandlers();
 
         // Assert
@@ -2051,7 +2063,8 @@ public async Task MapReselection_DuringDebounce_RestartsWindow_AndSendsLatestMap
             _mechFactory,
             _clipboardService,
             _hubConfigurationProvider,
-            _relayRoomClient);
+            _relayRoomClient,
+            Substitute.For<IImageService>());
         sut.AttachHandlers();
 
         // Act
@@ -2085,7 +2098,8 @@ public async Task MapReselection_DuringDebounce_RestartsWindow_AndSendsLatestMap
             _mechFactory,
             _clipboardService,
             _hubConfigurationProvider,
-            _relayRoomClient);
+            _relayRoomClient,
+            Substitute.For<IImageService>());
         await sut.InitializeLobbyAndSubscribe(CancellationToken.None);
         sut.AttachHandlers();
         
@@ -2117,7 +2131,8 @@ public async Task MapReselection_DuringDebounce_RestartsWindow_AndSendsLatestMap
             _mechFactory,
             _clipboardService,
             _hubConfigurationProvider,
-            _relayRoomClient);
+            _relayRoomClient,
+            Substitute.For<IImageService>());
         await sut.InitializeLobbyAndSubscribe(CancellationToken.None);
         sut.AttachHandlers();
 
@@ -2276,7 +2291,8 @@ public async Task MapReselection_DuringDebounce_RestartsWindow_AndSendsLatestMap
             _vmLogger, _localizationService, _mechFactory,
             _clipboardService,
             _hubConfigurationProvider,
-            _relayRoomClient);
+            _relayRoomClient,
+            Substitute.For<IImageService>());
 
         sut.AttachHandlers();
         sut.DetachHandlers();
@@ -2305,7 +2321,8 @@ public async Task MapReselection_DuringDebounce_RestartsWindow_AndSendsLatestMap
             _vmLogger, _localizationService, _mechFactory,
             _clipboardService,
             _hubConfigurationProvider,
-            _relayRoomClient);
+            _relayRoomClient,
+            Substitute.For<IImageService>());
 
         sut.AttachHandlers();
         sut.Dispose();
@@ -2332,7 +2349,8 @@ public async Task MapReselection_DuringDebounce_RestartsWindow_AndSendsLatestMap
             _vmLogger, _localizationService, _mechFactory,
             _clipboardService,
             _hubConfigurationProvider,
-            _relayRoomClient);
+            _relayRoomClient,
+            Substitute.For<IImageService>());
 
         sut.AttachHandlers();
         sut.AttachHandlers();

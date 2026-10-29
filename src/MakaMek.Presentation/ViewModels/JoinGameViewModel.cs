@@ -64,7 +64,8 @@ public class JoinGameViewModel : NewGameViewModel, IAsyncDisposable
         IBattleMapFactory mapFactory,
         IMapPreviewRenderer mapPreviewRenderer,
         IClipboardService clipboardService,
-        ILocalizationService localizationService)
+        ILocalizationService localizationService,
+        IImageService imageService)
         : base(unitsLoader,
             commandPublisher,
             dispatcherService,
@@ -72,7 +73,8 @@ public class JoinGameViewModel : NewGameViewModel, IAsyncDisposable
             cachingService,
             botManager,
             mechFactory,
-            logger)
+            logger,
+            imageService)
     {
         _gameConnector = gameConnector;
         _localizationService = localizationService;

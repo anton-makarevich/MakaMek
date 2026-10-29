@@ -51,7 +51,8 @@ public abstract class NewGameViewModel : BaseViewModel
         IFileCachingService cachingService,
         IBotManager botManager,
         IMechFactory mechFactory,
-        ILogger logger)
+        ILogger logger,
+        IImageService imageService)
     {
         _unitsLoader = unitsLoader;
         _commandPublisher = commandPublisher;
@@ -61,11 +62,18 @@ public abstract class NewGameViewModel : BaseViewModel
         _botManager = botManager;
         _mechFactory = mechFactory;
         _logger = logger;
+        ImageService = imageService;
 
         RemovePlayerCommand = new AsyncCommand<PlayerViewModel?>(RemovePlayer);
     }
 
     protected IDispatcherService DispatcherService => _dispatcherService;
+
+    /// <summary>
+    /// Image service the lobby unit cards load their preview from. Exposed so the views can
+    /// hand it to the controls they declare; the platform-specific cast stays in the view.
+    /// </summary>
+    public IImageService ImageService { get; }
 
     // Common command handlers with a template method pattern
     internal void HandleServerCommand(IGameCommand command)
