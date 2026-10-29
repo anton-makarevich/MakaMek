@@ -38,7 +38,7 @@ public class PhysicalAttackResolutionPhase(ServerGame game) : GamePhase(game)
     ];
 
     private readonly Dictionary<Guid, UnitPhaseAccumulatedDamage> _accumulatedDamage = new();
-    private readonly PushDisplacementResolver _pushDisplacementResolver = new();
+    private readonly PushDisplacementResolver _pushDisplacementResolver = new(game.RulesProvider);
 
     private readonly record struct AttackQueueItem(IPlayer Player, PhysicalAttackContext Context);
 

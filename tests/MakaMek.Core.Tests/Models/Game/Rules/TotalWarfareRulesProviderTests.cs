@@ -77,6 +77,18 @@ public class TotalWarfareRulesProviderTests
         Should.Throw<NotSupportedException>(() => _sut.GetPhysicalAttackBaseModifier(attackType));
     }
 
+    [Fact]
+    public void GetPushDamagedShoulderModifier_ReturnsTwoPerShoulder()
+    {
+        _sut.GetPushDamagedShoulderModifier().ShouldBe(2);
+    }
+
+    [Fact]
+    public void GetMaxDisplacementDropWithoutAutomaticFall_ReturnsTwo()
+    {
+        _sut.GetMaxDisplacementDropWithoutAutomaticFall().ShouldBe(2);
+    }
+
     #endregion
 
     #region Physical Attack Damage Tests

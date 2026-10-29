@@ -29,6 +29,13 @@ public interface IRulesProvider
     int GetPhysicalAttackBaseModifier(PhysicalAttackType attackType);
 
     /// <summary>
+    /// Gets the to-hit modifier a push receives for each damaged shoulder actuator
+    /// (Total Warfare, p. 148). The total is this value multiplied by the number of damaged
+    /// shoulder actuators across the attacker's arms.
+    /// </summary>
+    int GetPushDamagedShoulderModifier();
+
+    /// <summary>
     /// Gets the final damage of a physical attack after actuator damage reduction.
     /// Punch base damage is one point per ten tons of the attacker's tonnage; kick base damage is
     /// one point per five tons. Base damage rounds up. Each reducing actuator halves the damage,
@@ -186,6 +193,13 @@ public interface IRulesProvider
     bool RequiresPilotingSkillRoll(PilotingSkillRollType rollType);
 
     int GetHeavyDamageThreshold();
+
+    /// <summary>
+    /// Gets the deepest drop a displaced unit can take without an automatic fall. A displacement
+    /// that drops the unit by more levels is resolved as an accidental fall from above
+    /// (Total Warfare, p. 148, 151-152).
+    /// </summary>
+    int GetMaxDisplacementDropWithoutAutomaticFall();
 
     /// <summary>
     /// Gets the target number needed to avoid shutdown at a specific heat level

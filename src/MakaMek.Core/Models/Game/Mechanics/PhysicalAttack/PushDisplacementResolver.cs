@@ -1,3 +1,4 @@
+using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Map.Models;
 
@@ -10,20 +11,16 @@ namespace Sanet.MakaMek.Core.Models.Game.Mechanics.PhysicalAttack;
 /// </summary>
 /// <param name="TargetDestination">The hex the pushed target moves to.</param>
 /// <param name="AttackerDestination">The hex the attacker advances into.</param>
-/// <param name="LevelsFallen">
-/// How many standing levels the target drops. More than two triggers an automatic fall
-/// (Total Warfare, p. 148, 151).
+/// <param name="LevelsFallen">How many standing levels the target drops.</param>
+/// <param name="TriggersAutomaticFall">
+/// Whether the drop exceeds the deepest displacement drop that does not force a fall, as
+/// determined by the rules provider (Total Warfare, p. 148, 151).
 /// </param>
 public record PushDisplacementResult(
     HexPosition TargetDestination,
     HexPosition AttackerDestination,
-    int LevelsFallen)
-{
-    /// <summary>A pushed 'Mech that drops more than two levels falls automatically.</summary>
-    public const int MaxLevelsFallenWithoutAutomaticFall = 2;
-
-    public bool TriggersAutomaticFall => LevelsFallen > MaxLevelsFallenWithoutAutomaticFall;
-}
+    int LevelsFallen,
+    bool TriggersAutomaticFall);
 
 /// <summary>
 /// Applies the explicit Push destination policy from docs/rules/physical-attacks.md section 4.
@@ -37,7 +34,7 @@ public record PushDisplacementResult(
 /// bridge-domino rules are deliberately not reused.
 /// </para>
 /// </summary>
-public class PushDisplacementResolver
+public class PushDisplacementResolver(IRulesProvider rulesProvider)
 {
     /// <summary>
     /// The displacement of <paramref name="target"/>, or null when it cannot be displaced.
@@ -83,10 +80,12 @@ public class PushDisplacementResolver
         // allows a small upward step.
         if (destinationStandingLevel > targetStandingLevel) return null;
 
+        var levelsFallen = targetStandingLevel - destinationStandingLevel;
         return new PushDisplacementResult(
             new HexPosition(destinationCoordinates, targetPosition.Facing, destinationSurface),
             new HexPosition(targetPosition.Coordinates, attackerPosition.Facing, targetPosition.Surface),
-            targetStandingLevel - destinationStandingLevel);
+            levelsFallen,
+            levelsFallen > rulesProvider.GetMaxDisplacementDropWithoutAutomaticFall());
     }
 
     private static bool IsInFrontOfTheAttacker(

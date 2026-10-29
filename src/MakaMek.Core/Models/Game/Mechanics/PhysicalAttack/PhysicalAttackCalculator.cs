@@ -106,7 +106,7 @@ public class PhysicalAttackCalculator : IPhysicalAttackCalculator
     /// A push adds +2 for each damaged shoulder actuator across the attacker's arms. It is not a
     /// blocker: a Mech with a destroyed shoulder can still push (Total Warfare, p. 148).
     /// </summary>
-    private static void AddPushShoulderModifier(PhysicalAttackScenario scenario, List<RollModifier> modifiers)
+    private void AddPushShoulderModifier(PhysicalAttackScenario scenario, List<RollModifier> modifiers)
     {
         if (scenario.AttackType != PhysicalAttackType.Push || scenario.AttackerUnit is not { } attacker) return;
 
@@ -117,7 +117,7 @@ public class PhysicalAttackCalculator : IPhysicalAttackCalculator
 
         modifiers.Add(new DamagedShoulderModifier
         {
-            Value = DamagedShoulderModifier.ModifierPerDamagedShoulder * damagedShoulders,
+            Value = _rules.GetPushDamagedShoulderModifier() * damagedShoulders,
             DamagedShoulders = damagedShoulders
         });
     }

@@ -238,6 +238,9 @@ public class TotalWarfareRulesProvider : IRulesProvider
         };
     }
 
+    /// <inheritdoc />
+    public int GetPushDamagedShoulderModifier() => 2;
+
     /// <summary>
     /// Physical attack damage is based on the attacker's tonnage: one point per ten tons for a
     /// punch and one point per five tons for a kick, rounded up. A push deals no damage. Each
@@ -623,6 +626,9 @@ public class TotalWarfareRulesProvider : IRulesProvider
     {
         return 20;
     }
+
+    /// <inheritdoc />
+    public int GetMaxDisplacementDropWithoutAutomaticFall() => 2;
 
     private const int AimedShotHeadModifier = 3;
     private const int AimedShotDefaultModifier = -4;

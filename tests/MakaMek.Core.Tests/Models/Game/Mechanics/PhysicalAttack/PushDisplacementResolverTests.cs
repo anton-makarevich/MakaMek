@@ -1,5 +1,6 @@
 using NSubstitute;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.PhysicalAttack;
+using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Map.Models;
 using Sanet.MakaMek.Map.Models.Terrains;
@@ -13,7 +14,7 @@ public class PushDisplacementResolverTests
     private static readonly HexCoordinates TargetHex = AttackerHex.GetNeighbour(HexDirection.Top);
     private static readonly HexCoordinates DestinationHex = TargetHex.GetNeighbour(HexDirection.Top);
 
-    private readonly PushDisplacementResolver _sut = new();
+    private readonly PushDisplacementResolver _sut = new(new TotalWarfareRulesProvider());
 
     [Fact]
     public void Resolve_AllowedPush_MovesTheTargetOneHexAwayAndTheAttackerIntoItsHex()

@@ -34,6 +34,7 @@ public class PhysicalAttackCalculatorTests
         _rules = Substitute.For<IRulesProvider>();
         _rules.GetPhysicalAttackBaseModifier(PhysicalAttackType.Punch).Returns(0);
         _rules.GetPhysicalAttackBaseModifier(PhysicalAttackType.Kick).Returns(-2);
+        _rules.GetPushDamagedShoulderModifier().Returns(2);
         _rules.GetAttackerMovementModifier(MovementType.StandingStill).Returns(0);
         _rules.GetAttackerMovementModifier(MovementType.Walk).Returns(1);
         _rules.GetTargetMovementModifier(0).Returns(0);
