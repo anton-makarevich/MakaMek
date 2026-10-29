@@ -462,7 +462,8 @@ public abstract class BaseGame : IGame
         if (_players
                 .SelectMany(p => p.Units)
                 .FirstOrDefault(u => u.Id == command.UnitId) is not Unit unit) return;
-        var position = new HexPosition(new HexCoordinates(command.ToCoordinates), (HexDirection)command.NewFacing);
+        var position = new HexPosition(new HexCoordinates(command.ToCoordinates),
+            (HexDirection)command.NewFacing, (HexSurface)command.Surface);
         var hex = BattleMap?.GetHex(position.Coordinates);
         unit.Displace(position, hex);
     }

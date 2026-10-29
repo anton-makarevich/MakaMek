@@ -7,10 +7,11 @@ using Sanet.MakaMek.Map.Models;
 namespace Sanet.MakaMek.Core.Models.Game.Mechanics.PhysicalAttack;
 
 /// <summary>
-/// Punch and kick eligibility per docs/rules/physical-attacks.md section 3 and the physical attacks
-/// PRD (Background items 9 and 10, R1.4). The elevation limits follow the corrected Different-Levels
-/// table posted on issue #1504; level comparisons use effective standing levels and the water
-/// eligibility rules follow Total Warfare p.109 and p.151 (issue #1600).
+/// Punch, kick and push eligibility per docs/rules/physical-attacks.md sections 3 and 4 and the
+/// physical attacks PRD (Background items 9 and 10, R1.4). The elevation limits follow the
+/// corrected Different-Levels table posted on issue #1504; level comparisons use effective
+/// standing levels and the water eligibility rules follow Total Warfare p.109 and p.151
+/// (issue #1600).
 /// <para>
 /// This is the default eligibility policy. It owns the rules that depend on the current board
 /// state:
@@ -58,13 +59,7 @@ public class PhysicalAttackEligibility : IPhysicalAttackEligibility
             || GetEndpoint(target, map) is not { } targetEndpoint)
             return [];
 
-        // Total Warfare p.151 (Water): a physical attack against a submerged unit must begin
-        // underwater. A Mech standing in Depth 1 water keeps torso and arms above the surface, so
-        // only a kick occurs entirely underwater; in Depth 2+ water the whole Mech is underwater
-        // and any supported attack qualifies (issue #1600).
-        if (targetEndpoint.IsSubmerged
-            && (!attackerEndpoint.IsInWater
-                || (!attackerEndpoint.IsSubmerged && attackType == PhysicalAttackType.Punch)))
+        if (IsBlockedByWater(attackerEndpoint, targetEndpoint, attackType))
             return [];
 
         var levelDifference = GetEffectiveLevelDifference(
@@ -76,9 +71,88 @@ public class PhysicalAttackEligibility : IPhysicalAttackEligibility
                 => GetPunchingArms(mech, target),
             PhysicalAttackType.Kick when levelDifference == 0 || (levelDifference == -1 && !isTargetProne)
                 => GetKickingLegs(mech, target),
+            PhysicalAttackType.Push => GetPushRestriction(mech, target, attackerEndpoint, targetEndpoint) is null
+                ? [PartLocation.LeftArm, PartLocation.RightArm]
+                : [],
             _ => []
         };
     }
+
+    /// <summary>
+    /// Reports why a Push cannot be made, or null when it can. The target has to be a standing
+    /// Mech in the hex directly in front of the attacker's feet, at the exact same elevation, and
+    /// the attacker needs both arms with no arm-mounted weapon fired this turn (Total Warfare,
+    /// p. 148). A damaged shoulder actuator is not a blocker.
+    /// </summary>
+    public PhysicalAttackRestriction? GetRestriction(IUnit attacker, IUnit target,
+        PhysicalAttackType attackType, IBattleMap map)
+    {
+        // Only Push exposes availability reasons so far; Punch and Kick stay hidden when unavailable.
+        if (attackType != PhysicalAttackType.Push) return null;
+
+        if (attacker is not Mech mech || !CanMakePhysicalAttack(mech) || mech.Position is null)
+            return PhysicalAttackRestriction.NoTargetInFront;
+
+        if (target.Position is null || target.IsDestroyed || target.Owner?.Id == attacker.Owner?.Id
+            || !IsInFeetFrontHex(mech, target))
+            return PhysicalAttackRestriction.NoTargetInFront;
+
+        if (GetEndpoint(mech, map) is not { } attackerEndpoint
+            || GetEndpoint(target, map) is not { } targetEndpoint)
+            return PhysicalAttackRestriction.NoTargetInFront;
+
+        // The same water rule that removes the limbs (see GetReachingLimbs) has to report a
+        // reason here, otherwise the UI offers a Push that cannot be selected.
+        if (IsBlockedByWater(attackerEndpoint, targetEndpoint, attackType))
+            return PhysicalAttackRestriction.TargetSubmerged;
+
+        return GetPushRestriction(mech, target, attackerEndpoint, targetEndpoint);
+    }
+
+    /// <summary>
+    /// Total Warfare p.151 (Water): a physical attack against a submerged unit must begin
+    /// underwater. A Mech standing in Depth 1 water keeps torso and arms above the surface, so
+    /// only a kick occurs entirely underwater; in Depth 2+ water the whole Mech is underwater
+    /// and any supported attack qualifies (issue #1600). Push also uses the arms, so it needs
+    /// the same Depth 1 restriction as a punch.
+    /// </summary>
+    private static bool IsBlockedByWater(UnitEndpoint attackerEndpoint, UnitEndpoint targetEndpoint,
+        PhysicalAttackType attackType) =>
+        targetEndpoint.IsSubmerged
+        && (!attackerEndpoint.IsInWater
+            || (!attackerEndpoint.IsSubmerged
+                && attackType is PhysicalAttackType.Punch or PhysicalAttackType.Push));
+
+    private static PhysicalAttackRestriction? GetPushRestriction(
+        Mech attacker, IUnit target, UnitEndpoint attackerEndpoint, UnitEndpoint targetEndpoint)
+    {
+        if (!IsInFeetFrontHex(attacker, target))
+            return PhysicalAttackRestriction.NoTargetInFront;
+
+        if (target is not Mech { IsProne: false })
+            return PhysicalAttackRestriction.TargetNotStandingMech;
+
+        if (target.DeclaredPhysicalAttack?.AttackType is PhysicalAttackType.Charge or PhysicalAttackType.DFA)
+            return PhysicalAttackRestriction.TargetPerformingDisplacementAttack;
+
+        if (targetEndpoint.EffectiveStandingLevel != attackerEndpoint.EffectiveStandingLevel)
+            return PhysicalAttackRestriction.ElevationMismatch;
+
+        PartLocation[] arms = [PartLocation.LeftArm, PartLocation.RightArm];
+        if (arms.Any(arm => !attacker.Parts.TryGetValue(arm, out var part) || part.IsDestroyed))
+            return PhysicalAttackRestriction.ArmMissing;
+
+        var firedFrom = attacker.GetFiredWeaponLocations();
+        return arms.Any(firedFrom.Contains) ? PhysicalAttackRestriction.ArmWeaponFired : null;
+    }
+
+    /// <summary>
+    /// The target must occupy the single hex directly in front of the attacker, using the feet
+    /// orientation rather than the torso twist.
+    /// </summary>
+    private static bool IsInFeetFrontHex(Mech attacker, IUnit target) =>
+        target.Position!.Coordinates
+            == attacker.Position!.Coordinates.GetNeighbour(attacker.Position.Facing);
 
     /// <summary>
     /// Where a unit stands relative to the water line, resolved from the current map. The stored

@@ -1,7 +1,7 @@
 using System.Text;
 using Sanet.MakaMek.Core.Data.Game.Mechanics.PhysicalAttacks;
 using Sanet.MakaMek.Core.Models.Game;
-using Sanet.MakaMek.Core.Models.Units;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.PhysicalAttack;
 using Sanet.Localization;
 
 namespace Sanet.MakaMek.Core.Data.Game.Commands.Server;
@@ -43,9 +43,12 @@ public record struct PhysicalAttackResolutionCommand : IGameCommand
             return string.Empty;
 
         // The weapon attack templates read "hits X with {2}", so the attack and limb fill that slot.
+        // A paired-arm attack such as Push has one outcome and no meaningful single limb.
         var attackTypeName = localizationService.GetString($"PhysicalAttackType_{ResolutionData.AttackType}");
-        var limbName = localizationService.GetString($"MechPart_{ResolutionData.AttackerLimb}");
-        var attackName = $"{attackTypeName} ({limbName})";
+        var attackName = PhysicalAttackDefinitions.TryGet(ResolutionData.AttackType, out var definition)
+                         && definition.ResolvesAsSingleAttack
+            ? attackTypeName
+            : $"{attackTypeName} ({localizationService.GetString($"MechPart_{ResolutionData.AttackerLimb}")})";
         var resolution = ResolutionData.AttackResolution;
         var rollTotal = resolution.AttackRoll.Sum(d => d.Result);
         var stringBuilder = new StringBuilder();

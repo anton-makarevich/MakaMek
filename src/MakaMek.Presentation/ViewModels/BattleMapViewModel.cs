@@ -12,6 +12,7 @@ using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Models.Game;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.PhysicalAttack;
 using Sanet.MakaMek.Core.Models.Game.Phases;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Game.Rules;
@@ -802,6 +803,17 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         if (index < 0) return;
 
         var indicator = PhysicalAttackIndicators[index];
+
+        // A paired-arm attack such as Push resolves once for the whole declaration, so its badge
+        // has no per-limb remainder. Punch and Kick still clear one limb per resolution.
+        if (PhysicalAttackDefinitions.TryGet(command.ResolutionData.AttackType, out var definition)
+            && definition.ResolvesAsSingleAttack)
+        {
+            PhysicalAttackIndicators.RemoveAt(index);
+            NotifyPropertyChanged(nameof(PhysicalAttackIndicators));
+            return;
+        }
+
         var remainingLimbs = indicator.PendingLimbs
             .Where(limb => limb != command.ResolutionData.AttackerLimb)
             .ToList();

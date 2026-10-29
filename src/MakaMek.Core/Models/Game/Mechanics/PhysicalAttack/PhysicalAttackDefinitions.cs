@@ -20,7 +20,13 @@ public static class PhysicalAttackDefinitions
             [PhysicalAttackType.Kick] = new(
                 PhysicalAttackType.Kick,
                 [PartLocation.LeftLeg, PartLocation.RightLeg],
-                MaxLimbsPerDeclaration: 1)
+                MaxLimbsPerDeclaration: 1),
+            [PhysicalAttackType.Push] = new(
+                PhysicalAttackType.Push,
+                [PartLocation.LeftArm, PartLocation.RightArm],
+                MaxLimbsPerDeclaration: 2,
+                MinLimbsPerDeclaration: 2,
+                ResolvesAsSingleAttack: true)
         };
 
     /// <summary>
@@ -28,6 +34,13 @@ public static class PhysicalAttackDefinitions
     /// </summary>
     public static IReadOnlyCollection<PhysicalAttackDefinition> Supported { get; } =
         Definitions.Values.ToList();
+
+    /// <summary>
+    /// Whether the attack displaces its target, so it shares the one-displacement-per-target
+    /// limit with Charge and DFA (Total Warfare, p. 148-149).
+    /// </summary>
+    public static bool IsDisplacementAttack(PhysicalAttackType attackType) =>
+        attackType is PhysicalAttackType.Push or PhysicalAttackType.Charge or PhysicalAttackType.DFA;
 
     public static bool TryGet(
         PhysicalAttackType attackType,

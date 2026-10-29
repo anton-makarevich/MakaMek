@@ -83,6 +83,7 @@ A 'Mech punching with one or two arms resolves each arm separately, so the arm-a
 * **Damage:** inflicts **0 points of damage**.
 * **Displacement & advance:** on a hit, the target is pushed 1 hex directly away into the adjacent hex; the attacker automatically advances into the vacated hex at **0 additional MP cost**.
 * **Mandatory PSR:** the pushed target must immediately pass a **Piloting Skill Roll or fall prone**.
+* **Water:** entering water does not add a second roll. The standard water-depth modifier (−1 for Depth 1, 0 for Depth 2, +1 for Depth 3+) applies to the push PSR itself.
 * **Prohibited terrain / blocked hexes:** if the destination hex is prohibited terrain (or blocked by higher elevation), **neither unit moves**, but all other effects occur — including the defender’s mandatory PSR. *(Exception: being pushed into a hex more than 2 levels lower is allowed and results in an automatic fall.)*
 * **Mutual pushes:** if two ’Mechs both declare a push against each other:
     * **Both succeed:** neither ’Mech moves, and **both** must make PSRs to avoid falling.

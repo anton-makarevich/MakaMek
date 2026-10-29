@@ -234,12 +234,13 @@ public class PilotingSkillCalculator : IPilotingSkillCalculator
         }
         else if (context is EnteringDeepWaterRollContext { WaterDepth: > 0 } waterCtx)
         {
-            // Water depth modifier: depth 1 = -1, depth 2 = 0, depth 3+ = +1
-            modifiers.Add(new WaterDepthModifier
-            {
-                Value = _rules.GetWaterDepthModifier(waterCtx.WaterDepth),
-                WaterDepth = waterCtx.WaterDepth
-            });
+            AddWaterDepthModifier(waterCtx.WaterDepth, modifiers);
+        }
+        else if (context is PushHitRollContext { WaterDepth: > 0 } pushWaterCtx)
+        {
+            // A push into water is not a separate roll: the water-entry modifier applies to the
+            // push's own PSR.
+            AddWaterDepthModifier(pushWaterCtx.WaterDepth, modifiers);
         }
         else if (context is SkidCheckRollContext skidCtx)
         {
@@ -250,6 +251,18 @@ public class PilotingSkillCalculator : IPilotingSkillCalculator
             });
         }
         return modifiers;
+    }
+
+    /// <summary>
+    /// Adds the standard water-depth PSR modifier: depth 1 = -1, depth 2 = 0, depth 3+ = +1.
+    /// </summary>
+    private void AddWaterDepthModifier(int waterDepth, List<RollModifier> modifiers)
+    {
+        modifiers.Add(new WaterDepthModifier
+        {
+            Value = _rules.GetWaterDepthModifier(waterDepth),
+            WaterDepth = waterDepth
+        });
     }
 
     /// <summary>

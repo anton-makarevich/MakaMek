@@ -125,6 +125,32 @@ public class PhysicalAttackResolutionCommandTests
     }
 
     [Fact]
+    public void Render_Push_OmitsTheLimbSuffix()
+    {
+        // Arrange: a Push resolves once for both arms, so naming one limb would be misleading
+        var sut = new PhysicalAttackResolutionCommand
+        {
+            ResolutionId = Guid.NewGuid(),
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = _player1.Id,
+            AttackerId = _attacker.Id,
+            TargetId = _target.Id,
+            ResolutionData = new PhysicalAttackResolutionData(
+                PhysicalAttackType.Push,
+                PartLocation.LeftArm,
+                0,
+                new AttackResolutionData(9, [new DiceResult(2), new DiceResult(3)], false, HitDirection.Front, 0),
+                [])
+        };
+
+        // Act
+        var result = sut.Render(_localizationService, _game);
+
+        // Assert
+        result.ShouldBe("Player 1's LCT-1V misses Player 2's LCT-1V with Push (Target: 9, Roll: 5)");
+    }
+
+    [Fact]
     public void Render_UnknownAttacker_IsEmpty()
     {
         // Arrange
@@ -133,6 +159,74 @@ public class PhysicalAttackResolutionCommandTests
 
         // Act + Assert
         sut.Render(_localizationService, _game).ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void Render_UnknownPlayer_IsEmpty()
+    {
+        // Arrange
+        var sut = CreateCommand(new AttackResolutionData(
+            9, [new DiceResult(2), new DiceResult(3)], false, HitDirection.Front, 0)) with { PlayerId = Guid.NewGuid() };
+
+        // Act + Assert
+        sut.Render(_localizationService, _game).ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void Render_UnknownTarget_IsEmpty()
+    {
+        // Arrange
+        var sut = CreateCommand(new AttackResolutionData(
+            9, [new DiceResult(2), new DiceResult(3)], false, HitDirection.Front, 0)) with { TargetId = Guid.NewGuid() };
+
+        // Act + Assert
+        sut.Render(_localizationService, _game).ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void Render_AttackWithoutASupportedDefinition_StillNamesTheLimb()
+    {
+        // Arrange: Charge has no physical attack definition yet, so it keeps the limb suffix
+        var sut = new PhysicalAttackResolutionCommand
+        {
+            ResolutionId = Guid.NewGuid(),
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = _player1.Id,
+            AttackerId = _attacker.Id,
+            TargetId = _target.Id,
+            ResolutionData = new PhysicalAttackResolutionData(
+                PhysicalAttackType.Charge,
+                PartLocation.RightLeg,
+                0,
+                new AttackResolutionData(9, [new DiceResult(2), new DiceResult(3)], false, HitDirection.Front, 0),
+                [])
+        };
+
+        // Act
+        var result = sut.Render(_localizationService, _game);
+
+        // Assert
+        result.ShouldContain("with Charge (Right Leg)");
+    }
+
+    [Fact]
+    public void Render_HitWithoutHitLocations_OmitsTheHitLocationSection()
+    {
+        // Arrange
+        var sut = CreateCommand(new AttackResolutionData(
+            5,
+            [new DiceResult(4), new DiceResult(4)],
+            true,
+            HitDirection.Front,
+            0,
+            new AttackHitLocationsData([], 0, [], 0)));
+
+        // Act
+        var result = sut.Render(_localizationService, _game);
+
+        // Assert
+        result.ShouldContain("Total Damage: 0");
+        result.ShouldNotContain("Hit Locations:");
     }
 
     private PhysicalAttackResolutionCommand CreateCommand(AttackResolutionData resolution) => new()

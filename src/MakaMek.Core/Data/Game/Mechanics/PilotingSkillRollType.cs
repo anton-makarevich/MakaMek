@@ -78,5 +78,10 @@ public enum PilotingSkillRollType
     /// <summary>
     /// PSR required of a 'Mech whose kick missed.
     /// </summary>
-    KickMiss
+    KickMiss,
+
+    /// <summary>
+    /// PSR required of a 'Mech that was successfully pushed.
+    /// </summary>
+    PushHit
 }

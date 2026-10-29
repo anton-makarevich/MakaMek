@@ -12,6 +12,12 @@ public record struct DisplaceUnitCommand : IGameCommand
     public required HexCoordinateData ToCoordinates { get; init; }
     public int NewFacing { get; init; }
     public DisplacementReason DisplacementReason { get; init; }
+
+    /// <summary>
+    /// The surface the unit ends up on, defaulting to the ground. Required when a unit is pushed
+    /// along the deck of a bridge rather than dropping to the ground below it.
+    /// </summary>
+    public int Surface { get; init; } // HexSurface.Ground
     public required Guid GameOriginId { get; set; }
     public DateTime Timestamp { get; set; }
 

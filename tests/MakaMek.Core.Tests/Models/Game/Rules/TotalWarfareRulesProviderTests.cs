@@ -63,18 +63,30 @@ public class TotalWarfareRulesProviderTests
     [Theory]
     [InlineData(PhysicalAttackType.Punch, 0)]
     [InlineData(PhysicalAttackType.Kick, -2)]
+    [InlineData(PhysicalAttackType.Push, -1)]
     public void GetPhysicalAttackBaseModifier_ShouldReturnExpectedValues(PhysicalAttackType attackType, int expectedModifier)
     {
         _sut.GetPhysicalAttackBaseModifier(attackType).ShouldBe(expectedModifier);
     }
 
     [Theory]
-    [InlineData(PhysicalAttackType.Push)]
     [InlineData(PhysicalAttackType.Charge)]
     [InlineData(PhysicalAttackType.DFA)]
     public void GetPhysicalAttackBaseModifier_UnsupportedAttackType_ThrowsNotSupportedException(PhysicalAttackType attackType)
     {
         Should.Throw<NotSupportedException>(() => _sut.GetPhysicalAttackBaseModifier(attackType));
+    }
+
+    [Fact]
+    public void GetPushDamagedShoulderModifier_ReturnsTwoPerShoulder()
+    {
+        _sut.GetPushDamagedShoulderModifier().ShouldBe(2);
+    }
+
+    [Fact]
+    public void GetMaxDisplacementDropWithoutAutomaticFall_ReturnsTwo()
+    {
+        _sut.GetMaxDisplacementDropWithoutAutomaticFall().ShouldBe(2);
     }
 
     #endregion
@@ -93,6 +105,8 @@ public class TotalWarfareRulesProviderTests
     [InlineData(55, PhysicalAttackType.Kick, 0, 11)]
     [InlineData(55, PhysicalAttackType.Kick, 1, 5)]
     [InlineData(55, PhysicalAttackType.Kick, 2, 2)]
+    [InlineData(20, PhysicalAttackType.Push, 0, 0)]
+    [InlineData(100, PhysicalAttackType.Push, 2, 0)]
     public void GetPhysicalAttackDamage_ShouldReturnExpectedValues(
         int tonnage,
         PhysicalAttackType attackType,
@@ -103,7 +117,6 @@ public class TotalWarfareRulesProviderTests
     }
 
     [Theory]
-    [InlineData(PhysicalAttackType.Push)]
     [InlineData(PhysicalAttackType.Charge)]
     [InlineData(PhysicalAttackType.DFA)]
     public void GetPhysicalAttackDamage_UnsupportedAttackType_ThrowsNotSupportedException(
@@ -146,8 +159,24 @@ public class TotalWarfareRulesProviderTests
         _sut.GetPhysicalAttackPsrRequirements(PhysicalAttackType.Punch, isHit).ShouldBeEmpty();
     }
 
+    [Fact]
+    public void GetPhysicalAttackPsrRequirements_WhenAPushHits_ReturnsTargetPushHitRequirement()
+    {
+        var requirements = _sut.GetPhysicalAttackPsrRequirements(PhysicalAttackType.Push, isHit: true);
+
+        requirements.Count.ShouldBe(1);
+        requirements[0].ShouldBe(new PhysicalAttackPsrRequirement(
+            PhysicalAttackParticipant.Target,
+            PilotingSkillRollType.PushHit));
+    }
+
+    [Fact]
+    public void GetPhysicalAttackPsrRequirements_WhenAPushMisses_ReturnsNoRequirement()
+    {
+        _sut.GetPhysicalAttackPsrRequirements(PhysicalAttackType.Push, isHit: false).ShouldBeEmpty();
+    }
+
     [Theory]
-    [InlineData(PhysicalAttackType.Push)]
     [InlineData(PhysicalAttackType.Charge)]
     [InlineData(PhysicalAttackType.DFA)]
     public void GetPhysicalAttackPsrRequirements_UnsupportedAttackType_ThrowsNotSupportedException(
@@ -282,8 +311,16 @@ public class TotalWarfareRulesProviderTests
         _sut.GetPhysicalAttackReducingActuators(attackType, limbComponents).ShouldBe(expectedCount, scenario);
     }
 
+    [Fact]
+    public void GetPhysicalAttackReducingActuators_ForAPush_ReturnsZero()
+    {
+        _sut.GetPhysicalAttackReducingActuators(PhysicalAttackType.Push,
+            Components(
+                (MakaMekComponent.UpperArmActuator, true),
+                (MakaMekComponent.LowerArmActuator, true))).ShouldBe(0);
+    }
+
     [Theory]
-    [InlineData(PhysicalAttackType.Push)]
     [InlineData(PhysicalAttackType.Charge)]
     [InlineData(PhysicalAttackType.DFA)]
     public void GetPhysicalAttackReducingActuators_UnsupportedAttackType_ThrowsNotSupportedException(
@@ -926,6 +963,7 @@ public class TotalWarfareRulesProviderTests
     [InlineData(PilotingSkillRollType.RubbleEntry, 0)]
     [InlineData(PilotingSkillRollType.KickHit, 0)]
     [InlineData(PilotingSkillRollType.KickMiss, 0)]
+    [InlineData(PilotingSkillRollType.PushHit, 0)]
     public void GetPilotingSkillRollModifier_ValidTypes_ShouldReturnExpectedValues(PilotingSkillRollType rollType,
         int expectedModifier)
     {
@@ -962,6 +1000,7 @@ public class TotalWarfareRulesProviderTests
     [InlineData(PilotingSkillRollType.UpperLegActuatorHit)]
     [InlineData(PilotingSkillRollType.KickHit)]
     [InlineData(PilotingSkillRollType.KickMiss)]
+    [InlineData(PilotingSkillRollType.PushHit)]
     [InlineData(PilotingSkillRollType.PilotDamageFromFall)]
     [InlineData(PilotingSkillRollType.StandupAttempt)]
     [InlineData(PilotingSkillRollType.JumpWithDamage)]

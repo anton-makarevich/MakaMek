@@ -312,13 +312,24 @@ public class PhysicalAttackState : IUiState, ICombatSelectionRoles
 
             if (_currentStep == PhysicalAttackStep.ActionSelection)
             {
-                foreach (var attackType in _availableAttackTypes)
+                // Punch and Kick stay hidden when unavailable. Push is always offered for a
+                // selected attacker, disabled with a reason when it cannot be used.
+                var pushRestriction = GetPushRestriction();
+                foreach (var attackType in SupportedAttackTypes)
                 {
+                    var isPush = attackType == PhysicalAttackType.Push;
+                    if (!isPush && !_availableAttackTypes.Contains(attackType)) continue;
+
+                    var restriction = isPush ? pushRestriction : null;
                     var type = attackType;
                     actions.Add(new StateAction(
                         GetString($"PhysicalAttackType_{type}"),
                         true,
-                        () => SelectAttackType(type)));
+                        () => SelectAttackType(type),
+                        restriction is null,
+                        restriction is { } value
+                            ? GetString($"PhysicalAttackRestriction_{value}")
+                            : null));
                 }
             }
             else if (_currentStep == PhysicalAttackStep.TargetSelection)
@@ -342,6 +353,7 @@ public class PhysicalAttackState : IUiState, ICombatSelectionRoles
     private void SelectAttackType(PhysicalAttackType attackType)
     {
         if (!this.CanHumanPlayerAct()) return;
+        if (!IsAttackTypeEnabled(attackType)) return; // A disabled action does nothing.
 
         lock (_stateLock)
         {
@@ -451,6 +463,50 @@ public class PhysicalAttackState : IUiState, ICombatSelectionRoles
         _viewModel.Units.FirstOrDefault(unit => unit.Position?.Coordinates == hex.Coordinates);
 
     /// <summary>
+    /// Whether an action can be selected. Push is the only attack that can be visible but
+    /// disabled, so it is the only one whose availability is re-checked here.
+    /// </summary>
+    private bool IsAttackTypeEnabled(PhysicalAttackType attackType)
+    {
+        lock (_stateLock)
+        {
+            if (!_availableAttackTypes.Contains(attackType)) return false;
+            if (attackType != PhysicalAttackType.Push) return true;
+        }
+
+        return GetPushRestriction() is null;
+    }
+
+    /// <summary>
+    /// Why Push cannot be made by the selected attacker right now, or null when it can. The
+    /// budget is checked after eligibility so an already reserved target reports
+    /// <see cref="PhysicalAttackRestriction.TargetAlreadyDisplaced"/>.
+    /// </summary>
+    private PhysicalAttackRestriction? GetPushRestriction()
+    {
+        IUnit? attacker;
+        lock (_stateLock) attacker = _attacker;
+
+        if (attacker?.Position is not { } attackerPosition || Game.BattleMap is not { } map)
+            return PhysicalAttackRestriction.NoTargetInFront;
+
+        var frontHex = attackerPosition.Coordinates.GetNeighbour(attackerPosition.Facing);
+        var target = _viewModel.Units.FirstOrDefault(unit =>
+            !ReferenceEquals(unit, attacker) && unit.Position?.Coordinates == frontHex);
+
+        if (target is null) return PhysicalAttackRestriction.NoTargetInFront;
+
+        var restriction = Game.PhysicalAttackEligibility
+            .GetRestriction(attacker, target, PhysicalAttackType.Push, map);
+        if (restriction is not null) return restriction;
+
+        var allUnits = Game.Players.SelectMany(player => player.Units);
+        return PhysicalAttackDisplacementBudget.IsReserved(target.Id, allUnits)
+            ? PhysicalAttackRestriction.TargetAlreadyDisplaced
+            : null;
+    }
+
+    /// <summary>
     /// Highlights every hex that holds a unit the attacker can reach with any of the given attack types.
     /// The labels are the localized attack type names, matching the weapon reach highlight convention.
     /// </summary>
@@ -546,8 +602,23 @@ public class PhysicalAttackState : IUiState, ICombatSelectionRoles
             limbs = eligibleLimbs;
         }
 
+        var definition = PhysicalAttackDefinitions.Get(attackType);
         var typeName = GetString($"PhysicalAttackType_{attackType}");
         var options = new List<(string Label, IReadOnlyList<PartLocation> Limbs)>(limbs.Count + 1);
+
+        // An attack that needs all of its limbs resolves as one action with one declaration,
+        // so Push offers a single "Both Arms" option instead of one option per arm.
+        if (definition.MinLimbsPerDeclaration > 1)
+        {
+            if (limbs.Count < definition.MinLimbsPerDeclaration) return options;
+
+            var pairedLabel = string.Format(
+                GetString("Action_DeclarePhysicalAttack_WithLimb"),
+                typeName,
+                GetString("PhysicalAttack_BothArms"));
+            options.Add((pairedLabel, limbs.Take(definition.MinLimbsPerDeclaration).ToList()));
+            return options;
+        }
 
         foreach (var limb in limbs)
         {
@@ -600,6 +671,10 @@ public class PhysicalAttackState : IUiState, ICombatSelectionRoles
     private void Declare(IReadOnlyList<PartLocation> limbs)
     {
         if (!this.CanHumanPlayerAct()) return;
+
+        PhysicalAttackType? selectedType;
+        lock (_stateLock) selectedType = _selectedAttackType;
+        if (selectedType is not { } type || !IsAttackTypeEnabled(type)) return;
 
         lock (_stateLock)
         {

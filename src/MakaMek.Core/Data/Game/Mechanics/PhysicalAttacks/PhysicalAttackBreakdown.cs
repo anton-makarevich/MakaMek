@@ -37,8 +37,8 @@ public record PhysicalAttackBreakdown
 
     /// <summary>
     /// List of other modifiers with descriptions. Holds target-side modifiers
-    /// (partial cover +1, skidding target +2) and the attacker-side skidding modifier (+1),
-    /// and is the extension point for PushDamagedShoulderModifier (M2),
+    /// (partial cover +1, skidding target +2), the attacker-side skidding modifier (+1) and the
+    /// per-damaged-shoulder Push modifier (+2 each), and is the extension point for
     /// ChargePilotingDifferenceModifier and DfaJumpModifier (M3).
     /// </summary>
     public required IReadOnlyList<RollModifier> OtherModifiers { get; init; }

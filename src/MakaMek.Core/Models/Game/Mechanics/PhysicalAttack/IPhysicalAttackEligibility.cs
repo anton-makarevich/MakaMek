@@ -40,4 +40,12 @@ public interface IPhysicalAttackEligibility
     /// whatever the odds of hitting.
     /// </summary>
     bool HasAnyOption(IUnit attacker, IEnumerable<IUnit> units, IBattleMap map);
+
+    /// <summary>
+    /// Why this attack cannot be made against this target, or null when it can. Push uses this to
+    /// explain a disabled action; the displacement budget is checked separately by
+    /// <see cref="PhysicalAttackDisplacementBudget"/>.
+    /// </summary>
+    PhysicalAttackRestriction? GetRestriction(IUnit attacker, IUnit target, PhysicalAttackType attackType,
+        IBattleMap map);
 }

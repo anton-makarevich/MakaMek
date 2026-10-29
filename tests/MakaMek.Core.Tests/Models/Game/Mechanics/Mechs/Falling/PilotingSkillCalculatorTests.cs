@@ -678,6 +678,43 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics.Mechs.Falling
             result.ModifiedPilotingSkill.ShouldBe(mech.Pilot.Piloting + expectedModifierValue);
         }
 
+        [Theory]
+        [InlineData(1, -1)]
+        [InlineData(2, 0)]
+        [InlineData(3, 1)]
+        public void GetPsrBreakdown_PushIntoWater_AddsWaterDepthModifierToThePushRoll(
+            int waterDepth, int expectedModifierValue)
+        {
+            // Arrange
+            var torso = new CenterTorso("Test Torso", 10, 3, 5);
+            var mech = new Mech("Test", "TST-1A", 50, [torso]);
+            mech.AssignPilot(new MechWarrior("John", "Doe"));
+            _mockRulesProvider.GetWaterDepthModifier(waterDepth).Returns(expectedModifierValue);
+
+            // Act
+            var result = _sut.GetPsrBreakdown(mech, new PushHitRollContext(waterDepth));
+
+            // Assert
+            result.Modifiers.ShouldContain(m => m is WaterDepthModifier);
+            var waterModifier = result.Modifiers.OfType<WaterDepthModifier>().Single();
+            waterModifier.Value.ShouldBe(expectedModifierValue);
+            waterModifier.WaterDepth.ShouldBe(waterDepth);
+            result.ModifiedPilotingSkill.ShouldBe(mech.Pilot!.Piloting + expectedModifierValue);
+        }
+
+        [Fact]
+        public void GetPsrBreakdown_PushIntoWater_DoesNotAddASecondWaterEntryRoll()
+        {
+            var torso = new CenterTorso("Test Torso", 10, 3, 5);
+            var mech = new Mech("Test", "TST-1A", 50, [torso]);
+            mech.AssignPilot(new MechWarrior("John", "Doe"));
+            _mockRulesProvider.GetWaterDepthModifier(1).Returns(-1);
+
+            var result = _sut.GetPsrBreakdown(mech, new PushHitRollContext(1));
+
+            result.Modifiers.OfType<WaterDepthModifier>().Count().ShouldBe(1);
+        }
+
         [Fact]
         public void GetPsrBreakdown_WaterEntry_WithDamagedGyro_IncludesBothModifiers()
         {

@@ -402,9 +402,12 @@ namespace Sanet.MakaMek.Avalonia.Controls
                 var button = new Button
                 {
                     HorizontalAlignment = HorizontalAlignment.Stretch,
-                    Content = action.Label
+                    Content = action.Label,
+                    IsEnabled = action.IsEnabled
                 };
                 button.Classes.Add("actionButtonText");
+                if (action.DisabledReason is { } disabledReason)
+                    ToolTip.SetTip(button, disabledReason);
 
                 button.Click += (_, _) =>
                 {

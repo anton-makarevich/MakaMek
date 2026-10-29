@@ -1344,6 +1344,39 @@ public class BattleMapViewModelTests
     }
 
     [Fact]
+    public void UnitSpriteService_ShouldBeNull_WhenNotProvided()
+    {
+        // Arrange & Act - _sut is constructed without unitSpriteService parameter
+        var unitSpriteService = _sut.UnitSpriteService;
+
+        // Assert
+        unitSpriteService.ShouldBeNull();
+    }
+
+    [Fact]
+    public void UnitSpriteService_ShouldBeInitialized_WhenProvided()
+    {
+        // Arrange
+        var unitSpriteService = Substitute.For<IUnitSpriteService>();
+        var dispatcherService = Substitute.For<IDispatcherService>();
+        dispatcherService.RunOnUIThread(Arg.InvokeDelegate<Action>());
+        dispatcherService.Scheduler.Returns(Scheduler.Immediate);
+
+        // Act
+        var viewModel = new BattleMapViewModel(
+            Substitute.For<IImageService>(),
+            Substitute.For<ITerrainAssetService>(),
+            _localizationService,
+            dispatcherService,
+            Substitute.For<IRulesProvider>(),
+            Substitute.For<IPlatformService>(),
+            unitSpriteService: unitSpriteService);
+
+        // Assert
+        viewModel.UnitSpriteService.ShouldBe(unitSpriteService);
+    }
+
+    [Fact]
     public void TerrainBitmaskService_ShouldBeNull_WhenNotProvided()
     {
         // Arrange & Act - _sut is constructed without terrainBitmaskService parameter
@@ -3161,6 +3194,21 @@ public class BattleMapViewModelTests
 
         // Act
         ResolvePhysicalAttack(attacker, target, PhysicalAttackType.Punch, PartLocation.RightArm);
+
+        // Assert
+        _sut.PhysicalAttackIndicators.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void PhysicalAttackResolution_OfAPairedArmPush_RemovesTheIndicatorInOneGo()
+    {
+        // Arrange - a Push resolves as one attack for the whole declaration
+        var (attacker, target) = DeployPhysicalAttackers();
+        DeclarePhysicalAttack(attacker, target, PhysicalAttackType.Push,
+            [PartLocation.LeftArm, PartLocation.RightArm]);
+
+        // Act
+        ResolvePhysicalAttack(attacker, target, PhysicalAttackType.Push, PartLocation.LeftArm);
 
         // Assert
         _sut.PhysicalAttackIndicators.ShouldBeEmpty();

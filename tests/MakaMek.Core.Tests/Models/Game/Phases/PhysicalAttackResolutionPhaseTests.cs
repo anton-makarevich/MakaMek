@@ -23,6 +23,10 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Phases;
 
 public class PhysicalAttackResolutionPhaseTests : GamePhaseTestsBase
 {
+    private static readonly HexCoordinates AttackerHex = new(5, 5);
+    private static readonly HexCoordinates TargetHex = AttackerHex.GetNeighbour(HexDirection.Top);
+    private static readonly HexCoordinates DestinationHex = TargetHex.GetNeighbour(HexDirection.Top);
+
     private PhysicalAttackResolutionPhase _sut = null!;
     private IGamePhase _mockNextPhase = null!;
     private readonly Guid _player1Id = Guid.NewGuid();
@@ -588,8 +592,282 @@ public class PhysicalAttackResolutionPhaseTests : GamePhaseTestsBase
         MockConsciousnessCalculator.Received(2).MakeConsciousnessRolls(_player2Mech.Pilot!);
     }
 
+    [Fact]
+    public void Enter_PairedPush_ResolvesOnceForTheWholeDeclaration()
+    {
+        // Arrange
+        SetMap();
+        Declare(_player1Mech, _player2Mech, PhysicalAttackType.Push, PartLocation.LeftArm, PartLocation.RightArm);
+        MockPhysicalAttackResolver.ResolveAttack(Arg.Any<PhysicalAttackContext>())
+            .Returns(PushHit());
+
+        // Act
+        _sut.Enter();
+
+        // Assert
+        MockPhysicalAttackResolver.Received(1).ResolveAttack(Arg.Is<PhysicalAttackContext>(c =>
+            c.AttackType == PhysicalAttackType.Push
+            && c.AttackerLimb == PartLocation.LeftArm));
+        PublishedCommands().OfType<PhysicalAttackResolutionCommand>().ShouldHaveSingleItem();
+    }
+
+    [Fact]
+    public void Enter_PushHit_DisplacesTheTargetAndAdvancesTheAttacker()
+    {
+        // Arrange
+        SetMap();
+        Declare(_player1Mech, _player2Mech, PhysicalAttackType.Push, PartLocation.LeftArm, PartLocation.RightArm);
+        MockPhysicalAttackResolver.ResolveAttack(Arg.Any<PhysicalAttackContext>())
+            .Returns(PushHit());
+
+        // Act
+        _sut.Enter();
+
+        // Assert
+        var displacements = PublishedCommands().OfType<DisplaceUnitCommand>().ToList();
+        displacements.Count.ShouldBe(2);
+        displacements[0].UnitId.ShouldBe(_player2Mech.Id);
+        displacements[0].ToCoordinates.ShouldBe(DestinationHex.ToData());
+        displacements[0].DisplacementReason.ShouldBe(DisplacementReason.Push);
+        displacements[1].UnitId.ShouldBe(_player1Mech.Id);
+        displacements[1].ToCoordinates.ShouldBe(TargetHex.ToData());
+        displacements[1].DisplacementReason.ShouldBe(DisplacementReason.PushAdvance);
+
+        _player2Mech.Position!.Coordinates.ShouldBe(DestinationHex);
+        _player2Mech.Position.Facing.ShouldBe(HexDirection.Bottom);
+        _player1Mech.Position!.Coordinates.ShouldBe(TargetHex);
+        _player1Mech.Position.Facing.ShouldBe(HexDirection.Top);
+    }
+
+    [Fact]
+    public void Enter_PushHit_RollsTheTargetPushHitPsrAfterTheDisplacement()
+    {
+        // Arrange
+        SetMap();
+        Declare(_player1Mech, _player2Mech, PhysicalAttackType.Push, PartLocation.LeftArm, PartLocation.RightArm);
+        MockPhysicalAttackResolver.ResolveAttack(Arg.Any<PhysicalAttackContext>())
+            .Returns(PushHit());
+
+        // Act
+        _sut.Enter();
+
+        // Assert
+        Received.InOrder(() =>
+        {
+            CommandPublisher.Received().PublishCommand(Arg.Is<DisplaceUnitCommand>(c =>
+                c.UnitId == _player2Mech.Id && c.DisplacementReason == DisplacementReason.Push));
+            MockFallProcessor.Received(1).ProcessPotentialFall(
+                _player2Mech, Game, Arg.Any<List<ComponentHitData>>(), Arg.Any<List<PartLocation>?>(),
+                Arg.Is<IReadOnlyList<PilotingSkillRollContext>?>(contexts =>
+                    contexts != null
+                    && contexts.Count == 1
+                    && contexts[0].RollType == PilotingSkillRollType.PushHit
+                    && ((PushHitRollContext)contexts[0]).WaterDepth == 0));
+        });
+    }
+
+    [Fact]
+    public void Enter_PushIntoWater_AddsTheWaterDepthModifierToThePushPsr()
+    {
+        // Arrange: the destination is Depth 1 water at the same hex level
+        SetMap();
+        var waterHex = new Hex(DestinationHex);
+        waterHex.AddTerrain(new WaterTerrain(-1));
+        Game.BattleMap!.AddHex(waterHex);
+        Declare(_player1Mech, _player2Mech, PhysicalAttackType.Push, PartLocation.LeftArm, PartLocation.RightArm);
+        MockPhysicalAttackResolver.ResolveAttack(Arg.Any<PhysicalAttackContext>())
+            .Returns(PushHit());
+
+        // Act
+        _sut.Enter();
+
+        // Assert: still one push roll, carrying the water depth instead of an extra water-entry roll
+        _player2Mech.Position!.Coordinates.ShouldBe(DestinationHex);
+        _player2Mech.Position.Surface.ShouldBe(HexSurface.Ground);
+        MockFallProcessor.Received(1).ProcessPotentialFall(
+            _player2Mech, Game, Arg.Any<List<ComponentHitData>>(), Arg.Any<List<PartLocation>?>(),
+            Arg.Is<IReadOnlyList<PilotingSkillRollContext>?>(contexts =>
+                contexts != null
+                && contexts.Count == 1
+                && contexts[0].RollType == PilotingSkillRollType.PushHit
+                && ((PushHitRollContext)contexts[0]).WaterDepth == 1));
+    }
+
+    [Fact]
+    public void Enter_MutualPushBothHit_NeitherMovesAndBothRoll()
+    {
+        // Arrange
+        SetMap();
+        Declare(_player1Mech, _player2Mech, PhysicalAttackType.Push, PartLocation.LeftArm, PartLocation.RightArm);
+        Declare(_player2Mech, _player1Mech, PhysicalAttackType.Push, PartLocation.LeftArm, PartLocation.RightArm);
+        MockPhysicalAttackResolver.ResolveAttack(Arg.Any<PhysicalAttackContext>())
+            .Returns(PushHit());
+
+        // Act
+        _sut.Enter();
+
+        // Assert
+        PublishedCommands().OfType<DisplaceUnitCommand>().ShouldBeEmpty();
+        _player1Mech.Position!.Coordinates.ShouldBe(AttackerHex);
+        _player2Mech.Position!.Coordinates.ShouldBe(TargetHex);
+        MockFallProcessor.Received(1).ProcessPotentialFall(
+            _player1Mech, Game, Arg.Any<List<ComponentHitData>>(), Arg.Any<List<PartLocation>?>(),
+            Arg.Is<IReadOnlyList<PilotingSkillRollContext>?>(contexts =>
+                contexts != null && contexts.Single().RollType == PilotingSkillRollType.PushHit));
+        MockFallProcessor.Received(1).ProcessPotentialFall(
+            _player2Mech, Game, Arg.Any<List<ComponentHitData>>(), Arg.Any<List<PartLocation>?>(),
+            Arg.Is<IReadOnlyList<PilotingSkillRollContext>?>(contexts =>
+                contexts != null && contexts.Single().RollType == PilotingSkillRollType.PushHit));
+    }
+
+    [Fact]
+    public void Enter_MutualPushOnlyOneHits_IsResolvedAsAStandardPush()
+    {
+        // Arrange: player 2 resolves first and misses, player 1 hits
+        SetMap();
+        Declare(_player1Mech, _player2Mech, PhysicalAttackType.Push, PartLocation.LeftArm, PartLocation.RightArm);
+        Declare(_player2Mech, _player1Mech, PhysicalAttackType.Push, PartLocation.LeftArm, PartLocation.RightArm);
+        MockPhysicalAttackResolver.ResolveAttack(Arg.Is<PhysicalAttackContext>(c => c.Attacker == _player1Mech))
+            .Returns(PushHit());
+        MockPhysicalAttackResolver.ResolveAttack(Arg.Is<PhysicalAttackContext>(c => c.Attacker == _player2Mech))
+            .Returns(PushMiss());
+
+        // Act
+        _sut.Enter();
+
+        // Assert
+        var displacements = PublishedCommands().OfType<DisplaceUnitCommand>().ToList();
+        displacements.Count.ShouldBe(2);
+        displacements.ShouldAllBe(c =>
+            c.DisplacementReason == DisplacementReason.Push
+            || c.DisplacementReason == DisplacementReason.PushAdvance);
+        _player2Mech.Position!.Coordinates.ShouldBe(DestinationHex);
+        _player1Mech.Position!.Coordinates.ShouldBe(TargetHex);
+    }
+
+    [Fact]
+    public void Enter_MutualPushBothMiss_NothingHappens()
+    {
+        // Arrange
+        SetMap();
+        Declare(_player1Mech, _player2Mech, PhysicalAttackType.Push, PartLocation.LeftArm, PartLocation.RightArm);
+        Declare(_player2Mech, _player1Mech, PhysicalAttackType.Push, PartLocation.LeftArm, PartLocation.RightArm);
+        MockPhysicalAttackResolver.ResolveAttack(Arg.Any<PhysicalAttackContext>())
+            .Returns(PushMiss());
+
+        // Act
+        _sut.Enter();
+
+        // Assert
+        PublishedCommands().OfType<DisplaceUnitCommand>().ShouldBeEmpty();
+        MockFallProcessor.DidNotReceive().ProcessPotentialFall(
+            Arg.Any<Mech>(), Arg.Any<IGame>(), Arg.Any<List<ComponentHitData>>(),
+            Arg.Any<List<PartLocation>?>(),
+            Arg.Is<IReadOnlyList<PilotingSkillRollContext>?>(contexts => contexts != null
+                && contexts.Any(context => context.RollType == PilotingSkillRollType.PushHit)));
+    }
+
+    [Fact]
+    public void Enter_BlockedPushDestination_KeepsBothUnitsButStillRollsTheTargetPsr()
+    {
+        // Arrange: the destination hex is higher than the target's standing level
+        SetMap();
+        Game.BattleMap!.AddHex(new Hex(DestinationHex, 1));
+        Declare(_player1Mech, _player2Mech, PhysicalAttackType.Push, PartLocation.LeftArm, PartLocation.RightArm);
+        MockPhysicalAttackResolver.ResolveAttack(Arg.Any<PhysicalAttackContext>())
+            .Returns(PushHit());
+
+        // Act
+        _sut.Enter();
+
+        // Assert
+        PublishedCommands().OfType<DisplaceUnitCommand>().ShouldBeEmpty();
+        _player1Mech.Position!.Coordinates.ShouldBe(AttackerHex);
+        _player2Mech.Position!.Coordinates.ShouldBe(TargetHex);
+        MockFallProcessor.Received(1).ProcessPotentialFall(
+            _player2Mech, Game, Arg.Any<List<ComponentHitData>>(), Arg.Any<List<PartLocation>?>(),
+            Arg.Is<IReadOnlyList<PilotingSkillRollContext>?>(contexts =>
+                contexts != null && contexts.Single().RollType == PilotingSkillRollType.PushHit));
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    public void Enter_PushDropOfOneOrTwoLevels_MovesTheUnitsWithoutAFall(int levelsFallen)
+    {
+        // Arrange
+        SetMap();
+        var targetLevel = levelsFallen;
+        Game.BattleMap!.AddHex(new Hex(AttackerHex, targetLevel));
+        Game.BattleMap.AddHex(new Hex(TargetHex, targetLevel));
+        Declare(_player1Mech, _player2Mech, PhysicalAttackType.Push, PartLocation.LeftArm, PartLocation.RightArm);
+        MockPhysicalAttackResolver.ResolveAttack(Arg.Any<PhysicalAttackContext>())
+            .Returns(PushHit());
+
+        // Act
+        _sut.Enter();
+
+        // Assert
+        PublishedCommands().OfType<DisplaceUnitCommand>().Count().ShouldBe(2);
+        _player2Mech.Position!.Coordinates.ShouldBe(DestinationHex);
+        MockFallProcessor.DidNotReceive().ProcessMovementAttempt(
+            Arg.Any<Mech>(), Arg.Any<PilotingSkillRollContext>(), Arg.Any<IGame>(),
+            Arg.Any<MovementType>(), Arg.Any<HexPosition?>());
+    }
+
+    [Fact]
+    public void Enter_PushDropOfMoreThanTwoLevels_TriggersAnAutomaticFall()
+    {
+        // Arrange: attacker and target stand at level 3, the destination is at level 0
+        SetMap();
+        Game.BattleMap!.AddHex(new Hex(AttackerHex, 3));
+        Game.BattleMap.AddHex(new Hex(TargetHex, 3));
+        Declare(_player1Mech, _player2Mech, PhysicalAttackType.Push, PartLocation.LeftArm, PartLocation.RightArm);
+        MockPhysicalAttackResolver.ResolveAttack(Arg.Any<PhysicalAttackContext>())
+            .Returns(PushHit());
+        Game.DiceRoller.RollD6().Returns(new DiceResult(1));
+        MockFallProcessor.ProcessMovementAttempt(
+                _player2Mech, Arg.Any<PilotingSkillRollContext>(), Game, Arg.Any<MovementType>(),
+                Arg.Any<HexPosition?>())
+            .Returns(new FallContextData
+            {
+                UnitId = _player2Mech.Id,
+                GameId = Game.Id,
+                IsFalling = true,
+                LevelsFallen = 3,
+                FallingDamageData = new FallingDamageData(
+                    HexDirection.Bottom,
+                    new HitLocationsData([], 0),
+                    new DiceResult(1),
+                    HitDirection.Front)
+            });
+        MockConsciousnessCalculator.MakeConsciousnessRolls(_player2Mech.Pilot!).Returns([]);
+
+        // Act
+        _sut.Enter();
+
+        // Assert
+        _player2Mech.Position!.Coordinates.ShouldBe(DestinationHex);
+        _player2Mech.IsProne.ShouldBeTrue();
+        PublishedCommands().OfType<MechFallCommand>().ShouldHaveSingleItem()
+            .UnitId.ShouldBe(_player2Mech.Id);
+    }
+
     private static readonly IReadOnlyList<PhysicalAttackPsrRequirement> KickHitRequirement =
         [new PhysicalAttackPsrRequirement(PhysicalAttackParticipant.Target, PilotingSkillRollType.KickHit)];
+
+    private static readonly IReadOnlyList<PhysicalAttackPsrRequirement> PushHitRequirement =
+        [new PhysicalAttackPsrRequirement(PhysicalAttackParticipant.Target, PilotingSkillRollType.PushHit)];
+
+    private static PhysicalAttackResolutionData PushHit() =>
+        new(PhysicalAttackType.Push, PartLocation.LeftArm, 0,
+            new AttackResolutionData(8, [new DiceResult(6), new DiceResult(6)], true, HitDirection.Front, 0),
+            PushHitRequirement);
+
+    private static PhysicalAttackResolutionData PushMiss() =>
+        new(PhysicalAttackType.Push, PartLocation.LeftArm, 0,
+            new AttackResolutionData(8, [new DiceResult(2), new DiceResult(3)], false, HitDirection.Front, 0),
+            []);
 
     private static readonly IReadOnlyList<PhysicalAttackPsrRequirement> KickMissRequirement =
         [new PhysicalAttackPsrRequirement(PhysicalAttackParticipant.Attacker, PilotingSkillRollType.KickMiss)];

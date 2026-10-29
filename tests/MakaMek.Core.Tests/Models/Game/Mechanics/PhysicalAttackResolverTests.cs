@@ -633,6 +633,43 @@ public class PhysicalAttackResolverTests
             [new PhysicalAttackPsrRequirement(PhysicalAttackParticipant.Target, PilotingSkillRollType.KickHit)]);
     }
 
+    [Fact]
+    public void ResolveAttack_WhenAPushHits_ShouldDealNoDamageAndRequireATargetPsr()
+    {
+        var attacker = CreateUnit(50, AttackerPositionInArc(FiringArc.Front));
+        var target = CreateUnit(20, TargetPosition());
+        SetHitRoll(5, 5);
+
+        var result = _sut.ResolveAttack(
+            CreateContext(attacker, target, PhysicalAttackType.Push, PartLocation.LeftArm));
+
+        result.AttackResolution.IsHit.ShouldBeTrue();
+        result.Damage.ShouldBe(0);
+        result.AttackResolution.HitLocationsData.ShouldBeNull();
+        result.PsrRequirements.ShouldBe(
+            [new PhysicalAttackPsrRequirement(PhysicalAttackParticipant.Target, PilotingSkillRollType.PushHit)]);
+        _diceRoller.DidNotReceive().RollD6();
+        _damageTransferCalculator.DidNotReceive().CalculateStructureDamage(
+            Arg.Any<IUnit>(), Arg.Any<PartLocation>(), Arg.Any<int>(), Arg.Any<HitDirection>(),
+            Arg.Any<IReadOnlyList<LocationHitData>?>());
+    }
+
+    [Fact]
+    public void ResolveAttack_WhenAPushMisses_ShouldRequireNoPsr()
+    {
+        var attacker = CreateUnit(50, AttackerPositionInArc(FiringArc.Front));
+        var target = CreateUnit(20, TargetPosition());
+        SetHitRoll(2, 2);
+
+        var result = _sut.ResolveAttack(
+            CreateContext(attacker, target, PhysicalAttackType.Push, PartLocation.LeftArm));
+
+        result.AttackResolution.IsHit.ShouldBeFalse();
+        result.Damage.ShouldBe(0);
+        result.AttackResolution.HitLocationsData.ShouldBeNull();
+        result.PsrRequirements.ShouldBeEmpty();
+    }
+
     #endregion
 
     #region Rules provider collaboration
@@ -772,7 +809,6 @@ public class PhysicalAttackResolverTests
     }
 
     [Theory]
-    [InlineData(PhysicalAttackType.Push)]
     [InlineData(PhysicalAttackType.Charge)]
     [InlineData(PhysicalAttackType.DFA)]
     public void ResolveAttack_WithAnUnsupportedAttackType_ShouldThrow(PhysicalAttackType attackType)
