@@ -1,0 +1,158 @@
+using Sanet.MakaMek.Core.Data.Game.Commands.Server;
+using Sanet.MakaMek.Core.Data.Game.Mechanics;
+using Sanet.MakaMek.Core.Models.Game.Dice;
+using Sanet.MakaMek.Core.Models.Units;
+using Sanet.MakaMek.Map.Models;
+
+namespace Sanet.MakaMek.Core.Models.Game.Mechanics.Displacement;
+
+/// <summary>
+/// Calculates the domino effect a forced entry triggers when the destination hex exceeds the
+/// stacking limit (Total Warfare, p. 151-153).
+/// <para>
+/// The resolver is calculation-only: it never mutates the game state and never rolls a piloting
+/// skill roll. It returns the displacement commands (far-to-near) and the Mechs that owe a
+/// <see cref="PilotingSkillRollType.DominoEffect"/> roll once the displacement is applied.
+/// </para>
+/// <para>
+/// The chain is atomic. If any link is impossible (off map, prohibited terrain, an ascent of two or
+/// more levels, or the iteration limit) no displacement command is returned and the specific
+/// failure is reported, so callers keep every other effect of the triggering action.
+/// </para>
+/// </summary>
+public class DominoEffectResolver(IDiceRoller diceRoller)
+{
+    public const int MaxDisplacementIterations = 20;
+
+    /// <summary>
+    /// Calculates the chain triggered by <paramref name="request"/>.
+    /// </summary>
+    /// <param name="request">The forced entry to resolve.</param>
+    /// <param name="map">The battle map.</param>
+    /// <param name="units">Every unit in the game, used to detect the occupants of each hex.</param>
+    public DominoEffectResult Resolve(DominoEffectRequest request, IBattleMap map, IEnumerable<IUnit> units)
+    {
+        var enteringUnit = request.EnteringUnit;
+        if (enteringUnit.Position is not { } enteringPosition)
+            return Blocked(DisplacementFailureReason.OffMap, request.Destination);
+
+        var deployedUnits = units
+            .Where(unit => unit is { IsDeployed: true, Position: not null })
+            .ToList();
+
+        var occupants = (request.Occupants ?? deployedUnits)
+            .Where(unit => unit.Id != enteringUnit.Id
+                           && unit.IsDeployed
+                           && unit.Position is not null
+                           && unit.Position.Coordinates == request.Destination)
+            .ToList();
+
+        if (occupants.Count == 0)
+            return DominoEffectResult.NotRequired();
+
+        var originSurface = request.OriginSurface ?? enteringPosition.Surface;
+        var entryCheck = ForcedEntryCheck.Check(
+            enteringUnit, map, enteringPosition.Coordinates, originSurface, request.Destination);
+
+        if (!entryCheck.IsLegal)
+            return Blocked(entryCheck.Failure!.Value, request.Destination, entryCheck.Surface);
+
+        if (request.ApplyEntryElevationRule && entryCheck.IsDeepDrop)
+            return AccidentalFall(request.Destination, entryCheck.Surface);
+
+        var commands = new List<DisplaceUnitCommand>();
+        var psrCandidates = new List<IUnit> { enteringUnit };
+
+        var processed = new HashSet<Guid> { enteringUnit.Id };
+        var from = request.Destination;
+        var currentUnit = SelectOccupant(enteringUnit, occupants);
+        var iteration = 0;
+
+        while (true)
+        {
+            if (++iteration > MaxDisplacementIterations)
+                return Blocked(DisplacementFailureReason.IterationLimit, from, entryCheck.Surface);
+
+            processed.Add(currentUnit.Id);
+
+            var fromSurface = from == request.Destination && request.OriginSurface is { } overrideSurface
+                ? overrideSurface
+                : currentUnit.Position!.Surface;
+
+            var to = from.GetNeighbour(request.Direction);
+            var step = ForcedEntryCheck.Check(currentUnit, map, from, fromSurface, to);
+            if (!step.IsLegal)
+                return Blocked(step.Failure!.Value, to, entryCheck.Surface);
+
+            // Only an occupied destination turns a deep drop into an accidental fall from above:
+            // an empty destination simply drops the unit to the lower level.
+            var nextOccupants = GetOccupants(deployedUnits, to, processed);
+            if (request.ApplyEntryElevationRule && nextOccupants.Count != 0 && step.IsDeepDrop)
+                return AccidentalFall(to, entryCheck.Surface);
+
+            commands.Add(new DisplaceUnitCommand
+            {
+                UnitId = currentUnit.Id,
+                FromCoordinates = from.ToData(),
+                ToCoordinates = to.ToData(),
+                NewFacing = (int)(currentUnit.Facing ?? currentUnit.Position!.Facing),
+                Surface = (int)step.Surface,
+                DisplacementReason = request.Reason,
+                GameOriginId = request.GameOriginId,
+                Timestamp = DateTime.UtcNow
+            });
+
+            if (psrCandidates.All(candidate => candidate.Id != currentUnit.Id))
+                psrCandidates.Add(currentUnit);
+
+            if (nextOccupants.Count == 0) break;
+
+            currentUnit = SelectOccupant(currentUnit, nextOccupants);
+            from = to;
+        }
+
+        // Far-to-near: each command moves a unit into a hex vacated by an already-applied command.
+        commands.Reverse();
+
+        return new DominoEffectResult(
+            DominoEffectOutcome.Resolved,
+            commands,
+            psrCandidates,
+            entryCheck.Surface);
+    }
+
+    private static DominoEffectResult Blocked(
+        DisplacementFailureReason reason,
+        HexCoordinates? at,
+        HexSurface enteringSurface = HexSurface.Ground) =>
+        new(DominoEffectOutcome.Blocked, [], [], enteringSurface, reason, at);
+
+    private static DominoEffectResult AccidentalFall(HexCoordinates? at, HexSurface enteringSurface) =>
+        new(DominoEffectOutcome.AccidentalFallFromAbove, [], [], enteringSurface, null, at);
+
+    /// <summary>
+    /// Picks the unit dislodged from an occupied hex: an occupant of the entering unit's concrete
+    /// type comes first, otherwise the choice is random (one roll of a D6). The selection is a
+    /// single point so the deferred side-hex dodge can be evaluated here later.
+    /// </summary>
+    private IUnit SelectOccupant(IUnit enteringUnit, IReadOnlyList<IUnit> occupants)
+    {
+        if (occupants.Count == 1) return occupants[0];
+
+        var sameType = occupants.Where(occupant => occupant.GetType() == enteringUnit.GetType()).ToList();
+        var pool = sameType.Count > 0 ? sameType : occupants;
+        if (pool.Count == 1) return pool[0];
+
+        var roll = diceRoller.RollD6();
+        var index = (roll.Result - 1) % pool.Count;
+        return pool[index];
+    }
+
+    private static List<IUnit> GetOccupants(
+        IEnumerable<IUnit> deployedUnits,
+        HexCoordinates coordinates,
+        HashSet<Guid> excluded) =>
+        deployedUnits
+            .Where(unit => unit.Position!.Coordinates == coordinates && !excluded.Contains(unit.Id))
+            .ToList();
+}

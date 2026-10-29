@@ -518,5 +518,60 @@ public class BridgeCollapseInterruptHandlerTests : GamePhaseTestsBase
         var displaceActions = result.GameActions.OfType<DisplaceUnitAction>().ToList();
         // Occupant1 displaced from (2,2) → (3,3); occupant2 chained from (3,3) → (4,3)
         displaceActions.Count.ShouldBe(2);
+        displaceActions.Select(a => a.Command.UnitId).ShouldBe([_occupantMech2.Id, _occupantMech.Id]);
+        displaceActions.Select(a => a.Command.ToCoordinates).ShouldBe([
+            new HexCoordinates(4, 3).ToData(),
+            new HexCoordinates(3, 3).ToData()
+        ]);
+    }
+
+    [Fact]
+    public void Check_WhenChainResolves_AddsTheDominoPsrActionLast()
+    {
+        Game.BattleMap!.GetHex(new HexCoordinates(2, 2))!.AddTerrain(new BridgeTerrain(2, 10));
+
+        _occupantMech.Deploy(new HexPosition(2, 2, HexDirection.Top),
+            Game.BattleMap.GetHex(new HexCoordinates(2, 2)));
+        _enteringMech.Deploy(new HexPosition(1, 2, HexDirection.Top),
+            Game.BattleMap.GetHex(new HexCoordinates(1, 2)));
+
+        SetupFallContext(_enteringMech, MovementType.Walk);
+        SetupFallContext(_occupantMech, MovementType.StandingStill);
+
+        var moveCommand = CreateMoveCommand(_enteringMech.Id, MovementType.Walk,
+            new PathSegment(new HexPosition(1, 2, HexDirection.Top), new HexPosition(2, 2, HexDirection.Top), []));
+
+        var result = _sut.Check(CreateContext(moveCommand with { PlayerId = Game.Players[0].Id }, 0));
+
+        result.ShouldNotBeNull();
+        result.GameActions.Last().ShouldBeOfType<DominoEffectRollAction>();
+    }
+
+    [Fact]
+    public void Check_WhenChainIsBlockedDownstream_MovesNoUnit()
+    {
+        // Bridge at (2,2). Occupant1 at (2,2) → (3,3), occupant2 at (3,3) → (4,3).
+        // (4,3) is two levels higher, so the atomic chain moves nobody.
+        Game.BattleMap!.GetHex(new HexCoordinates(2, 2))!.AddTerrain(new BridgeTerrain(2, 10));
+        Game.BattleMap.AddHex(new Hex(new HexCoordinates(4, 3), 2));
+
+        _occupantMech.Deploy(new HexPosition(2, 2, HexDirection.Top),
+            Game.BattleMap.GetHex(new HexCoordinates(2, 2)));
+        _occupantMech2.Deploy(new HexPosition(3, 3, HexDirection.Top),
+            Game.BattleMap.GetHex(new HexCoordinates(3, 3)));
+        _enteringMech.Deploy(new HexPosition(1, 2, HexDirection.Top),
+            Game.BattleMap.GetHex(new HexCoordinates(1, 2)));
+
+        SetupFallContext(_enteringMech, MovementType.Walk);
+        SetupFallContext(_occupantMech, MovementType.StandingStill);
+
+        var moveCommand = CreateMoveCommand(_enteringMech.Id, MovementType.Walk,
+            new PathSegment(new HexPosition(1, 2, HexDirection.Top), new HexPosition(2, 2, HexDirection.Top), []));
+
+        var result = _sut.Check(CreateContext(moveCommand with { PlayerId = Game.Players[0].Id }, 0));
+
+        result.ShouldNotBeNull();
+        result.GameActions.ShouldNotContain(a => a is DisplaceUnitAction);
+        result.GameActions.ShouldNotContain(a => a is DominoEffectRollAction);
     }
 }

@@ -107,7 +107,7 @@ A *BattleTech* game consists of turns, each representing ten seconds of real tim
     *   **Death From Above (DFA)**: Jumping `Mech` lands on target's hex. Both units take damage. Requires PSRs.
     *   **Physical Weapon Attacks**: Using specific equipment (e.g., Hatchet, Sword, Wrecking Ball).
 *   **Damage**: Physical attacks inflict damage based on attacker's weight or specific weapon damage. Halved in water.
-*   **Displacement/Domino Effect**: If a fall or other action forces a unit into an occupied hex beyond stacking limits, units can be displaced.
+*   **Displacement/Domino Effect**: If a fall or other action forces a unit into an occupied hex beyond stacking limits, the occupant is forced out one hex directly opposite the hexside the entering unit came through, and the chain continues while the next hex is occupied. The chain only continues across a 0 or 1 level change; a destination two or more levels lower that is occupied is an *accidental fall from above* (deferred), and prohibited terrain, off-map destinations or ascents of two or more levels block the whole chain atomically. If several units occupy the hex, the same unit type is dislodged first and the rest are chosen randomly. Displacement and the resulting piloting skill rolls — with no extra modifier — resolve immediately after the action that caused them, before the end-of-phase PSR list.
 
 ## 5. Unit-Specific Rules & Equipment (Examples)
 

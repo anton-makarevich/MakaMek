@@ -790,6 +790,122 @@ public class PhysicalAttackResolutionPhaseTests : GamePhaseTestsBase
                 contexts != null && contexts.Single().RollType == PilotingSkillRollType.PushHit));
     }
 
+    [Fact]
+    public void Enter_PushIntoAnOccupiedDestination_MovesTheChainAndAdvancesTheAttacker()
+    {
+        // Arrange: a third Mech stands in the push destination
+        SetMap();
+        var player3Id = Guid.NewGuid();
+        Game.HandleCommand(CreateJoinCommand(player3Id, "Player 3"));
+        var occupant = (Mech)Game.Players[2].Units[0];
+        occupant.Deploy(new HexPosition(DestinationHex, HexDirection.Top), null);
+        Declare(_player1Mech, _player2Mech, PhysicalAttackType.Push, PartLocation.LeftArm, PartLocation.RightArm);
+        MockPhysicalAttackResolver.ResolveAttack(Arg.Any<PhysicalAttackContext>())
+            .Returns(PushHit());
+        MockFallProcessor.ProcessMovementAttempt(
+                occupant, Arg.Any<DominoEffectRollContext>(), Game,
+                Arg.Any<MovementType>(), Arg.Any<HexPosition?>())
+            .Returns(new FallContextData
+            {
+                UnitId = occupant.Id,
+                GameId = Game.Id,
+                IsFalling = false
+            });
+
+        // Act
+        _sut.Enter();
+
+        // Assert: the chain link is applied first, then the target, then the attacker advance.
+        var displacements = PublishedCommands().OfType<DisplaceUnitCommand>().ToList();
+        displacements.Count.ShouldBe(3);
+        displacements[0].UnitId.ShouldBe(occupant.Id);
+        displacements[0].DisplacementReason.ShouldBe(DisplacementReason.DominoEffect);
+        displacements[0].ToCoordinates.ShouldBe(DestinationHex.GetNeighbour(HexDirection.Top).ToData());
+        displacements[1].UnitId.ShouldBe(_player2Mech.Id);
+        displacements[1].DisplacementReason.ShouldBe(DisplacementReason.Push);
+        displacements[2].UnitId.ShouldBe(_player1Mech.Id);
+        displacements[2].DisplacementReason.ShouldBe(DisplacementReason.PushAdvance);
+
+        occupant.Position!.Coordinates.ShouldBe(DestinationHex.GetNeighbour(HexDirection.Top));
+        _player2Mech.Position!.Coordinates.ShouldBe(DestinationHex);
+        _player1Mech.Position!.Coordinates.ShouldBe(TargetHex);
+    }
+
+    [Fact]
+    public void Enter_PushIntoAnOccupiedDestination_RollsTheDislodgedMechsDominoPsrImmediately()
+    {
+        // Arrange
+        SetMap();
+        var player3Id = Guid.NewGuid();
+        Game.HandleCommand(CreateJoinCommand(player3Id, "Player 3"));
+        var occupant = (Mech)Game.Players[2].Units[0];
+        occupant.Deploy(new HexPosition(DestinationHex, HexDirection.Top), null);
+        Declare(_player1Mech, _player2Mech, PhysicalAttackType.Push, PartLocation.LeftArm, PartLocation.RightArm);
+        MockPhysicalAttackResolver.ResolveAttack(Arg.Any<PhysicalAttackContext>())
+            .Returns(PushHit());
+        MockFallProcessor.ProcessMovementAttempt(
+                occupant, Arg.Any<DominoEffectRollContext>(), Game,
+                Arg.Any<MovementType>(), Arg.Any<HexPosition?>())
+            .Returns(new FallContextData
+            {
+                UnitId = occupant.Id,
+                GameId = Game.Id,
+                IsFalling = false
+            });
+
+        // Act
+        _sut.Enter();
+
+        // Assert: the dislodged Mech rolls immediately, the push target only rolls PushHit.
+        MockFallProcessor.Received(1).ProcessMovementAttempt(
+            occupant,
+            Arg.Is<DominoEffectRollContext>(context => context.RollType == PilotingSkillRollType.DominoEffect),
+            Game,
+            Arg.Any<MovementType>(),
+            Arg.Any<HexPosition?>());
+        MockFallProcessor.DidNotReceive().ProcessMovementAttempt(
+            _player2Mech, Arg.Any<DominoEffectRollContext>(), Arg.Any<IGame>(),
+            Arg.Any<MovementType>(), Arg.Any<HexPosition?>());
+
+        // And no domino roll is repeated at the end of the phase.
+        MockFallProcessor.DidNotReceive().ProcessPotentialFall(
+            Arg.Any<Mech>(), Arg.Any<IGame>(), Arg.Any<List<ComponentHitData>>(),
+            Arg.Any<List<PartLocation>?>(),
+            Arg.Is<IReadOnlyList<PilotingSkillRollContext>?>(contexts =>
+                contexts != null && contexts.Any(c => c.RollType == PilotingSkillRollType.DominoEffect)));
+    }
+
+    [Fact]
+    public void Enter_BlockedDominoChain_MovesNoUnitButStillRollsThePushPsr()
+    {
+        // Arrange: the chain would climb two levels
+        SetMap();
+        Game.BattleMap!.AddHex(new Hex(DestinationHex.GetNeighbour(HexDirection.Top), 2));
+        var player3Id = Guid.NewGuid();
+        Game.HandleCommand(CreateJoinCommand(player3Id, "Player 3"));
+        var occupant = (Mech)Game.Players[2].Units[0];
+        occupant.Deploy(new HexPosition(DestinationHex, HexDirection.Top), null);
+        Declare(_player1Mech, _player2Mech, PhysicalAttackType.Push, PartLocation.LeftArm, PartLocation.RightArm);
+        MockPhysicalAttackResolver.ResolveAttack(Arg.Any<PhysicalAttackContext>())
+            .Returns(PushHit());
+
+        // Act
+        _sut.Enter();
+
+        // Assert
+        PublishedCommands().OfType<DisplaceUnitCommand>().ShouldBeEmpty();
+        occupant.Position!.Coordinates.ShouldBe(DestinationHex);
+        _player2Mech.Position!.Coordinates.ShouldBe(TargetHex);
+        _player1Mech.Position!.Coordinates.ShouldBe(AttackerHex);
+        MockFallProcessor.Received(1).ProcessPotentialFall(
+            _player2Mech, Game, Arg.Any<List<ComponentHitData>>(), Arg.Any<List<PartLocation>?>(),
+            Arg.Is<IReadOnlyList<PilotingSkillRollContext>?>(contexts =>
+                contexts != null && contexts.Single().RollType == PilotingSkillRollType.PushHit));
+        MockFallProcessor.DidNotReceive().ProcessMovementAttempt(
+            Arg.Any<Mech>(), Arg.Any<DominoEffectRollContext>(), Arg.Any<IGame>(),
+            Arg.Any<MovementType>(), Arg.Any<HexPosition?>());
+    }
+
     [Theory]
     [InlineData(1)]
     [InlineData(2)]

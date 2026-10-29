@@ -6,6 +6,7 @@ using Sanet.MakaMek.Core.Data.Game.Mechanics;
 using Sanet.MakaMek.Core.Data.Game.Mechanics.PhysicalAttacks;
 using Sanet.MakaMek.Core.Data.Game.Mechanics.PilotingSkillRollContexts;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.Displacement;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Movement.Actions;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.PhysicalAttack;
 using Sanet.MakaMek.Core.Models.Game.Players;
@@ -40,7 +41,7 @@ public class PhysicalAttackResolutionPhase(ServerGame game) : GamePhase(game)
     private readonly Dictionary<Guid, UnitPhaseAccumulatedDamage> _accumulatedDamage = new();
     private readonly Dictionary<Guid, (List<PilotingSkillRollContext> Contexts, PushHitRollContext Context)>
         _pushHitContexts = new();
-    private readonly PushDisplacementResolver _pushDisplacementResolver = new(game.RulesProvider);
+    private readonly PushDisplacementResolver _pushDisplacementResolver = new(game.RulesProvider, game.DiceRoller);
 
     private readonly record struct AttackQueueItem(IPlayer Player, PhysicalAttackContext Context);
 
@@ -289,8 +290,15 @@ public class PhysicalAttackResolutionPhase(ServerGame game) : GamePhase(game)
         var map = Game.BattleMap;
         if (map is null) return;
 
-        var result = _pushDisplacementResolver.Resolve(attacker, target, map, AllUnits());
+        var result = _pushDisplacementResolver.Resolve(attacker, target, map, AllUnits(), Game.Id);
         if (result is null) return; // Blocked or no longer a valid push: the target PSR still happens.
+
+        // Apply the domino chain first, far-to-near, so each link moves into a vacated hex.
+        if (result.DominoEffect is { Outcome: DominoEffectOutcome.Resolved } domino)
+        {
+            foreach (var chainCommand in domino.Commands)
+                Execute(new DisplaceUnitAction(chainCommand with { GameOriginId = Game.Id }, publish: true));
+        }
 
         Execute(new DisplaceUnitAction(
             new DisplaceUnitCommand
@@ -322,6 +330,17 @@ public class PhysicalAttackResolutionPhase(ServerGame game) : GamePhase(game)
                 Timestamp = DateTime.UtcNow
             },
             publish: true));
+
+        // The displaced chain Mechs roll immediately. The push target is excluded: its PushHit roll
+        // already covers this event, and it must not roll twice.
+        if (result.DominoEffect is { Outcome: DominoEffectOutcome.Resolved } resolvedDomino)
+        {
+            var candidates = resolvedDomino.PsrCandidates
+                .Where(candidate => candidate.Id != target.Id)
+                .ToList();
+            if (candidates.Count != 0)
+                Execute(new DominoEffectRollAction(candidates, Game.FallProcessor));
+        }
 
         if (result.TriggersAutomaticFall && target is Mech targetMech)
             ResolveAutomaticFall(targetMech, result.LevelsFallen);

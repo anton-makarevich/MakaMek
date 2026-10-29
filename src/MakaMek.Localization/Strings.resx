@@ -185,6 +185,7 @@
   <data name="PilotingSkillRollType_KickHit" xml:space="preserve"><value>Hit by Kick</value></data>
   <data name="PilotingSkillRollType_KickMiss" xml:space="preserve"><value>Missed Kick</value></data>
   <data name="PilotingSkillRollType_PushHit" xml:space="preserve"><value>Hit by Push</value></data>
+  <data name="PilotingSkillRollType_DominoEffect" xml:space="preserve"><value>Displaced by Domino Effect</value></data>
   <data name="PilotingSkillRollType_BridgeCollapse" xml:space="preserve"><value>Bridge Collapse</value></data>
   <data name="PilotingSkillRollType_SkidCheck_WithHexes" xml:space="preserve"><value>{0} ({1} hexes)</value></data>
   <data name="PilotingSkillRollType_CliffFall" xml:space="preserve"><value>Cliff Fall</value></data>
