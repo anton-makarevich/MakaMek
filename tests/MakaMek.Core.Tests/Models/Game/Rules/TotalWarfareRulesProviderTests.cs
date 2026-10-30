@@ -964,6 +964,7 @@ public class TotalWarfareRulesProviderTests
     [InlineData(PilotingSkillRollType.KickHit, 0)]
     [InlineData(PilotingSkillRollType.KickMiss, 0)]
     [InlineData(PilotingSkillRollType.PushHit, 0)]
+    [InlineData(PilotingSkillRollType.DominoEffect, 0)]
     public void GetPilotingSkillRollModifier_ValidTypes_ShouldReturnExpectedValues(PilotingSkillRollType rollType,
         int expectedModifier)
     {
