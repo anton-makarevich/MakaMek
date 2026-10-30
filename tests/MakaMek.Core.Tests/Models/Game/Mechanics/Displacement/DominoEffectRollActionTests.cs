@@ -165,8 +165,14 @@ public class DominoEffectRollActionTests : GamePhaseTestsBase
     }
 
     [Fact]
-    public void Process_UsesTheMechsMovementType()
+    public void Process_IgnoresTheMechsLastMovementType()
     {
+        // MovementTaken is turn-scoped: a mech that jumped during the Movement Phase still carries
+        // the Jump movement type when the domino PSR is rolled in another phase.
+        _deployedMech.Move(
+            MovementPath.CreateSingleSegmentPath(_deployedMech.Position!, MovementType.Jump), null);
+        _deployedMech.MovementTaken!.MovementType.ShouldBe(MovementType.Jump);
+
         MockFallProcessor.ProcessMovementAttempt(
                 _deployedMech, Arg.Any<DominoEffectRollContext>(), Game,
                 Arg.Any<MovementType>(), Arg.Any<HexPosition?>())

@@ -1,5 +1,4 @@
 using Sanet.MakaMek.Core.Data.Game.Commands;
-using Sanet.MakaMek.Core.Data.Game.Mechanics;
 using Sanet.MakaMek.Core.Data.Game.Mechanics.PilotingSkillRollContexts;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Displacement;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Mechs.Falling;
@@ -38,9 +37,12 @@ public class DominoEffectRollAction(
             if (candidate is not Mech mech) continue;
             if (mech.IsDestroyed || !mech.IsDeployed || mech.IsProne) continue;
 
-            var movementType = mech.MovementTaken?.MovementType ?? MovementType.StandingStill;
+            // The fall is a consequence of the displacement, not of the unit's own movement.
+            // MovementTaken is turn-scoped, so it may still hold a Movement Phase movement type
+            // (e.g. Jump), which must not leak into the domino PSR.
             var fallContext = fallProcessor.ProcessMovementAttempt(
-                mech, new DominoEffectRollContext(ResolveWaterDepth(mech, game)), game, movementType);
+                mech, new DominoEffectRollContext(ResolveWaterDepth(mech, game)), game,
+                MovementType.StandingStill);
             var fallCommand = fallContext.ToMechFallCommand();
 
             if (fallContext.IsFalling)
