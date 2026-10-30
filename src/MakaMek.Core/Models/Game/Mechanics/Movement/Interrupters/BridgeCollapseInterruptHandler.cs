@@ -203,7 +203,7 @@ public class BridgeCollapseInterruptHandler : IMovementInterruptHandler
             game.BattleMap!,
             game.Players.SelectMany(player => player.Units));
 
-        if (result.Outcome != DominoEffectOutcome.Resolved) return actions;
+        if (!result.HasDisplacements) return actions;
 
         actions.AddRange(result.Commands.Select(command => new DisplaceUnitAction(command, publish: true)));
         actions.Add(new DominoEffectRollAction(result.PsrCandidates, game.FallProcessor, result.Falls));

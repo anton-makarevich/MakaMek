@@ -87,6 +87,33 @@ public class PushDisplacementResolverTests
     }
 
     [Fact]
+    public void Resolve_ChainBlockedAtALaterLink_StillMovesTheTargetAndKeepsTheEarlierLinks()
+    {
+        // Arrange: the chain continues Top; the hex after the second occupant is three levels higher
+        var map = CreateFlatMap();
+        var firstChainHex = DestinationHex.GetNeighbour(HexDirection.Top);
+        var secondChainHex = firstChainHex.GetNeighbour(HexDirection.Top);
+        AddHex(map, new Hex(secondChainHex, 3));
+        var attacker = UnitAt(AttackerHex, HexDirection.Top);
+        var target = UnitAt(TargetHex, HexDirection.Bottom);
+        var firstOccupant = UnitAt(DestinationHex, HexDirection.Top);
+        var secondOccupant = UnitAt(firstChainHex, HexDirection.Top);
+
+        // Act
+        var result = _sut.Resolve(
+            attacker, target, map, [attacker, target, firstOccupant, secondOccupant]);
+
+        // Assert: the first occupant is displaced, the second stays put and shares its hex.
+        result.ShouldNotBeNull();
+        result.TargetDestination.Coordinates.ShouldBe(DestinationHex);
+        result.AttackerDestination.Coordinates.ShouldBe(TargetHex);
+        result.DominoEffect.ShouldNotBeNull();
+        result.DominoEffect!.Outcome.ShouldBe(DominoEffectOutcome.PartiallyResolved);
+        result.DominoEffect.Commands.ShouldHaveSingleItem().UnitId.ShouldBe(firstOccupant.Id);
+        result.DominoEffect.PsrCandidates.ShouldBe([target, firstOccupant, secondOccupant]);
+    }
+
+    [Fact]
     public void Resolve_DestinationHigherThanTheTarget_IsBlocked()
     {
         // Arrange

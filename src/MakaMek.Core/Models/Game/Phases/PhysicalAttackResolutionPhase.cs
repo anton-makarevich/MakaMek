@@ -6,7 +6,6 @@ using Sanet.MakaMek.Core.Data.Game.Mechanics;
 using Sanet.MakaMek.Core.Data.Game.Mechanics.PhysicalAttacks;
 using Sanet.MakaMek.Core.Data.Game.Mechanics.PilotingSkillRollContexts;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
-using Sanet.MakaMek.Core.Models.Game.Mechanics.Displacement;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Movement.Actions;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.PhysicalAttack;
 using Sanet.MakaMek.Core.Models.Game.Players;
@@ -293,8 +292,9 @@ public class PhysicalAttackResolutionPhase(ServerGame game) : GamePhase(game)
         var result = _pushDisplacementResolver.Resolve(attacker, target, map, AllUnits(), Game.Id);
         if (result is null) return; // Blocked or no longer a valid push: the target PSR still happens.
 
-        // Apply the domino chain first, far-to-near, so each link moves into a vacated hex.
-        if (result.DominoEffect is { Outcome: DominoEffectOutcome.Resolved } domino)
+        // Apply the domino chain first, far-to-near, so each link moves into a vacated hex. A chain
+        // stopped by a later link keeps its earlier displacements.
+        if (result.DominoEffect is { HasDisplacements: true } domino)
         {
             foreach (var chainCommand in domino.Commands)
                 Execute(new DisplaceUnitAction(chainCommand with { GameOriginId = Game.Id }, publish: true));
@@ -331,14 +331,13 @@ public class PhysicalAttackResolutionPhase(ServerGame game) : GamePhase(game)
             },
             publish: true));
 
-        // The displaced chain Mechs roll immediately. The push target is excluded: its PushHit roll
-        // already covers this event, and it must not roll twice.
-        if (result.DominoEffect is { Outcome: DominoEffectOutcome.Resolved } resolvedDomino)
+        // Every unit involved in the domino rolls once all displacement is applied, the push target
+        // included: its PushHit roll covers the push, not the domino (Total Warfare p. 152). Water
+        // entry is not a second roll either - it is a modifier on the push's own PSR.
+        if (result.DominoEffect is { HasDisplacements: true } resolvedDomino)
         {
-            var candidates = resolvedDomino.PsrCandidates
-                .Where(candidate => candidate.Id != target.Id)
-                .ToList();
-            Execute(new DominoEffectRollAction(candidates, Game.FallProcessor, resolvedDomino.Falls));
+            Execute(new DominoEffectRollAction(
+                resolvedDomino.PsrCandidates, Game.FallProcessor, resolvedDomino.Falls));
         }
 
         if (result.TriggersAutomaticFall && target is Mech targetMech)

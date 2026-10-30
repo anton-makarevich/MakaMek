@@ -22,6 +22,12 @@ public sealed record DominoEffectResult(
     /// </summary>
     public IReadOnlyList<DominoFall> Falls { get; init; } = [];
 
+    /// <summary>
+    /// Whether <see cref="Commands"/> can be applied: the chain resolved fully, or it displaced some
+    /// units and then stopped at a link that is impossible (no rewind of the accepted links).
+    /// </summary>
+    public bool HasDisplacements => Outcome is DominoEffectOutcome.Resolved or DominoEffectOutcome.PartiallyResolved;
+
     public static DominoEffectResult NotRequired() =>
         new(DominoEffectOutcome.NotRequired, [], []);
 }

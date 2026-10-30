@@ -39,8 +39,10 @@ public record PushDisplacementResult(
 /// is allowed and ends in an automatic fall.
 /// <para>
 /// When the destination is occupied, the target triggers the shared domino effect: the occupant is
-/// dislodged in the push direction and the chain continues from there. A chain that cannot be
-/// resolved (blocked link, accidental fall from above) moves nobody, keeping the push's own PSR.
+/// dislodged in the push direction and the chain continues from there. A first link that cannot be
+/// resolved (blocked entry, accidental fall from above) moves nobody, keeping the push's own PSR; a
+/// later blocked link keeps the displacements already resolved (the blocked unit stays put and
+/// shares its hex, so both roll).
 /// </para>
 /// <para>
 /// The destination is evaluated from the positions at application time, not at declaration time:
@@ -137,9 +139,10 @@ public class PushDisplacementResolver(IRulesProvider rulesProvider, IDiceRoller 
             map,
             allUnits);
 
-        // A blocked link or an accidental fall from above cancels the whole chain: neither the
-        // target nor the attacker moves, but the push PSR still happens.
-        if (domino.Outcome != DominoEffectOutcome.Resolved) return null;
+        // A blocked first link or an accidental fall from above cancels the whole chain: neither the
+        // target nor the attacker moves, but the push PSR still happens. A blocked later link keeps
+        // the displacements already resolved, and the target still enters the vacated hex.
+        if (!domino.HasDisplacements) return null;
 
         var destinationStandingLevel = map.GetHex(destinationCoordinates)!.GetStandingLevel(domino.EnteringSurface);
         var levelsFallen = targetStandingLevel - destinationStandingLevel;

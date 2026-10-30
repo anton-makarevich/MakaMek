@@ -548,10 +548,11 @@ public class BridgeCollapseInterruptHandlerTests : GamePhaseTestsBase
     }
 
     [Fact]
-    public void Check_WhenChainIsBlockedDownstream_MovesNoUnit()
+    public void Check_WhenChainIsBlockedDownstream_KeepsTheEarlierDisplacementAndRollsBothUnits()
     {
         // Bridge at (2,2). Occupant1 at (2,2) → (3,3), occupant2 at (3,3) → (4,3).
-        // (4,3) is three levels higher, so the atomic chain moves nobody.
+        // (4,3) is three levels higher, so the chain stops there: occupant1 keeps its new hex,
+        // occupant2 stays put and shares it, and both roll their domino PSR.
         Game.BattleMap!.GetHex(new HexCoordinates(2, 2))!.AddTerrain(new BridgeTerrain(2, 10));
         Game.BattleMap.AddHex(new Hex(new HexCoordinates(4, 3), 3));
 
@@ -571,7 +572,9 @@ public class BridgeCollapseInterruptHandlerTests : GamePhaseTestsBase
         var result = _sut.Check(CreateContext(moveCommand with { PlayerId = Game.Players[0].Id }, 0));
 
         result.ShouldNotBeNull();
-        result.GameActions.ShouldNotContain(a => a is DisplaceUnitAction);
-        result.GameActions.ShouldNotContain(a => a is DominoEffectRollAction);
+        var displacement = result.GameActions.OfType<DisplaceUnitAction>().ShouldHaveSingleItem();
+        displacement.Command.UnitId.ShouldBe(_occupantMech.Id);
+        displacement.Command.ToCoordinates.ShouldBe(new HexCoordinates(3, 3).ToData());
+        result.GameActions.Last().ShouldBeOfType<DominoEffectRollAction>();
     }
 }

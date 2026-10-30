@@ -15,9 +15,17 @@ namespace Sanet.MakaMek.Core.Models.Game.Mechanics.Displacement;
 /// <see cref="PilotingSkillRollType.DominoEffect"/> roll once the displacement is applied.
 /// </para>
 /// <para>
-/// The chain is atomic. If any link is impossible (off map, prohibited terrain, a climb above the
-/// unit's single-hex limit, or the iteration limit) no displacement command is returned and the
-/// specific failure is reported, so callers keep every other effect of the triggering action.
+/// The first link decides whether anything moves. If the entering unit cannot reach the occupied
+/// destination, or the occupant cannot be forced out of it, the chain is blocked atomically: no
+/// displacement command is returned and the specific failure is reported, so callers keep every
+/// other effect of the triggering action.
+/// </para>
+/// <para>
+/// A later link that is impossible (off map, prohibited terrain, a climb above the unit's
+/// single-hex limit, or the iteration limit) ends the chain without rewinding it: the displacements
+/// already accepted stay applied, the blocked unit keeps its hex and now shares it with the unit
+/// displaced into it (Total Warfare p. 151-152). The result is
+/// <see cref="DominoEffectOutcome.PartiallyResolved"/> and both units are reported as PSR candidates.
 /// </para>
 /// <para>
 /// A displaced unit that drops two or more levels into an empty hex is recorded in
@@ -76,7 +84,9 @@ public class DominoEffectResolver(IDiceRoller diceRoller)
         while (true)
         {
             if (++iteration > MaxDisplacementIterations)
-                return Blocked(DisplacementFailureReason.IterationLimit, from, entryCheck.Surface);
+                return StopChain(
+                    DisplacementFailureReason.IterationLimit, from, currentUnit, entryCheck.Surface,
+                    commands, psrCandidates, falls);
 
             processed.Add(currentUnit.Id);
 
@@ -87,7 +97,9 @@ public class DominoEffectResolver(IDiceRoller diceRoller)
             var to = from.GetNeighbour(request.Direction);
             var step = ForcedEntryCheck.Check(currentUnit, map, from, fromSurface, to);
             if (!step.IsLegal)
-                return Blocked(step.Failure!.Value, to, entryCheck.Surface);
+                return StopChain(
+                    step.Failure!.Value, to, currentUnit, entryCheck.Surface,
+                    commands, psrCandidates, falls);
 
             // Only an occupied destination turns a deep drop into an accidental fall from above:
             // an empty destination simply drops the unit to the lower level.
@@ -140,6 +152,41 @@ public class DominoEffectResolver(IDiceRoller diceRoller)
         HexSurface enteringSurface = HexSurface.Ground) =>
         new(DominoEffectOutcome.Blocked, [], [], enteringSurface, reason, at);
 
+    /// <summary>
+    /// Ends the chain at the link <paramref name="blockedUnit"/> cannot take. When nothing has moved
+    /// yet the entry itself is blocked and the chain stays atomic; otherwise the displacements
+    /// already accepted are kept (no rewind) and the blocked unit joins the units that owe a
+    /// domino PSR, because the unit displaced into its hex now shares it.
+    /// </summary>
+    private static DominoEffectResult StopChain(
+        DisplacementFailureReason reason,
+        HexCoordinates at,
+        IUnit blockedUnit,
+        HexSurface enteringSurface,
+        List<DisplaceUnitCommand> commands,
+        List<IUnit> psrCandidates,
+        List<DominoFall> falls)
+    {
+        if (commands.Count == 0)
+            return Blocked(reason, at, enteringSurface);
+
+        if (psrCandidates.All(candidate => candidate.Id != blockedUnit.Id))
+            psrCandidates.Add(blockedUnit);
+
+        commands.Reverse();
+
+        return new DominoEffectResult(
+            DominoEffectOutcome.PartiallyResolved,
+            commands,
+            psrCandidates,
+            enteringSurface,
+            reason,
+            at)
+        {
+            Falls = falls
+        };
+    }
+
     private static DominoEffectResult AccidentalFall(HexCoordinates? at, HexSurface enteringSurface) =>
         new(DominoEffectOutcome.AccidentalFallFromAbove, [], [], enteringSurface, null, at);
 
@@ -158,7 +205,7 @@ public class DominoEffectResolver(IDiceRoller diceRoller)
 
         var roll = diceRoller.RollD6();
         // A substituted dice roller may return null in tests; fall back to the first occupant.
-        var index = ((roll?.Result ?? 1) - 1) % pool.Count;
+        var index = (roll.Result - 1) % pool.Count;
         return pool[index];
     }
 

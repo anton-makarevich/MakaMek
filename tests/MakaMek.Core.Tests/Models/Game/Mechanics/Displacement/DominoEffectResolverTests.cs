@@ -347,7 +347,33 @@ public class DominoEffectResolverTests
     }
 
     [Fact]
-    public void Resolve_ChainLongerThanTheIterationLimit_BlocksTheChain()
+    public void Resolve_BlockedLaterLink_KeepsTheEarlierDisplacementsAndRollsTheBlockedUnit()
+    {
+        // Arrange: the second link would climb three levels (above a Mech's two-level limit)
+        var map = CreateFlatMap();
+        map.AddHex(new Hex(SecondChainHex, 3));
+        var entering = UnitAt(SourceHex);
+        var first = UnitAt(DestinationHex);
+        var second = UnitAt(FirstChainHex);
+
+        var result = _sut.Resolve(Request(entering), map, [entering, first, second]);
+
+        // Assert: no rewind - the first occupant keeps its new hex, the blocked unit stays put.
+        result.Outcome.ShouldBe(DominoEffectOutcome.PartiallyResolved);
+        result.HasDisplacements.ShouldBeTrue();
+        result.Failure.ShouldBe(DisplacementFailureReason.TooHigh);
+        result.BlockedAt.ShouldBe(SecondChainHex);
+        var command = result.Commands.ShouldHaveSingleItem();
+        command.UnitId.ShouldBe(first.Id);
+        command.FromCoordinates.ShouldBe(DestinationHex.ToData());
+        command.ToCoordinates.ShouldBe(FirstChainHex.ToData());
+        // The blocked unit now shares its hex with the unit displaced into it, so both roll.
+        result.PsrCandidates.Select(candidate => candidate.Id)
+            .ShouldBe([entering.Id, first.Id, second.Id]);
+    }
+
+    [Fact]
+    public void Resolve_ChainLongerThanTheIterationLimit_StopsAtTheLimitAndKeepsTheEarlierMoves()
     {
         var map = CreateFlatMap();
         var units = new List<IUnit>();
@@ -362,9 +388,11 @@ public class DominoEffectResolverTests
 
         var result = _sut.Resolve(Request(entering), map, units);
 
-        result.Outcome.ShouldBe(DominoEffectOutcome.Blocked);
+        result.Outcome.ShouldBe(DominoEffectOutcome.PartiallyResolved);
         result.Failure.ShouldBe(DisplacementFailureReason.IterationLimit);
-        result.Commands.ShouldBeEmpty();
+        result.Commands.Count.ShouldBe(DominoEffectResolver.MaxDisplacementIterations);
+        // Every unit is involved: the displaced ones and the one left sharing its hex.
+        result.PsrCandidates.Count.ShouldBe(units.Count);
     }
 
     [Fact]
