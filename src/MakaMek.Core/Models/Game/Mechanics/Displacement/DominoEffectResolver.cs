@@ -205,7 +205,9 @@ public class DominoEffectResolver(IDiceRoller diceRoller)
 
         var roll = diceRoller.RollD6();
         // A substituted dice roller may return null in tests; fall back to the first occupant.
-        var index = (roll.Result - 1) % pool.Count;
+        var index = roll is null 
+            ? 0 
+            : (roll.Result - 1) % pool.Count;
         return pool[index];
     }
 

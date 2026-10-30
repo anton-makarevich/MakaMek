@@ -479,6 +479,10 @@ public class BridgeCollapseInterruptHandlerTests : GamePhaseTestsBase
         var moveCommand = CreateMoveCommand(_enteringMech.Id, MovementType.Walk,
             new PathSegment(new HexPosition(1, 2, HexDirection.Top), new HexPosition(2, 2, HexDirection.Top), []));
 
+        // Both occupants are Mechs of the same type, so the domino resolver picks one with a D6.
+        // The shared substituted roller returns null unless a result is configured.
+        DiceRoller.RollD6().Returns(new DiceResult(1));
+
         var result = _sut.Check(CreateContext(moveCommand with { PlayerId = Game.Players[0].Id }, 0));
 
         result.ShouldNotBeNull();
