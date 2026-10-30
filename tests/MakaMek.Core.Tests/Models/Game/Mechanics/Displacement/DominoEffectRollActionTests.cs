@@ -5,11 +5,13 @@ using Sanet.MakaMek.Core.Data.Game.Mechanics;
 using Sanet.MakaMek.Core.Data.Game.Mechanics.PilotingSkillRollContexts;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Dice;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.Displacement;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Movement.Actions;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Tests.Models.Game.Phases;
 using Sanet.MakaMek.Map.Models;
+using Sanet.MakaMek.Map.Models.Terrains;
 using Shouldly;
 
 namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics.Displacement;
@@ -184,6 +186,71 @@ public class DominoEffectRollActionTests : GamePhaseTestsBase
             Arg.Is<DominoEffectRollContext>(context => context.RollType == PilotingSkillRollType.DominoEffect),
             Game,
             MovementType.StandingStill,
+            Arg.Any<HexPosition?>());
+    }
+
+    [Fact]
+    public void Process_AutomaticFall_AppliesTheFallBeforeThePsrRolls()
+    {
+        SetMap();
+        DiceRoller.RollD6().Returns(new DiceResult(1));
+        MockFallProcessor.ProcessMovementAttempt(
+                _deployedMech, Arg.Any<CliffFallRollContext>(), Game,
+                Arg.Any<MovementType>(), Arg.Any<HexPosition?>())
+            .Returns(new FallContextData
+            {
+                UnitId = _deployedMech.Id,
+                GameId = Game.Id,
+                IsFalling = true,
+                LevelsFallen = 2,
+                FallingDamageData = new FallingDamageData(
+                    HexDirection.Top,
+                    new HitLocationsData([], 5),
+                    new DiceResult(3),
+                    HitDirection.Front)
+            });
+        MockConsciousnessCalculator.MakeConsciousnessRolls(_deployedMech.Pilot!).Returns([]);
+
+        var sut = new DominoEffectRollAction(
+            [_deployedMech], MockFallProcessor, [new DominoFall(_deployedMech, 2)]);
+
+        var commands = sut.Process(Game);
+
+        commands.OfType<MechFallCommand>().ShouldHaveSingleItem().UnitId.ShouldBe(_deployedMech.Id);
+        _deployedMech.IsProne.ShouldBeTrue();
+        // The fallen Mech is prone, so it makes no further domino roll.
+        MockFallProcessor.DidNotReceive().ProcessMovementAttempt(
+            _deployedMech, Arg.Any<DominoEffectRollContext>(), Arg.Any<IGame>(),
+            Arg.Any<MovementType>(), Arg.Any<HexPosition?>());
+    }
+
+    [Fact]
+    public void Process_DisplacedIntoWater_PassesTheWaterDepthToThePsr()
+    {
+        SetMap();
+        var waterHex = new Hex(new HexCoordinates(1, 2));
+        waterHex.AddTerrain(new WaterTerrain(-1));
+        Game.BattleMap!.AddHex(waterHex);
+        MockFallProcessor.ProcessMovementAttempt(
+                _deployedMech, Arg.Is<DominoEffectRollContext>(context => context.WaterDepth == 1), Game,
+                Arg.Any<MovementType>(), Arg.Any<HexPosition?>())
+            .Returns(new FallContextData
+            {
+                UnitId = _deployedMech.Id,
+                GameId = Game.Id,
+                IsFalling = false
+            });
+
+        var sut = new DominoEffectRollAction([_deployedMech], MockFallProcessor);
+
+        sut.Process(Game);
+
+        MockFallProcessor.Received(1).ProcessMovementAttempt(
+            _deployedMech,
+            Arg.Is<DominoEffectRollContext>(context =>
+                context.RollType == PilotingSkillRollType.DominoEffect && context.WaterDepth == 1),
+            Game,
+            Arg.Any<MovementType>(),
             Arg.Any<HexPosition?>());
     }
 }

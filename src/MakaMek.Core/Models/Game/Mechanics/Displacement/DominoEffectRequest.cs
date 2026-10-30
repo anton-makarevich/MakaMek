@@ -37,8 +37,8 @@ public sealed record DominoEffectRequest
     public HexSurface? OriginSurface { get; init; }
 
     /// <summary>
-    /// When false, the 0/1-level rule does not turn a deep drop into an accidental fall from above
-    /// (bridge collapse drops every unit together, so no unit falls onto another).
+    /// When false, a deep drop into the occupied destination is not turned into an accidental fall
+    /// from above (bridge collapse drops every unit together, so no unit falls onto another).
     /// </summary>
     public bool ApplyEntryElevationRule { get; init; } = true;
 }

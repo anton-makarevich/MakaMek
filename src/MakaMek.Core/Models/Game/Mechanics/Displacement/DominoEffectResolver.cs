@@ -15,9 +15,13 @@ namespace Sanet.MakaMek.Core.Models.Game.Mechanics.Displacement;
 /// <see cref="PilotingSkillRollType.DominoEffect"/> roll once the displacement is applied.
 /// </para>
 /// <para>
-/// The chain is atomic. If any link is impossible (off map, prohibited terrain, an ascent of two or
-/// more levels, or the iteration limit) no displacement command is returned and the specific
-/// failure is reported, so callers keep every other effect of the triggering action.
+/// The chain is atomic. If any link is impossible (off map, prohibited terrain, a climb above the
+/// unit's single-hex limit, or the iteration limit) no displacement command is returned and the
+/// specific failure is reported, so callers keep every other effect of the triggering action.
+/// </para>
+/// <para>
+/// A displaced unit that drops two or more levels into an empty hex is recorded in
+/// <see cref="DominoEffectResult.Falls"/>: it falls after the displacement instead of stepping down.
 /// </para>
 /// </summary>
 public class DominoEffectResolver(IDiceRoller diceRoller)
@@ -62,6 +66,7 @@ public class DominoEffectResolver(IDiceRoller diceRoller)
 
         var commands = new List<DisplaceUnitCommand>();
         var psrCandidates = new List<IUnit> { enteringUnit };
+        var falls = new List<DominoFall>();
 
         var processed = new HashSet<Guid> { enteringUnit.Id };
         var from = request.Destination;
@@ -105,6 +110,11 @@ public class DominoEffectResolver(IDiceRoller diceRoller)
             if (psrCandidates.All(candidate => candidate.Id != currentUnit.Id))
                 psrCandidates.Add(currentUnit);
 
+            // A drop of two or more levels into an empty hex is not a step down: the displaced
+            // unit falls and takes normal falling damage after the displacement is applied.
+            if (-step.LevelDifference >= 2)
+                falls.Add(new DominoFall(currentUnit, -step.LevelDifference));
+
             if (nextOccupants.Count == 0) break;
 
             currentUnit = SelectOccupant(currentUnit, nextOccupants);
@@ -118,7 +128,10 @@ public class DominoEffectResolver(IDiceRoller diceRoller)
             DominoEffectOutcome.Resolved,
             commands,
             psrCandidates,
-            entryCheck.Surface);
+            entryCheck.Surface)
+        {
+            Falls = falls
+        };
     }
 
     private static DominoEffectResult Blocked(
@@ -144,7 +157,8 @@ public class DominoEffectResolver(IDiceRoller diceRoller)
         if (pool.Count == 1) return pool[0];
 
         var roll = diceRoller.RollD6();
-        var index = (roll.Result - 1) % pool.Count;
+        // A substituted dice roller may return null in tests; fall back to the first occupant.
+        var index = ((roll?.Result ?? 1) - 1) % pool.Count;
         return pool[index];
     }
 

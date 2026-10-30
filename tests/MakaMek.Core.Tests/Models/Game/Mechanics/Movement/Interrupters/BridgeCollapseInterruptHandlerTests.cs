@@ -551,9 +551,9 @@ public class BridgeCollapseInterruptHandlerTests : GamePhaseTestsBase
     public void Check_WhenChainIsBlockedDownstream_MovesNoUnit()
     {
         // Bridge at (2,2). Occupant1 at (2,2) → (3,3), occupant2 at (3,3) → (4,3).
-        // (4,3) is two levels higher, so the atomic chain moves nobody.
+        // (4,3) is three levels higher, so the atomic chain moves nobody.
         Game.BattleMap!.GetHex(new HexCoordinates(2, 2))!.AddTerrain(new BridgeTerrain(2, 10));
-        Game.BattleMap.AddHex(new Hex(new HexCoordinates(4, 3), 2));
+        Game.BattleMap.AddHex(new Hex(new HexCoordinates(4, 3), 3));
 
         _occupantMech.Deploy(new HexPosition(2, 2, HexDirection.Top),
             Game.BattleMap.GetHex(new HexCoordinates(2, 2)));

@@ -878,9 +878,9 @@ public class PhysicalAttackResolutionPhaseTests : GamePhaseTestsBase
     [Fact]
     public void Enter_BlockedDominoChain_MovesNoUnitButStillRollsThePushPsr()
     {
-        // Arrange: the chain would climb two levels
+        // Arrange: the chain would climb three levels (above a Mech's two-level climb limit)
         SetMap();
-        Game.BattleMap!.AddHex(new Hex(DestinationHex.GetNeighbour(HexDirection.Top), 2));
+        Game.BattleMap!.AddHex(new Hex(DestinationHex.GetNeighbour(HexDirection.Top), 3));
         var player3Id = Guid.NewGuid();
         Game.HandleCommand(CreateJoinCommand(player3Id, "Player 3"));
         var occupant = (Mech)Game.Players[2].Units[0];
@@ -904,6 +904,47 @@ public class PhysicalAttackResolutionPhaseTests : GamePhaseTestsBase
         MockFallProcessor.DidNotReceive().ProcessMovementAttempt(
             Arg.Any<Mech>(), Arg.Any<DominoEffectRollContext>(), Arg.Any<IGame>(),
             Arg.Any<MovementType>(), Arg.Any<HexPosition?>());
+    }
+
+    [Fact]
+    public void Enter_PushDominoChainDropsTwoLevels_AppliesTheAutomaticFall()
+    {
+        // Arrange: the chain pushes the occupant over a two-level drop
+        SetMap();
+        Game.BattleMap!.AddHex(new Hex(DestinationHex.GetNeighbour(HexDirection.Top), -2));
+        var player3Id = Guid.NewGuid();
+        Game.HandleCommand(CreateJoinCommand(player3Id, "Player 3"));
+        var occupant = (Mech)Game.Players[2].Units[0];
+        occupant.Deploy(new HexPosition(DestinationHex, HexDirection.Top), null);
+        Declare(_player1Mech, _player2Mech, PhysicalAttackType.Push, PartLocation.LeftArm, PartLocation.RightArm);
+        MockPhysicalAttackResolver.ResolveAttack(Arg.Any<PhysicalAttackContext>())
+            .Returns(PushHit());
+        Game.DiceRoller.RollD6().Returns(new DiceResult(1));
+        MockFallProcessor.ProcessMovementAttempt(
+                occupant, Arg.Any<CliffFallRollContext>(), Game,
+                Arg.Any<MovementType>(), Arg.Any<HexPosition?>())
+            .Returns(new FallContextData
+            {
+                UnitId = occupant.Id,
+                GameId = Game.Id,
+                IsFalling = true,
+                LevelsFallen = 2,
+                FallingDamageData = new FallingDamageData(
+                    HexDirection.Top,
+                    new HitLocationsData([], 5),
+                    new DiceResult(3),
+                    HitDirection.Front)
+            });
+        MockConsciousnessCalculator.MakeConsciousnessRolls(occupant.Pilot!).Returns([]);
+
+        // Act
+        _sut.Enter();
+
+        // Assert: the occupant landed in the lower hex and fell
+        occupant.Position!.Coordinates.ShouldBe(DestinationHex.GetNeighbour(HexDirection.Top));
+        occupant.IsProne.ShouldBeTrue();
+        PublishedCommands().OfType<MechFallCommand>()
+            .ShouldContain(command => command.UnitId == occupant.Id);
     }
 
     [Theory]

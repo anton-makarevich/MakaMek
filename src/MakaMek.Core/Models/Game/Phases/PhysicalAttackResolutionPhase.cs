@@ -338,8 +338,7 @@ public class PhysicalAttackResolutionPhase(ServerGame game) : GamePhase(game)
             var candidates = resolvedDomino.PsrCandidates
                 .Where(candidate => candidate.Id != target.Id)
                 .ToList();
-            if (candidates.Count != 0)
-                Execute(new DominoEffectRollAction(candidates, Game.FallProcessor));
+            Execute(new DominoEffectRollAction(candidates, Game.FallProcessor, resolvedDomino.Falls));
         }
 
         if (result.TriggersAutomaticFall && target is Mech targetMech)

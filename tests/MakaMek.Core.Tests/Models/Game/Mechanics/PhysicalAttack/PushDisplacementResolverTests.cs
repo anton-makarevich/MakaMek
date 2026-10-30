@@ -298,6 +298,7 @@ public class PushDisplacementResolverTests
             unit.Position.Returns((HexPosition?)null);
         unit.IsDeployed.Returns(isDeployed);
         unit.IsDestroyed.Returns(isDestroyed);
+        unit.MaxLevelChangeForward.Returns(2);
         return unit;
     }
 

@@ -68,7 +68,7 @@ public class DominoEffectResolverTests
     public void Resolve_EnteringUnitAscentTooHigh_BlocksTheChain()
     {
         var map = CreateFlatMap();
-        map.AddHex(new Hex(DestinationHex, 2));
+        map.AddHex(new Hex(DestinationHex, 3));
         var entering = UnitAt(SourceHex);
         var occupant = UnitAt(DestinationHex);
 
@@ -173,10 +173,25 @@ public class DominoEffectResolverTests
     }
 
     [Fact]
-    public void Resolve_AscentOfTwoLevels_BlocksTheWholeChain()
+    public void Resolve_AscentOfTwoLevels_IsAnOrdinaryDomino()
     {
+        // A 'Mech may be displaced up to two levels in one hex (its single-hex level-change limit).
         var map = CreateFlatMap();
         map.AddHex(new Hex(FirstChainHex, 2));
+        var entering = UnitAt(SourceHex);
+        var occupant = UnitAt(DestinationHex);
+
+        var result = _sut.Resolve(Request(entering), map, [entering, occupant]);
+
+        result.Outcome.ShouldBe(DominoEffectOutcome.Resolved);
+        result.Commands.ShouldHaveSingleItem();
+    }
+
+    [Fact]
+    public void Resolve_AscentOfThreeLevels_BlocksTheWholeChain()
+    {
+        var map = CreateFlatMap();
+        map.AddHex(new Hex(FirstChainHex, 3));
         var entering = UnitAt(SourceHex);
         var occupant = UnitAt(DestinationHex);
 
@@ -218,7 +233,7 @@ public class DominoEffectResolverTests
     }
 
     [Fact]
-    public void Resolve_DropOfTwoLevelsIntoAnEmptyHex_IsAllowed()
+    public void Resolve_DropOfTwoLevelsIntoAnEmptyHex_RecordsAnAutomaticFall()
     {
         var map = CreateFlatMap();
         map.AddHex(new Hex(FirstChainHex, -2));
@@ -229,6 +244,24 @@ public class DominoEffectResolverTests
 
         result.Outcome.ShouldBe(DominoEffectOutcome.Resolved);
         result.Commands.ShouldHaveSingleItem().Surface.ShouldBe((int)HexSurface.Ground);
+        // A drop of two or more levels is not a step down: the displaced unit falls.
+        var fall = result.Falls.ShouldHaveSingleItem();
+        fall.Unit.Id.ShouldBe(occupant.Id);
+        fall.LevelsFallen.ShouldBe(2);
+    }
+
+    [Fact]
+    public void Resolve_DropOfOneLevelIntoAnEmptyHex_DoesNotFall()
+    {
+        var map = CreateFlatMap();
+        map.AddHex(new Hex(FirstChainHex, -1));
+        var entering = UnitAt(SourceHex);
+        var occupant = UnitAt(DestinationHex);
+
+        var result = _sut.Resolve(Request(entering), map, [entering, occupant]);
+
+        result.Outcome.ShouldBe(DominoEffectOutcome.Resolved);
+        result.Falls.ShouldBeEmpty();
     }
 
     [Fact]
@@ -385,7 +418,8 @@ public class DominoEffectResolverTests
         HexCoordinates coordinates,
         HexDirection facing = HexDirection.Top,
         HexSurface surface = HexSurface.Ground,
-        int height = 1)
+        int height = 1,
+        int maxLevelChangeForward = 2)
     {
         var unit = Substitute.For<IUnit>();
         unit.Id.Returns(Guid.NewGuid());
@@ -393,6 +427,7 @@ public class DominoEffectResolverTests
         unit.IsDeployed.Returns(true);
         unit.IsDestroyed.Returns(false);
         unit.Height.Returns(height);
+        unit.MaxLevelChangeForward.Returns(maxLevelChangeForward);
         return unit;
     }
 

@@ -16,6 +16,12 @@ public sealed record DominoEffectResult(
     DisplacementFailureReason? Failure = null,
     HexCoordinates? BlockedAt = null)
 {
+    /// <summary>
+    /// Automatic falls caused by the chain: a displaced unit that dropped two or more levels into
+    /// an empty hex falls after the displacement (Total Warfare p. 151-152).
+    /// </summary>
+    public IReadOnlyList<DominoFall> Falls { get; init; } = [];
+
     public static DominoEffectResult NotRequired() =>
         new(DominoEffectOutcome.NotRequired, [], []);
 }
