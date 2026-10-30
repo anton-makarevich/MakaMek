@@ -1,4 +1,6 @@
 using NSubstitute;
+using Sanet.MakaMek.Core.Models.Game.Dice;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.Displacement;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.PhysicalAttack;
 using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Models.Units;
@@ -14,7 +16,13 @@ public class PushDisplacementResolverTests
     private static readonly HexCoordinates TargetHex = AttackerHex.GetNeighbour(HexDirection.Top);
     private static readonly HexCoordinates DestinationHex = TargetHex.GetNeighbour(HexDirection.Top);
 
-    private readonly PushDisplacementResolver _sut = new(new TotalWarfareRulesProvider());
+    private readonly IDiceRoller _diceRoller = Substitute.For<IDiceRoller>();
+    private readonly PushDisplacementResolver _sut;
+
+    public PushDisplacementResolverTests()
+    {
+        _sut = new PushDisplacementResolver(new TotalWarfareRulesProvider(), _diceRoller);
+    }
 
     [Fact]
     public void Resolve_AllowedPush_MovesTheTargetOneHexAwayAndTheAttackerIntoItsHex()
@@ -56,7 +64,7 @@ public class PushDisplacementResolverTests
     }
 
     [Fact]
-    public void Resolve_DestinationOccupiedByAnotherUnit_IsBlocked()
+    public void Resolve_DestinationOccupiedByAnotherUnit_ResolvesADominoForTheOccupant()
     {
         // Arrange
         var map = CreateFlatMap();
@@ -68,7 +76,41 @@ public class PushDisplacementResolverTests
         var result = _sut.Resolve(attacker, target, map, [attacker, target, occupant]);
 
         // Assert
-        result.ShouldBeNull();
+        result.ShouldNotBeNull();
+        result.TargetDestination.Coordinates.ShouldBe(DestinationHex);
+        result.AttackerDestination.Coordinates.ShouldBe(TargetHex);
+        result.TriggersAutomaticFall.ShouldBeFalse();
+        result.DominoEffect.ShouldNotBeNull();
+        result.DominoEffect!.Outcome.ShouldBe(DominoEffectOutcome.Resolved);
+        result.DominoEffect.Commands.ShouldHaveSingleItem().UnitId.ShouldBe(occupant.Id);
+        result.DominoEffect.PsrCandidates.ShouldContain(target);
+    }
+
+    [Fact]
+    public void Resolve_ChainBlockedAtALaterLink_StillMovesTheTargetAndKeepsTheEarlierLinks()
+    {
+        // Arrange: the chain continues Top; the hex after the second occupant is three levels higher
+        var map = CreateFlatMap();
+        var firstChainHex = DestinationHex.GetNeighbour(HexDirection.Top);
+        var secondChainHex = firstChainHex.GetNeighbour(HexDirection.Top);
+        AddHex(map, new Hex(secondChainHex, 3));
+        var attacker = UnitAt(AttackerHex, HexDirection.Top);
+        var target = UnitAt(TargetHex, HexDirection.Bottom);
+        var firstOccupant = UnitAt(DestinationHex, HexDirection.Top);
+        var secondOccupant = UnitAt(firstChainHex, HexDirection.Top);
+
+        // Act
+        var result = _sut.Resolve(
+            attacker, target, map, [attacker, target, firstOccupant, secondOccupant]);
+
+        // Assert: the first occupant is displaced, the second stays put and shares its hex.
+        result.ShouldNotBeNull();
+        result.TargetDestination.Coordinates.ShouldBe(DestinationHex);
+        result.AttackerDestination.Coordinates.ShouldBe(TargetHex);
+        result.DominoEffect.ShouldNotBeNull();
+        result.DominoEffect!.Outcome.ShouldBe(DominoEffectOutcome.PartiallyResolved);
+        result.DominoEffect.Commands.ShouldHaveSingleItem().UnitId.ShouldBe(firstOccupant.Id);
+        result.DominoEffect.PsrCandidates.ShouldBe([target, firstOccupant, secondOccupant]);
     }
 
     [Fact]
@@ -283,6 +325,7 @@ public class PushDisplacementResolverTests
             unit.Position.Returns((HexPosition?)null);
         unit.IsDeployed.Returns(isDeployed);
         unit.IsDestroyed.Returns(isDestroyed);
+        unit.MaxLevelChangeForward.Returns(2);
         return unit;
     }
 

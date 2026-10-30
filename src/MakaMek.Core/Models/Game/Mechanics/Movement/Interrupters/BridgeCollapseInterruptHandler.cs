@@ -2,6 +2,7 @@ using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
 using Sanet.MakaMek.Core.Data.Game.Mechanics.PilotingSkillRollContexts;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.Displacement;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Movement.Actions;
 using Sanet.MakaMek.Map.Data;
 using Sanet.MakaMek.Core.Models.Units;
@@ -13,8 +14,6 @@ namespace Sanet.MakaMek.Core.Models.Game.Mechanics.Movement.Interrupters;
 
 public class BridgeCollapseInterruptHandler : IMovementInterruptHandler
 {
-    private const int MaxDisplacementIterations = 20;
-
     public MovementInterruptResult? Check(MovementInterruptContext context)
     {
         var segment = context.MoveCommand.MovementPath[context.SegmentIndex];
@@ -84,7 +83,8 @@ public class BridgeCollapseInterruptHandler : IMovementInterruptHandler
             var entryDirection = GetEntryDirection(segment);
             var oppositeDirection = entryDirection.GetOppositeDirection();
             var candidates = unitsOnHex.Where(u => u.Id != context.Unit.Id).ToList();
-            actions.AddRange(ResolveDisplacementChain(bridgeCoords, oppositeDirection, candidates, context.Game));
+            actions.AddRange(ResolveDisplacementChain(
+                context.Unit, bridgeCoords, oppositeDirection, candidates, context.Game));
 
             return new MovementInterruptResult
             {
@@ -158,7 +158,8 @@ public class BridgeCollapseInterruptHandler : IMovementInterruptHandler
         var entryDirectionWalk = GetEntryDirection(segment);
         var displacementDirWalk = entryDirectionWalk.GetOppositeDirection();
         var candidatesWalk = unitsOnHex.Where(u => u.Id != context.Unit.Id).ToList();
-        walkActions.AddRange(ResolveDisplacementChain(bridgeCoords, displacementDirWalk, candidatesWalk, context.Game));
+        walkActions.AddRange(ResolveDisplacementChain(
+            context.Unit, bridgeCoords, displacementDirWalk, candidatesWalk, context.Game));
 
         return new MovementInterruptResult
         {
@@ -175,65 +176,37 @@ public class BridgeCollapseInterruptHandler : IMovementInterruptHandler
         return toCoords.GetDirectionToNeighbour(fromCoords);
     }
 
-    private static List<DisplaceUnitAction> ResolveDisplacementChain(
+    private static List<IGameAction> ResolveDisplacementChain(
+        IUnit enteringUnit,
         HexCoordinates bridgeCoords,
         HexDirection displacementDirection,
         List<IUnit> candidates,
         ServerGame game)
     {
-        var actions = new List<DisplaceUnitAction>();
-        var queue = new Queue<(IUnit Unit, HexCoordinates SourceCoords)>();
-        var processed = new HashSet<Guid>();
-        var reservedTargets = new HashSet<HexCoordinates>();
-        var iterations = 0;
+        var actions = new List<IGameAction>();
+        if (candidates.Count == 0) return actions;
 
-        foreach (var candidate in candidates)
-        {
-            queue.Enqueue((candidate, bridgeCoords));
-        }
-
-        while (queue.Count > 0 && iterations < MaxDisplacementIterations)
-        {
-            iterations++;
-            var (unit, sourceCoords) = queue.Dequeue();
-
-            if (!processed.Add(unit.Id)) continue;
-
-            var targetCoords = sourceCoords.GetNeighbour(displacementDirection);
-
-            if (!game.BattleMap!.IsOnMap(targetCoords))
+        var resolver = new DominoEffectResolver(game.DiceRoller);
+        var result = resolver.Resolve(
+            new DominoEffectRequest
             {
-                // Off-map: unit remains in place per rules
-                continue;
-            }
-
-            // Reserve target hex - skip if another unit is already being displaced here
-            if (!reservedTargets.Add(targetCoords)) continue;
-
-            // Check if target hex is occupied by another deployed unit
-            var occupant = game.Players
-                .SelectMany(p => p.Units)
-                .FirstOrDefault(u => u.IsDeployed && u.Id != unit.Id && u.Position!.Coordinates == targetCoords);
-
-            if (occupant != null)
-            {
-                queue.Enqueue((occupant, targetCoords));
-            }
-
-            var command = new DisplaceUnitCommand
-            {
-                UnitId = unit.Id,
-                FromCoordinates = sourceCoords.ToData(),
-                ToCoordinates = targetCoords.ToData(),
-                NewFacing = (int)(unit.Facing ?? HexDirection.Top),
-                DisplacementReason = DisplacementReason.DominoEffect,
+                EnteringUnit = enteringUnit,
+                Destination = bridgeCoords,
+                Direction = displacementDirection,
+                Reason = DisplacementReason.DominoEffect,
                 GameOriginId = game.Id,
-                Timestamp = DateTime.UtcNow
-            };
+                Occupants = candidates,
+                // The deck is gone: every unit drops into the same ground hex before the chain runs.
+                OriginSurface = HexSurface.Ground,
+                ApplyEntryElevationRule = false
+            },
+            game.BattleMap!,
+            game.Players.SelectMany(player => player.Units));
 
-            actions.Add(new DisplaceUnitAction(command, publish: true));
-        }
+        if (!result.HasDisplacements) return actions;
 
+        actions.AddRange(result.Commands.Select(command => new DisplaceUnitAction(command, publish: true)));
+        actions.Add(new DominoEffectRollAction(result.PsrCandidates, game.FallProcessor, result.Falls));
         return actions;
     }
 }

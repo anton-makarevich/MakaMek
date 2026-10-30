@@ -242,6 +242,11 @@ public class PilotingSkillCalculator : IPilotingSkillCalculator
             // push's own PSR.
             AddWaterDepthModifier(pushWaterCtx.WaterDepth, modifiers);
         }
+        else if (context is DominoEffectRollContext { WaterDepth: > 0 } dominoWaterCtx)
+        {
+            // The same rule applies to a domino displacement into water (Total Warfare p. 151-153).
+            AddWaterDepthModifier(dominoWaterCtx.WaterDepth, modifiers);
+        }
         else if (context is SkidCheckRollContext skidCtx)
         {
             modifiers.Add(new SkiddingModifier

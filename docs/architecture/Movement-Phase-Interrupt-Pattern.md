@@ -187,6 +187,8 @@ While a unit is deferred, `HandleCommand` rejects `MoveUnitCommand`/`TryStandupC
    - `BridgeCollapsedAction(bridgeCmd, publish: true)` — collapse the bridge, broadcast it.
    - `MoveUnitAction(truncatedCommand with { IsCompleted = true }, publish: true)` — re-broadcast the completed move.
    - one `ApplyFallAction` per mech on the hex (each rolled through `FallProcessor`).
+   - the `DisplaceUnitAction`s of the shared `DominoEffectResolver` (far-to-near), when other units occupy the hex or the chain reaches them.
+   - a final `DominoEffectRollAction` with the dislodged Mechs, so their mandatory domino PSRs resolve immediately (Mechs that already fell are prone and skipped).
 3. The handler returns `ShouldStop = true`.
 4. `ProcessInterruptResult` runs the actions in order, publishes all commands, and — because an `ApplyFallAction` ran — sets `_requestDeferStepConsumption` from the triggering mech's post-fall `CanStandup()`.
 5. The segment loop returns; the unit's turn is held open if it can stand.

@@ -40,7 +40,7 @@ public class PhysicalAttackResolutionPhase(ServerGame game) : GamePhase(game)
     private readonly Dictionary<Guid, UnitPhaseAccumulatedDamage> _accumulatedDamage = new();
     private readonly Dictionary<Guid, (List<PilotingSkillRollContext> Contexts, PushHitRollContext Context)>
         _pushHitContexts = new();
-    private readonly PushDisplacementResolver _pushDisplacementResolver = new(game.RulesProvider);
+    private readonly PushDisplacementResolver _pushDisplacementResolver = new(game.RulesProvider, game.DiceRoller);
 
     private readonly record struct AttackQueueItem(IPlayer Player, PhysicalAttackContext Context);
 
@@ -289,8 +289,16 @@ public class PhysicalAttackResolutionPhase(ServerGame game) : GamePhase(game)
         var map = Game.BattleMap;
         if (map is null) return;
 
-        var result = _pushDisplacementResolver.Resolve(attacker, target, map, AllUnits());
+        var result = _pushDisplacementResolver.Resolve(attacker, target, map, AllUnits(), Game.Id);
         if (result is null) return; // Blocked or no longer a valid push: the target PSR still happens.
+
+        // Apply the domino chain first, far-to-near, so each link moves into a vacated hex. A chain
+        // stopped by a later link keeps its earlier displacements.
+        if (result.DominoEffect is { HasDisplacements: true } domino)
+        {
+            foreach (var chainCommand in domino.Commands)
+                Execute(new DisplaceUnitAction(chainCommand with { GameOriginId = Game.Id }, publish: true));
+        }
 
         Execute(new DisplaceUnitAction(
             new DisplaceUnitCommand
@@ -322,6 +330,15 @@ public class PhysicalAttackResolutionPhase(ServerGame game) : GamePhase(game)
                 Timestamp = DateTime.UtcNow
             },
             publish: true));
+
+        // Every unit involved in the domino rolls once all displacement is applied, the push target
+        // included: its PushHit roll covers the push, not the domino (Total Warfare p. 152). Water
+        // entry is not a second roll either - it is a modifier on the push's own PSR.
+        if (result.DominoEffect is { HasDisplacements: true } resolvedDomino)
+        {
+            Execute(new DominoEffectRollAction(
+                resolvedDomino.PsrCandidates, Game.FallProcessor, resolvedDomino.Falls));
+        }
 
         if (result.TriggersAutomaticFall && target is Mech targetMech)
             ResolveAutomaticFall(targetMech, result.LevelsFallen);

@@ -607,6 +607,9 @@ public class TotalWarfareRulesProvider : IRulesProvider
             // A successful push gives the defender no extra modifier (unlike Charge/DFA, which
             // are +2): Total Warfare p. 148 asks for a plain Piloting Skill Roll.
             PilotingSkillRollType.PushHit => 0,
+            // A domino effect adds no modifier of its own; the ordinary PSR modifiers apply
+            // (Total Warfare, p. 151-153).
+            PilotingSkillRollType.DominoEffect => 0,
             _ => throw new ArgumentOutOfRangeException(nameof(psrType), "Invalid piloting skill roll type")
         };
     }

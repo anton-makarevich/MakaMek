@@ -133,6 +133,7 @@ public class DisplaceUnitCommandTests
 
         sut.NewFacing.ShouldBe(0);
         sut.DisplacementReason.ShouldBe(DisplacementReason.DominoEffect);
+        sut.Surface.ShouldBe((int)HexSurface.Ground);
     }
 
     [Fact]
