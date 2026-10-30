@@ -267,6 +267,12 @@ jobs:
         run: |
           set -euo pipefail
           request="${RUNNER_TEMP}/opencode-request.md"
+          # The agent writes its final summary here and the report step posts only
+          # that file, never the CLI transcript. It lives outside the worktree so
+          # the commit step's `git add -A` cannot stage it. Remove any leftover so
+          # a failed run cannot post a stale summary.
+          summary="${RUNNER_TEMP}/opencode-summary.md"
+          rm -f "${summary}"
           {
             echo "# Request from @${COMMENT_AUTHOR}"
             echo
@@ -291,6 +297,7 @@ jobs:
             printf '%s\n' "${COMMENT_BODY}"
           } > "${request}"
           echo "file=${request}" >> "$GITHUB_OUTPUT"
+          echo "summary_file=${summary}" >> "$GITHUB_OUTPUT"
 
       - name: Acknowledge the request
         continue-on-error: true
@@ -309,6 +316,7 @@ jobs:
           # OPENCODE_API_KEY (the Console/Zen/Go key), not OPENROUTER_API_KEY.
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
           REQUEST_FILE: ${{ steps.request.outputs.file }}
+          SUMMARY_FILE: ${{ steps.request.outputs.summary_file }}
           MODEL: opencode/big-pickle
           NO_COLOR: "1"
         run: |
@@ -326,11 +334,15 @@ jobs:
           - If you change tracked files, commit them with a Conventional Commit
             subject (feat/fix/refactor/docs/test/chore).
           - Follow the repository AGENTS.md.
-          - Reply with a short summary of what you changed; it is posted back to the
-            issue or pull request.
+          - As your last action, after committing any changes, write a short,
+            well-formatted Markdown summary to __SUMMARY_FILE__ with the write tool.
+            Only that file is posted back to the issue or pull request. State what
+            changed and how it was verified, or answer the request when no files
+            changed. Do not include tool output, logs, or the session transcript.
           PROMPT
           )"
           prompt="${prompt//__REQUEST_FILE__/${REQUEST_FILE}}"
+          prompt="${prompt//__SUMMARY_FILE__/${SUMMARY_FILE}}"
           opencode run --standalone --auto --agent build --model "${MODEL}" "${prompt}" 2>&1 | tee "${RUNNER_TEMP}/opencode.log"
 
       - name: Commit changes
@@ -429,6 +441,7 @@ jobs:
         env:
           NUMBER: ${{ needs.triage.outputs.number }}
           HEAD_REF: ${{ needs.triage.outputs.head_ref }}
+          SUMMARY_FILE: ${{ steps.request.outputs.summary_file }}
           VERIFY_STALE: ${{ steps.verify.outputs.stale }}
           JOB_STATUS: ${{ job.status }}
           PREPARE_OUTCOME: ${{ steps.branch.outcome }}
@@ -496,13 +509,19 @@ jobs:
               echo "Nothing was published, so the unused branch \`${HEAD_REF}\` was deleted."
               echo
             fi
-            if [ -s "${log}" ] && [ -z "${failed}${reason}" ]; then
-              # Keep the end of the log: the summary is the last thing the agent writes.
-              if [ "$(wc -c < "${log}")" -gt 55000 ]; then
-                echo "_(log truncated, showing the last 55000 bytes)_"
-                tail -c 55000 "${log}"
+            if [ -z "${failed}${reason}" ]; then
+              # Post the agent's own summary only. The CLI transcript stays in the
+              # job log (and in the log file used for failure diagnostics), so the
+              # comment never carries tool output.
+              if [ -n "${SUMMARY_FILE:-}" ] && [ -s "${SUMMARY_FILE}" ]; then
+                if [ "$(wc -c < "${SUMMARY_FILE}")" -gt 55000 ]; then
+                  echo "_(summary truncated, showing the first 55000 bytes)_"
+                  head -c 55000 "${SUMMARY_FILE}"
+                else
+                  cat "${SUMMARY_FILE}"
+                fi
               else
-                cat "${log}"
+                echo "The agent did not write a summary. See the run log for details."
               fi
             fi
             echo
