@@ -15,6 +15,7 @@ using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Factories;
 using Sanet.MakaMek.Core.Models.Game.Phases;
 using Sanet.MakaMek.Core.Models.Game.Players;
+using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Pilots;
 using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Map.Factories;
@@ -29,25 +30,27 @@ using Shouldly;
 namespace MakaMek.Avalonia.AppTests;
 
 /// <summary>
-/// The physical attack preview panel inside the real BattleMapView, over a real game in which an
-/// Atlas has picked an adjacent Atlas as its punch target.
+/// The physical attack declaration dialog inside the real BattleMapView, over a real game in which
+/// an Atlas has selected an adjacent Atlas as its target.
 /// </summary>
-public class PhysicalAttackPreviewPanelTests
+public class PhysicalAttackDeclarationPanelTests
 {
     [Fact]
-    public Task PhysicalAttackPreviewPanel_ShowsTheToHitPreview_AndClosesWithoutLosingTheTarget() =>
+    public Task PhysicalAttackDeclarationPanel_ShowsTheRows_AndClosesBackToTargetSelection() =>
         HarnessSession.Run(async () =>
         {
             // Arrange
-            var (window, view, viewModel, state, target) = await ShowBattleMapWithTargetSelected();
+            var (window, view, viewModel, state, attacker, target) =
+                await ShowBattleMapWithTargetSelected();
             try
             {
-                // Assert
-                viewModel.IsPhysicalAttackPreviewVisible.ShouldBeTrue();
-                viewModel.PhysicalAttackPreview.ShouldNotBeNull();
-                viewModel.PhysicalAttackPreview.Target.ShouldBe(target);
+                // Assert the dialog opens straight from target selection, without an attack-type
+                // action.
+                viewModel.IsPhysicalAttackDeclarationVisible.ShouldBeTrue();
+                viewModel.PhysicalAttackOptions.ShouldNotBeEmpty();
+                viewModel.PhysicalAttackTarget.ShouldBe(target);
 
-                var panel = view.FindControl<PhysicalAttackPreviewPanel>("PhysicalAttackPreviewPanel")
+                var panel = view.FindControl<PhysicalAttackDeclarationPanel>("PhysicalAttackDeclarationPanel")
                     .ShouldNotBeNull();
                 var gamePanel = panel.GetVisualDescendants().OfType<GamePanel>().Single();
                 gamePanel.IsEffectivelyVisible.ShouldBeTrue();
@@ -56,15 +59,66 @@ public class PhysicalAttackPreviewPanelTests
                     .Select(textBlock => textBlock.Text)
                     .ToList();
                 texts.ShouldContain("Punch");
-                texts.ShouldContain(viewModel.PhysicalAttackPreview.TargetNumberText);
+                texts.ShouldContain("Kick");
+                texts.ShouldContain("Push");
+                var punch = viewModel.PhysicalAttackOptions
+                    .First(option => option.AttackType == PhysicalAttackType.Punch);
+                texts.ShouldContain(punch.TargetNumberText);
 
-                // Act
-                viewModel.ClosePhysicalAttackPreviewCommand();
+                // Act: close through the panel's own close binding.
+                gamePanel.CloseCommand.ShouldNotBeNull();
+                gamePanel.CloseCommand.Execute(null);
                 Settle(window);
 
-                // Assert the panel hides but the target selection stays.
-                viewModel.IsPhysicalAttackPreviewVisible.ShouldBeFalse();
-                state.SelectedTarget.ShouldBe(target);
+                // Assert the dialog hides, the target is cleared and the attacker is kept.
+                viewModel.IsPhysicalAttackDeclarationVisible.ShouldBeFalse();
+                viewModel.PhysicalAttackOptions.ShouldBeEmpty();
+                viewModel.PhysicalAttackTarget.ShouldBeNull();
+                state.SelectedTarget.ShouldBeNull();
+                state.CurrentStep.ShouldBe(PhysicalAttackStep.TargetSelection);
+                state.Attacker.ShouldBe(attacker);
+            }
+            finally
+            {
+                window.Close();
+            }
+        });
+
+    [Fact]
+    public Task PhysicalAttackDeclarationPanel_DisablesUnavailableRows_AndKeepsTheirInfoAccessible() =>
+        HarnessSession.Run(async () =>
+        {
+            // Arrange: the target is in the right-side arc, so only the right arm can punch and a
+            // kick is outside the feet arc.
+            var (window, view, viewModel, _, _, _) =
+                await ShowBattleMapWithTargetSelected(HexDirection.BottomRight);
+            try
+            {
+                var panel = view.FindControl<PhysicalAttackDeclarationPanel>("PhysicalAttackDeclarationPanel")
+                    .ShouldNotBeNull();
+                var checkBoxes = panel.GetVisualDescendants().OfType<CheckBox>().ToList();
+                checkBoxes.Count.ShouldBe(3);
+                checkBoxes.Count(checkBox => checkBox.IsEnabled).ShouldBe(1);
+
+                var punch = viewModel.PhysicalAttackOptions
+                    .First(option => option.AttackType == PhysicalAttackType.Punch);
+                var kick = viewModel.PhysicalAttackOptions
+                    .First(option => option.AttackType == PhysicalAttackType.Kick);
+                punch.IsEnabled.ShouldBeTrue();
+                punch.HitProbabilityText.ShouldNotBe("-");
+                kick.IsEnabled.ShouldBeFalse();
+                kick.HitProbabilityText.ShouldBe("-");
+
+                var texts = panel.GetVisualDescendants().OfType<TextBlock>()
+                    .Select(textBlock => textBlock.Text)
+                    .ToList();
+                texts.ShouldContain(punch.HitProbabilityText);
+                texts.ShouldContain("-");
+
+                // Every row keeps its info flyout, including the disabled ones.
+                panel.GetVisualDescendants().OfType<Button>()
+                    .Count(button => button.Flyout != null)
+                    .ShouldBe(3);
             }
             finally
             {
@@ -73,8 +127,8 @@ public class PhysicalAttackPreviewPanelTests
         });
 
     private static async Task<(Window Window, BattleMapView View, BattleMapViewModel ViewModel,
-        PhysicalAttackState State, Sanet.MakaMek.Core.Models.Units.IUnit Target)>
-        ShowBattleMapWithTargetSelected()
+        PhysicalAttackState State, IUnit Attacker, IUnit Target)>
+        ShowBattleMapWithTargetSelected(HexDirection targetDirection = HexDirection.Top)
     {
         var services = ((App)Application.Current!).ServiceProvider!;
         var viewModel = ActivatorUtilities.CreateInstance<BattleMapViewModel>(
@@ -105,7 +159,7 @@ public class PhysicalAttackPreviewPanelTests
         });
 
         var attackerPosition = new HexCoordinates(5, 5);
-        var targetPosition = attackerPosition.GetNeighbour(HexDirection.Top);
+        var targetPosition = attackerPosition.GetNeighbour(targetDirection);
         foreach (var owner in game.Players)
         {
             var isLocal = owner.Id == player.Id;
@@ -140,17 +194,16 @@ public class PhysicalAttackPreviewPanelTests
         Settle(window);
 
         var state = viewModel.CurrentState.ShouldBeOfType<PhysicalAttackState>();
-        state.HandleUnitSelectionFromList(UnitOf(game, player.Id));
-        var punch = viewModel.LocalizationService.GetString("PhysicalAttackType_Punch");
-        state.GetAvailableActions().First(action => action.Label == punch).OnExecute();
+        var attacker = UnitOf(game, player.Id);
         var target = UnitOf(game, opponentId);
+        state.HandleUnitSelectionFromList(attacker);
         state.HandleUnitSelectionFromList(target);
         Settle(window);
 
-        return (window, view, viewModel, state, target);
+        return (window, view, viewModel, state, attacker, target);
     }
 
-    private static Sanet.MakaMek.Core.Models.Units.IUnit UnitOf(ClientGame game, Guid playerId) =>
+    private static IUnit UnitOf(ClientGame game, Guid playerId) =>
         game.Players.First(player => player.Id == playerId).Units.First();
 
     private static void Settle(Window window)

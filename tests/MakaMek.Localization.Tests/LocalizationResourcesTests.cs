@@ -1,5 +1,6 @@
 using Sanet.Localization;
 using Sanet.MakaMek.Core.Models.Game;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.PhysicalAttack;
 using Sanet.MakaMek.Core.Models.Game.Phases;
 using Sanet.MakaMek.TestHelpers;
 using Shouldly;
@@ -299,7 +300,7 @@ public class LocalizationResourcesTests
     [InlineData("Action_DeclarePhysicalAttack_WithLimb", "{0} ({1})")]
     [InlineData("PhysicalAttack_BothArms", "Both Arms")]
     [InlineData("PhysicalAttack_NoOptions", "This unit has no physical attack options")]
-    [InlineData("PhysicalAttackPreview_Title", "Physical attack")]
+    [InlineData("PhysicalAttackDeclaration_Title", "Physical attack")]
     // Movement actions
     [InlineData("Action_SelectUnitToMove", "Select unit to move")]
     [InlineData("Action_SelectMovementType", "Select movement type")]
@@ -432,6 +433,23 @@ public class LocalizationResourcesTests
         foreach (var attackType in Enum.GetValues<PhysicalAttackType>())
         {
             var key = $"PhysicalAttackType_{attackType}";
+            var result = localizationService.GetString(key);
+
+            result.ShouldNotBeNullOrWhiteSpace();
+            result.ShouldNotBe(key);
+        }
+    }
+
+    [Fact]
+    public void GetString_AllPhysicalAttackRestrictions_HaveLocalizedString()
+    {
+        // Arrange
+        var localizationService = TestLocalizationService.Create();
+
+        // Act & Assert
+        foreach (var restriction in Enum.GetValues<PhysicalAttackRestriction>())
+        {
+            var key = $"PhysicalAttackRestriction_{restriction}";
             var result = localizationService.GetString(key);
 
             result.ShouldNotBeNullOrWhiteSpace();

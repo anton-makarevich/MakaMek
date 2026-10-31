@@ -2,9 +2,9 @@ using Avalonia.Controls;
 
 namespace Sanet.MakaMek.Avalonia.Controls;
 
-public partial class PhysicalAttackPreviewPanel : UserControl
+public partial class PhysicalAttackDeclarationPanel : UserControl
 {
-    public PhysicalAttackPreviewPanel()
+    public PhysicalAttackDeclarationPanel()
     {
         InitializeComponent();
     }

@@ -259,8 +259,8 @@
             HorizontalAlignment="Right"
             VerticalAlignment="Center"/>
 
-        <controls:PhysicalAttackPreviewPanel
-            x:Name="PhysicalAttackPreviewPanel"
+        <controls:PhysicalAttackDeclarationPanel
+            x:Name="PhysicalAttackDeclarationPanel"
             HorizontalAlignment="Right"
             VerticalAlignment="Center"/>
 

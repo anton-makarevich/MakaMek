@@ -42,10 +42,20 @@ public interface IPhysicalAttackEligibility
     bool HasAnyOption(IUnit attacker, IEnumerable<IUnit> units, IBattleMap map);
 
     /// <summary>
-    /// Why this attack cannot be made against this target, or null when it can. Push uses this to
-    /// explain a disabled action; the displacement budget is checked separately by
-    /// <see cref="PhysicalAttackDisplacementBudget"/>.
+    /// Why this attack cannot be made against this target, or null when it can. Every supported
+    /// attack type reports a reason, and a null reason means <see cref="GetEligibleLimbs"/> is not
+    /// empty apart from the one-attack-per-turn rule. The displacement budget is a declaration-time
+    /// concern and is applied by <see cref="GetDeclarationRestriction"/>.
     /// </summary>
     PhysicalAttackRestriction? GetRestriction(IUnit attacker, IUnit target, PhysicalAttackType attackType,
         IBattleMap map);
+
+    /// <summary>
+    /// Why this attack cannot be declared right now, or null when it can. Applies
+    /// <see cref="GetRestriction"/> first and then the shared one-displacement-per-target budget for
+    /// displacement attacks. Resolution paths must keep using <see cref="CanResolve"/>: a
+    /// declaration that reserved the target must still resolve.
+    /// </summary>
+    PhysicalAttackRestriction? GetDeclarationRestriction(IUnit attacker, IUnit target,
+        PhysicalAttackType attackType, IBattleMap map, IEnumerable<IUnit> units);
 }
