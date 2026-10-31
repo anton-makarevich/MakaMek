@@ -47,7 +47,6 @@ public class PhysicalAttackOptionViewModelTests
         return new PhysicalAttackOptionViewModel(
             attackType,
             limbVariants,
-            limbVariants.FirstOrDefault(),
             isEnabled,
             restrictionReason,
             targetNumber,
@@ -81,78 +80,81 @@ public class PhysicalAttackOptionViewModelTests
 
         sut.AttackType.ShouldBe(PhysicalAttackType.Punch);
         sut.AttackTypeName.ShouldBe("Punch");
-        sut.LimbVariants.Count.ShouldBe(2);
-        sut.SelectedVariant.ShouldBe(sut.LimbVariants[0]);
+        sut.HasLimbOptions.ShouldBeTrue();
+        sut.LimbOptions.Count.ShouldBe(2);
+        sut.IsSelected.ShouldBeFalse();
+        sut.SelectedVariant.ShouldBeNull();
+        sut.LimbOptions.ShouldAllBe(option => !option.IsSelected);
     }
 
     [Fact]
-    public void SelectingAnEnabledRowRunsTheCallback()
+    public void SelectingALimbOptionSelectsTheRowAndRunsTheCallback()
     {
         var sut = CreateSut();
 
-        sut.IsSelected = true;
+        sut.LimbOptions[0].IsSelected = true;
 
+        sut.LimbOptions[0].IsSelected.ShouldBeTrue();
+        sut.SelectedVariant.ShouldBe(sut.LimbOptions[0].Variant);
         sut.IsSelected.ShouldBeTrue();
         _selections.ShouldBe([(sut, true)]);
     }
 
     [Fact]
-    public void DisabledRow_DoesNotChangeSelectionOrRunTheCallback()
+    public void SelectingAnotherLimbOptionInTheSameRow_DeselectsThePrevious()
+    {
+        var sut = CreateSut();
+        sut.LimbOptions[0].IsSelected = true;
+        _selections.Clear();
+
+        sut.LimbOptions[1].IsSelected = true;
+
+        sut.LimbOptions[0].IsSelected.ShouldBeFalse();
+        sut.LimbOptions[1].IsSelected.ShouldBeTrue();
+        sut.SelectedVariant.ShouldBe(sut.LimbOptions[1].Variant);
+        sut.IsSelected.ShouldBeTrue();
+        _selections.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void UncheckingTheActiveLimbOption_ClearsTheRow()
+    {
+        var sut = CreateSut();
+        sut.LimbOptions[0].IsSelected = true;
+        _selections.Clear();
+
+        sut.LimbOptions[0].IsSelected = false;
+
+        sut.LimbOptions[0].IsSelected.ShouldBeFalse();
+        sut.SelectedVariant.ShouldBeNull();
+        sut.IsSelected.ShouldBeFalse();
+        _selections.ShouldBe([(sut, false)]);
+    }
+
+    [Fact]
+    public void UncheckingAnInactiveLimbOption_DoesNothing()
+    {
+        var sut = CreateSut();
+        sut.LimbOptions[0].IsSelected = true;
+        _selections.Clear();
+
+        sut.LimbOptions[1].IsSelected = false;
+
+        sut.LimbOptions[0].IsSelected.ShouldBeTrue();
+        sut.IsSelected.ShouldBeTrue();
+        _selections.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void DisabledRow_DoesNotSelectOrRunTheCallback()
     {
         var sut = CreateSut(isEnabled: false, restrictionReason: "No");
 
-        sut.IsSelected = true;
+        sut.LimbOptions[0].IsSelected = true;
 
+        sut.LimbOptions[0].IsSelected.ShouldBeFalse();
         sut.IsSelected.ShouldBeFalse();
         _selections.ShouldBeEmpty();
-    }
-
-    [Fact]
-    public void SettingTheValueToTheCurrentOne_DoesNotRunTheCallback()
-    {
-        var sut = CreateSut(isEnabled: true);
-        sut.IsSelected = true;
-        _selections.Clear();
-
-        sut.IsSelected = true;
-
-        _selections.ShouldBeEmpty();
-    }
-
-    [Fact]
-    public void ChoosingAVariantOnAnUnselectedRowSelectsTheRow()
-    {
-        var sut = CreateSut();
-
-        sut.SelectedVariant = sut.LimbVariants[1];
-
-        sut.SelectedVariant.ShouldBe(sut.LimbVariants[1]);
-        sut.IsSelected.ShouldBeTrue();
-        _selections.ShouldBe([(sut, true)]);
-    }
-
-    [Fact]
-    public void ChangingTheVariantOnASelectedRow_KeepsTheSelection()
-    {
-        var sut = CreateSut();
-        sut.IsSelected = true;
-        _selections.Clear();
-
-        sut.SelectedVariant = sut.LimbVariants[1];
-
-        sut.IsSelected.ShouldBeTrue();
-        _selections.ShouldBeEmpty();
-    }
-
-    [Fact]
-    public void DisabledRow_DoesNotChangeTheVariant()
-    {
-        var sut = CreateSut(isEnabled: false, restrictionReason: "No");
-        var original = sut.SelectedVariant;
-
-        sut.SelectedVariant = sut.LimbVariants[1];
-
-        sut.SelectedVariant.ShouldBe(original);
     }
 
     [Fact]

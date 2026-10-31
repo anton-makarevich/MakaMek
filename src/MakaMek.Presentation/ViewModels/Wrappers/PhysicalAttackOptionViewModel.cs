@@ -7,11 +7,10 @@ using Sanet.MVVM.Core.ViewModels;
 namespace Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 
 /// <summary>
-/// One selectable attack type in the physical attack declaration dialog. Modelled on
-/// <see cref="WeaponSelectionViewModel"/>: the row carries the pending selection, the limb
-/// variants that can be declared and the localized answer to "why can or cannot I use this?".
-/// The to-hit calculator has no limb input, so one row per attack type is enough; the limb
-/// variant only changes the declaration payload.
+/// One attack type in the physical attack declaration dialog. The row has no checkbox of its own:
+/// the player selects it through the checkbox of one of its limb options, which then clears any
+/// other selected attack. The to-hit calculator has no limb input, so the row carries one target
+/// number and modifier breakdown; the limb option only changes the declaration payload.
 /// </summary>
 public class PhysicalAttackOptionViewModel : BindableBase
 {
@@ -19,12 +18,11 @@ public class PhysicalAttackOptionViewModel : BindableBase
     private readonly ILocalizationService _localizationService;
     private bool _isEnabled;
     private bool _isSelected;
-    private PhysicalAttackLimbVariant? _selectedVariant;
+    private PhysicalAttackLimbOptionViewModel? _selectedLimbOption;
 
     public PhysicalAttackOptionViewModel(
         PhysicalAttackType attackType,
         IReadOnlyList<PhysicalAttackLimbVariant> limbVariants,
-        PhysicalAttackLimbVariant? selectedVariant,
         bool isEnabled,
         string? restrictionReason,
         int? targetNumber,
@@ -33,7 +31,6 @@ public class PhysicalAttackOptionViewModel : BindableBase
         ILocalizationService localizationService)
     {
         AttackType = attackType;
-        LimbVariants = limbVariants;
         _isEnabled = isEnabled;
         RestrictionReason = restrictionReason;
         TargetNumber = targetNumber;
@@ -41,9 +38,9 @@ public class PhysicalAttackOptionViewModel : BindableBase
         _onSelectionChanged = onSelectionChanged;
         _localizationService = localizationService;
 
-        // Initialise directly rather than through the property: the property would also select the
-        // row and fire the callback before the state has finished building it.
-        _selectedVariant = selectedVariant;
+        LimbOptions = limbVariants
+            .Select(variant => new PhysicalAttackLimbOptionViewModel(variant, this))
+            .ToList();
     }
 
     public PhysicalAttackType AttackType { get; }
@@ -51,38 +48,23 @@ public class PhysicalAttackOptionViewModel : BindableBase
     public string AttackTypeName => _localizationService.GetString($"PhysicalAttackType_{AttackType}");
 
     /// <summary>
-    /// The limb combinations this attack can be declared with. Empty when the attack is not
-    /// available against the selected target.
+    /// The limb combinations this attack can be declared with. Empty when the attack has no
+    /// reaching limbs against the selected target.
     /// </summary>
-    public IReadOnlyList<PhysicalAttackLimbVariant> LimbVariants { get; }
+    public IReadOnlyList<PhysicalAttackLimbOptionViewModel> LimbOptions { get; }
+
+    public bool HasLimbOptions => LimbOptions.Count > 0;
 
     /// <summary>
-    /// The limb combination that will be sent in the declaration. Choosing a variant on an enabled
-    /// but unselected row selects the row, so the dialog has one active choice.
+    /// Whether one of the limb options is checked. Derived from the limb selection rather than
+    /// exposed as a checkbox of its own.
     /// </summary>
-    public PhysicalAttackLimbVariant? SelectedVariant
-    {
-        get => _selectedVariant;
-        set
-        {
-            if (!IsEnabled) return;
-            if (value == _selectedVariant) return;
-            SetProperty(ref _selectedVariant, value);
-            if (!IsSelected) IsSelected = true;
-        }
-    }
+    public bool IsSelected => _isSelected;
 
-    public bool IsSelected
-    {
-        get => _isSelected;
-        set
-        {
-            if (!IsEnabled) return;
-            if (value == _isSelected) return;
-            SetProperty(ref _isSelected, value);
-            _onSelectionChanged(this, value);
-        }
-    }
+    /// <summary>
+    /// The limb combination that will be sent in the declaration, or null when no limb is checked.
+    /// </summary>
+    public PhysicalAttackLimbVariant? SelectedVariant => _selectedLimbOption?.Variant;
 
     public bool IsEnabled
     {
@@ -94,6 +76,8 @@ public class PhysicalAttackOptionViewModel : BindableBase
             NotifyPropertyChanged(nameof(HitProbability));
             NotifyPropertyChanged(nameof(HitProbabilityText));
             NotifyPropertyChanged(nameof(AttackPossibilityDescription));
+            foreach (var option in LimbOptions)
+                option.NotifyEnabledChanged();
         }
     }
 
@@ -154,5 +138,62 @@ public class PhysicalAttackOptionViewModel : BindableBase
                 .Select(modifier => modifier.Render(_localizationService)));
             return string.Join(Environment.NewLine, lines);
         }
+    }
+
+    /// <summary>
+    /// Applies a limb checkbox change. The limb options of one row are mutually exclusive.
+    /// Checking one selects the row; unchecking the active one clears the row so the dialog falls
+    /// back to "Skip Attack" until another limb is picked.
+    /// </summary>
+    internal void SelectLimb(PhysicalAttackLimbOptionViewModel limb, bool isSelected)
+    {
+        if (!IsEnabled)
+        {
+            // Restore the checkbox to the actual state when a disabled control tries to change it.
+            limb.SetIsSelected(ReferenceEquals(limb, _selectedLimbOption));
+            return;
+        }
+
+        if (!isSelected)
+        {
+            if (!ReferenceEquals(limb, _selectedLimbOption)) return;
+
+            _selectedLimbOption = null;
+            limb.SetIsSelected(false);
+            NotifyPropertyChanged(nameof(SelectedVariant));
+            SetSelected(false);
+            return;
+        }
+
+        if (!ReferenceEquals(limb, _selectedLimbOption))
+        {
+            _selectedLimbOption?.SetIsSelected(false);
+            _selectedLimbOption = limb;
+            NotifyPropertyChanged(nameof(SelectedVariant));
+        }
+
+        limb.SetIsSelected(true);
+        SetSelected(true);
+    }
+
+    /// <summary>
+    /// Clears the row and all of its limb checkboxes without notifying the state. Used when
+    /// another row has just been selected.
+    /// </summary>
+    internal void ClearSelection()
+    {
+        _selectedLimbOption = null;
+        foreach (var option in LimbOptions)
+            option.SetIsSelected(false);
+        NotifyPropertyChanged(nameof(SelectedVariant));
+        SetSelected(false, notify: false);
+    }
+
+    private void SetSelected(bool value, bool notify = true)
+    {
+        if (value == _isSelected) return;
+        _isSelected = value;
+        NotifyPropertyChanged(nameof(IsSelected));
+        if (notify) _onSelectionChanged(this, value);
     }
 }

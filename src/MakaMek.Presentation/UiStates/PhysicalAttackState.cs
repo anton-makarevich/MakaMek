@@ -392,13 +392,10 @@ public class PhysicalAttackState : IUiState, ICombatSelectionRoles
             }
 
             var variants = BuildLimbVariants(definition, limbs);
-            var defaultVariant = variants.FirstOrDefault(variant =>
-                variant.Limbs.SequenceEqual(GetDefaultLimbs(attackType, limbs) ?? []));
 
             options.Add(new PhysicalAttackOptionViewModel(
                 attackType,
                 variants,
-                defaultVariant,
                 isEnabled,
                 restrictionReason,
                 targetNumber,
@@ -416,11 +413,9 @@ public class PhysicalAttackState : IUiState, ICombatSelectionRoles
         if (limbs.Count == 0) return [];
 
         var attackType = definition.AttackType;
-        var typeName = GetString($"PhysicalAttackType_{attackType}");
         var variants = new List<PhysicalAttackLimbVariant>(limbs.Count + 1);
-        string Label(string limb) => string.Format(
-            GetString("Action_DeclarePhysicalAttack_WithLimb"), typeName, limb);
 
+        // The attack type is already the row header, so the sub-items are simply the limb names.
         // An attack that needs all of its limbs resolves as one declaration, so Push offers a
         // single "Both Arms" variant instead of one variant per arm.
         if (definition.MinLimbsPerDeclaration > 1)
@@ -428,35 +423,25 @@ public class PhysicalAttackState : IUiState, ICombatSelectionRoles
             if (limbs.Count < definition.MinLimbsPerDeclaration) return [];
 
             variants.Add(new PhysicalAttackLimbVariant(
-                Label(GetString("PhysicalAttack_BothArms")),
+                GetString("PhysicalAttack_BothArms"),
                 limbs.Take(definition.MinLimbsPerDeclaration).ToList()));
             return variants;
         }
 
         foreach (var limb in limbs)
             variants.Add(new PhysicalAttackLimbVariant(
-                Label(GetString($"MechPart_{limb}_Short")), [limb]));
+                GetString($"MechPart_{limb}"), [limb]));
 
         if (attackType == PhysicalAttackType.Punch && limbs.Count > 1)
             variants.Add(new PhysicalAttackLimbVariant(
-                Label(GetString("PhysicalAttack_BothArms")), limbs.ToList()));
+                GetString("PhysicalAttack_BothArms"), limbs.ToList()));
 
         return variants;
     }
 
     /// <summary>
-    /// A kick uses exactly one leg; a punch and a push use all of their eligible limbs.
-    /// </summary>
-    private static IReadOnlyList<PartLocation>? GetDefaultLimbs(
-        PhysicalAttackType attackType, IReadOnlyList<PartLocation> limbs)
-    {
-        if (limbs.Count == 0) return null;
-        return attackType == PhysicalAttackType.Kick ? [limbs[0]] : limbs.ToList();
-    }
-
-    /// <summary>
-    /// Keeps exactly one row selected: selecting a row deselects the others first, and a
-    /// deselection callback for a row that is not the current selection does nothing.
+    /// Keeps exactly one row selected: selecting a row clears the limb checkboxes of the others,
+    /// and a deselection callback for a row that is not the current selection does nothing.
     /// </summary>
     private void OnOptionSelectionChanged(PhysicalAttackOptionViewModel source, bool isSelected)
     {
@@ -464,9 +449,8 @@ public class PhysicalAttackState : IUiState, ICombatSelectionRoles
         {
             if (isSelected)
             {
-                foreach (var other in _options.Where(option =>
-                             !ReferenceEquals(option, source) && option.IsSelected))
-                    other.IsSelected = false;
+                foreach (var other in _options.Where(option => !ReferenceEquals(option, source)))
+                    other.ClearSelection();
 
                 SelectedAttackType = source.AttackType;
             }

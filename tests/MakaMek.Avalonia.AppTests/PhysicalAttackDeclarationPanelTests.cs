@@ -61,9 +61,27 @@ public class PhysicalAttackDeclarationPanelTests
                 texts.ShouldContain("Punch");
                 texts.ShouldContain("Kick");
                 texts.ShouldContain("Push");
+                texts.ShouldContain("Both Arms");
+                texts.ShouldContain("Left Leg");
                 var punch = viewModel.PhysicalAttackOptions
                     .First(option => option.AttackType == PhysicalAttackType.Punch);
                 texts.ShouldContain(punch.TargetNumberText);
+
+                // Checking a limb option selects the attack row automatically.
+                var rightArm = punch.LimbOptions.Single(option => option.Label == "Right Arm");
+                var limbItems = panel.GetVisualDescendants().OfType<ItemsControl>()
+                    .Single(items => ReferenceEquals(items.DataContext, punch));
+                limbItems.Bounds.Width.ShouldBeGreaterThan(0);
+
+                var rightArmCheckBox = panel.GetVisualDescendants().OfType<CheckBox>()
+                    .Single(checkBox => ReferenceEquals(checkBox.DataContext, rightArm));
+                rightArmCheckBox.IsEffectivelyVisible.ShouldBeTrue();
+                rightArmCheckBox.IsChecked = true;
+                Settle(window);
+
+                punch.IsSelected.ShouldBeTrue();
+                punch.SelectedVariant.ShouldBe(rightArm.Variant);
+                state.SelectedAttackType.ShouldBe(PhysicalAttackType.Punch);
 
                 // Act: close through the panel's own close binding.
                 gamePanel.CloseCommand.ShouldNotBeNull();
@@ -96,9 +114,12 @@ public class PhysicalAttackDeclarationPanelTests
             {
                 var panel = view.FindControl<PhysicalAttackDeclarationPanel>("PhysicalAttackDeclarationPanel")
                     .ShouldNotBeNull();
+
+                // Only limb options are checkboxes; the attack rows themselves have none. In the
+                // side arc only the right arm reaches, so there is exactly one checkbox.
                 var checkBoxes = panel.GetVisualDescendants().OfType<CheckBox>().ToList();
-                checkBoxes.Count.ShouldBe(3);
-                checkBoxes.Count(checkBox => checkBox.IsEnabled).ShouldBe(1);
+                checkBoxes.Count.ShouldBe(1);
+                checkBoxes[0].IsEnabled.ShouldBeTrue();
 
                 var punch = viewModel.PhysicalAttackOptions
                     .First(option => option.AttackType == PhysicalAttackType.Punch);

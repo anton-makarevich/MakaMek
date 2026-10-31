@@ -155,6 +155,10 @@ public class PhysicalAttackStateTests
         _localizationService.GetString("MechPart_RightArm_Short").Returns("RA");
         _localizationService.GetString("MechPart_LeftLeg_Short").Returns("LL");
         _localizationService.GetString("MechPart_RightLeg_Short").Returns("RL");
+        _localizationService.GetString("MechPart_LeftArm").Returns("Left Arm");
+        _localizationService.GetString("MechPart_RightArm").Returns("Right Arm");
+        _localizationService.GetString("MechPart_LeftLeg").Returns("Left Leg");
+        _localizationService.GetString("MechPart_RightLeg").Returns("Right Leg");
     }
 
     private void AddPlayerUnits()
@@ -276,13 +280,21 @@ public class PhysicalAttackStateTests
     private PhysicalAttackOptionViewModel Option(PhysicalAttackType attackType) =>
         _sut.Options.Single(option => option.AttackType == attackType);
 
-    private void SelectRow(PhysicalAttackType attackType) => Option(attackType).IsSelected = true;
-
-    private void ChooseVariant(PhysicalAttackType attackType, string label)
+    private void SelectRow(PhysicalAttackType attackType)
     {
         var option = Option(attackType);
-        option.SelectedVariant = option.LimbVariants.Single(variant => variant.Label == label);
+        var label = attackType switch
+        {
+            PhysicalAttackType.Punch => "Both Arms",
+            PhysicalAttackType.Kick => "Left Leg",
+            PhysicalAttackType.Push => "Both Arms",
+            _ => option.LimbOptions[0].Label
+        };
+        option.LimbOptions.Single(limbOption => limbOption.Label == label).IsSelected = true;
     }
+
+    private void ChooseVariant(PhysicalAttackType attackType, string label) =>
+        Option(attackType).LimbOptions.Single(limbOption => limbOption.Label == label).IsSelected = true;
 
     private StateAction GetAction(string label) =>
         _sut.GetAvailableActions().Single(action => action.Label == label);
@@ -364,40 +376,44 @@ public class PhysicalAttackStateTests
 
         var punch = Option(PhysicalAttackType.Punch);
         punch.IsEnabled.ShouldBeTrue();
-        punch.LimbVariants.Count.ShouldBe(1);
-        punch.LimbVariants[0].Label.ShouldBe("Punch (RA)");
-        punch.LimbVariants[0].Limbs.ShouldBe([PartLocation.RightArm]);
+        punch.LimbOptions.Count.ShouldBe(1);
+        punch.LimbOptions[0].Label.ShouldBe("Right Arm");
+        punch.LimbOptions[0].Limbs.ShouldBe([PartLocation.RightArm]);
 
         var kick = Option(PhysicalAttackType.Kick);
         kick.IsEnabled.ShouldBeFalse();
         kick.RestrictionReason.ShouldBe("The target is outside the attack arc");
-        kick.LimbVariants.ShouldBeEmpty();
+        kick.LimbOptions.ShouldBeEmpty();
     }
 
     [Fact]
-    public void Dialog_UsesTheDeclarationLabelsForEveryLimbVariant()
+    public void Dialog_UsesTheLimbNamesForEveryOption()
     {
         OpenDialog();
 
-        Option(PhysicalAttackType.Punch).LimbVariants.Select(variant => variant.Label)
-            .ShouldBe(["Punch (LA)", "Punch (RA)", "Punch (Both Arms)"]);
-        Option(PhysicalAttackType.Kick).LimbVariants.Select(variant => variant.Label)
-            .ShouldBe(["Kick (LL)", "Kick (RL)"]);
-        Option(PhysicalAttackType.Push).LimbVariants.Select(variant => variant.Label)
-            .ShouldBe(["Push (Both Arms)"]);
+        Option(PhysicalAttackType.Punch).LimbOptions.Select(limbOption => limbOption.Label)
+            .ShouldBe(["Left Arm", "Right Arm", "Both Arms"]);
+        Option(PhysicalAttackType.Kick).LimbOptions.Select(limbOption => limbOption.Label)
+            .ShouldBe(["Left Leg", "Right Leg"]);
+        Option(PhysicalAttackType.Push).LimbOptions.Select(limbOption => limbOption.Label)
+            .ShouldBe(["Both Arms"]);
     }
 
     [Fact]
-    public void Dialog_SelectsTheDefaultVariantForEachRow()
+    public void Dialog_StartsWithNoLimbSelected()
     {
         OpenDialog();
 
-        Option(PhysicalAttackType.Punch).SelectedVariant!.Limbs
-            .ShouldBe([PartLocation.LeftArm, PartLocation.RightArm]);
-        Option(PhysicalAttackType.Kick).SelectedVariant!.Limbs
-            .ShouldBe([PartLocation.LeftLeg]);
-        Option(PhysicalAttackType.Push).SelectedVariant!.Limbs
-            .ShouldBe([PartLocation.LeftArm, PartLocation.RightArm]);
+        foreach (var attackType in new[]
+                 {
+                     PhysicalAttackType.Punch, PhysicalAttackType.Kick, PhysicalAttackType.Push
+                 })
+        {
+            var option = Option(attackType);
+            option.IsSelected.ShouldBeFalse();
+            option.SelectedVariant.ShouldBeNull();
+            option.LimbOptions.ShouldAllBe(limbOption => !limbOption.IsSelected);
+        }
     }
 
     [Fact]
@@ -435,7 +451,7 @@ public class PhysicalAttackStateTests
     {
         OpenDialog();
 
-        ChooseVariant(PhysicalAttackType.Punch, "Punch (LA)");
+        ChooseVariant(PhysicalAttackType.Punch, "Left Arm");
         _sut.ExecutePlayerAction();
 
         _commandPublisher.Received(1).PublishCommand(Arg.Is<PhysicalAttackCommand>(command =>
@@ -498,9 +514,11 @@ public class PhysicalAttackStateTests
     {
         OpenDialog(AttackerHex.GetNeighbour(HexDirection.BottomRight));
 
-        Option(PhysicalAttackType.Kick).IsSelected = true;
+        var kick = Option(PhysicalAttackType.Kick);
 
-        Option(PhysicalAttackType.Kick).IsSelected.ShouldBeFalse();
+        kick.IsEnabled.ShouldBeFalse();
+        kick.LimbOptions.ShouldBeEmpty();
+        kick.IsSelected.ShouldBeFalse();
         _sut.SelectedAttackType.ShouldBeNull();
         _sut.CurrentStep.ShouldBe(PhysicalAttackStep.Declaration);
         _commandPublisher.DidNotReceive().PublishCommand(Arg.Any<PhysicalAttackCommand>());
@@ -627,7 +645,7 @@ public class PhysicalAttackStateTests
     public void EligibilityChangeAfterTheDialogOpened_DoesNotPublishACommand()
     {
         OpenDialog();
-        ChooseVariant(PhysicalAttackType.Punch, "Punch (RA)");
+        ChooseVariant(PhysicalAttackType.Punch, "Right Arm");
 
         // The selected limb is no longer eligible once its weapon has fired.
         FireWeaponIn(Attacker, PartLocation.RightArm);
@@ -732,16 +750,26 @@ public class PhysicalAttackStateTests
     }
 
     [Fact]
-    public void SelectingAnotherRow_LeavesOnlyOneSelected()
+    public void SelectingAnotherRow_DeselectsThePreviousRowAndAllItsLimbOptions()
     {
         OpenDialog();
 
-        SelectRow(PhysicalAttackType.Punch);
-        SelectRow(PhysicalAttackType.Kick);
-
-        Option(PhysicalAttackType.Punch).IsSelected.ShouldBeFalse();
-        Option(PhysicalAttackType.Kick).IsSelected.ShouldBeTrue();
+        // 1. Select the right leg in Kick: that selects Kick.
+        ChooseVariant(PhysicalAttackType.Kick, "Right Leg");
+        var kick = Option(PhysicalAttackType.Kick);
+        kick.IsSelected.ShouldBeTrue();
         _sut.SelectedAttackType.ShouldBe(PhysicalAttackType.Kick);
+
+        // 2. Select both arms in Punch: that selects Punch and clears Kick and its subitems.
+        ChooseVariant(PhysicalAttackType.Punch, "Both Arms");
+        var punch = Option(PhysicalAttackType.Punch);
+
+        kick.IsSelected.ShouldBeFalse();
+        kick.LimbOptions.ShouldAllBe(limbOption => !limbOption.IsSelected);
+        punch.IsSelected.ShouldBeTrue();
+        punch.LimbOptions.Single(limbOption => limbOption.Label == "Both Arms")
+            .IsSelected.ShouldBeTrue();
+        _sut.SelectedAttackType.ShouldBe(PhysicalAttackType.Punch);
     }
 
     [Fact]

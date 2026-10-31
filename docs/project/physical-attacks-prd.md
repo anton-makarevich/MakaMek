@@ -357,7 +357,7 @@ Physical-attack eligibility stays a **policy service**, not a rules-provider tab
 
     - Steps: `SelectingUnit → TargetSelection → Declaration` (punch/kick/push do not need a weapons-configuration step). Attack availability and modifiers depend on the target, so the attack type is chosen only after the target is known.
     - Selecting the attacker highlights every enemy reachable by at least one supported attack type and goes straight to target selection; no attack-type buttons are shown before a target is chosen.
-    - Selecting a reachable enemy opens one declaration dialog listing every supported attack type. Each row offers its limb variant(s) (punch: left/right/both arms; kick: either leg; push: both arms), the to-hit number and hit probability. Unavailable types stay visible and explain the reason in an info flyout; available types show the localized modifier breakdown in the same flyout.
+    - Selecting a reachable enemy opens one declaration dialog listing every supported attack type. Each row offers its limb variant(s) as a checkbox per option (punch: left/right/both arms; kick: either leg; push: both arms); the row itself has no checkbox, and checking a limb option selects that attack while clearing any other selected attack and its limb options. The row shows the to-hit number and hit probability. Unavailable types stay visible and explain the reason in an info flyout; available types show the localized modifier breakdown in the same flyout.
     - Closing the dialog returns to target selection without losing the attacker.
     - The player action declares the selected row ("Declare Attack") or advances without a command ("Skip"). "Skip" in target selection advances the turn order without a command.
 

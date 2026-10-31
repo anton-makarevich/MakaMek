@@ -37,57 +37,19 @@
                     ItemsSource="{Binding PhysicalAttackOptions}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate x:DataType="wrappers:PhysicalAttackOptionViewModel">
-                            <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto"
-                                  RowDefinitions="Auto,Auto"
-                                  Margin="0,4">
-                                <CheckBox
+                            <Grid ColumnDefinitions="*,Auto"
+                                  RowDefinitions="Auto,Auto,Auto"
+                                  Margin="0,6">
+                                <TextBlock
                                     Grid.Row="0"
-                                    Grid.RowSpan="2"
                                     Grid.Column="0"
-                                    IsChecked="{Binding IsSelected, Mode=TwoWay}"
-                                    IsEnabled="{Binding IsEnabled}"
-                                    Margin="0,0,10,0"/>
-
-                                <TextBlock
-                                    Grid.Row="0"
-                                    Grid.Column="1"
                                     Text="{Binding AttackTypeName}"
-                                    FontWeight="Bold"/>
-
-                                <ComboBox
-                                    Grid.Row="1"
-                                    Grid.Column="1"
-                                    ItemsSource="{Binding LimbVariants}"
-                                    SelectedItem="{Binding SelectedVariant, Mode=TwoWay}"
-                                    IsVisible="{Binding IsEnabled}"
-                                    HorizontalAlignment="Left"
-                                    MinWidth="120"
-                                    Margin="0,2,0,0">
-                                    <ComboBox.ItemTemplate>
-                                        <DataTemplate x:DataType="wrappers:PhysicalAttackLimbVariant">
-                                            <TextBlock Text="{Binding Label}"/>
-                                        </DataTemplate>
-                                    </ComboBox.ItemTemplate>
-                                </ComboBox>
-
-                                <TextBlock
-                                    Grid.Row="0"
-                                    Grid.Column="2"
-                                    Classes="probabilityText"
-                                    Text="{Binding TargetNumberText}"
-                                    IsVisible="{Binding IsEnabled}"/>
-
-                                <TextBlock
-                                    Grid.Row="0"
-                                    Grid.Column="3"
-                                    Classes="probabilityText"
-                                    Text="{Binding HitProbabilityText}"
-                                    Foreground="{Binding HitProbability, Converter={StaticResource HitProbabilityColorConverter}}"/>
+                                    FontWeight="Bold"
+                                    VerticalAlignment="Center"/>
 
                                 <Button Classes="cardAction"
                                         Grid.Row="0"
-                                        Grid.RowSpan="2"
-                                        Grid.Column="4"
+                                        Grid.Column="1"
                                         VerticalAlignment="Center"
                                         Margin="2,0,0,0"
                                         IsVisible="{Binding AttackPossibilityDescription, Converter={StaticResource StringNotEmptyToBoolConverter}}">
@@ -102,6 +64,48 @@
                                         </Flyout>
                                     </Button.Flyout>
                                 </Button>
+
+                                <StackPanel
+                                    Grid.Row="1"
+                                    Grid.Column="0"
+                                    Grid.ColumnSpan="2"
+                                    Orientation="Horizontal"
+                                    Spacing="10"
+                                    Margin="0,2,0,0">
+                                    <TextBlock
+                                        Classes="probabilityText"
+                                        Text="{Binding TargetNumberText}"
+                                        IsVisible="{Binding IsEnabled}"/>
+                                    <TextBlock
+                                        Classes="probabilityText"
+                                        Text="{Binding HitProbabilityText}"
+                                        Foreground="{Binding HitProbability, Converter={StaticResource HitProbabilityColorConverter}}"/>
+                                </StackPanel>
+
+                                <ItemsControl
+                                    Grid.Row="2"
+                                    Grid.Column="0"
+                                    Grid.ColumnSpan="2"
+                                    ItemsSource="{Binding LimbOptions}"
+                                    IsVisible="{Binding HasLimbOptions}"
+                                    IsEnabled="{Binding IsEnabled}"
+                                    Margin="0,4,0,0">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <WrapPanel Orientation="Horizontal"/>
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="wrappers:PhysicalAttackLimbOptionViewModel">
+                                            <CheckBox
+                                                Classes="limbOption"
+                                                Content="{Binding Label}"
+                                                IsChecked="{Binding IsSelected, Mode=TwoWay}"
+                                                IsEnabled="{Binding IsEnabled}"
+                                                Margin="0,0,10,0"/>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
                             </Grid>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
