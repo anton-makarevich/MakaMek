@@ -1046,6 +1046,122 @@ public class PhysicalAttackStateTests
         push.RestrictionReason.ShouldBe("No unit directly in front");
     }
 
+    [Fact]
+    public void DeclarationStep_PromptsToSelectAnAttack()
+    {
+        OpenDialog();
+
+        _sut.ActionLabel.ShouldBe("Select attack");
+    }
+
+    [Fact]
+    public void SelectingAFriendlyUnitInDeclaration_ClosesTheDialog()
+    {
+        OpenDialog();
+        SelectRow(PhysicalAttackType.Punch);
+
+        _sut.HandleUnitSelectionFromList(Attacker);
+
+        _sut.CurrentStep.ShouldBe(PhysicalAttackStep.TargetSelection);
+        _sut.SelectedTarget.ShouldBeNull();
+        _sut.SelectedAttackType.ShouldBeNull();
+        _viewModel.IsPhysicalAttackDeclarationVisible.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void UncheckingTheSelectedLimb_ClearsTheSelectedAttackType()
+    {
+        OpenDialog();
+        ChooseVariant(PhysicalAttackType.Punch, "Both Arms");
+        var bothArms = Option(PhysicalAttackType.Punch).LimbOptions
+            .Single(limbOption => limbOption.Label == "Both Arms");
+        _sut.SelectedAttackType.ShouldBe(PhysicalAttackType.Punch);
+
+        bothArms.IsSelected = false;
+
+        _sut.SelectedAttackType.ShouldBeNull();
+        Option(PhysicalAttackType.Punch).IsSelected.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void CloseDeclaration_WithoutAReachableTarget_ClearsTheHighlights()
+    {
+        OpenDialog();
+        var enemyHex = Enemy.Position!.Coordinates;
+        _game.BattleMap!.GetHex(enemyHex)!
+            .Highlights.OfType<AttackReachableHighlight>().ShouldNotBeEmpty();
+
+        Destroy(Enemy);
+        _sut.CloseDeclaration();
+
+        _sut.CurrentStep.ShouldBe(PhysicalAttackStep.TargetSelection);
+        _game.BattleMap!.GetHex(enemyHex)!
+            .Highlights.OfType<AttackReachableHighlight>().ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void TargetReservedAfterTheDialogOpened_DoesNotPublishACommand()
+    {
+        OpenDialog();
+        ChooseVariant(PhysicalAttackType.Push, "Both Arms");
+        var otherAttacker = _viewModel.Units.Last(unit =>
+            unit.Owner!.Id == _player.Id && !ReferenceEquals(unit, Attacker));
+        otherAttacker.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top), null);
+        otherAttacker.DeclarePhysicalAttack(new PhysicalAttackDeclarationData
+        {
+            AttackType = PhysicalAttackType.Push,
+            AttackerLimbs = [PartLocation.LeftArm, PartLocation.RightArm],
+            TargetId = Enemy.Id
+        });
+
+        _sut.ExecutePlayerAction();
+
+        _commandPublisher.DidNotReceive().PublishCommand(Arg.Any<PhysicalAttackCommand>());
+        _sut.CurrentStep.ShouldBe(PhysicalAttackStep.Declaration);
+        _sut.SelectedAttackType.ShouldBe(PhysicalAttackType.Push);
+    }
+
+    [Fact]
+    public void DestroyedUnitFromTheList_IsNotSelected()
+    {
+        DeployPair();
+        Destroy(Enemy);
+
+        _sut.HandleUnitSelectionFromList(Enemy);
+
+        _sut.Attacker.ShouldBeNull();
+        _sut.CurrentStep.ShouldBe(PhysicalAttackStep.SelectingUnit);
+    }
+
+    [Fact]
+    public void SwitchingToAFriendlyUnitThatCannotAttack_InTargetSelection_KeepsTheCurrentAttacker()
+    {
+        DeployPair();
+        SelectAttacker();
+        Attacker.DeclarePhysicalAttack(new PhysicalAttackDeclarationData
+        {
+            AttackType = PhysicalAttackType.Punch,
+            AttackerLimbs = [PartLocation.LeftArm],
+            TargetId = Enemy.Id
+        });
+
+        _sut.HandleUnitSelectionFromList(Attacker);
+
+        _sut.Attacker.ShouldBe(Attacker);
+        _sut.CurrentStep.ShouldBe(PhysicalAttackStep.TargetSelection);
+    }
+
+    [Fact]
+    public void CloseDeclaration_BeforeDeclaration_DoesNothing()
+    {
+        DeployPair();
+
+        _sut.CloseDeclaration();
+
+        _sut.CurrentStep.ShouldBe(PhysicalAttackStep.SelectingUnit);
+        _sut.Attacker.ShouldBeNull();
+    }
+
     private static void FireWeaponIn(IUnit unit, PartLocation location)
     {
         var laser = new MediumLaser();

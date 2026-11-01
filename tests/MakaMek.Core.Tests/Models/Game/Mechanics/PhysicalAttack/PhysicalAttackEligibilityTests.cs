@@ -1334,6 +1334,22 @@ public class PhysicalAttackEligibilityTests
         _sut.CanResolve(attacker, target, PhysicalAttackType.Kick, PartLocation.RightLeg, _map).ShouldBeTrue();
     }
 
+    [Theory]
+    [InlineData(PhysicalAttackType.Charge)]
+    [InlineData(PhysicalAttackType.DFA)]
+    public void GetRestriction_ForAnAttackTypeThisPolicyDoesNotImplement_ReportsTargetOutOfReach(
+        PhysicalAttackType attackType)
+    {
+        // Arrange: Charge and DFA are displacement attacks handled outside this policy, so they
+        // must never produce a reaching limb here (the UI only iterates the supported definitions).
+        var (attacker, target) = CreatePair(AttackerHex.GetNeighbour(HexDirection.Top));
+
+        // Act + Assert
+        _sut.GetEligibleLimbs(attacker, target, attackType, _map).ShouldBeEmpty();
+        _sut.GetRestriction(attacker, target, attackType, _map)
+            .ShouldBe(PhysicalAttackRestriction.TargetOutOfReach);
+    }
+
     private static void DeclarePunch(Mech attacker, Mech target) =>
         attacker.DeclarePhysicalAttack(new PhysicalAttackDeclarationData
         {

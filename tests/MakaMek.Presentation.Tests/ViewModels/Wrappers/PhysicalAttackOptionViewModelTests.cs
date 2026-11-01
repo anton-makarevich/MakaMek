@@ -278,6 +278,86 @@ public class PhysicalAttackOptionViewModelTests
     }
 
     [Fact]
+    public void DisablingTheRow_NotifiesEveryDerivedPropertyAndItsLimbOptions()
+    {
+        var sut = CreateSut();
+        var rowNotifications = new List<string?>();
+        sut.PropertyChanged += (_, args) => rowNotifications.Add(args.PropertyName);
+        var limbNotifications = new List<string?>();
+        sut.LimbOptions[0].PropertyChanged += (_, args) => limbNotifications.Add(args.PropertyName);
+
+        sut.IsEnabled = false;
+
+        sut.IsEnabled.ShouldBeFalse();
+        rowNotifications.ShouldContain(nameof(PhysicalAttackOptionViewModel.IsEnabled));
+        rowNotifications.ShouldContain(nameof(PhysicalAttackOptionViewModel.HitProbability));
+        rowNotifications.ShouldContain(nameof(PhysicalAttackOptionViewModel.HitProbabilityText));
+        rowNotifications.ShouldContain(nameof(PhysicalAttackOptionViewModel.AttackPossibilityDescription));
+
+        sut.LimbOptions.ShouldAllBe(option => !option.IsEnabled);
+        limbNotifications.ShouldContain(nameof(PhysicalAttackLimbOptionViewModel.IsEnabled));
+        limbNotifications.ShouldContain(nameof(PhysicalAttackLimbOptionViewModel.RestrictionReason));
+        limbNotifications.ShouldContain(nameof(PhysicalAttackLimbOptionViewModel.HasRestrictionReason));
+    }
+
+    [Fact]
+    public void SettingIsEnabledToTheSameValue_DoesNotNotify()
+    {
+        var sut = CreateSut();
+        var notifications = new List<string?>();
+        sut.PropertyChanged += (_, args) => notifications.Add(args.PropertyName);
+
+        sut.IsEnabled = true;
+
+        sut.IsEnabled.ShouldBeTrue();
+        notifications.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void AvailableLimbWithoutItsOwnRestriction_HasNoRestrictionReason()
+    {
+        var sut = CreateSut();
+
+        sut.LimbOptions[0].IsEnabled.ShouldBeTrue();
+        sut.LimbOptions[0].RestrictionReason.ShouldBeNull();
+        sut.LimbOptions[0].HasRestrictionReason.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void RowsWithoutATargetNumber_ShowNoTargetNumberText()
+    {
+        var sut = CreateSut(isEnabled: false, restrictionReason: "No", targetNumber: null);
+
+        sut.TargetNumberText.ShouldBeEmpty();
+        sut.IsImpossible.ShouldBeFalse();
+    }
+
+    [Theory]
+    [InlineData(7, false)]
+    [InlineData(13, true)]
+    public void IsImpossible_ComparesTheTargetNumberWithTheTwoDieMaximum(int targetNumber, bool expected)
+    {
+        var sut = CreateSut(targetNumber: targetNumber);
+
+        sut.IsImpossible.ShouldBe(expected);
+        sut.TargetNumberText.ShouldBe($"Target ToHit Number: {targetNumber}");
+    }
+
+    [Fact]
+    public void SelectingTheSameLimbOptionAgain_KeepsTheRowSelected()
+    {
+        var sut = CreateSut();
+        sut.LimbOptions[0].IsSelected = true;
+        _selections.Clear();
+
+        sut.LimbOptions[0].IsSelected = true;
+
+        sut.LimbOptions[0].IsSelected.ShouldBeTrue();
+        sut.IsSelected.ShouldBeTrue();
+        _selections.ShouldBeEmpty();
+    }
+
+    [Fact]
     public void SelectingAnUnavailableLimb_DoesNothing()
     {
         var sut = CreateSut(variants:
