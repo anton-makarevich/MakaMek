@@ -438,7 +438,7 @@ public class PhysicalAttackStateTests
     }
 
     [Fact]
-    public void Dialog_ExposesTheDamageOfTheSelectedLimbCombination()
+    public void Dialog_ExposesTheDamageOfEachLimbCombination()
     {
         _physicalAttackCalculator
             .GetDamage(Arg.Any<IUnit>(), PhysicalAttackType.Punch, Arg.Any<PartLocation>())
@@ -446,14 +446,15 @@ public class PhysicalAttackStateTests
         OpenDialog();
 
         var punch = Option(PhysicalAttackType.Punch);
-        punch.HasDamage.ShouldBeTrue();
-        punch.Damage.ShouldBe(5);
+        punch.LimbOptions.Single(option => option.Label == "Left Arm").Damage.ShouldBe(5);
+        punch.LimbOptions.Single(option => option.Label == "Right Arm").Damage.ShouldBe(5);
+
+        // A two-arm punch resolves as two attacks, so the combined option shows the sum.
         punch.LimbOptions.Single(option => option.Label == "Both Arms").Damage.ShouldBe(10);
 
-        ChooseVariant(PhysicalAttackType.Punch, "Both Arms");
-
-        punch.Damage.ShouldBe(10);
-        Option(PhysicalAttackType.Push).HasDamage.ShouldBeFalse();
+        // Push does no damage, so it shows no damage indicator.
+        Option(PhysicalAttackType.Push).LimbOptions
+            .ShouldAllBe(option => !option.HasDamage);
     }
 
     [Fact]

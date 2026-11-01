@@ -5,8 +5,9 @@ using Sanet.MVVM.Core.ViewModels;
 namespace Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 
 /// <summary>
-/// One limb checkbox inside a physical attack row. A limb that cannot make the attack stays
-/// visible but disabled, and carries the localized reason for an info flyout.
+/// One limb combination inside a physical attack row, showing the damage it would deal. A limb
+/// that cannot make the attack stays visible but disabled, and carries the localized reason for an
+/// info flyout.
 /// </summary>
 public class PhysicalAttackLimbOptionViewModel : BindableBase
 {

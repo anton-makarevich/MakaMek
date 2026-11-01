@@ -233,7 +233,7 @@ public class PhysicalAttackOptionViewModelTests
     }
 
     [Fact]
-    public void Damage_FallsBackToTheFirstAvailableLimb_AndFollowsTheSelection()
+    public void LimbOptions_ExposeTheirOwnDamage()
     {
         var sut = CreateSut(variants:
         [
@@ -243,19 +243,13 @@ public class PhysicalAttackOptionViewModelTests
                 [PartLocation.LeftArm, PartLocation.RightArm], Damage: 8)
         ]);
 
-        sut.HasDamage.ShouldBeTrue();
-        sut.Damage.ShouldBe(3);
-        sut.DamageText.ShouldBe("3");
-
-        sut.LimbOptions[1].IsSelected = true;
-        sut.Damage.ShouldBe(5);
-
-        sut.LimbOptions[2].IsSelected = true;
-        sut.Damage.ShouldBe(8);
+        sut.LimbOptions.Select(option => option.Damage).ShouldBe([3, 5, 8]);
+        sut.LimbOptions.Select(option => option.DamageText).ShouldBe(["3", "5", "8"]);
+        sut.LimbOptions.ShouldAllBe(option => option.HasDamage);
     }
 
     [Fact]
-    public void Damage_SkipsAnUnavailableLimbCombination()
+    public void UnavailableLimb_KeepsItsOwnDamageAndReason()
     {
         var sut = CreateSut(variants:
         [
@@ -264,23 +258,23 @@ public class PhysicalAttackOptionViewModelTests
             new PhysicalAttackLimbVariant("Right Arm", [PartLocation.RightArm], Damage: 5)
         ]);
 
-        sut.Damage.ShouldBe(5);
         sut.LimbOptions[0].IsEnabled.ShouldBeFalse();
         sut.LimbOptions[0].RestrictionReason.ShouldBe("Arm destroyed");
         sut.LimbOptions[0].HasRestrictionReason.ShouldBeTrue();
         sut.LimbOptions[0].Damage.ShouldBe(3);
+        sut.LimbOptions[0].HasDamage.ShouldBeTrue();
     }
 
     [Fact]
-    public void Damage_IsZero_ForAnUnavailableRow()
+    public void LimbOption_WithoutDamage_HidesItsDamageIndicator()
     {
-        var sut = CreateSut(
-            isEnabled: false,
-            restrictionReason: "No",
-            variants: [new PhysicalAttackLimbVariant("Left Arm", [PartLocation.LeftArm], Damage: 3)]);
+        var sut = CreateSut(variants:
+        [
+            new PhysicalAttackLimbVariant("Both Arms", [PartLocation.LeftArm, PartLocation.RightArm])
+        ]);
 
-        sut.HasDamage.ShouldBeFalse();
-        sut.Damage.ShouldBe(0);
+        sut.LimbOptions[0].HasDamage.ShouldBeFalse();
+        sut.LimbOptions[0].Damage.ShouldBe(0);
     }
 
     [Fact]

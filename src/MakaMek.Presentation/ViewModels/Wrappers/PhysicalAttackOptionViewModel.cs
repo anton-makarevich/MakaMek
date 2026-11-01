@@ -10,7 +10,8 @@ namespace Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 /// One attack type in the physical attack declaration dialog. The row has no checkbox of its own:
 /// the player selects it through the checkbox of one of its limb options, which then clears any
 /// other selected attack. The to-hit calculator has no limb input, so the row carries one target
-/// number and modifier breakdown; the limb option only changes the declaration payload.
+/// number and modifier breakdown, while each limb option carries its own damage and, when it
+/// cannot be used, the reason why.
 /// </summary>
 public class PhysicalAttackOptionViewModel : BindableBase
 {
@@ -66,18 +67,6 @@ public class PhysicalAttackOptionViewModel : BindableBase
     /// </summary>
     public PhysicalAttackLimbVariant? SelectedVariant => _selectedLimbOption?.Variant;
 
-    /// <summary>
-    /// The damage the row would deal: the selected limb combination's damage, or the damage of the
-    /// first available limb combination before anything is selected. Zero when the attack does no
-    /// damage (a push) or the row is unavailable.
-    /// </summary>
-    public int Damage => (SelectedVariant ?? LimbOptions.FirstOrDefault(option => option.IsEnabled)?.Variant)
-        ?.Damage ?? 0;
-
-    public bool HasDamage => Damage > 0;
-
-    public string DamageText => Damage.ToString();
-
     public bool IsEnabled
     {
         get => _isEnabled;
@@ -88,7 +77,6 @@ public class PhysicalAttackOptionViewModel : BindableBase
             NotifyPropertyChanged(nameof(HitProbability));
             NotifyPropertyChanged(nameof(HitProbabilityText));
             NotifyPropertyChanged(nameof(AttackPossibilityDescription));
-            NotifyDamageChanged();
             foreach (var option in LimbOptions)
                 option.NotifyEnabledChanged();
         }
@@ -174,7 +162,6 @@ public class PhysicalAttackOptionViewModel : BindableBase
             _selectedLimbOption = null;
             limb.SetIsSelected(false);
             NotifyPropertyChanged(nameof(SelectedVariant));
-            NotifyDamageChanged();
             SetSelected(false);
             return;
         }
@@ -184,7 +171,6 @@ public class PhysicalAttackOptionViewModel : BindableBase
             _selectedLimbOption?.SetIsSelected(false);
             _selectedLimbOption = limb;
             NotifyPropertyChanged(nameof(SelectedVariant));
-            NotifyDamageChanged();
         }
 
         limb.SetIsSelected(true);
@@ -201,15 +187,7 @@ public class PhysicalAttackOptionViewModel : BindableBase
         foreach (var option in LimbOptions)
             option.SetIsSelected(false);
         NotifyPropertyChanged(nameof(SelectedVariant));
-        NotifyDamageChanged();
         SetSelected(false, notify: false);
-    }
-
-    private void NotifyDamageChanged()
-    {
-        NotifyPropertyChanged(nameof(Damage));
-        NotifyPropertyChanged(nameof(HasDamage));
-        NotifyPropertyChanged(nameof(DamageText));
     }
 
     private void SetSelected(bool value, bool notify = true)

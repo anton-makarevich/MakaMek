@@ -208,6 +208,46 @@ public class PhysicalAttackDeclarationPanelTests
             }
         });
 
+    [Fact]
+    public Task PhysicalAttackDeclarationPanel_ShowsDamageOnEachLimbOption() =>
+        HarnessSession.Run(async () =>
+        {
+            // Arrange
+            var (window, view, viewModel, _, _, _) = await ShowBattleMapWithTargetSelected();
+            try
+            {
+                var panel = view.FindControl<PhysicalAttackDeclarationPanel>("PhysicalAttackDeclarationPanel")
+                    .ShouldNotBeNull();
+                var punch = viewModel.PhysicalAttackOptions
+                    .First(option => option.AttackType == PhysicalAttackType.Punch);
+                var bothArms = punch.LimbOptions.Single(option => option.Label == "Both Arms");
+                bothArms.HasDamage.ShouldBeTrue();
+
+                // The damage belongs to the limb option: it sits next to that option's checkbox.
+                var damageText = panel.GetVisualDescendants().OfType<TextBlock>()
+                    .Single(textBlock => ReferenceEquals(textBlock.DataContext, bothArms)
+                                         && textBlock.Text == bothArms.DamageText);
+                var checkbox = panel.GetVisualDescendants().OfType<CheckBox>()
+                    .Single(checkBox => ReferenceEquals(checkBox.DataContext, bothArms));
+
+                var damageTop = damageText.TranslatePoint(new Point(0, 0), panel)!.Value;
+                var checkboxTop = checkbox.TranslatePoint(new Point(0, 0), panel)!.Value;
+                Math.Abs((damageTop.Y + damageText.Bounds.Height / 2)
+                         - (checkboxTop.Y + checkbox.Bounds.Height / 2)).ShouldBeLessThan(8);
+                damageTop.X.ShouldBeGreaterThan(checkboxTop.X);
+
+                // The attack type row itself carries no damage value any more.
+                panel.GetVisualDescendants().OfType<TextBlock>()
+                    .Any(textBlock => ReferenceEquals(textBlock.DataContext, punch)
+                                      && textBlock.Text == bothArms.DamageText)
+                    .ShouldBeFalse();
+            }
+            finally
+            {
+                window.Close();
+            }
+        });
+
     private static async Task<(Window Window, BattleMapView View, BattleMapViewModel ViewModel,
         PhysicalAttackState State, IUnit Attacker, IUnit Target)>
         ShowBattleMapWithTargetSelected(HexDirection targetDirection = HexDirection.Top)

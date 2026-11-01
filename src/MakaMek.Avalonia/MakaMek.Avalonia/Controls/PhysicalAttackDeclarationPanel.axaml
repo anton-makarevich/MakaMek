@@ -53,27 +53,12 @@
                             <Grid ColumnDefinitions="*,Auto,Auto"
                                   RowDefinitions="Auto,Auto"
                                   Margin="0,6">
-                                <StackPanel
+                                <TextBlock
                                     Grid.Row="0"
                                     Grid.Column="0"
-                                    Orientation="Horizontal"
-                                    Spacing="5"
-                                    VerticalAlignment="Center">
-                                    <TextBlock
-                                        Text="{Binding AttackTypeName}"
-                                        FontWeight="Bold"
-                                        VerticalAlignment="Center"/>
-                                    <StackPanel
-                                        Orientation="Horizontal"
-                                        Spacing="2"
-                                        VerticalAlignment="Center"
-                                        IsVisible="{Binding HasDamage}">
-                                        <TextBlock
-                                            FontFamily="{StaticResource AwesomeFontSolid}"
-                                            Text="&#x26a1;"/>
-                                        <TextBlock Text="{Binding DamageText}"/>
-                                    </StackPanel>
-                                </StackPanel>
+                                    Text="{Binding AttackTypeName}"
+                                    FontWeight="Bold"
+                                    VerticalAlignment="Center"/>
 
                                 <TextBlock
                                     Grid.Row="0"
@@ -125,6 +110,16 @@
                                                     Content="{Binding Label}"
                                                     IsChecked="{Binding IsSelected, Mode=TwoWay}"
                                                     IsEnabled="{Binding IsEnabled}"/>
+                                                <StackPanel
+                                                    Orientation="Horizontal"
+                                                    Spacing="2"
+                                                    VerticalAlignment="Center"
+                                                    IsVisible="{Binding HasDamage}">
+                                                    <TextBlock
+                                                        FontFamily="{StaticResource AwesomeFontSolid}"
+                                                        Text="&#x26a1;"/>
+                                                    <TextBlock Text="{Binding DamageText}"/>
+                                                </StackPanel>
                                                 <Button Classes="cardAction"
                                                         VerticalAlignment="Center"
                                                         IsVisible="{Binding HasRestrictionReason}"
