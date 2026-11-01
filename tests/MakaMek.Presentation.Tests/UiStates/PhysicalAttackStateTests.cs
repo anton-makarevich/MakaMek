@@ -376,14 +376,23 @@ public class PhysicalAttackStateTests
 
         var punch = Option(PhysicalAttackType.Punch);
         punch.IsEnabled.ShouldBeTrue();
-        punch.LimbOptions.Count.ShouldBe(1);
-        punch.LimbOptions[0].Label.ShouldBe("Right Arm");
-        punch.LimbOptions[0].Limbs.ShouldBe([PartLocation.RightArm]);
+        punch.LimbOptions.Count.ShouldBe(3);
+        var rightArm = punch.LimbOptions.Single(option => option.Label == "Right Arm");
+        rightArm.Limbs.ShouldBe([PartLocation.RightArm]);
+        rightArm.IsEnabled.ShouldBeTrue();
+        rightArm.RestrictionReason.ShouldBeNull();
+        var leftArm = punch.LimbOptions.Single(option => option.Label == "Left Arm");
+        leftArm.IsEnabled.ShouldBeFalse();
+        leftArm.RestrictionReason.ShouldBe("The target is outside the attack arc");
+        punch.LimbOptions.Single(option => option.Label == "Both Arms").IsEnabled.ShouldBeFalse();
 
         var kick = Option(PhysicalAttackType.Kick);
         kick.IsEnabled.ShouldBeFalse();
         kick.RestrictionReason.ShouldBe("The target is outside the attack arc");
-        kick.LimbOptions.ShouldBeEmpty();
+        kick.LimbOptions.Count.ShouldBe(2);
+        kick.LimbOptions.ShouldAllBe(option => !option.IsEnabled);
+        kick.LimbOptions.ShouldAllBe(option =>
+            option.RestrictionReason == "The target is outside the attack arc");
     }
 
     [Fact]
@@ -426,6 +435,25 @@ public class PhysicalAttackStateTests
         punch.TargetNumberText.ShouldBe("Target ToHit Number: 8");
         punch.HitProbabilityText.ShouldNotBe("-");
         punch.AttackPossibilityDescription.ShouldContain("Piloting Skill: +5");
+    }
+
+    [Fact]
+    public void Dialog_ExposesTheDamageOfTheSelectedLimbCombination()
+    {
+        _physicalAttackCalculator
+            .GetDamage(Arg.Any<IUnit>(), PhysicalAttackType.Punch, Arg.Any<PartLocation>())
+            .Returns(5);
+        OpenDialog();
+
+        var punch = Option(PhysicalAttackType.Punch);
+        punch.HasDamage.ShouldBeTrue();
+        punch.Damage.ShouldBe(5);
+        punch.LimbOptions.Single(option => option.Label == "Both Arms").Damage.ShouldBe(10);
+
+        ChooseVariant(PhysicalAttackType.Punch, "Both Arms");
+
+        punch.Damage.ShouldBe(10);
+        Option(PhysicalAttackType.Push).HasDamage.ShouldBeFalse();
     }
 
     [Fact]
@@ -517,7 +545,8 @@ public class PhysicalAttackStateTests
         var kick = Option(PhysicalAttackType.Kick);
 
         kick.IsEnabled.ShouldBeFalse();
-        kick.LimbOptions.ShouldBeEmpty();
+        kick.LimbOptions.ShouldNotBeEmpty();
+        kick.LimbOptions.ShouldAllBe(option => !option.IsEnabled);
         kick.IsSelected.ShouldBeFalse();
         _sut.SelectedAttackType.ShouldBeNull();
         _sut.CurrentStep.ShouldBe(PhysicalAttackStep.Declaration);

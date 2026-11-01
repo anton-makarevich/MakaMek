@@ -59,6 +59,6 @@ public enum PhysicalAttackRestriction
     /// <summary>A kicking leg's hip actuator is missing or destroyed.</summary>
     HipActuatorDestroyed,
 
-    /// <summary>Both legs fired a weapon this turn.</summary>
+    /// <summary>A weapon mounted in the kicking leg fired this turn.</summary>
     LegWeaponFired
 }

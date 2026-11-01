@@ -1,6 +1,7 @@
 using NSubstitute;
 using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Game.Mechanics.PhysicalAttacks;
+using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.PhysicalAttack;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers;
@@ -634,6 +635,114 @@ public class PhysicalAttackCalculatorTests
         // Assert
         result.OtherModifiers.OfType<DamagedShoulderModifier>().ShouldBeEmpty();
     }
+
+    [Fact]
+    public void GetDamage_IntactPunchArm_UsesTonnageDerivedDamage()
+    {
+        // Arrange
+        var attacker = CreateRealMechWithActuators(new HexPosition(2, 2, HexDirection.Bottom));
+        var sut = new PhysicalAttackCalculator(new TotalWarfareRulesProvider());
+
+        // Act
+        var damage = sut.GetDamage(attacker, PhysicalAttackType.Punch, PartLocation.LeftArm);
+
+        // Assert: ceil(20 / 10)
+        damage.ShouldBe(2);
+    }
+
+    [Fact]
+    public void GetDamage_PunchWithADamagedActuator_HalvesTheDamage()
+    {
+        // Arrange
+        var attacker = CreateRealMechWithActuators(new HexPosition(2, 2, HexDirection.Bottom));
+        attacker.Parts[PartLocation.LeftArm].GetComponent<UpperArmActuator>()!.Hit();
+        var sut = new PhysicalAttackCalculator(new TotalWarfareRulesProvider());
+
+        // Act
+        var damage = sut.GetDamage(attacker, PhysicalAttackType.Punch, PartLocation.LeftArm);
+
+        // Assert
+        damage.ShouldBe(1);
+    }
+
+    [Fact]
+    public void GetDamage_IntactKickLeg_UsesTonnageDerivedDamage()
+    {
+        // Arrange
+        var attacker = CreateRealMechWithActuators(new HexPosition(2, 2, HexDirection.Bottom));
+        var sut = new PhysicalAttackCalculator(new TotalWarfareRulesProvider());
+
+        // Act
+        var damage = sut.GetDamage(attacker, PhysicalAttackType.Kick, PartLocation.RightLeg);
+
+        // Assert: ceil(20 / 5)
+        damage.ShouldBe(4);
+    }
+
+    [Fact]
+    public void GetDamage_KickWithADestroyedActuator_HalvesTheDamage()
+    {
+        // Arrange
+        var attacker = CreateRealMechWithActuators(new HexPosition(2, 2, HexDirection.Bottom));
+        attacker.Parts[PartLocation.RightLeg].GetComponent<UpperLegActuator>()!.Hit();
+        var sut = new PhysicalAttackCalculator(new TotalWarfareRulesProvider());
+
+        // Act
+        var damage = sut.GetDamage(attacker, PhysicalAttackType.Kick, PartLocation.RightLeg);
+
+        // Assert
+        damage.ShouldBe(2);
+    }
+
+    [Fact]
+    public void GetDamage_ForAPush_IsZero()
+    {
+        // Arrange
+        var attacker = CreateRealMechWithActuators(new HexPosition(2, 2, HexDirection.Bottom));
+        var sut = new PhysicalAttackCalculator(new TotalWarfareRulesProvider());
+
+        // Act
+        var damage = sut.GetDamage(attacker, PhysicalAttackType.Push, PartLocation.LeftArm);
+
+        // Assert
+        damage.ShouldBe(0);
+    }
+
+    private static Mech CreateRealMechWithActuators(HexPosition position)
+    {
+        var data = MechFactoryTests.CreateDummyMechData();
+        data = data with
+        {
+            Equipment =
+            [
+                .. data.Equipment,
+                Actuator(MakaMekComponent.UpperArmActuator, PartLocation.LeftArm, 1),
+                Actuator(MakaMekComponent.LowerArmActuator, PartLocation.LeftArm, 2),
+                Actuator(MakaMekComponent.UpperArmActuator, PartLocation.RightArm, 1),
+                Actuator(MakaMekComponent.LowerArmActuator, PartLocation.RightArm, 2),
+                Actuator(MakaMekComponent.UpperLegActuator, PartLocation.LeftLeg, 1),
+                Actuator(MakaMekComponent.LowerLegActuator, PartLocation.LeftLeg, 2),
+                Actuator(MakaMekComponent.UpperLegActuator, PartLocation.RightLeg, 1),
+                Actuator(MakaMekComponent.LowerLegActuator, PartLocation.RightLeg, 2)
+            ]
+        };
+
+        var mech = new MechFactory(
+                new TotalWarfareRulesProvider(),
+                new ClassicBattletechComponentProvider(),
+                Substitute.For<ILocalizationService>())
+            .Create(data);
+        mech.AssignPilot(new MechWarrior("Test", "Pilot", gunnery: 4, piloting: 5));
+        mech.Deploy(position, null);
+        return mech;
+    }
+
+    private static ComponentData Actuator(MakaMekComponent type, PartLocation location, int slot) =>
+        new()
+        {
+            Type = type,
+            Assignments = [new LocationSlotAssignment(location, slot, 1)]
+        };
 
     private static Mech CreateRealMech(HexPosition position)
     {

@@ -39,6 +39,12 @@ public class PhysicalAttackEligibility : IPhysicalAttackEligibility
         IBattleMap map) =>
         attacker is Mech { HasDeclaredPhysicalAttack: false } ? GetReachingLimbs(attacker, target, attackType, map) : [];
 
+    public IReadOnlyList<PhysicalAttackLimbEligibility> GetLimbEligibility(IUnit attacker, IUnit target,
+        PhysicalAttackType attackType, IBattleMap map) =>
+        attacker is Mech { HasDeclaredPhysicalAttack: false }
+            ? Evaluate(attacker, target, attackType, map).LimbEligibility
+            : [];
+
     public bool CanResolve(IUnit attacker, IUnit target, PhysicalAttackType attackType, PartLocation limb,
         IBattleMap map) =>
         GetReachingLimbs(attacker, target, attackType, map).Contains(limb);
@@ -83,51 +89,77 @@ public class PhysicalAttackEligibility : IPhysicalAttackEligibility
     }
 
     /// <summary>
-    /// One evaluation of an attack: the first failing restriction and the limbs that can still
-    /// make it. A null restriction always pairs with at least one reaching limb.
+    /// One evaluation of an attack: the first failing restriction, the limbs that can still make
+    /// it and the reason for every candidate limb. A null restriction always pairs with at least
+    /// one reaching limb.
     /// </summary>
-    private sealed record Evaluation(PhysicalAttackRestriction? Restriction, IReadOnlyList<PartLocation> Limbs)
+    private sealed record Evaluation(
+        PhysicalAttackRestriction? Restriction,
+        IReadOnlyList<PartLocation> Limbs,
+        IReadOnlyList<PhysicalAttackLimbEligibility> LimbEligibility)
     {
-        public static Evaluation Fail(PhysicalAttackRestriction restriction) => new(restriction, []);
+        public static Evaluation Fail(PhysicalAttackRestriction restriction,
+            IReadOnlyList<PartLocation> candidateLimbs)
+        {
+            var limbEligibility = candidateLimbs
+                .Select(limb => new PhysicalAttackLimbEligibility(limb, restriction))
+                .ToList();
+            return new(restriction, [], limbEligibility);
+        }
 
-        public static Evaluation Success(IReadOnlyList<PartLocation> limbs) => new(null, limbs);
+        public static Evaluation Create(IReadOnlyList<PhysicalAttackLimbEligibility> limbEligibility,
+            PhysicalAttackRestriction? restriction)
+        {
+            var limbs = limbEligibility
+                .Where(limb => limb.IsAvailable)
+                .Select(limb => limb.Limb)
+                .ToList();
+            return new(restriction, limbs, limbEligibility);
+        }
     }
 
+    private static IReadOnlyList<PartLocation> GetCandidateLimbs(PhysicalAttackType attackType) =>
+        PhysicalAttackDefinitions.TryGet(attackType, out var definition) ? definition.CandidateLimbs : [];
+
     private static Evaluation Evaluate(IUnit attacker, IUnit target, PhysicalAttackType attackType,
-        IBattleMap map) =>
-        attackType switch
+        IBattleMap map)
+    {
+        var candidates = GetCandidateLimbs(attackType);
+        return attackType switch
         {
-            PhysicalAttackType.Punch or PhysicalAttackType.Kick => EvaluateMelee(attacker, target, attackType, map),
-            PhysicalAttackType.Push => EvaluatePush(attacker, target, map),
-            _ => Evaluation.Fail(PhysicalAttackRestriction.TargetOutOfReach)
+            PhysicalAttackType.Punch or PhysicalAttackType.Kick =>
+                EvaluateMelee(attacker, target, attackType, map, candidates),
+            PhysicalAttackType.Push => EvaluatePush(attacker, target, map, candidates),
+            _ => Evaluation.Fail(PhysicalAttackRestriction.TargetOutOfReach, candidates)
         };
+    }
 
     /// <summary>
     /// Punch and Kick share the generic checks, the water rule and the level-difference table, in
     /// that order. The first failure wins.
     /// </summary>
     private static Evaluation EvaluateMelee(IUnit attacker, IUnit target, PhysicalAttackType attackType,
-        IBattleMap map)
+        IBattleMap map, IReadOnlyList<PartLocation> candidates)
     {
         if (attacker is not Mech mech || !CanMakePhysicalAttack(mech) || !IsValidTarget(mech, target)
             || GetEndpoint(mech, map) is not { } attackerEndpoint
             || GetEndpoint(target, map) is not { } targetEndpoint)
-            return Evaluation.Fail(PhysicalAttackRestriction.TargetOutOfReach);
+            return Evaluation.Fail(PhysicalAttackRestriction.TargetOutOfReach, candidates);
 
         if (IsBlockedByWater(attackerEndpoint, targetEndpoint, attackType))
-            return Evaluation.Fail(PhysicalAttackRestriction.TargetSubmerged);
+            return Evaluation.Fail(PhysicalAttackRestriction.TargetSubmerged, candidates);
 
         var levelDifference = GetEffectiveLevelDifference(
             attackerEndpoint, targetEndpoint, attacker.Height, target.Height);
         var levelRestriction = GetLevelRestriction(attackType, levelDifference, ((Mech)target).IsProne);
         if (levelRestriction is not null)
-            return Evaluation.Fail(levelRestriction.Value);
+            return Evaluation.Fail(levelRestriction.Value, candidates);
 
         return attackType switch
         {
-            PhysicalAttackType.Punch => EvaluatePunchLimbs(mech, target),
-            PhysicalAttackType.Kick => EvaluateKickLimbs(mech, target),
-            _ => Evaluation.Fail(PhysicalAttackRestriction.TargetOutOfReach)
+            PhysicalAttackType.Punch => EvaluatePunchLimbs(mech, target, candidates),
+            PhysicalAttackType.Kick => EvaluateKickLimbs(mech, target, candidates),
+            _ => Evaluation.Fail(PhysicalAttackRestriction.TargetOutOfReach, candidates)
         };
     }
 
@@ -157,11 +189,12 @@ public class PhysicalAttackEligibility : IPhysicalAttackEligibility
     /// fired this turn. When no permitted arm passes, the reason of the first permitted arm in
     /// candidate-limb order is reported.
     /// </summary>
-    private static Evaluation EvaluatePunchLimbs(Mech attacker, IUnit target)
+    private static Evaluation EvaluatePunchLimbs(Mech attacker, IUnit target,
+        IReadOnlyList<PartLocation> candidates)
     {
         var facing = attacker.Facing ?? attacker.Position!.Facing;
         var arc = attacker.Position!.Coordinates.GetFiringArc(target.Position!.Coordinates, facing);
-        PartLocation[] arms = arc switch
+        PartLocation[] armsInArc = arc switch
         {
             FiringArc.Front => [PartLocation.LeftArm, PartLocation.RightArm],
             FiringArc.Left => [PartLocation.LeftArm],
@@ -169,24 +202,26 @@ public class PhysicalAttackEligibility : IPhysicalAttackEligibility
             _ => []
         };
 
-        if (arms.Length == 0)
-            return Evaluation.Fail(PhysicalAttackRestriction.TargetOutsideArc);
-
         var firedFrom = attacker.GetFiredWeaponLocations();
-        var reaching = new List<PartLocation>(arms.Length);
-        PhysicalAttackRestriction? firstFailure = null;
-        foreach (var arm in arms)
-        {
-            var failure = GetArmRestriction(attacker, arm, firedFrom);
-            if (failure is null)
-                reaching.Add(arm);
-            else
-                firstFailure ??= failure;
-        }
+        var limbEligibility = candidates
+            .Select(arm => new PhysicalAttackLimbEligibility(
+                arm,
+                armsInArc.Contains(arm)
+                    ? GetArmRestriction(attacker, arm, firedFrom)
+                    : PhysicalAttackRestriction.TargetOutsideArc))
+            .ToList();
 
-        return reaching.Count > 0
-            ? Evaluation.Success(reaching)
-            : Evaluation.Fail(firstFailure!.Value);
+        if (limbEligibility.Any(limb => limb.IsAvailable))
+            return Evaluation.Create(limbEligibility, null);
+
+        // Keep the row reason of a fully blocked punch identical to the pre-limb-details
+        // behavior: the first in-arc arm's failure, or the arc itself when no arm reaches.
+        var firstInArcFailure = limbEligibility
+            .Where(limb => armsInArc.Contains(limb.Limb))
+            .Select(limb => limb.Restriction)
+            .FirstOrDefault(restriction => restriction is not null);
+        return Evaluation.Create(limbEligibility,
+            firstInArcFailure ?? PhysicalAttackRestriction.TargetOutsideArc);
     }
 
     private static PhysicalAttackRestriction? GetArmRestriction(Mech attacker, PartLocation arm,
@@ -204,49 +239,63 @@ public class PhysicalAttackEligibility : IPhysicalAttackEligibility
     /// Kicks follow the feet and reach only the three forward hexes. Both legs and both hip
     /// actuators have to be intact; each leg can kick if none of its weapons fired this turn.
     /// </summary>
-    private static Evaluation EvaluateKickLimbs(Mech attacker, IUnit target)
+    private static Evaluation EvaluateKickLimbs(Mech attacker, IUnit target,
+        IReadOnlyList<PartLocation> candidates)
     {
         var arc = attacker.Position!.Coordinates.GetFiringArc(
             target.Position!.Coordinates, attacker.Position.Facing);
         if (arc != FiringArc.Front)
-            return Evaluation.Fail(PhysicalAttackRestriction.TargetOutsideArc);
+            return Evaluation.Fail(PhysicalAttackRestriction.TargetOutsideArc, candidates);
 
-        PartLocation[] legs = [PartLocation.LeftLeg, PartLocation.RightLeg];
-        if (legs.Any(leg => !IsPartIntact(attacker, leg)))
-            return Evaluation.Fail(PhysicalAttackRestriction.LegDestroyed);
+        // A kick needs both legs intact, so either failing leg blocks the whole attack and every
+        // candidate leg reports the same reason.
+        if (candidates.Any(leg => !IsPartIntact(attacker, leg)))
+            return Evaluation.Fail(PhysicalAttackRestriction.LegDestroyed, candidates);
 
-        if (legs.Any(leg => !IsIntact<HipActuator>(attacker, leg)))
-            return Evaluation.Fail(PhysicalAttackRestriction.HipActuatorDestroyed);
+        if (candidates.Any(leg => !IsIntact<HipActuator>(attacker, leg)))
+            return Evaluation.Fail(PhysicalAttackRestriction.HipActuatorDestroyed, candidates);
 
         var firedFrom = attacker.GetFiredWeaponLocations();
-        var reaching = legs.Where(leg => !firedFrom.Contains(leg)).ToList();
-        return reaching.Count > 0
-            ? Evaluation.Success(reaching)
-            : Evaluation.Fail(PhysicalAttackRestriction.LegWeaponFired);
+        var limbEligibility = candidates
+            .Select(leg => new PhysicalAttackLimbEligibility(
+                leg,
+                firedFrom.Contains(leg) ? PhysicalAttackRestriction.LegWeaponFired : null))
+            .ToList();
+
+        return Evaluation.Create(limbEligibility,
+            limbEligibility.Any(limb => limb.IsAvailable)
+                ? null
+                : PhysicalAttackRestriction.LegWeaponFired);
     }
 
-    private static Evaluation EvaluatePush(IUnit attacker, IUnit target, IBattleMap map)
+    private static Evaluation EvaluatePush(IUnit attacker, IUnit target, IBattleMap map,
+        IReadOnlyList<PartLocation> candidates)
     {
         if (attacker is not Mech mech || !CanMakePhysicalAttack(mech))
-            return Evaluation.Fail(PhysicalAttackRestriction.NoTargetInFront);
+            return Evaluation.Fail(PhysicalAttackRestriction.NoTargetInFront, candidates);
 
         if (target.Position is null || target.IsDestroyed || target.Owner?.Id == attacker.Owner?.Id
             || !IsInFeetFrontHex(mech, target))
-            return Evaluation.Fail(PhysicalAttackRestriction.NoTargetInFront);
+            return Evaluation.Fail(PhysicalAttackRestriction.NoTargetInFront, candidates);
 
         if (GetEndpoint(mech, map) is not { } attackerEndpoint
             || GetEndpoint(target, map) is not { } targetEndpoint)
-            return Evaluation.Fail(PhysicalAttackRestriction.NoTargetInFront);
+            return Evaluation.Fail(PhysicalAttackRestriction.NoTargetInFront, candidates);
 
         // The same water rule that removes the limbs has to report a reason here, otherwise the
         // UI offers a Push that cannot be selected.
         if (IsBlockedByWater(attackerEndpoint, targetEndpoint, PhysicalAttackType.Push))
-            return Evaluation.Fail(PhysicalAttackRestriction.TargetSubmerged);
+            return Evaluation.Fail(PhysicalAttackRestriction.TargetSubmerged, candidates);
 
         var restriction = GetPushRestriction(mech, target, attackerEndpoint, targetEndpoint);
-        return restriction is null
-            ? Evaluation.Success([PartLocation.LeftArm, PartLocation.RightArm])
-            : Evaluation.Fail(restriction.Value);
+        if (restriction is not null)
+            return Evaluation.Fail(restriction.Value, candidates);
+
+        return Evaluation.Create(
+            candidates
+                .Select(limb => new PhysicalAttackLimbEligibility(limb, null))
+                .ToList(),
+            null);
     }
 
     /// <summary>

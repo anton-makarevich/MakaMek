@@ -113,6 +113,87 @@ public class PhysicalAttackEligibilityTests
         arms.ShouldBe([PartLocation.RightArm]);
     }
 
+    [Fact]
+    public void GetLimbEligibility_PunchInASideArc_KeepsTheOutOfArcArmWithItsReason()
+    {
+        // Arrange
+        var (attacker, target) = CreatePair(AttackerHex.GetNeighbour(HexDirection.BottomRight));
+
+        // Act
+        var limbs = _sut.GetLimbEligibility(attacker, target, PhysicalAttackType.Punch, _map);
+
+        // Assert
+        limbs.Count.ShouldBe(2);
+        var leftArm = limbs.Single(limb => limb.Limb == PartLocation.LeftArm);
+        leftArm.IsAvailable.ShouldBeFalse();
+        leftArm.Restriction.ShouldBe(PhysicalAttackRestriction.TargetOutsideArc);
+        var rightArm = limbs.Single(limb => limb.Limb == PartLocation.RightArm);
+        rightArm.IsAvailable.ShouldBeTrue();
+        rightArm.Restriction.ShouldBeNull();
+    }
+
+    [Fact]
+    public void GetLimbEligibility_PunchWithAFiredArm_MarksOnlyThatArm()
+    {
+        // Arrange
+        var (attacker, target) = CreatePair(AttackerHex.GetNeighbour(HexDirection.Top));
+        FireWeaponIn(attacker, PartLocation.RightArm);
+
+        // Act
+        var limbs = _sut.GetLimbEligibility(attacker, target, PhysicalAttackType.Punch, _map);
+
+        // Assert
+        limbs.Single(limb => limb.Limb == PartLocation.LeftArm).IsAvailable.ShouldBeTrue();
+        limbs.Single(limb => limb.Limb == PartLocation.RightArm).Restriction
+            .ShouldBe(PhysicalAttackRestriction.ArmWeaponFired);
+    }
+
+    [Fact]
+    public void GetLimbEligibility_KickOutsideTheFeetArc_MarksBothLegs()
+    {
+        // Arrange
+        var (attacker, target) = CreatePair(AttackerHex.GetNeighbour(HexDirection.BottomRight));
+
+        // Act
+        var limbs = _sut.GetLimbEligibility(attacker, target, PhysicalAttackType.Kick, _map);
+
+        // Assert
+        limbs.Select(limb => limb.Limb).ShouldBe(
+            [PartLocation.LeftLeg, PartLocation.RightLeg], ignoreOrder: true);
+        limbs.ShouldAllBe(limb => limb.Restriction == PhysicalAttackRestriction.TargetOutsideArc);
+    }
+
+    [Fact]
+    public void GetLimbEligibility_KickWithALegWeaponFired_MarksOnlyThatLeg()
+    {
+        // Arrange
+        var (attacker, target) = CreatePair(AttackerHex.GetNeighbour(HexDirection.Top));
+        FireWeaponIn(attacker, PartLocation.LeftLeg);
+
+        // Act
+        var limbs = _sut.GetLimbEligibility(attacker, target, PhysicalAttackType.Kick, _map);
+
+        // Assert
+        limbs.Single(limb => limb.Limb == PartLocation.LeftLeg).Restriction
+            .ShouldBe(PhysicalAttackRestriction.LegWeaponFired);
+        limbs.Single(limb => limb.Limb == PartLocation.RightLeg).IsAvailable.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void GetLimbEligibility_PushWithAnArmWeaponFired_MarksBothArms()
+    {
+        // Arrange
+        var (attacker, target) = CreatePair(AttackerHex.GetNeighbour(HexDirection.Top));
+        FireWeaponIn(attacker, PartLocation.LeftArm);
+
+        // Act
+        var limbs = _sut.GetLimbEligibility(attacker, target, PhysicalAttackType.Push, _map);
+
+        // Assert
+        limbs.Count.ShouldBe(2);
+        limbs.ShouldAllBe(limb => limb.Restriction == PhysicalAttackRestriction.ArmWeaponFired);
+    }
+
     [Theory]
     [InlineData(HexDirection.TopLeft)]
     [InlineData(HexDirection.Top)]
@@ -188,9 +269,11 @@ public class PhysicalAttackEligibilityTests
 
         // Act
         var limbs = _sut.GetEligibleLimbs(attacker, target, attackType, _map);
+        var limbEligibility = _sut.GetLimbEligibility(attacker, target, attackType, _map);
 
         // Assert
         limbs.ShouldBeEmpty();
+        limbEligibility.ShouldBeEmpty();
     }
 
     [Fact]

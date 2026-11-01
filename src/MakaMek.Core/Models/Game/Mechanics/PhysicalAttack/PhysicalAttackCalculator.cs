@@ -39,6 +39,9 @@ public class PhysicalAttackCalculator : IPhysicalAttackCalculator
         return GetModifierBreakdown(scenario, map).Total;
     }
 
+    public int GetDamage(IUnit attacker, PhysicalAttackType attackType, PartLocation limb) =>
+        PhysicalAttackDamageCalculator.Calculate(_rules, attacker, attackType, limb);
+
     public PhysicalAttackBreakdown GetModifierBreakdown(IUnit attacker, IUnit target, PhysicalAttackType attackType, IBattleMap map)
     {
         var scenario = PhysicalAttackScenario.FromUnits(attacker, target, attackType);

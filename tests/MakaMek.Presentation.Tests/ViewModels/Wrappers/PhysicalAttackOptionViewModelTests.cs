@@ -4,6 +4,7 @@ using Sanet.MakaMek.Core.Data.Game.Mechanics.PhysicalAttacks;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Attack;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Physical;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.PhysicalAttack;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Map.Models;
 using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
@@ -23,6 +24,7 @@ public class PhysicalAttackOptionViewModelTests
         _localizationService.GetString("PhysicalAttackType_Punch").Returns("Punch");
         _localizationService.GetString("PhysicalAttackType_Push").Returns("Push");
         _localizationService.GetString("PhysicalAttackDeclaration_Unavailable").Returns("Not available");
+        _localizationService.GetString("PhysicalAttackRestriction_ArmDestroyed").Returns("Arm destroyed");
         _localizationService.GetString("Modifier_PilotingSkill").Returns("Piloting Skill: +{0}");
         _localizationService.GetString("Modifier_PhysicalAttackBase").Returns("{0} Base: {1:+#;-#;0}");
         _localizationService.GetString("Modifier_AttackerMovement").Returns("Attacker Movement ({0}): +{1}");
@@ -228,5 +230,72 @@ public class PhysicalAttackOptionViewModelTests
         sut.IsImpossible.ShouldBeFalse();
         sut.HitProbabilityText.ShouldBe("58%");
         sut.HitProbability.ShouldBeGreaterThan(0);
+    }
+
+    [Fact]
+    public void Damage_FallsBackToTheFirstAvailableLimb_AndFollowsTheSelection()
+    {
+        var sut = CreateSut(variants:
+        [
+            new PhysicalAttackLimbVariant("Left Arm", [PartLocation.LeftArm], Damage: 3),
+            new PhysicalAttackLimbVariant("Right Arm", [PartLocation.RightArm], Damage: 5),
+            new PhysicalAttackLimbVariant("Both Arms",
+                [PartLocation.LeftArm, PartLocation.RightArm], Damage: 8)
+        ]);
+
+        sut.HasDamage.ShouldBeTrue();
+        sut.Damage.ShouldBe(3);
+        sut.DamageText.ShouldBe("3");
+
+        sut.LimbOptions[1].IsSelected = true;
+        sut.Damage.ShouldBe(5);
+
+        sut.LimbOptions[2].IsSelected = true;
+        sut.Damage.ShouldBe(8);
+    }
+
+    [Fact]
+    public void Damage_SkipsAnUnavailableLimbCombination()
+    {
+        var sut = CreateSut(variants:
+        [
+            new PhysicalAttackLimbVariant("Left Arm", [PartLocation.LeftArm], Damage: 3,
+                Restriction: PhysicalAttackRestriction.ArmDestroyed),
+            new PhysicalAttackLimbVariant("Right Arm", [PartLocation.RightArm], Damage: 5)
+        ]);
+
+        sut.Damage.ShouldBe(5);
+        sut.LimbOptions[0].IsEnabled.ShouldBeFalse();
+        sut.LimbOptions[0].RestrictionReason.ShouldBe("Arm destroyed");
+        sut.LimbOptions[0].HasRestrictionReason.ShouldBeTrue();
+        sut.LimbOptions[0].Damage.ShouldBe(3);
+    }
+
+    [Fact]
+    public void Damage_IsZero_ForAnUnavailableRow()
+    {
+        var sut = CreateSut(
+            isEnabled: false,
+            restrictionReason: "No",
+            variants: [new PhysicalAttackLimbVariant("Left Arm", [PartLocation.LeftArm], Damage: 3)]);
+
+        sut.HasDamage.ShouldBeFalse();
+        sut.Damage.ShouldBe(0);
+    }
+
+    [Fact]
+    public void SelectingAnUnavailableLimb_DoesNothing()
+    {
+        var sut = CreateSut(variants:
+        [
+            new PhysicalAttackLimbVariant("Left Arm", [PartLocation.LeftArm], Damage: 3,
+                Restriction: PhysicalAttackRestriction.ArmDestroyed)
+        ]);
+
+        sut.LimbOptions[0].IsSelected = true;
+
+        sut.LimbOptions[0].IsSelected.ShouldBeFalse();
+        sut.IsSelected.ShouldBeFalse();
+        _selections.ShouldBeEmpty();
     }
 }

@@ -63,9 +63,11 @@ public class PhysicalAttackDeclarationPanelTests
                 texts.ShouldContain("Push");
                 texts.ShouldContain("Both Arms");
                 texts.ShouldContain("Left Leg");
+                texts.ShouldContain(attacker.Name);
                 var punch = viewModel.PhysicalAttackOptions
                     .First(option => option.AttackType == PhysicalAttackType.Punch);
-                texts.ShouldContain(punch.TargetNumberText);
+                // The to-hit number lives only in the breakdown flyout now.
+                texts.ShouldNotContain(punch.TargetNumberText);
 
                 // Checking a limb option selects the attack row automatically.
                 var rightArm = punch.LimbOptions.Single(option => option.Label == "Right Arm");
@@ -116,10 +118,11 @@ public class PhysicalAttackDeclarationPanelTests
                     .ShouldNotBeNull();
 
                 // Only limb options are checkboxes; the attack rows themselves have none. In the
-                // side arc only the right arm reaches, so there is exactly one checkbox.
+                // side arc the left arm and the both-arms combination are shown but disabled, so
+                // only the right arm can be checked.
                 var checkBoxes = panel.GetVisualDescendants().OfType<CheckBox>().ToList();
-                checkBoxes.Count.ShouldBe(1);
-                checkBoxes[0].IsEnabled.ShouldBeTrue();
+                checkBoxes.Count.ShouldBe(6);
+                checkBoxes.Count(checkBox => checkBox.IsEnabled).ShouldBe(1);
 
                 var punch = viewModel.PhysicalAttackOptions
                     .First(option => option.AttackType == PhysicalAttackType.Punch);
@@ -136,10 +139,68 @@ public class PhysicalAttackDeclarationPanelTests
                 texts.ShouldContain(punch.HitProbabilityText);
                 texts.ShouldContain("-");
 
-                // Every row keeps its info flyout, including the disabled ones.
-                panel.GetVisualDescendants().OfType<Button>()
-                    .Count(button => button.Flyout != null)
-                    .ShouldBe(3);
+                // Every row keeps its info flyout, including the disabled ones, and each disabled
+                // limb option explains its own reason.
+                var buttons = panel.GetVisualDescendants().OfType<Button>()
+                    .Where(button => button.Flyout != null)
+                    .ToList();
+                foreach (var option in viewModel.PhysicalAttackOptions)
+                    buttons.Count(button => ReferenceEquals(button.DataContext, option)).ShouldBe(1);
+
+                var leftArm = punch.LimbOptions.Single(option => option.Label == "Left Arm");
+                leftArm.IsEnabled.ShouldBeFalse();
+                leftArm.RestrictionReason.ShouldNotBeNullOrWhiteSpace();
+                buttons.Count(button => ReferenceEquals(button.DataContext, leftArm)).ShouldBe(1);
+
+                // A disabled limb keeps a clickable info button, including on a row that is
+                // disabled as a whole, otherwise its reason flyout could never be opened.
+                var kickLeg = kick.LimbOptions[0];
+                foreach (var limb in new[] { leftArm, kickLeg })
+                {
+                    var info = buttons.Single(button => ReferenceEquals(button.DataContext, limb));
+                    info.IsEffectivelyVisible.ShouldBeTrue();
+                    info.IsEnabled.ShouldBeTrue();
+                }
+            }
+            finally
+            {
+                window.Close();
+            }
+        });
+
+    [Fact]
+    public Task PhysicalAttackDeclarationPanel_KeepsProbabilityAndInfoOnTheAttackTypeRow() =>
+        HarnessSession.Run(async () =>
+        {
+            // Arrange
+            var (window, view, viewModel, _, _, _) = await ShowBattleMapWithTargetSelected();
+            try
+            {
+                var panel = view.FindControl<PhysicalAttackDeclarationPanel>("PhysicalAttackDeclarationPanel")
+                    .ShouldNotBeNull();
+                var punch = viewModel.PhysicalAttackOptions
+                    .First(option => option.AttackType == PhysicalAttackType.Punch);
+
+                var descriptors = panel.GetVisualDescendants().OfType<TextBlock>()
+                    .Where(textBlock => ReferenceEquals(textBlock.DataContext, punch))
+                    .ToList();
+                var attackName = descriptors.Single(textBlock => textBlock.Text == punch.AttackTypeName);
+                var probability = descriptors.Single(textBlock => textBlock.Text == punch.HitProbabilityText);
+                var info = panel.GetVisualDescendants().OfType<Button>()
+                    .Single(button => ReferenceEquals(button.DataContext, punch) && button.Flyout != null);
+
+                // Assert the row reads like a weapon row: the name on the left and, on the same
+                // line, the hit probability followed by the breakdown button.
+                var nameTop = attackName.TranslatePoint(new Point(0, 0), panel)!.Value;
+                var probabilityTop = probability.TranslatePoint(new Point(0, 0), panel)!.Value;
+                var infoTop = info.TranslatePoint(new Point(0, 0), panel)!.Value;
+                var nameCenter = nameTop.Y + attackName.Bounds.Height / 2;
+
+                Math.Abs(nameCenter - (probabilityTop.Y + probability.Bounds.Height / 2))
+                    .ShouldBeLessThan(8);
+                Math.Abs(nameCenter - (infoTop.Y + info.Bounds.Height / 2)).ShouldBeLessThan(8);
+                probabilityTop.X.ShouldBeGreaterThan(nameTop.X + attackName.Bounds.Width);
+                infoTop.X.ShouldBeGreaterThan(probabilityTop.X);
             }
             finally
             {

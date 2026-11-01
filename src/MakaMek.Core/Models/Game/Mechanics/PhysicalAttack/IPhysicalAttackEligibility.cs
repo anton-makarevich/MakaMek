@@ -29,6 +29,15 @@ public interface IPhysicalAttackEligibility
         IBattleMap map);
 
     /// <summary>
+    /// Every candidate limb of this attack type against this target, together with the reason a
+    /// limb cannot make the attack. Limbs that can make it carry a null restriction. This is the
+    /// same policy as <see cref="GetEligibleLimbs"/>, but it keeps the failing limbs so the
+    /// declaration dialog can explain why they are unavailable.
+    /// </summary>
+    IReadOnlyList<PhysicalAttackLimbEligibility> GetLimbEligibility(IUnit attacker, IUnit target,
+        PhysicalAttackType attackType, IBattleMap map);
+
+    /// <summary>
     /// Whether an attack the attacker has already declared can still be made with this limb: the
     /// same checks as <see cref="GetEligibleLimbs"/>, apart from the one attack per turn rule.
     /// The resolution phase asks this before any damage of the phase is applied.

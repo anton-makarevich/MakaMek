@@ -369,11 +369,12 @@ public class PhysicalAttackState : IUiState, ICombatSelectionRoles
         foreach (var definition in PhysicalAttackDefinitions.Supported)
         {
             var attackType = definition.AttackType;
-            var limbs = Game.PhysicalAttackEligibility.GetEligibleLimbs(attacker, target, attackType, map);
+            var limbEligibility = Game.PhysicalAttackEligibility.GetLimbEligibility(
+                attacker, target, attackType, map);
             var restriction = Game.PhysicalAttackEligibility
                 .GetDeclarationRestriction(attacker, target, attackType, map, allUnits);
 
-            var isEnabled = limbs.Count > 0 && restriction is null;
+            var isEnabled = limbEligibility.Any(limb => limb.IsAvailable) && restriction is null;
             string? restrictionReason = null;
             if (!isEnabled)
             {
@@ -391,7 +392,7 @@ public class PhysicalAttackState : IUiState, ICombatSelectionRoles
                     .GetModifierBreakdown(attacker, target, attackType, map);
             }
 
-            var variants = BuildLimbVariants(definition, limbs);
+            var variants = BuildLimbVariants(definition, limbEligibility, attacker);
 
             options.Add(new PhysicalAttackOptionViewModel(
                 attackType,
@@ -408,35 +409,69 @@ public class PhysicalAttackState : IUiState, ICombatSelectionRoles
     }
 
     private IReadOnlyList<PhysicalAttackLimbVariant> BuildLimbVariants(
-        PhysicalAttackDefinition definition, IReadOnlyList<PartLocation> limbs)
+        PhysicalAttackDefinition definition,
+        IReadOnlyList<PhysicalAttackLimbEligibility> limbEligibility,
+        IUnit attacker)
     {
-        if (limbs.Count == 0) return [];
+        if (limbEligibility.Count == 0) return [];
 
         var attackType = definition.AttackType;
-        var variants = new List<PhysicalAttackLimbVariant>(limbs.Count + 1);
+        var variants = new List<PhysicalAttackLimbVariant>(limbEligibility.Count + 1);
 
         // The attack type is already the row header, so the sub-items are simply the limb names.
         // An attack that needs all of its limbs resolves as one declaration, so Push offers a
         // single "Both Arms" variant instead of one variant per arm.
         if (definition.MinLimbsPerDeclaration > 1)
         {
-            if (limbs.Count < definition.MinLimbsPerDeclaration) return [];
+            if (limbEligibility.Count < definition.MinLimbsPerDeclaration) return [];
 
-            variants.Add(new PhysicalAttackLimbVariant(
+            variants.Add(CreateVariant(
+                definition,
+                attacker,
                 GetString("PhysicalAttack_BothArms"),
-                limbs.Take(definition.MinLimbsPerDeclaration).ToList()));
+                limbEligibility.Take(definition.MinLimbsPerDeclaration).ToList()));
             return variants;
         }
 
-        foreach (var limb in limbs)
-            variants.Add(new PhysicalAttackLimbVariant(
-                GetString($"MechPart_{limb}"), [limb]));
+        foreach (var limb in limbEligibility)
+            variants.Add(CreateVariant(
+                definition,
+                attacker,
+                GetString($"MechPart_{limb.Limb}"),
+                [limb]));
 
-        if (attackType == PhysicalAttackType.Punch && limbs.Count > 1)
-            variants.Add(new PhysicalAttackLimbVariant(
-                GetString("PhysicalAttack_BothArms"), limbs.ToList()));
+        if (attackType == PhysicalAttackType.Punch && limbEligibility.Count > 1)
+            variants.Add(CreateVariant(
+                definition,
+                attacker,
+                GetString("PhysicalAttack_BothArms"),
+                limbEligibility.ToList()));
 
         return variants;
+    }
+
+    /// <summary>
+    /// Builds one variant from the limbs that will actually be declared. A combined variant is
+    /// unavailable as soon as one of its limbs is, and its damage is the sum of the per-limb
+    /// damage because a two-arm punch resolves as two independent attacks.
+    /// </summary>
+    private PhysicalAttackLimbVariant CreateVariant(
+        PhysicalAttackDefinition definition,
+        IUnit attacker,
+        string label,
+        IReadOnlyList<PhysicalAttackLimbEligibility> limbs)
+    {
+        var restriction = limbs
+            .Select(limb => limb.Restriction)
+            .FirstOrDefault(value => value is not null);
+        var damage = limbs.Sum(limb =>
+            Game.PhysicalAttackCalculator.GetDamage(attacker, definition.AttackType, limb.Limb));
+
+        return new PhysicalAttackLimbVariant(
+            label,
+            limbs.Select(limb => limb.Limb).ToList(),
+            damage,
+            restriction);
     }
 
     /// <summary>

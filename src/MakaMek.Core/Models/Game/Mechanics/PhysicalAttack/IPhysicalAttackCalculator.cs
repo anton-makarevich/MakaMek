@@ -24,6 +24,13 @@ public interface IPhysicalAttackCalculator
     int GetToHitNumber(IUnit attacker, IUnit target, PhysicalAttackType attackType, IBattleMap map);
 
     /// <summary>
+    /// Gets the damage this attack would deal when made with the given limb, after the actuator
+    /// reductions of the rules provider have been applied. A push reports zero because it deals no
+    /// damage. Pure preview: mutates no unit, map or game state.
+    /// </summary>
+    int GetDamage(IUnit attacker, PhysicalAttackType attackType, PartLocation limb);
+
+    /// <summary>
     /// Gets a detailed breakdown of all modifiers affecting a physical attack from the current unit state.
     /// Pure preview: mutates no unit, map or game state.
     /// </summary>
