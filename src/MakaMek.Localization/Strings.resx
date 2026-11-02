@@ -201,7 +201,8 @@
   <data name="PhysicalAttackType_DFA" xml:space="preserve"><value>Death From Above</value></data>
   <data name="PhysicalAttack_BothArms" xml:space="preserve"><value>Both Arms</value></data>
   <data name="PhysicalAttack_NoOptions" xml:space="preserve"><value>This unit has no physical attack options</value></data>
-  <data name="PhysicalAttackPreview_Title" xml:space="preserve"><value>Physical attack</value></data>
+  <data name="PhysicalAttackDeclaration_Title" xml:space="preserve"><value>Physical attack</value></data>
+  <data name="PhysicalAttackDeclaration_Unavailable" xml:space="preserve"><value>This attack is not available for the selected target</value></data>
   <data name="Action_DeclarePhysicalAttack_WithLimb" xml:space="preserve"><value>{0} ({1})</value></data>
   <data name="PhysicalAttackRestriction_NoTargetInFront" xml:space="preserve"><value>No unit directly in front of this unit</value></data>
   <data name="PhysicalAttackRestriction_TargetNotStandingMech" xml:space="preserve"><value>The target must be a standing Mech</value></data>
@@ -211,6 +212,15 @@
   <data name="PhysicalAttackRestriction_ArmMissing" xml:space="preserve"><value>Both arms are required</value></data>
   <data name="PhysicalAttackRestriction_ArmWeaponFired" xml:space="preserve"><value>An arm-mounted weapon was fired this turn</value></data>
   <data name="PhysicalAttackRestriction_TargetAlreadyDisplaced" xml:space="preserve"><value>The target is already being displaced this turn</value></data>
+  <data name="PhysicalAttackRestriction_TargetOutOfReach" xml:space="preserve"><value>No adjacent enemy Mech can be attacked</value></data>
+  <data name="PhysicalAttackRestriction_TargetOutsideArc" xml:space="preserve"><value>The target is outside the attack arc</value></data>
+  <data name="PhysicalAttackRestriction_LevelDifferenceOutOfRange" xml:space="preserve"><value>The target's elevation is out of reach</value></data>
+  <data name="PhysicalAttackRestriction_TargetProne" xml:space="preserve"><value>The target is prone at an elevation this attack cannot reach</value></data>
+  <data name="PhysicalAttackRestriction_ArmDestroyed" xml:space="preserve"><value>A punching arm is destroyed</value></data>
+  <data name="PhysicalAttackRestriction_ShoulderActuatorDestroyed" xml:space="preserve"><value>A shoulder actuator is destroyed</value></data>
+  <data name="PhysicalAttackRestriction_LegDestroyed" xml:space="preserve"><value>A kicking leg is destroyed</value></data>
+  <data name="PhysicalAttackRestriction_HipActuatorDestroyed" xml:space="preserve"><value>A hip actuator is destroyed</value></data>
+  <data name="PhysicalAttackRestriction_LegWeaponFired" xml:space="preserve"><value>A leg-mounted weapon was fired this turn</value></data>
   <data name="AttackDirection_Left" xml:space="preserve"><value>Left</value></data>
   <data name="AttackDirection_Right" xml:space="preserve"><value>Right</value></data>
   <data name="AttackDirection_Front" xml:space="preserve"><value>Front</value></data>
@@ -271,6 +281,7 @@
   <data name="Action_SelectAction" xml:space="preserve"><value>Select action</value></data>
   <data name="Action_ConfigureWeapons" xml:space="preserve"><value>Configure weapons</value></data>
   <data name="Action_SelectTarget" xml:space="preserve"><value>Select Target</value></data>
+  <data name="Action_SelectPhysicalAttack" xml:space="preserve"><value>Select attack</value></data>
   <data name="Action_TurnTorso" xml:space="preserve"><value>Turn Torso</value></data>
   <data name="Action_SkipAttack" xml:space="preserve"><value>Skip Attack</value></data>
   <data name="Action_DeclareAttack" xml:space="preserve"><value>Declare Attack</value></data>

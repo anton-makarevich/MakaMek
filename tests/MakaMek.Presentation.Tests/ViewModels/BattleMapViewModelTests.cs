@@ -5731,11 +5731,23 @@ public class BattleMapViewModelTests
     }
 
     [Fact]
-    public void PhysicalAttackPreview_TracksTheCurrentStateAndCanBeClosed()
+    public void PhysicalAttackDeclarationProperties_WithoutAPhysicalAttackState_ReportNoDeclaration()
+    {
+        _sut.CurrentState.ShouldNotBeOfType<PhysicalAttackState>();
+
+        _sut.PhysicalAttackOptions.ShouldBeEmpty();
+        _sut.PhysicalAttackTarget.ShouldBeNull();
+        _sut.IsPhysicalAttackDeclarationVisible.ShouldBeFalse();
+
+        Should.NotThrow(() => _sut.ClosePhysicalAttackDeclarationCommand());
+    }
+
+    [Fact]
+    public void PhysicalAttackDeclaration_TracksTheCurrentStateAndCanBeClosed()
     {
         _localizationService.GetString("PhysicalAttackType_Punch").Returns("Punch");
         _localizationService.GetString("PhysicalAttackType_Kick").Returns("Kick");
-        _sut.PhysicalAttackPreview.ShouldBeNull();
+        _sut.PhysicalAttackOptions.ShouldBeEmpty();
         var enemyPlayer = JoinPlayerWithUnit("Enemy", "#00FF00");
         var squad = SetUpSquadNavigation(PhaseNames.PhysicalAttack);
         var enemy = _sut.Units.First(unit => unit.Owner!.Id == enemyPlayer.Id);
@@ -5744,18 +5756,20 @@ public class BattleMapViewModelTests
         var state = _sut.CurrentState.ShouldBeOfType<PhysicalAttackState>();
 
         state.HandleHexSelection(new Hex(squad[0].Position!.Coordinates));
-        state.GetAvailableActions().Single(action => action.Label == "Punch").OnExecute();
         state.HandleHexSelection(new Hex(enemy.Position!.Coordinates));
 
-        _sut.PhysicalAttackPreview.ShouldNotBeNull();
-        _sut.PhysicalAttackPreview!.Target.ShouldBe(enemy);
-        _sut.IsPhysicalAttackPreviewVisible.ShouldBeTrue();
+        _sut.PhysicalAttackOptions.ShouldNotBeEmpty();
+        _sut.PhysicalAttackTarget.ShouldBe(enemy);
+        _sut.IsPhysicalAttackDeclarationVisible.ShouldBeTrue();
 
-        _sut.ClosePhysicalAttackPreviewCommand();
+        _sut.ClosePhysicalAttackDeclarationCommand();
 
-        _sut.IsPhysicalAttackPreviewVisible.ShouldBeFalse();
-        _sut.PhysicalAttackPreview.ShouldNotBeNull();
-        state.SelectedTarget.ShouldBe(enemy);
+        _sut.IsPhysicalAttackDeclarationVisible.ShouldBeFalse();
+        _sut.PhysicalAttackOptions.ShouldBeEmpty();
+        _sut.PhysicalAttackTarget.ShouldBeNull();
+        state.SelectedTarget.ShouldBeNull();
+        state.CurrentStep.ShouldBe(PhysicalAttackStep.TargetSelection);
+        state.Attacker.ShouldBe(squad[0]);
     }
 
     [Fact]
@@ -5786,6 +5800,27 @@ public class BattleMapViewModelTests
         await _sut.SelectNextAvailableUnit();
 
         focused.ShouldHaveSingleItem();
+    }
+
+    [Fact]
+    public async Task SelectNextAvailableUnit_InPhysicalAttackTargetSelection_FocusesTheAttacker()
+    {
+        var enemyPlayer = JoinPlayerWithUnit("Enemy", "#00FF00");
+        var squad = SetUpSquadNavigation(PhaseNames.PhysicalAttack);
+        var enemy = _sut.Units.First(unit => unit.Owner!.Id == enemyPlayer.Id);
+        squad[0].Deploy(new HexPosition(2, 3, HexDirection.Top), null);
+        enemy.Deploy(new HexPosition(2, 2, HexDirection.Bottom), null);
+        var state = _sut.CurrentState.ShouldBeOfType<PhysicalAttackState>();
+        state.HandleHexSelection(new Hex(squad[0].Position!.Coordinates));
+        state.CurrentStep.ShouldBe(PhysicalAttackStep.TargetSelection);
+        var focused = new List<IUnit>();
+        _sut.FocusUnit = focused.Add;
+
+        await _sut.SelectNextAvailableUnit();
+
+        _sut.IsNextAvailableUnitVisible.ShouldBeTrue();
+        _sut.SelectedUnit.ShouldBe(squad[0]);
+        focused.ShouldHaveSingleItem().ShouldBe(squad[0]);
     }
 
     [Fact]

@@ -113,6 +113,87 @@ public class PhysicalAttackEligibilityTests
         arms.ShouldBe([PartLocation.RightArm]);
     }
 
+    [Fact]
+    public void GetLimbEligibility_PunchInASideArc_KeepsTheOutOfArcArmWithItsReason()
+    {
+        // Arrange
+        var (attacker, target) = CreatePair(AttackerHex.GetNeighbour(HexDirection.BottomRight));
+
+        // Act
+        var limbs = _sut.GetLimbEligibility(attacker, target, PhysicalAttackType.Punch, _map);
+
+        // Assert
+        limbs.Count.ShouldBe(2);
+        var leftArm = limbs.Single(limb => limb.Limb == PartLocation.LeftArm);
+        leftArm.IsAvailable.ShouldBeFalse();
+        leftArm.Restriction.ShouldBe(PhysicalAttackRestriction.TargetOutsideArc);
+        var rightArm = limbs.Single(limb => limb.Limb == PartLocation.RightArm);
+        rightArm.IsAvailable.ShouldBeTrue();
+        rightArm.Restriction.ShouldBeNull();
+    }
+
+    [Fact]
+    public void GetLimbEligibility_PunchWithAFiredArm_MarksOnlyThatArm()
+    {
+        // Arrange
+        var (attacker, target) = CreatePair(AttackerHex.GetNeighbour(HexDirection.Top));
+        FireWeaponIn(attacker, PartLocation.RightArm);
+
+        // Act
+        var limbs = _sut.GetLimbEligibility(attacker, target, PhysicalAttackType.Punch, _map);
+
+        // Assert
+        limbs.Single(limb => limb.Limb == PartLocation.LeftArm).IsAvailable.ShouldBeTrue();
+        limbs.Single(limb => limb.Limb == PartLocation.RightArm).Restriction
+            .ShouldBe(PhysicalAttackRestriction.ArmWeaponFired);
+    }
+
+    [Fact]
+    public void GetLimbEligibility_KickOutsideTheFeetArc_MarksBothLegs()
+    {
+        // Arrange
+        var (attacker, target) = CreatePair(AttackerHex.GetNeighbour(HexDirection.BottomRight));
+
+        // Act
+        var limbs = _sut.GetLimbEligibility(attacker, target, PhysicalAttackType.Kick, _map);
+
+        // Assert
+        limbs.Select(limb => limb.Limb).ShouldBe(
+            [PartLocation.LeftLeg, PartLocation.RightLeg], ignoreOrder: true);
+        limbs.ShouldAllBe(limb => limb.Restriction == PhysicalAttackRestriction.TargetOutsideArc);
+    }
+
+    [Fact]
+    public void GetLimbEligibility_KickWithALegWeaponFired_MarksOnlyThatLeg()
+    {
+        // Arrange
+        var (attacker, target) = CreatePair(AttackerHex.GetNeighbour(HexDirection.Top));
+        FireWeaponIn(attacker, PartLocation.LeftLeg);
+
+        // Act
+        var limbs = _sut.GetLimbEligibility(attacker, target, PhysicalAttackType.Kick, _map);
+
+        // Assert
+        limbs.Single(limb => limb.Limb == PartLocation.LeftLeg).Restriction
+            .ShouldBe(PhysicalAttackRestriction.LegWeaponFired);
+        limbs.Single(limb => limb.Limb == PartLocation.RightLeg).IsAvailable.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void GetLimbEligibility_PushWithAnArmWeaponFired_MarksBothArms()
+    {
+        // Arrange
+        var (attacker, target) = CreatePair(AttackerHex.GetNeighbour(HexDirection.Top));
+        FireWeaponIn(attacker, PartLocation.LeftArm);
+
+        // Act
+        var limbs = _sut.GetLimbEligibility(attacker, target, PhysicalAttackType.Push, _map);
+
+        // Assert
+        limbs.Count.ShouldBe(2);
+        limbs.ShouldAllBe(limb => limb.Restriction == PhysicalAttackRestriction.ArmWeaponFired);
+    }
+
     [Theory]
     [InlineData(HexDirection.TopLeft)]
     [InlineData(HexDirection.Top)]
@@ -188,9 +269,11 @@ public class PhysicalAttackEligibilityTests
 
         // Act
         var limbs = _sut.GetEligibleLimbs(attacker, target, attackType, _map);
+        var limbEligibility = _sut.GetLimbEligibility(attacker, target, attackType, _map);
 
         // Assert
         limbs.ShouldBeEmpty();
+        limbEligibility.ShouldBeEmpty();
     }
 
     [Fact]
@@ -517,13 +600,263 @@ public class PhysicalAttackEligibilityTests
     [Theory]
     [InlineData(PhysicalAttackType.Punch)]
     [InlineData(PhysicalAttackType.Kick)]
-    public void GetRestriction_ForAnAttackWithoutAvailabilityReasons_ReportsNoReason(PhysicalAttackType attackType)
+    [InlineData(PhysicalAttackType.Push)]
+    public void GetRestriction_ForAnAvailableAttack_ReportsNoReason(PhysicalAttackType attackType)
     {
         // Arrange
         var (attacker, target) = CreatePair(AttackerHex.GetNeighbour(HexDirection.Top));
 
         // Act + Assert
         _sut.GetRestriction(attacker, target, attackType, _map).ShouldBeNull();
+        _sut.GetEligibleLimbs(attacker, target, attackType, _map).ShouldNotBeEmpty();
+    }
+
+    [Fact]
+    public void Punch_TargetInTheRearArc_ReportsTargetOutsideArc()
+    {
+        // Arrange
+        var (attacker, target) = CreatePair(AttackerHex.GetNeighbour(HexDirection.Bottom));
+
+        // Act + Assert
+        _sut.GetRestriction(attacker, target, PhysicalAttackType.Punch, _map)
+            .ShouldBe(PhysicalAttackRestriction.TargetOutsideArc);
+        _sut.GetEligibleLimbs(attacker, target, PhysicalAttackType.Punch, _map).ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void Kick_TargetInASideArc_ReportsTargetOutsideArc()
+    {
+        // Arrange
+        var (attacker, target) = CreatePair(AttackerHex.GetNeighbour(HexDirection.BottomRight));
+
+        // Act + Assert
+        _sut.GetRestriction(attacker, target, PhysicalAttackType.Kick, _map)
+            .ShouldBe(PhysicalAttackRestriction.TargetOutsideArc);
+    }
+
+    [Theory]
+    [InlineData(PhysicalAttackType.Punch, 2)]
+    [InlineData(PhysicalAttackType.Kick, 1)]
+    public void GetRestriction_ForAnOutOfRangeLevelDifference_ReportsLevelDifferenceOutOfRange(
+        PhysicalAttackType attackType, int targetIsHigherBy)
+    {
+        // Arrange
+        var targetHex = AttackerHex.GetNeighbour(HexDirection.Top);
+        var (attacker, target) = CreatePair(targetHex);
+        SetLevel(AttackerHex, 2);
+        SetLevel(targetHex, 2 + targetIsHigherBy);
+
+        // Act + Assert
+        _sut.GetRestriction(attacker, target, attackType, _map)
+            .ShouldBe(PhysicalAttackRestriction.LevelDifferenceOutOfRange);
+    }
+
+    [Theory]
+    [InlineData(PhysicalAttackType.Punch, 1)]
+    [InlineData(PhysicalAttackType.Kick, 2)]
+    public void GetRestriction_WhenOnlyTheProneStateBlocks_ReportsTargetProne(
+        PhysicalAttackType attackType, int targetIsLowerBy)
+    {
+        // Arrange: the prone height shifts the difference, so the level would be allowed for a
+        // standing target but not for this prone one.
+        var targetHex = AttackerHex.GetNeighbour(HexDirection.Top);
+        var (attacker, target) = CreatePair(targetHex);
+        target.SetProne();
+        SetLevel(AttackerHex, 2);
+        SetLevel(targetHex, 2 - targetIsLowerBy);
+
+        // Act + Assert
+        _sut.GetRestriction(attacker, target, attackType, _map)
+            .ShouldBe(PhysicalAttackRestriction.TargetProne);
+        _sut.GetEligibleLimbs(attacker, target, attackType, _map).ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void Punch_TargetInASideArcWithADestroyedArm_ReportsArmDestroyed()
+    {
+        // Arrange: the left side arc permits only the left arm, which is destroyed.
+        var (attacker, target) = CreatePair(AttackerHex.GetNeighbour(HexDirection.BottomLeft));
+        DestroyPart(attacker, PartLocation.LeftArm);
+
+        // Act + Assert
+        _sut.GetRestriction(attacker, target, PhysicalAttackType.Punch, _map)
+            .ShouldBe(PhysicalAttackRestriction.ArmDestroyed);
+    }
+
+    [Fact]
+    public void Punch_TargetInASideArcWithADestroyedShoulder_ReportsShoulderActuatorDestroyed()
+    {
+        // Arrange
+        var (attacker, target) = CreatePair(AttackerHex.GetNeighbour(HexDirection.BottomLeft));
+        attacker.Parts[PartLocation.LeftArm].GetComponent<ShoulderActuator>()!.Hit();
+
+        // Act + Assert
+        _sut.GetRestriction(attacker, target, PhysicalAttackType.Punch, _map)
+            .ShouldBe(PhysicalAttackRestriction.ShoulderActuatorDestroyed);
+    }
+
+    [Fact]
+    public void Punch_WhenOneArmIsDamaged_HasNoRestrictionAndKeepsTheOtherArm()
+    {
+        // Arrange
+        var (attacker, target) = CreatePair(AttackerHex.GetNeighbour(HexDirection.Top));
+        attacker.Parts[PartLocation.LeftArm].GetComponent<ShoulderActuator>()!.Hit();
+
+        // Act + Assert
+        _sut.GetRestriction(attacker, target, PhysicalAttackType.Punch, _map).ShouldBeNull();
+        _sut.GetEligibleLimbs(attacker, target, PhysicalAttackType.Punch, _map)
+            .ShouldBe([PartLocation.RightArm]);
+    }
+
+    [Fact]
+    public void Kick_WithADestroyedLeg_ReportsLegDestroyed()
+    {
+        // Arrange
+        var (attacker, target) = CreatePair(AttackerHex.GetNeighbour(HexDirection.Top));
+        DestroyPart(attacker, PartLocation.LeftLeg);
+
+        // Act + Assert
+        _sut.GetRestriction(attacker, target, PhysicalAttackType.Kick, _map)
+            .ShouldBe(PhysicalAttackRestriction.LegDestroyed);
+    }
+
+    [Fact]
+    public void Kick_WithADestroyedHip_ReportsHipActuatorDestroyed()
+    {
+        // Arrange
+        var (attacker, target) = CreatePair(AttackerHex.GetNeighbour(HexDirection.Top));
+        attacker.Parts[PartLocation.RightLeg].GetComponent<HipActuator>()!.Hit();
+
+        // Act + Assert
+        _sut.GetRestriction(attacker, target, PhysicalAttackType.Kick, _map)
+            .ShouldBe(PhysicalAttackRestriction.HipActuatorDestroyed);
+    }
+
+    [Fact]
+    public void Kick_WhenBothLegsFired_ReportsLegWeaponFired()
+    {
+        // Arrange
+        var (attacker, target) = CreatePair(AttackerHex.GetNeighbour(HexDirection.Top));
+        FireWeaponIn(attacker, PartLocation.LeftLeg);
+        FireWeaponIn(attacker, PartLocation.RightLeg);
+
+        // Act + Assert
+        _sut.GetRestriction(attacker, target, PhysicalAttackType.Kick, _map)
+            .ShouldBe(PhysicalAttackRestriction.LegWeaponFired);
+    }
+
+    [Fact]
+    public void Kick_WhenOneLegFired_HasNoRestrictionAndKeepsTheOtherLeg()
+    {
+        // Arrange
+        var (attacker, target) = CreatePair(AttackerHex.GetNeighbour(HexDirection.Top));
+        FireWeaponIn(attacker, PartLocation.RightLeg);
+
+        // Act + Assert
+        _sut.GetRestriction(attacker, target, PhysicalAttackType.Kick, _map).ShouldBeNull();
+        _sut.GetEligibleLimbs(attacker, target, PhysicalAttackType.Kick, _map)
+            .ShouldBe([PartLocation.LeftLeg]);
+    }
+
+    [Fact]
+    public void GetRestriction_ReportsTheFirstFailure()
+    {
+        // Arrange: the kick is outside the arc and both legs are destroyed and fired.
+        var (attacker, target) = CreatePair(AttackerHex.GetNeighbour(HexDirection.BottomRight));
+        DestroyPart(attacker, PartLocation.LeftLeg);
+        FireWeaponIn(attacker, PartLocation.RightLeg);
+
+        // Act + Assert
+        _sut.GetRestriction(attacker, target, PhysicalAttackType.Kick, _map)
+            .ShouldBe(PhysicalAttackRestriction.TargetOutsideArc);
+    }
+
+    [Fact]
+    public void GetRestriction_ReportsWaterBeforeLimbFailures()
+    {
+        // Arrange: a submerged target from land cannot be kicked even if the legs are also damaged.
+        var targetHex = AttackerHex.GetNeighbour(HexDirection.Top);
+        var (attacker, target) = CreatePair(targetHex);
+        DestroyPart(attacker, PartLocation.LeftLeg);
+        SetWaterHex(targetHex, 0, 2);
+
+        // Act + Assert
+        _sut.GetRestriction(attacker, target, PhysicalAttackType.Kick, _map)
+            .ShouldBe(PhysicalAttackRestriction.TargetSubmerged);
+    }
+
+    [Fact]
+    public void GetRestriction_AgreesWithTheReachingLimbs()
+    {
+        // Arrange
+        var (attacker, target) = CreatePair(AttackerHex.GetNeighbour(HexDirection.Top));
+
+        // Act + Assert: a null restriction means the attack has at least one reaching limb.
+        foreach (var attackType in PhysicalAttackDefinitions.Supported.Select(definition => definition.AttackType))
+        {
+            _sut.GetRestriction(attacker, target, attackType, _map).ShouldBeNull();
+            _sut.GetEligibleLimbs(attacker, target, attackType, _map).ShouldNotBeEmpty();
+        }
+    }
+
+    [Fact]
+    public void GetDeclarationRestriction_ForAReservedPushTarget_ReportsTargetAlreadyDisplaced()
+    {
+        // Arrange
+        var (attacker, target) = CreatePair(AttackerHex.GetNeighbour(HexDirection.Top));
+        var reserver = CreateMech(_attackingPlayer, AttackerHex.GetNeighbour(HexDirection.Bottom), HexDirection.Top);
+        DeclarePush(reserver, target);
+        IUnit[] units = [attacker, target, reserver];
+
+        // Act + Assert
+        _sut.GetDeclarationRestriction(attacker, target, PhysicalAttackType.Push, _map, units)
+            .ShouldBe(PhysicalAttackRestriction.TargetAlreadyDisplaced);
+        _sut.GetRestriction(attacker, target, PhysicalAttackType.Push, _map).ShouldBeNull();
+    }
+
+    [Fact]
+    public void GetDeclarationRestriction_ReportsAnIntrinsicRestrictionBeforeTheReservation()
+    {
+        // Arrange: the target is prone, so Push is invalid regardless of the reservation.
+        var (attacker, target) = CreatePair(AttackerHex.GetNeighbour(HexDirection.Top));
+        target.SetProne();
+        var reserver = CreateMech(_attackingPlayer, AttackerHex.GetNeighbour(HexDirection.Bottom), HexDirection.Top);
+        DeclarePush(reserver, target);
+        IUnit[] units = [attacker, target, reserver];
+
+        // Act + Assert
+        _sut.GetDeclarationRestriction(attacker, target, PhysicalAttackType.Push, _map, units)
+            .ShouldBe(PhysicalAttackRestriction.TargetNotStandingMech);
+    }
+
+    [Theory]
+    [InlineData(PhysicalAttackType.Punch)]
+    [InlineData(PhysicalAttackType.Kick)]
+    public void GetDeclarationRestriction_PunchAndKickIgnoreTheReservation(PhysicalAttackType attackType)
+    {
+        // Arrange
+        var (attacker, target) = CreatePair(AttackerHex.GetNeighbour(HexDirection.Top));
+        var reserver = CreateMech(_attackingPlayer, AttackerHex.GetNeighbour(HexDirection.Bottom), HexDirection.Top);
+        DeclarePush(reserver, target);
+        IUnit[] units = [attacker, target, reserver];
+
+        // Act + Assert
+        _sut.GetDeclarationRestriction(attacker, target, attackType, _map, units).ShouldBeNull();
+    }
+
+    [Fact]
+    public void CanResolve_DeclaredPushAgainstAReservedTarget_IsStillTrue()
+    {
+        // Arrange: declaring the Push reserves the target; resolution must not apply the budget.
+        var (attacker, target) = CreatePair(AttackerHex.GetNeighbour(HexDirection.Top));
+        DeclarePush(attacker, target);
+        IUnit[] units = [attacker, target];
+        PhysicalAttackDisplacementBudget.IsReserved(target.Id, units).ShouldBeTrue();
+
+        // Act + Assert
+        _sut.CanResolve(attacker, target, PhysicalAttackType.Push, PartLocation.LeftArm, _map).ShouldBeTrue();
+        _sut.GetDeclarationRestriction(attacker, target, PhysicalAttackType.Push, _map, units)
+            .ShouldBe(PhysicalAttackRestriction.TargetAlreadyDisplaced);
     }
 
     [Theory]
@@ -1001,6 +1334,22 @@ public class PhysicalAttackEligibilityTests
         _sut.CanResolve(attacker, target, PhysicalAttackType.Kick, PartLocation.RightLeg, _map).ShouldBeTrue();
     }
 
+    [Theory]
+    [InlineData(PhysicalAttackType.Charge)]
+    [InlineData(PhysicalAttackType.DFA)]
+    public void GetRestriction_ForAnAttackTypeThisPolicyDoesNotImplement_ReportsTargetOutOfReach(
+        PhysicalAttackType attackType)
+    {
+        // Arrange: Charge and DFA are displacement attacks handled outside this policy, so they
+        // must never produce a reaching limb here (the UI only iterates the supported definitions).
+        var (attacker, target) = CreatePair(AttackerHex.GetNeighbour(HexDirection.Top));
+
+        // Act + Assert
+        _sut.GetEligibleLimbs(attacker, target, attackType, _map).ShouldBeEmpty();
+        _sut.GetRestriction(attacker, target, attackType, _map)
+            .ShouldBe(PhysicalAttackRestriction.TargetOutOfReach);
+    }
+
     private static void DeclarePunch(Mech attacker, Mech target) =>
         attacker.DeclarePhysicalAttack(new PhysicalAttackDeclarationData
         {
@@ -1060,6 +1409,21 @@ public class PhysicalAttackEligibilityTests
 
     private static void FireWeaponIn(Mech mech, PartLocation location) =>
         mech.Parts[location].GetComponents<Weapon>().First().MarkAsFired();
+
+    private static void DestroyPart(Mech mech, PartLocation location)
+    {
+        var part = mech.Parts[location];
+        part.ApplyDamage(part.MaxArmor + part.MaxStructure, HitDirection.Front);
+        part.IsDestroyed.ShouldBeTrue();
+    }
+
+    private static void DeclarePush(Mech attacker, Mech target) =>
+        attacker.DeclarePhysicalAttack(new PhysicalAttackDeclarationData
+        {
+            AttackType = PhysicalAttackType.Push,
+            AttackerLimbs = [PartLocation.LeftArm, PartLocation.RightArm],
+            TargetId = target.Id
+        });
 
     private static void Destroy(IUnit unit)
     {

@@ -441,23 +441,30 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
     }
 
     /// <summary>
-    /// The to-hit preview for the physical attack being declared, or null when there is none.
+    /// The attack-type rows of the physical attack declaration dialog, or an empty list when the
+    /// dialog is closed.
     /// </summary>
-    public PhysicalAttackPreviewViewModel? PhysicalAttackPreview =>
-        (CurrentState as PhysicalAttackState)?.Preview;
-
-    public bool IsPhysicalAttackPreviewVisible
-    {
-        get => CurrentState is PhysicalAttackState { Preview: not null } && field;
-        set => SetProperty(ref field, value);
-    }
+    public IReadOnlyList<PhysicalAttackOptionViewModel> PhysicalAttackOptions =>
+        (CurrentState as PhysicalAttackState)?.Options ?? [];
 
     /// <summary>
-    /// Hides the preview panel without abandoning the target selection.
+    /// The target the physical attack declaration dialog is open for, or null.
     /// </summary>
-    public void ClosePhysicalAttackPreviewCommand()
+    public IUnit? PhysicalAttackTarget => (CurrentState as PhysicalAttackState)?.SelectedTarget;
+
+    public bool IsPhysicalAttackDeclarationVisible
+        => CurrentState is PhysicalAttackState
+        {
+            CurrentStep: PhysicalAttackStep.Declaration,
+            SelectedTarget: not null
+        };
+
+    /// <summary>
+    /// Closes the declaration dialog and returns to target selection, keeping the attacker.
+    /// </summary>
+    public void ClosePhysicalAttackDeclarationCommand()
     {
-        IsPhysicalAttackPreviewVisible = false;
+        (CurrentState as PhysicalAttackState)?.CloseDeclaration();
     }
 
     private void SubscribeToGameChanges()
@@ -924,8 +931,9 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         NotifyPropertyChanged(nameof(WeaponSelectionItems));
         NotifyPropertyChanged(nameof(IsAttackOverlayVisible));
         NotifyPropertyChanged(nameof(Attacker));
-        NotifyPropertyChanged(nameof(PhysicalAttackPreview));
-        NotifyPropertyChanged(nameof(IsPhysicalAttackPreviewVisible));
+        NotifyPropertyChanged(nameof(PhysicalAttackOptions));
+        NotifyPropertyChanged(nameof(PhysicalAttackTarget));
+        NotifyPropertyChanged(nameof(IsPhysicalAttackDeclarationVisible));
         NotifyPropertyChanged(nameof(IsPlayerActionButtonVisible));
         NotifyPropertyChanged(nameof(PlayerActionLabel));
         NotifyPropertyChanged(nameof(AvailableActions));
@@ -1407,7 +1415,7 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
                 weapons.CurrentStep is WeaponsAttackStep.SelectingUnit or WeaponsAttackStep.ActionSelection
                 && !unit.HasDeclaredWeaponAttack,
             PhysicalAttackState physical =>
-                physical.CurrentStep is PhysicalAttackStep.SelectingUnit or PhysicalAttackStep.ActionSelection
+                physical.CurrentStep is PhysicalAttackStep.SelectingUnit or PhysicalAttackStep.TargetSelection
                 && !unit.HasDeclaredPhysicalAttack,
             _ => false
         };

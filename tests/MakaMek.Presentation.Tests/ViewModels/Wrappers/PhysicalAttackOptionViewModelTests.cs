@@ -1,0 +1,375 @@
+using NSubstitute;
+using Sanet.Localization;
+using Sanet.MakaMek.Core.Data.Game.Mechanics.PhysicalAttacks;
+using Sanet.MakaMek.Core.Models.Game;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Attack;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Physical;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.PhysicalAttack;
+using Sanet.MakaMek.Core.Models.Units;
+using Sanet.MakaMek.Map.Models;
+using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
+using Shouldly;
+
+namespace Sanet.MakaMek.Presentation.Tests.ViewModels.Wrappers;
+
+public class PhysicalAttackOptionViewModelTests
+{
+    private readonly ILocalizationService _localizationService = Substitute.For<ILocalizationService>();
+    private readonly List<(PhysicalAttackOptionViewModel Option, bool IsSelected)> _selections = [];
+
+    public PhysicalAttackOptionViewModelTests()
+    {
+        _localizationService.GetString("Attack_TargetNumber").Returns("Target ToHit Number");
+        _localizationService.GetString("Attack_ImpossibleToHit").Returns("Impossible to hit");
+        _localizationService.GetString("PhysicalAttackType_Punch").Returns("Punch");
+        _localizationService.GetString("PhysicalAttackType_Push").Returns("Push");
+        _localizationService.GetString("PhysicalAttackDeclaration_Unavailable").Returns("Not available");
+        _localizationService.GetString("PhysicalAttackRestriction_ArmDestroyed").Returns("Arm destroyed");
+        _localizationService.GetString("Modifier_PilotingSkill").Returns("Piloting Skill: +{0}");
+        _localizationService.GetString("Modifier_PhysicalAttackBase").Returns("{0} Base: {1:+#;-#;0}");
+        _localizationService.GetString("Modifier_AttackerMovement").Returns("Attacker Movement ({0}): +{1}");
+        _localizationService.GetString("Modifier_TargetMovement").Returns("Target Movement ({0} hexes): +{1}");
+        _localizationService.GetString("Modifier_DamagedShoulder").Returns("Damaged Shoulder ({0}): +{1}");
+    }
+
+    private PhysicalAttackOptionViewModel CreateSut(
+        PhysicalAttackType attackType = PhysicalAttackType.Punch,
+        bool isEnabled = true,
+        string? restrictionReason = null,
+        int? targetNumber = 7,
+        PhysicalAttackBreakdown? breakdown = null,
+        IReadOnlyList<PhysicalAttackLimbVariant>? variants = null)
+    {
+        var limbVariants = variants ??
+        [
+            new PhysicalAttackLimbVariant("Punch (LA)", [PartLocation.LeftArm]),
+            new PhysicalAttackLimbVariant("Punch (Both Arms)",
+                [PartLocation.LeftArm, PartLocation.RightArm])
+        ];
+        return new PhysicalAttackOptionViewModel(
+            attackType,
+            limbVariants,
+            isEnabled,
+            restrictionReason,
+            targetNumber,
+            breakdown ?? CreateBreakdown(),
+            (option, selected) => _selections.Add((option, selected)),
+            _localizationService);
+    }
+
+    private static PhysicalAttackBreakdown CreateBreakdown() => new()
+    {
+        PilotingBase = new PilotingRollModifier { Value = 5 },
+        AttackTypeModifier = new PhysicalAttackBaseModifier
+        {
+            Value = 0,
+            AttackType = PhysicalAttackType.Punch
+        },
+        AttackerMovement = new AttackerMovementModifier
+        {
+            Value = 0,
+            MovementType = MovementType.StandingStill
+        },
+        TargetMovement = new TargetMovementModifier { Value = 1, HexesMoved = 3 },
+        TerrainModifiers = [],
+        OtherModifiers = []
+    };
+
+    [Fact]
+    public void ExposesTheAttackTypeWithItsLocalizedName()
+    {
+        var sut = CreateSut();
+
+        sut.AttackType.ShouldBe(PhysicalAttackType.Punch);
+        sut.AttackTypeName.ShouldBe("Punch");
+        sut.HasLimbOptions.ShouldBeTrue();
+        sut.LimbOptions.Count.ShouldBe(2);
+        sut.IsSelected.ShouldBeFalse();
+        sut.SelectedVariant.ShouldBeNull();
+        sut.LimbOptions.ShouldAllBe(option => !option.IsSelected);
+    }
+
+    [Fact]
+    public void SelectingALimbOptionSelectsTheRowAndRunsTheCallback()
+    {
+        var sut = CreateSut();
+
+        sut.LimbOptions[0].IsSelected = true;
+
+        sut.LimbOptions[0].IsSelected.ShouldBeTrue();
+        sut.SelectedVariant.ShouldBe(sut.LimbOptions[0].Variant);
+        sut.IsSelected.ShouldBeTrue();
+        _selections.ShouldBe([(sut, true)]);
+    }
+
+    [Fact]
+    public void SelectingAnotherLimbOptionInTheSameRow_DeselectsThePrevious()
+    {
+        var sut = CreateSut();
+        sut.LimbOptions[0].IsSelected = true;
+        _selections.Clear();
+
+        sut.LimbOptions[1].IsSelected = true;
+
+        sut.LimbOptions[0].IsSelected.ShouldBeFalse();
+        sut.LimbOptions[1].IsSelected.ShouldBeTrue();
+        sut.SelectedVariant.ShouldBe(sut.LimbOptions[1].Variant);
+        sut.IsSelected.ShouldBeTrue();
+        _selections.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void UncheckingTheActiveLimbOption_ClearsTheRow()
+    {
+        var sut = CreateSut();
+        sut.LimbOptions[0].IsSelected = true;
+        _selections.Clear();
+
+        sut.LimbOptions[0].IsSelected = false;
+
+        sut.LimbOptions[0].IsSelected.ShouldBeFalse();
+        sut.SelectedVariant.ShouldBeNull();
+        sut.IsSelected.ShouldBeFalse();
+        _selections.ShouldBe([(sut, false)]);
+    }
+
+    [Fact]
+    public void UncheckingAnInactiveLimbOption_DoesNothing()
+    {
+        var sut = CreateSut();
+        sut.LimbOptions[0].IsSelected = true;
+        _selections.Clear();
+
+        sut.LimbOptions[1].IsSelected = false;
+
+        sut.LimbOptions[0].IsSelected.ShouldBeTrue();
+        sut.IsSelected.ShouldBeTrue();
+        _selections.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void DisabledRow_DoesNotSelectOrRunTheCallback()
+    {
+        var sut = CreateSut(isEnabled: false, restrictionReason: "No");
+
+        sut.LimbOptions[0].IsSelected = true;
+
+        sut.LimbOptions[0].IsSelected.ShouldBeFalse();
+        sut.IsSelected.ShouldBeFalse();
+        _selections.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void Description_ForAnUnavailableRow_IsTheRestrictionReason()
+    {
+        CreateSut(isEnabled: false, restrictionReason: "The target is too far")
+            .AttackPossibilityDescription.ShouldBe("The target is too far");
+    }
+
+    [Fact]
+    public void Description_ForAnUnavailableRowWithoutAReason_IsTheGenericFallback()
+    {
+        CreateSut(isEnabled: false).AttackPossibilityDescription.ShouldBe("Not available");
+    }
+
+    [Fact]
+    public void Description_ForAnAvailableRow_RendersTheTargetNumberAndEveryModifier()
+    {
+        var description = CreateSut(targetNumber: 9).AttackPossibilityDescription;
+
+        var lines = description.Split(Environment.NewLine);
+        lines[0].ShouldBe("Target ToHit Number: 9");
+        lines.ShouldContain("Piloting Skill: +5");
+        lines.ShouldContain("Punch Base: 0");
+        lines.ShouldContain("Target Movement (3 hexes): +1");
+        lines.Length.ShouldBe(5);
+    }
+
+    [Fact]
+    public void Description_ForAnImpossibleRow_AddsTheImpossibleText()
+    {
+        var description = CreateSut(targetNumber: 13).AttackPossibilityDescription;
+
+        description.Split(Environment.NewLine).ShouldContain("Impossible to hit");
+    }
+
+    [Fact]
+    public void Description_ForAPush_RendersTheDamagedShoulderModifier()
+    {
+        var breakdown = CreateBreakdown() with
+        {
+            OtherModifiers = [new DamagedShoulderModifier { Value = 4, DamagedShoulders = 2 }]
+        };
+        var sut = CreateSut(PhysicalAttackType.Push, breakdown: breakdown);
+
+        sut.AttackPossibilityDescription.ShouldContain("Damaged Shoulder (2): +4");
+    }
+
+    [Fact]
+    public void HitProbabilityText_IsDash_ForAnUnavailableRow()
+    {
+        CreateSut(isEnabled: false, restrictionReason: "No").HitProbabilityText.ShouldBe("-");
+    }
+
+    [Theory]
+    [InlineData(13)]
+    [InlineData(20)]
+    public void HitProbabilityText_IsDash_ForAnImpossibleTargetNumber(int targetNumber)
+    {
+        var sut = CreateSut(targetNumber: targetNumber);
+
+        sut.IsImpossible.ShouldBeTrue();
+        sut.HitProbabilityText.ShouldBe("-");
+    }
+
+    [Fact]
+    public void HitProbabilityText_ShowsTheProbability_ForAnAvailableRoll()
+    {
+        var sut = CreateSut(targetNumber: 7);
+
+        sut.IsImpossible.ShouldBeFalse();
+        sut.HitProbabilityText.ShouldBe("58%");
+        sut.HitProbability.ShouldBeGreaterThan(0);
+    }
+
+    [Fact]
+    public void LimbOptions_ExposeTheirOwnDamage()
+    {
+        var sut = CreateSut(variants:
+        [
+            new PhysicalAttackLimbVariant("Left Arm", [PartLocation.LeftArm], Damage: 3),
+            new PhysicalAttackLimbVariant("Right Arm", [PartLocation.RightArm], Damage: 5),
+            new PhysicalAttackLimbVariant("Both Arms",
+                [PartLocation.LeftArm, PartLocation.RightArm], Damage: 8)
+        ]);
+
+        sut.LimbOptions.Select(option => option.Damage).ShouldBe([3, 5, 8]);
+        sut.LimbOptions.Select(option => option.DamageText).ShouldBe(["3", "5", "8"]);
+        sut.LimbOptions.ShouldAllBe(option => option.HasDamage);
+    }
+
+    [Fact]
+    public void UnavailableLimb_KeepsItsOwnDamageAndReason()
+    {
+        var sut = CreateSut(variants:
+        [
+            new PhysicalAttackLimbVariant("Left Arm", [PartLocation.LeftArm], Damage: 3,
+                Restriction: PhysicalAttackRestriction.ArmDestroyed),
+            new PhysicalAttackLimbVariant("Right Arm", [PartLocation.RightArm], Damage: 5)
+        ]);
+
+        sut.LimbOptions[0].IsEnabled.ShouldBeFalse();
+        sut.LimbOptions[0].RestrictionReason.ShouldBe("Arm destroyed");
+        sut.LimbOptions[0].HasRestrictionReason.ShouldBeTrue();
+        sut.LimbOptions[0].Damage.ShouldBe(3);
+        sut.LimbOptions[0].HasDamage.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void LimbOption_WithoutDamage_HidesItsDamageIndicator()
+    {
+        var sut = CreateSut(variants:
+        [
+            new PhysicalAttackLimbVariant("Both Arms", [PartLocation.LeftArm, PartLocation.RightArm])
+        ]);
+
+        sut.LimbOptions[0].HasDamage.ShouldBeFalse();
+        sut.LimbOptions[0].Damage.ShouldBe(0);
+    }
+
+    [Fact]
+    public void DisablingTheRow_NotifiesEveryDerivedPropertyAndItsLimbOptions()
+    {
+        var sut = CreateSut();
+        var rowNotifications = new List<string?>();
+        sut.PropertyChanged += (_, args) => rowNotifications.Add(args.PropertyName);
+        var limbNotifications = new List<string?>();
+        sut.LimbOptions[0].PropertyChanged += (_, args) => limbNotifications.Add(args.PropertyName);
+
+        sut.IsEnabled = false;
+
+        sut.IsEnabled.ShouldBeFalse();
+        rowNotifications.ShouldContain(nameof(PhysicalAttackOptionViewModel.IsEnabled));
+        rowNotifications.ShouldContain(nameof(PhysicalAttackOptionViewModel.HitProbability));
+        rowNotifications.ShouldContain(nameof(PhysicalAttackOptionViewModel.HitProbabilityText));
+        rowNotifications.ShouldContain(nameof(PhysicalAttackOptionViewModel.AttackPossibilityDescription));
+
+        sut.LimbOptions.ShouldAllBe(option => !option.IsEnabled);
+        limbNotifications.ShouldContain(nameof(PhysicalAttackLimbOptionViewModel.IsEnabled));
+        limbNotifications.ShouldContain(nameof(PhysicalAttackLimbOptionViewModel.RestrictionReason));
+        limbNotifications.ShouldContain(nameof(PhysicalAttackLimbOptionViewModel.HasRestrictionReason));
+    }
+
+    [Fact]
+    public void SettingIsEnabledToTheSameValue_DoesNotNotify()
+    {
+        var sut = CreateSut();
+        var notifications = new List<string?>();
+        sut.PropertyChanged += (_, args) => notifications.Add(args.PropertyName);
+
+        sut.IsEnabled = true;
+
+        sut.IsEnabled.ShouldBeTrue();
+        notifications.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void AvailableLimbWithoutItsOwnRestriction_HasNoRestrictionReason()
+    {
+        var sut = CreateSut();
+
+        sut.LimbOptions[0].IsEnabled.ShouldBeTrue();
+        sut.LimbOptions[0].RestrictionReason.ShouldBeNull();
+        sut.LimbOptions[0].HasRestrictionReason.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void RowsWithoutATargetNumber_ShowNoTargetNumberText()
+    {
+        var sut = CreateSut(isEnabled: false, restrictionReason: "No", targetNumber: null);
+
+        sut.TargetNumberText.ShouldBeEmpty();
+        sut.IsImpossible.ShouldBeFalse();
+    }
+
+    [Theory]
+    [InlineData(7, false)]
+    [InlineData(13, true)]
+    public void IsImpossible_ComparesTheTargetNumberWithTheTwoDieMaximum(int targetNumber, bool expected)
+    {
+        var sut = CreateSut(targetNumber: targetNumber);
+
+        sut.IsImpossible.ShouldBe(expected);
+        sut.TargetNumberText.ShouldBe($"Target ToHit Number: {targetNumber}");
+    }
+
+    [Fact]
+    public void SelectingTheSameLimbOptionAgain_KeepsTheRowSelected()
+    {
+        var sut = CreateSut();
+        sut.LimbOptions[0].IsSelected = true;
+        _selections.Clear();
+
+        sut.LimbOptions[0].IsSelected = true;
+
+        sut.LimbOptions[0].IsSelected.ShouldBeTrue();
+        sut.IsSelected.ShouldBeTrue();
+        _selections.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void SelectingAnUnavailableLimb_DoesNothing()
+    {
+        var sut = CreateSut(variants:
+        [
+            new PhysicalAttackLimbVariant("Left Arm", [PartLocation.LeftArm], Damage: 3,
+                Restriction: PhysicalAttackRestriction.ArmDestroyed)
+        ]);
+
+        sut.LimbOptions[0].IsSelected = true;
+
+        sut.LimbOptions[0].IsSelected.ShouldBeFalse();
+        sut.IsSelected.ShouldBeFalse();
+        _selections.ShouldBeEmpty();
+    }
+}

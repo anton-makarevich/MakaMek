@@ -53,17 +53,11 @@ public class PhysicalAttackResolver : IPhysicalAttackResolver
         if (context.Target.Position is null)
             throw new InvalidOperationException("Target position is not set");
 
-        var limbComponents = context.Attacker
-            .GetComponentsAtLocation(context.AttackerLimb)
-            .Select(component => new LimbComponentState(component.ComponentType, component.IsDestroyed))
-            .ToList();
-        var reducingActuators = _rulesProvider.GetPhysicalAttackReducingActuators(
+        var damage = PhysicalAttackDamageCalculator.Calculate(
+            _rulesProvider,
+            context.Attacker,
             context.AttackType,
-            limbComponents);
-        var damage = _rulesProvider.GetPhysicalAttackDamage(
-            context.Attacker.Tonnage,
-            context.AttackType,
-            reducingActuators);
+            context.AttackerLimb);
 
         var toHitNumber = _toHitCalculator.GetToHitNumber(
             context.Attacker,
