@@ -13,7 +13,7 @@
 
     <ItemGroup>
         <PackageReference Include="Pulumi" Version="3.116.1" />
-        <PackageReference Include="Pulumi.Oci" Version="5.5.0" />
+        <PackageReference Include="Pulumi.Oci" Version="5.5.1" />
     </ItemGroup>
 
     <ItemGroup>
