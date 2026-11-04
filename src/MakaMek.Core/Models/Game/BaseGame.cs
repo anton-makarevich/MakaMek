@@ -9,6 +9,7 @@ using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
+using Sanet.MakaMek.Core.Data.Game.Mechanics.PhysicalAttacks;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
@@ -211,9 +212,37 @@ public abstract class BaseGame : IGame
         var player = _players.FirstOrDefault(p => p.Id == moveCommand.PlayerId);
         var unit = player?.Units.FirstOrDefault(u => u.Id == moveCommand.UnitId);
         if (unit == null) return;
+        var wasCompleted = unit.HasMoved;
         var path = new MovementPath(moveCommand.MovementPath, moveCommand.MovementType);
-        var hex = BattleMap?.GetHex(path.Destination.Coordinates);
-        unit.Move(path, hex, moveCommand.IsCompleted);
+        var stopAt = GetMovementStopPosition(path, moveCommand.Declaration);
+        var hex = BattleMap?.GetHex((stopAt ?? path.Destination).Coordinates);
+        unit.Move(path, hex, moveCommand.IsCompleted, stopAt);
+
+        // The server applies the declaration it validated when it broadcasts the completed move;
+        // clients mirror it from the same command, without revalidating.
+        if (!wasCompleted && moveCommand is { IsCompleted: true, Declaration: { } declaration })
+        {
+            unit.DeclarePhysicalAttack(declaration);
+        }
+    }
+
+    /// <summary>
+    /// A Charge or DFA only enters the target's hex when the attack resolves. Until then the
+    /// attacker waits in the hex directly in front of the target — for a DFA, the last hex of the
+    /// jump path, in the air — so the two units never share a hex during the Weapon Attack Phase.
+    /// The path still ends in the target hex, keeping the MP spent entering it and the charge
+    /// distance.
+    /// </summary>
+    private static HexPosition? GetMovementStopPosition(MovementPath path,
+        PhysicalAttackDeclarationData? declaration)
+    {
+        if (declaration is not { } attack
+            || !PhysicalAttackDefinitions.IsMovementAttack(attack.AttackType))
+            return null;
+
+        return path.Segments
+            .LastOrDefault(segment => segment.From.Coordinates != segment.To.Coordinates)?
+            .From;
     }
     
     internal void OnWeaponConfiguration(WeaponConfigurationCommand configCommand)

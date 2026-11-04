@@ -777,17 +777,47 @@ public class WeaponsEngineTests
         HexPosition? position,
         bool isDeployed = true,
         Guid? id = null,
-        string? name = null)
+        string? name = null,
+        bool hasPendingMovementAttack = false)
     {
         var unit = Substitute.For<IUnit>();
         unit.Id.Returns(id ?? Guid.NewGuid());
         unit.Name.Returns(name ?? "Unit");
         unit.CanFireWeapons.Returns(canFireWeapons);
         unit.HasDeclaredWeaponAttack.Returns(hasDeclaredWeaponAttack);
+        unit.HasPendingMovementAttack.Returns(hasPendingMovementAttack);
         unit.IsDeployed.Returns(isDeployed);
         unit.Position.Returns(position);
         unit.MovementTaken.Returns((MovementPath?)null);
         return unit;
+    }
+
+    [Fact]
+    public async Task MakeDecision_WhenTheUnitHasAPendingMovementAttack_DeclaresAnEmptyAttack()
+    {
+        // Arrange - a charging unit cannot fire, so the bot skips its weapons step
+        var attacker = CreateMockUnit(canFireWeapons: true, hasDeclaredWeaponAttack: false,
+            position: new HexPosition(new HexCoordinates(1, 1), HexDirection.Top),
+            hasPendingMovementAttack: true);
+        _player.AliveUnits.Returns([attacker]);
+        _clientGame.Players.Returns([_player]);
+        WeaponAttackDeclarationCommand capturedCommand = default;
+        var commandCaptured = false;
+        await _clientGame.DeclareWeaponAttack(Arg.Do<WeaponAttackDeclarationCommand>(cmd =>
+        {
+            capturedCommand = cmd;
+            commandCaptured = true;
+        }));
+
+        // Act
+        await _sut.MakeDecision(_player, _turnState);
+
+        // Assert
+        commandCaptured.ShouldBeTrue();
+        capturedCommand.UnitId.ShouldBe(attacker.Id);
+        capturedCommand.WeaponTargets.ShouldBeEmpty();
+        _tacticalEvaluator.DidNotReceive().EvaluateTargets(
+            Arg.Any<IUnit>(), Arg.Any<MovementPath>(), Arg.Any<IReadOnlyList<IUnit>>(), Arg.Any<ITurnState>());
     }
 
     [Fact]

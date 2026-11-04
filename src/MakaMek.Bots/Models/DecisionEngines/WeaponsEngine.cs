@@ -48,6 +48,13 @@ public class WeaponsEngine : IBotDecisionEngine
                 return;
             }
 
+            if (attacker.HasPendingMovementAttack)
+            {
+                // A charging or DFA'ing unit spends its weapons step without firing.
+                await DeclareWeaponAttack(player, attacker, []);
+                return;
+            }
+
             // Find potential targets using tactical evaluator
              var enemies = _clientGame.Players
                 .Where(p => p.Id != player.Id)

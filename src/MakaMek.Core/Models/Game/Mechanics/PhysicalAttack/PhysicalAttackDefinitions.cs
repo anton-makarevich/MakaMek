@@ -42,6 +42,14 @@ public static class PhysicalAttackDefinitions
     public static bool IsDisplacementAttack(PhysicalAttackType attackType) =>
         attackType is PhysicalAttackType.Push or PhysicalAttackType.Charge or PhysicalAttackType.DFA;
 
+    /// <summary>
+    /// Whether the attack is declared as part of a unit's movement (Charge or DFA) rather than in
+    /// the physical attack declaration phase. Movement-origin declarations are validated and
+    /// stored when the move is processed, and are resolved by the charge/DFA mechanics.
+    /// </summary>
+    public static bool IsMovementAttack(PhysicalAttackType attackType) =>
+        attackType is PhysicalAttackType.Charge or PhysicalAttackType.DFA;
+
     public static bool TryGet(
         PhysicalAttackType attackType,
         [NotNullWhen(true)] out PhysicalAttackDefinition? definition) =>

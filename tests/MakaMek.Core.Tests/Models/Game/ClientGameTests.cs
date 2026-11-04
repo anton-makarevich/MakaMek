@@ -744,8 +744,66 @@ public class ClientGameTests
     }
 
     [Fact]
-    public void HandleCommand_ShouldNotMoveUnit_WhenUnitDoesNotExist()
+    public void HandleCommand_ShouldMirrorTheMovementAttackDeclaration_WhenMoveCommandCarriesOne()
     {
+        // Arrange
+        var player = new Player(Guid.NewGuid(), "Player1", PlayerControlType.Human);
+        var unitData = MechFactoryTests.CreateDummyMechData();
+        unitData.Id = Guid.NewGuid();
+        _sut.HandleCommand(new JoinGameCommand
+        {
+            PlayerId = player.Id,
+            GameOriginId = Guid.NewGuid(),
+            PlayerName = player.Name,
+            Units = [unitData],
+            Tint = "#FF0000",
+            PilotAssignments = []
+        });
+        _sut.HandleCommand(new DeployUnitCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = player.Id,
+            Position = new HexCoordinateData(1, 1),
+            Direction = 0,
+            UnitId = unitData.Id.Value
+        });
+
+        var targetId = Guid.NewGuid();
+        var moveCommand = new MoveUnitCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = player.Id,
+            MovementType = MovementType.Walk,
+            UnitId = unitData.Id.Value,
+            IsCompleted = true,
+            MovementPath =
+            [
+                new PathSegment(new HexPosition(1, 1, HexDirection.Top),
+                    new HexPosition(2, 2, HexDirection.Top),
+                    [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]).ToData()
+            ],
+            Declaration = new PhysicalAttackDeclarationData
+            {
+                AttackType = PhysicalAttackType.Charge,
+                AttackerLimbs = [],
+                TargetId = targetId,
+                HexesMoved = 2
+            }
+        };
+
+        // Act
+        _sut.HandleCommand(moveCommand);
+
+        // Assert - the client mirrors the server-computed declaration without revalidating
+        var movedUnit = _sut.Players[0].Units[0];
+        var declaration = movedUnit.DeclaredPhysicalAttack.ShouldNotBeNull();
+        declaration.AttackType.ShouldBe(PhysicalAttackType.Charge);
+        declaration.TargetId.ShouldBe(targetId);
+        declaration.HexesMoved.ShouldBe(2);
+    }
+
+    [Fact]
+    public void HandleCommand_ShouldNotMoveUnit_WhenUnitDoesNotExist()    {
         // Arrange
         var player = new Player(Guid.NewGuid(), "Player1", PlayerControlType.Human);
         _sut.HandleCommand(new JoinGameCommand

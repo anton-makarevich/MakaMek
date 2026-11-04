@@ -61,6 +61,7 @@
   <data name="Command_JoinGame" xml:space="preserve"><value>{0} has joined game with {1} units</value></data>
   <data name="Command_PlayerLeft" xml:space="preserve"><value>{0} has left the game</value></data>
   <data name="Command_MoveUnit" xml:space="preserve"><value>{0} moved {1} to {2} facing {3} using {4}</value></data>
+  <data name="Command_MoveUnit_Declaration" xml:space="preserve"><value>{0}'s {1} declares {2} against {3}</value></data>
   <data name="Command_MoveUnit_Completed" xml:space="preserve"><value>Movement completed</value></data>
   <data name="Command_MoveUnit_Incomplete" xml:space="preserve"><value>Movement was interrupted</value></data>
   <data name="Command_DeployUnit" xml:space="preserve"><value>{0} deployed {1} to {2} facing {3}</value></data>

@@ -276,6 +276,30 @@ public class PhysicalAttackEligibilityTests
         limbEligibility.ShouldBeEmpty();
     }
 
+    [Theory]
+    [InlineData(PhysicalAttackType.Punch)]
+    [InlineData(PhysicalAttackType.Kick)]
+    [InlineData(PhysicalAttackType.Push)]
+    public void NoAttack_WhenAttackerHasAlreadyDeclaredAMovementAttack(PhysicalAttackType attackType)
+    {
+        // Arrange - a Charger cannot also punch, kick or push this turn
+        var (attacker, target) = CreatePair(AttackerHex.GetNeighbour(HexDirection.Top));
+        attacker.DeclarePhysicalAttack(new PhysicalAttackDeclarationData
+        {
+            AttackType = PhysicalAttackType.Charge,
+            AttackerLimbs = [],
+            TargetId = target.Id
+        });
+
+        // Act
+        var limbs = _sut.GetEligibleLimbs(attacker, target, attackType, _map);
+        var hasAnyOption = _sut.HasAnyOption(attacker, [target], _map);
+
+        // Assert
+        limbs.ShouldBeEmpty();
+        hasAnyOption.ShouldBeFalse();
+    }
+
     [Fact]
     public void NoAttack_WhenAttackerIsShutDown()
     {

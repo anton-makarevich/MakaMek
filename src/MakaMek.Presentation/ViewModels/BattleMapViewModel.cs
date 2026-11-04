@@ -11,6 +11,7 @@ using Sanet.MakaMek.Assets.Services;
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
+using Sanet.MakaMek.Core.Data.Game.Mechanics.PhysicalAttacks;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.PhysicalAttack;
 using Sanet.MakaMek.Core.Models.Game.Phases;
@@ -584,6 +585,9 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
             case WeaponAttackResolutionCommand resolutionCommand:
                 ProcessWeaponAttackResolution(resolutionCommand);
                 break;
+            case MoveUnitCommand moveUnitCommand:
+                ProcessMovementAttackDeclaration(moveUnitCommand);
+                break;
             case PhysicalAttackCommand physicalAttackCommand:
                 ProcessPhysicalAttackDeclaration(physicalAttackCommand);
                 break;
@@ -613,6 +617,7 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         if (Game?.TurnPhase == PhaseNames.Initiative && command is ChangeActivePlayerCommand)
             UpdateGamePhase();
 
+        RemoveVoidedMovementAttackIndicators();
         NotifyStateChanged();
     }
 
@@ -772,12 +777,43 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         var attacker = Game.Players
             .SelectMany(p => p.Units)
             .FirstOrDefault(u => u.Id == command.UnitId);
-        if (attacker?.Position is not { } attackerPosition || attacker.Owner == null) return;
+        if (attacker == null) return;
 
         var target = Game.Players
             .SelectMany(p => p.Units)
             .FirstOrDefault(u => u.Id == declaration.TargetId);
-        if (target?.Position is not { } targetPosition) return;
+        if (target == null) return;
+
+        UpsertPhysicalAttackIndicator(attacker, target, declaration);
+    }
+
+    /// <summary>
+    /// Mirrors a Charge or DFA declared as part of a move. The declaration is read from the unit,
+    /// which the client filled in from the same broadcast, so the badge shows exactly what the
+    /// server stored, distance included.
+    /// </summary>
+    private void ProcessMovementAttackDeclaration(MoveUnitCommand command)
+    {
+        if (Game == null || command.Declaration is null) return;
+
+        var attacker = Game.Players
+            .SelectMany(p => p.Units)
+            .FirstOrDefault(u => u.Id == command.UnitId);
+        if (attacker?.DeclaredPhysicalAttack is not { } declaration) return;
+
+        var target = Game.Players
+            .SelectMany(p => p.Units)
+            .FirstOrDefault(u => u.Id == declaration.TargetId);
+        if (target == null) return;
+
+        UpsertPhysicalAttackIndicator(attacker, target, declaration);
+    }
+
+    private void UpsertPhysicalAttackIndicator(IUnit attacker, IUnit target,
+        PhysicalAttackDeclarationData declaration)
+    {
+        if (attacker.Position is not { } attackerPosition || attacker.Owner == null) return;
+        if (target.Position is not { } targetPosition) return;
 
         PhysicalAttackIndicators ??= [];
         PhysicalAttackIndicators.RemoveAll(indicator => indicator.AttackerId == attacker.Id);
@@ -792,6 +828,30 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
             PendingLimbs = declaration.AttackerLimbs.ToList()
         });
         NotifyPropertyChanged(nameof(PhysicalAttackIndicators));
+    }
+
+    /// <summary>
+    /// Drops a movement-origin badge once its attacker no longer holds the declaration. The unit
+    /// clears a Charge or DFA when it is destroyed, so this is how a voided declaration leaves the
+    /// map without a resolution.
+    /// </summary>
+    private void RemoveVoidedMovementAttackIndicators()
+    {
+        if (Game == null || PhysicalAttackIndicators is not { Count: > 0 }) return;
+        if (!PhysicalAttackIndicators.Any(indicator =>
+                PhysicalAttackDefinitions.IsMovementAttack(indicator.AttackType)))
+            return;
+
+        var unitsById = Game.Players
+            .SelectMany(p => p.Units)
+            .ToDictionary(unit => unit.Id);
+
+        var removed = PhysicalAttackIndicators.RemoveAll(indicator =>
+            PhysicalAttackDefinitions.IsMovementAttack(indicator.AttackType)
+            && (!unitsById.TryGetValue(indicator.AttackerId, out var attacker)
+                || !attacker.HasPendingMovementAttack));
+
+        if (removed > 0) NotifyPropertyChanged(nameof(PhysicalAttackIndicators));
     }
 
     /// <summary>
@@ -810,6 +870,16 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         if (index < 0) return;
 
         var indicator = PhysicalAttackIndicators[index];
+
+        // A movement-origin attack resolves once for the whole declaration and has no limb
+        // remainder. The resolution mechanics land in a later slice, so the badge also simply
+        // goes away when such a resolution is reported.
+        if (PhysicalAttackDefinitions.IsMovementAttack(command.ResolutionData.AttackType))
+        {
+            PhysicalAttackIndicators.RemoveAt(index);
+            NotifyPropertyChanged(nameof(PhysicalAttackIndicators));
+            return;
+        }
 
         // A paired-arm attack such as Push resolves once for the whole declaration, so its badge
         // has no per-limb remainder. Punch and Kick still clear one limb per resolution.

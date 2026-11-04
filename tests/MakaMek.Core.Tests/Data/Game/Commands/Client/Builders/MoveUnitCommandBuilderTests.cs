@@ -1,5 +1,6 @@
 using NSubstitute;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client.Builders;
+using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Tests.Utils;
@@ -180,5 +181,92 @@ public class MoveUnitCommandBuilderTests
         
         // Assert
         _builder.CanBuild.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void Build_DeclaresACharge_WhenWalkingIntoTheTarget()
+    {
+        // Arrange
+        var target = new MechFactory(
+            new TotalWarfareRulesProvider(),
+            new ClassicBattletechComponentProvider(),
+            Substitute.For<ILocalizationService>()).Create(MechFactoryTests.CreateDummyMechData());
+        _builder.SetUnit(_unit);
+        _builder.SetMovementPath(new MovementPath([new PathSegment(new HexPosition(1,1,HexDirection.Bottom),
+            new HexPosition(1,2,HexDirection.Bottom), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])], MovementType.Walk));
+        _builder.SetMovementAttackTarget(target);
+
+        // Act
+        var command = _builder.Build();
+
+        // Assert
+        command.ShouldNotBeNull();
+        var declaration = command.Value.Declaration.ShouldNotBeNull();
+        declaration.AttackType.ShouldBe(PhysicalAttackType.Charge);
+        declaration.TargetId.ShouldBe(target.Id);
+        declaration.AttackerLimbs.ShouldBeEmpty();
+        declaration.HexesMoved.ShouldBeNull("the server computes the distance, not the client");
+    }
+
+    [Fact]
+    public void Build_DeclaresADfa_WhenJumpingIntoTheTarget()
+    {
+        // Arrange
+        var target = new MechFactory(
+            new TotalWarfareRulesProvider(),
+            new ClassicBattletechComponentProvider(),
+            Substitute.For<ILocalizationService>()).Create(MechFactoryTests.CreateDummyMechData());
+        _builder.SetUnit(_unit);
+        _builder.SetMovementPath(new MovementPath([new PathSegment(new HexPosition(1,1,HexDirection.Bottom),
+            new HexPosition(1,3,HexDirection.Bottom), [new JumpMovementCost { Value = 2 }])], MovementType.Jump));
+        _builder.SetMovementAttackTarget(target);
+
+        // Act
+        var command = _builder.Build();
+
+        // Assert
+        command.ShouldNotBeNull();
+        command.Value.Declaration.ShouldNotBeNull().AttackType.ShouldBe(PhysicalAttackType.DFA);
+    }
+
+    [Fact]
+    public void Build_HasNoDeclaration_WhenNoTargetIsSet()
+    {
+        // Arrange
+        _builder.SetUnit(_unit);
+        _builder.SetMovementPath(new MovementPath([new PathSegment(new HexPosition(1,1,HexDirection.Bottom),
+            new HexPosition(1,2,HexDirection.Bottom), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])], MovementType.Walk));
+
+        // Act
+        var command = _builder.Build();
+
+        // Assert
+        command.ShouldNotBeNull();
+        command.Value.Declaration.ShouldBeNull();
+    }
+
+    [Fact]
+    public void Reset_ClearsTheMovementAttackTarget()
+    {
+        // Arrange
+        var target = new MechFactory(
+            new TotalWarfareRulesProvider(),
+            new ClassicBattletechComponentProvider(),
+            Substitute.For<ILocalizationService>()).Create(MechFactoryTests.CreateDummyMechData());
+        _builder.SetUnit(_unit);
+        _builder.SetMovementPath(new MovementPath([new PathSegment(new HexPosition(1,1,HexDirection.Bottom),
+            new HexPosition(1,2,HexDirection.Bottom), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])], MovementType.Walk));
+        _builder.SetMovementAttackTarget(target);
+
+        // Act
+        _builder.Reset();
+        _builder.SetUnit(_unit);
+        _builder.SetMovementPath(new MovementPath([new PathSegment(new HexPosition(1,1,HexDirection.Bottom),
+            new HexPosition(1,2,HexDirection.Bottom), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])], MovementType.Walk));
+        var command = _builder.Build();
+
+        // Assert
+        command.ShouldNotBeNull();
+        command.Value.Declaration.ShouldBeNull();
     }
 }
