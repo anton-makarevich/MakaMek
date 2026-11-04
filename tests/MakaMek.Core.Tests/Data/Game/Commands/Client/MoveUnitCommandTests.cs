@@ -1,5 +1,6 @@
 using NSubstitute;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
+using Sanet.MakaMek.Core.Data.Game.Mechanics.PhysicalAttacks;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Game.Rules;
@@ -151,5 +152,65 @@ public class MoveUnitCommandTests
 
         // Assert
         result.ShouldBe("move line" + Environment.NewLine + "interrupted");
+    }
+
+    [Fact]
+    public void Render_ShouldNameTheChargeTarget_WhenDeclarationIsPresent()
+    {
+        // Arrange
+        var command = CreateCommand();
+        _unit.Deploy(new HexPosition(1, 1, HexDirection.Top), null);
+        var target = new MechFactory(
+            new TotalWarfareRulesProvider(),
+            new ClassicBattletechComponentProvider(),
+            _localizationService).Create(MechFactoryTests.CreateDummyMechData());
+        _player1.AddUnit(target);
+        _localizationService.GetString("Command_MoveUnit").Returns("move line");
+        _localizationService.GetString("Command_MoveUnit_Completed").Returns("completed");
+        _localizationService.GetString("Command_MoveUnit_Declaration").Returns("{2} against {3}");
+        _localizationService.GetString("PhysicalAttackType_Charge").Returns("Charge");
+        var withDeclaration = command with
+        {
+            Declaration = new PhysicalAttackDeclarationData
+            {
+                AttackType = PhysicalAttackType.Charge,
+                AttackerLimbs = [],
+                TargetId = target.Id
+            }
+        };
+
+        // Act
+        var result = withDeclaration.Render(_localizationService, _game);
+
+        // Assert
+        result.ShouldBe(
+            "move line" + Environment.NewLine
+            + "completed" + Environment.NewLine
+            + $"Charge against {target.Model}");
+    }
+
+    [Fact]
+    public void GetPayloadHash_ShouldDifferWhenTheDeclarationDiffers()
+    {
+        // Arrange
+        var command = CreateCommand();
+        var targetId = Guid.NewGuid();
+        var declared = command with
+        {
+            Declaration = new PhysicalAttackDeclarationData
+            {
+                AttackType = PhysicalAttackType.Charge,
+                AttackerLimbs = [],
+                TargetId = targetId
+            }
+        };
+
+        // Act & Assert
+        declared.GetPayloadHash().ShouldNotBe(command.GetPayloadHash());
+        (declared with { Declaration = null }).GetPayloadHash().ShouldBe(command.GetPayloadHash());
+        (declared with
+        {
+            Declaration = declared.Declaration! with { HexesMoved = 3 }
+        }).GetPayloadHash().ShouldNotBe(declared.GetPayloadHash());
     }
 }

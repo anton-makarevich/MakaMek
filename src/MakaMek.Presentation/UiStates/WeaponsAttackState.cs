@@ -145,7 +145,16 @@ public class WeaponsAttackState : IUiState, ICombatSelectionRoles
     private void HandleUnitSelectionFromHex(Hex hex)
     {
         if (!this.CanHumanPlayerAct()) return;
-        var unit = _viewModel.Units.FirstOrDefault(u => u.Position?.Coordinates == hex.Coordinates);
+
+        // Two units can share a hex after a blocked domino displacement. Pick the candidate by the
+        // role the current step expects instead of taking whichever comes first.
+        var activePlayerId = Game.PhaseStepState?.ActivePlayer.Id;
+        var selectingAttacker = CurrentStep is WeaponsAttackStep.SelectingUnit or WeaponsAttackStep.ActionSelection;
+        var unit = _viewModel.Units.FirstOrDefault(u =>
+            u.Position?.Coordinates == hex.Coordinates
+            && (selectingAttacker
+                ? u.Owner?.Id == activePlayerId
+                : u.Owner?.Id != activePlayerId));
         if (unit == null) return;
         lock (_stateLock)
         {
@@ -277,7 +286,7 @@ public class WeaponsAttackState : IUiState, ICombatSelectionRoles
                 true,
                 ConfirmWeaponSelections));
 
-            if (Attacker.IsImmobile) return actions;
+            if (Attacker.IsImmobile || Attacker.HasPendingMovementAttack) return actions;
             
             // Add torso rotation action if available
             // TODO: once arms flip is implemented we should add an action per type instead of filtering
@@ -409,8 +418,11 @@ public class WeaponsAttackState : IUiState, ICombatSelectionRoles
                 {
                     var key = (hex, level);
                     
+                    // Excluded by reference: unit ids are not guaranteed to be unique in tests and a
+                    // co-located attacker must not be read as its own target.
                     var targetUnit = _viewModel.Units
-                        .FirstOrDefault(u => u.Position?.Coordinates == hex);
+                        .FirstOrDefault(u => u.Position?.Coordinates == hex
+                                             && !ReferenceEquals(u, Attacker));
                     var targetHeight = targetUnit?.Height ?? 0;
                     var toSurface = targetUnit?.Position?.Surface;
 

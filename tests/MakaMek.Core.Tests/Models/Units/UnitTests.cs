@@ -2614,6 +2614,118 @@ public class UnitTests
         sut.HasDeclaredPhysicalAttack.ShouldBeFalse();
         sut.DeclaredPhysicalAttack.ShouldBeNull();
     }
+
+    [Theory]
+    [InlineData(PhysicalAttackType.Charge, true)]
+    [InlineData(PhysicalAttackType.DFA, true)]
+    [InlineData(PhysicalAttackType.Punch, false)]
+    [InlineData(PhysicalAttackType.Kick, false)]
+    [InlineData(PhysicalAttackType.Push, false)]
+    public void HasPendingMovementAttack_ShouldBeTrueOnlyForMovementAttacks(PhysicalAttackType attackType,
+        bool expected)
+    {
+        // Arrange
+        var sut = CreateTestUnit();
+        sut.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom), null);
+        sut.DeclarePhysicalAttack(new PhysicalAttackDeclarationData
+        {
+            AttackType = attackType,
+            AttackerLimbs = [],
+            TargetId = Guid.NewGuid()
+        });
+
+        // Act & Assert
+        sut.HasPendingMovementAttack.ShouldBe(expected);
+    }
+
+    [Fact]
+    public void CanFireWeapons_ShouldBeFalse_WhenAMovementAttackIsPending()
+    {
+        // Arrange
+        var sut = CreateTestUnit();
+        sut.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom), null);
+        sut.CanFireWeapons.ShouldBeTrue();
+
+        // Act
+        sut.DeclarePhysicalAttack(new PhysicalAttackDeclarationData
+        {
+            AttackType = PhysicalAttackType.Charge,
+            AttackerLimbs = [],
+            TargetId = Guid.NewGuid()
+        });
+
+        // Assert
+        sut.CanFireWeapons.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void DestroyingTheUnit_ShouldClearAMovementAttackDeclaration()
+    {
+        // Arrange
+        var sut = CreateTestUnit();
+        sut.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom), null);
+        sut.DeclarePhysicalAttack(new PhysicalAttackDeclarationData
+        {
+            AttackType = PhysicalAttackType.Charge,
+            AttackerLimbs = [],
+            TargetId = Guid.NewGuid()
+        });
+
+        // Act - a blown-off head destroys the unit
+        sut.ApplyCriticalHits([
+            new LocationCriticalHitsData(PartLocation.Head, [6, 6], 0, null, true)
+        ]);
+
+        // Assert
+        sut.IsDestroyed.ShouldBeTrue();
+        sut.HasDeclaredPhysicalAttack.ShouldBeFalse();
+        sut.DeclaredPhysicalAttack.ShouldBeNull();
+    }
+
+    [Fact]
+    public void DestroyingTheUnit_ShouldNotClearAPunchDeclaration()
+    {
+        // Arrange
+        var sut = CreateTestUnit();
+        sut.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom), null);
+        sut.DeclarePhysicalAttack(new PhysicalAttackDeclarationData
+        {
+            AttackType = PhysicalAttackType.Punch,
+            AttackerLimbs = [PartLocation.LeftArm],
+            TargetId = Guid.NewGuid()
+        });
+
+        // Act
+        sut.ApplyCriticalHits([
+            new LocationCriticalHitsData(PartLocation.Head, [6, 6], 0, null, true)
+        ]);
+
+        // Assert - the resolution phase skips a destroyed attacker
+        sut.IsDestroyed.ShouldBeTrue();
+        sut.DeclaredPhysicalAttack.ShouldNotBeNull();
+    }
+
+    [Fact]
+    public void Shutdown_ShouldKeepTheMovementAttackDeclaration()
+    {
+        // Arrange
+        var sut = CreateTestUnit();
+        sut.SetStatusForTesting(UnitStatus.Active);
+        sut.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom), null);
+        sut.DeclarePhysicalAttack(new PhysicalAttackDeclarationData
+        {
+            AttackType = PhysicalAttackType.DFA,
+            AttackerLimbs = [],
+            TargetId = Guid.NewGuid()
+        });
+
+        // Act
+        sut.Shutdown(new ShutdownData { Reason = ShutdownReason.Voluntary, Turn = 1 });
+
+        // Assert - only destruction voids the declaration without resolution
+        sut.IsShutdown.ShouldBeTrue();
+        sut.HasPendingMovementAttack.ShouldBeTrue();
+    }
     
     [Fact]
     public void ApplyHeat_ShouldNotAddHeatPenaltiesForBaseUnit()
@@ -3555,6 +3667,30 @@ public class UnitTests
         sut.HasMoved.ShouldBeTrue();
         sut.MovementPointsSpent.ShouldBe(2);
         sut.Position!.Coordinates.ShouldBe(finalPosition.Coordinates);
+    }
+
+    [Fact]
+    public void Move_WithStopPosition_KeepsThePathButStopsInTheApproachHex()
+    {
+        // Arrange - a Charge or DFA commits to entering the target hex without occupying it yet
+        var sut = CreateTestUnit();
+        var deployPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
+        var targetPosition = new HexPosition(new HexCoordinates(2, 1), HexDirection.Bottom);
+        sut.Deploy(deployPosition, null);
+        var path = new MovementPath([
+            new PathSegment(deployPosition, targetPosition,
+                [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])
+        ], MovementType.Walk);
+
+        // Act
+        sut.Move(path, null, true, deployPosition);
+
+        // Assert - the path is the movement of record, the unit stands in front of the target
+        sut.HasMoved.ShouldBeTrue();
+        sut.Position.ShouldBe(deployPosition);
+        sut.MovementTaken.ShouldNotBeNull();
+        sut.MovementTaken.Destination.ShouldBe(targetPosition);
+        sut.MovementPointsSpent.ShouldBe(1, "the MP to enter the target hex is already spent");
     }
 
     [Fact]

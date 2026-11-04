@@ -39,18 +39,26 @@ public class WeaponAttackIndicatorControl : Control
     {
         var from = _from;
         var to = _to;
-        
+
+        if (!HasDrawableLength(from, to)) return;
+
         // Apply offset perpendicular to the line direction
         if (_viewModel.LineOffset != 0)
         {
             var dx = to.X - from.X;
             var dy = to.Y - from.Y;
             var length = Math.Sqrt(dx * dx + dy * dy);
-            var offsetX = (-dy / length) * _viewModel.LineOffset;
-            var offsetY = (dx / length) * _viewModel.LineOffset;
-            
-            from = from + new Point(offsetX, offsetY);
-            to = to + new Point(offsetX, offsetY);
+
+            // A co-located attacker and target have no direction to offset along. The line and its
+            // arrowhead are skipped below, so the offset would only produce NaN coordinates.
+            if (length > double.Epsilon)
+            {
+                var offsetX = (-dy / length) * _viewModel.LineOffset;
+                var offsetY = (dx / length) * _viewModel.LineOffset;
+
+                from = from + new Point(offsetX, offsetY);
+                to = to + new Point(offsetX, offsetY);
+            }
         }
 
         // Draw arrow line with weapon-specific style
@@ -68,6 +76,7 @@ public class WeaponAttackIndicatorControl : Control
 
         var direction = end - start;
         var length = Math.Sqrt(direction.X * direction.X + direction.Y * direction.Y);
+        if (length < double.Epsilon) return;
         var normalizedDirection = new Point(direction.X / length, direction.Y / length);
 
         var angle1 = Math.Atan2(normalizedDirection.Y, normalizedDirection.X) + Math.PI - arrowAngle;
@@ -90,4 +99,18 @@ public class WeaponAttackIndicatorControl : Control
 
         context.DrawGeometry(_color, null, geometry);
     }
+
+    private static double Distance(Point a, Point b)
+    {
+        var dx = a.X - b.X;
+        var dy = a.Y - b.Y;
+        return Math.Sqrt(dx * dx + dy * dy);
+    }
+
+    /// <summary>
+    /// Whether the two endpoints define a direction. A failed domino link can leave two units in
+    /// the same hex, and such a line has no arrow to draw.
+    /// </summary>
+    internal static bool HasDrawableLength(Point from, Point to) =>
+        Distance(from, to) > double.Epsilon;
 }

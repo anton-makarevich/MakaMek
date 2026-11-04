@@ -24,6 +24,7 @@ public class LocalizationResourcesTests
     [InlineData("Command_JoinGame", "{0} has joined game with {1} units")]
     [InlineData("Command_PlayerLeft", "{0} has left the game")]
     [InlineData("Command_MoveUnit", "{0} moved {1} to {2} facing {3} using {4}")]
+    [InlineData("Command_MoveUnit_Declaration", "{0}'s {1} declares {2} against {3}")]
     [InlineData("Command_MoveUnit_Completed", "Movement completed")]
     [InlineData("Command_MoveUnit_Incomplete", "Movement was interrupted")]
     [InlineData("Command_DeployUnit", "{0} deployed {1} to {2} facing {3}")]

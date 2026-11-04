@@ -812,6 +812,52 @@ public class MechTests
         sut.DeclaredPhysicalAttack.ShouldBeNull();
     }
 
+    [Fact]
+    public void DestroyingTheMech_ShouldClearAMovementAttackDeclaration()
+    {
+        // Arrange
+        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
+        sut.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.BottomRight), null);
+        sut.DeclarePhysicalAttack(new PhysicalAttackDeclarationData
+        {
+            AttackType = PhysicalAttackType.DFA,
+            AttackerLimbs = [],
+            TargetId = Guid.NewGuid()
+        });
+
+        // Act - a blown-off head destroys the Mech
+        sut.ApplyCriticalHits([
+            new LocationCriticalHitsData(PartLocation.Head, [6, 6], 0, null, true)
+        ]);
+
+        // Assert
+        sut.IsDestroyed.ShouldBeTrue();
+        sut.HasDeclaredPhysicalAttack.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void DestroyingTheMech_ShouldNotClearAKickDeclaration()
+    {
+        // Arrange
+        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
+        sut.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.BottomRight), null);
+        sut.DeclarePhysicalAttack(new PhysicalAttackDeclarationData
+        {
+            AttackType = PhysicalAttackType.Kick,
+            AttackerLimbs = [PartLocation.LeftLeg],
+            TargetId = Guid.NewGuid()
+        });
+
+        // Act
+        sut.ApplyCriticalHits([
+            new LocationCriticalHitsData(PartLocation.Head, [6, 6], 0, null, true)
+        ]);
+
+        // Assert
+        sut.IsDestroyed.ShouldBeTrue();
+        sut.DeclaredPhysicalAttack.ShouldNotBeNull();
+    }
+
 
     [Theory]
     [InlineData(5, 8, 2)]

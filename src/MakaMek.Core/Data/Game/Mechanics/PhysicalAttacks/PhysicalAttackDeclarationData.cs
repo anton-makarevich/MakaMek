@@ -22,4 +22,11 @@ public record PhysicalAttackDeclarationData
     /// The id of the unit the attack was declared against
     /// </summary>
     public required Guid TargetId { get; init; }
+
+    /// <summary>
+    /// The distance the attacker covered before entering the target's hex. Only a Charge or DFA
+    /// declaration carries it, and the server computes it when the move is processed, so a value
+    /// sent by a client is ignored.
+    /// </summary>
+    public int? HexesMoved { get; init; }
 }

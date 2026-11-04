@@ -1,8 +1,14 @@
 using NSubstitute;
+using Sanet.MakaMek.Core.Data.Game;
+using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
+using Sanet.MakaMek.Core.Data.Game.Commands.Server;
+using Sanet.MakaMek.Core.Data.Game.Mechanics.PhysicalAttacks;
 using Sanet.MakaMek.Core.Data.Units.Components;
+using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Phases;
 using Sanet.MakaMek.Core.Models.Game.Players;
+using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Energy;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Map.Models;
 using Shouldly;
@@ -105,6 +111,77 @@ public class WeaponsAttackPhaseTests : GamePhaseTestsBase
         // Assert
         CommandPublisher.Received(1).PublishCommand(Arg.Is<WeaponAttackDeclarationCommand>(cmd => 
             cmd.UnitId == _unit1Id));
+    }
+
+    [Fact]
+    public void HandleCommand_ShouldRejectFiring_WhenTheUnitHasAPendingMovementAttack()
+    {
+        // Arrange - a charging unit cannot fire its weapons this turn
+        _sut.Enter();
+        var player = Game.PhaseStepState!.Value.ActivePlayer;
+        var unit = player.Units.First(u => u.Id == _unit1Id);
+        unit.DeclarePhysicalAttack(new PhysicalAttackDeclarationData
+        {
+            AttackType = PhysicalAttackType.Charge,
+            AttackerLimbs = [],
+            TargetId = Guid.NewGuid()
+        });
+        var idempotencyKey = Guid.NewGuid();
+
+        // Act
+        _sut.HandleCommand(new WeaponAttackDeclarationCommand
+        {
+            GameOriginId = Game.Id,
+            PlayerId = player.Id,
+            UnitId = _unit1Id,
+            IdempotencyKey = idempotencyKey,
+            WeaponTargets =
+            [
+                new WeaponTargetData
+                {
+                    Weapon = new MediumLaser().ToData(),
+                    TargetId = Guid.NewGuid(),
+                    IsPrimaryTarget = true
+                }
+            ]
+        });
+
+        // Assert - the firing is rejected and the step is not consumed
+        CommandPublisher.Received(1).PublishCommand(Arg.Is<ErrorCommand>(cmd =>
+            cmd.IdempotencyKey == idempotencyKey && cmd.ErrorCode == ErrorCode.InvalidGameState));
+        CommandPublisher.DidNotReceive().PublishCommand(Arg.Any<WeaponAttackDeclarationCommand>());
+        unit.HasDeclaredWeaponAttack.ShouldBeFalse();
+        Game.PhaseStepState!.Value.ActivePlayer.Id.ShouldBe(player.Id);
+    }
+
+    [Fact]
+    public void HandleCommand_ShouldAcceptTheSkip_WhenTheUnitHasAPendingMovementAttack()
+    {
+        // Arrange - an empty declaration lets the charging unit complete its weapons step
+        _sut.Enter();
+        var player = Game.PhaseStepState!.Value.ActivePlayer;
+        var unit = player.Units.First(u => u.Id == _unit1Id);
+        unit.DeclarePhysicalAttack(new PhysicalAttackDeclarationData
+        {
+            AttackType = PhysicalAttackType.DFA,
+            AttackerLimbs = [],
+            TargetId = Guid.NewGuid()
+        });
+
+        // Act
+        _sut.HandleCommand(new WeaponAttackDeclarationCommand
+        {
+            GameOriginId = Game.Id,
+            PlayerId = player.Id,
+            UnitId = _unit1Id,
+            WeaponTargets = []
+        });
+
+        // Assert - the skip is broadcast and the step consumed
+        CommandPublisher.Received(1).PublishCommand(Arg.Is<WeaponAttackDeclarationCommand>(cmd =>
+            cmd.UnitId == _unit1Id));
+        CommandPublisher.DidNotReceive().PublishCommand(Arg.Any<ErrorCommand>());
+        Game.PhaseStepState!.Value.UnitsToPlay.ShouldBe(1, "the skip completes the unit's weapons step");
     }
 
     [Fact]

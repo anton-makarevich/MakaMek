@@ -125,6 +125,28 @@ public class PhysicalAttackPhaseTests : GamePhaseTestsBase
     }
 
     [Fact]
+    public void Enter_SkipsThePlayerWhoseOnlyAttackerAlreadyDeclaredAMovementAttack()
+    {
+        // Arrange: the attacker can punch the target, but it is charging this turn. The target
+        // faces away, so player 2 has no option either.
+        var sut = CreateSut(new HexPosition(AttackerHex.GetNeighbour(HexDirection.Top), HexDirection.Top));
+        _attacker.DeclarePhysicalAttack(new PhysicalAttackDeclarationData
+        {
+            AttackType = PhysicalAttackType.Charge,
+            AttackerLimbs = [],
+            TargetId = _target.Id
+        });
+
+        // Act
+        sut.Enter();
+
+        // Assert: no player is activated and the phase moves on
+        CommandPublisher.DidNotReceive().PublishCommand(Arg.Is<ChangeActivePlayerCommand>(c =>
+            c.PlayerId == _player1Id));
+        MockPhaseManager.Received(1).GetNextPhase(PhaseNames.PhysicalAttack, Game);
+    }
+
+    [Fact]
     public void HandleCommand_ValidPunch_StoresTheDeclarationBroadcastsItAndMovesOn()
     {
         // Arrange

@@ -9,6 +9,7 @@ using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Attack;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Penalties.HeatPenalties;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Penalties.MovementPenalties;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.PhysicalAttack;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Models.Units.Components;
@@ -89,6 +90,13 @@ public abstract class Unit : IUnit
                 return;
 
             _status = value;
+
+            // A movement-origin declaration is voided without resolution when its attacker is
+            // destroyed. Other declarations stay for the resolution phase to skip.
+            if (IsDestroyed && HasPendingMovementAttack)
+            {
+                DeclaredPhysicalAttack = null;
+            }
         }
     }
 
@@ -476,6 +484,15 @@ public abstract class Unit : IUnit
     public bool HasDeclaredPhysicalAttack => DeclaredPhysicalAttack != null;
 
     /// <summary>
+    /// Whether the unit has a pending movement-origin physical attack (Charge or DFA) for the
+    /// current turn. Such a declaration is made while moving and blocks weapon firing and other
+    /// physical attacks until it resolves or the attacker is destroyed.
+    /// </summary>
+    public bool HasPendingMovementAttack =>
+        DeclaredPhysicalAttack is { } declaration
+        && PhysicalAttackDefinitions.IsMovementAttack(declaration.AttackType);
+
+    /// <summary>
     /// Indicates whether this unit has applied heat for the current turn
     /// </summary>
     public bool HasAppliedHeat { get; private set; }
@@ -621,8 +638,10 @@ public abstract class Unit : IUnit
 
     /// <summary>
     /// Determines if this unit can fire weapons. Override in derived classes for specific rules.
+    /// A unit with a pending Charge or DFA cannot fire: the movement declaration replaces its
+    /// weapon attack for the turn.
     /// </summary>
-    public virtual bool CanFireWeapons => !IsImmobile && !IsDestroyed;
+    public virtual bool CanFireWeapons => !IsImmobile && !IsDestroyed && !HasPendingMovementAttack;
     
     /// <summary>
     /// Shuts down the unit with specific shutdown data
@@ -852,7 +871,20 @@ public abstract class Unit : IUnit
            c.MountedAtFirstLocationSlots.Contains(slot));
     }
 
-    public void Move(MovementPath movementPath, Hex? destination, bool isCompleted = true)
+    /// <summary>
+    /// Applies a movement to the unit: the path becomes its movement of record, the movement points
+    /// it spent, and it occupies the path's destination.
+    /// </summary>
+    /// <param name="movementPath">The path the unit followed.</param>
+    /// <param name="destination">The hex the unit occupies at the end of the path.</param>
+    /// <param name="isCompleted">Whether the move is finished for this turn.</param>
+    /// <param name="stopAt">
+    /// Where the unit actually stands when that is not the path's destination. A Charge or DFA
+    /// spends the MP to enter the target hex and keeps the full path, but waits in the approach hex
+    /// until the attack resolves, so it must not share the target's hex in the meantime.
+    /// </param>
+    public void Move(MovementPath movementPath, Hex? destination, bool isCompleted = true,
+        HexPosition? stopAt = null)
     {
         if (Position == null)
         {
@@ -875,9 +907,10 @@ public abstract class Unit : IUnit
             MovementTaken = movementPath;
         }
 
-        var position = movementPath.MovementType==MovementType.StandingStill || movementPath.Segments.Count == 0
-            ? Position
-            : movementPath.Destination;
+        var position = stopAt
+                       ?? (movementPath.MovementType == MovementType.StandingStill || movementPath.Segments.Count == 0
+                           ? Position
+                           : movementPath.Destination);
         HasMoved = isCompleted;
         Position = position;
         Hex = destination;
