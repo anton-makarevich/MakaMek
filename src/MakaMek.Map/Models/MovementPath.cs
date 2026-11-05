@@ -22,19 +22,7 @@ public class MovementPath : IEquatable<MovementPath>
                 .Distinct()
                 .ToList();
         // Calculate HexesTraveled based on the last leg of movement
-        var lastSegment = Segments[^1];
-        var lastLegSegments = new List<PathSegment> { lastSegment };
-        
-        // Iterate backwards from the second to the last segment
-        for (var i = Segments.Count - 2; i >= 0; i--)
-        {
-            var segment = Segments[i];
-            if (segment.IsReversed != lastSegment.IsReversed)
-            {
-                break;
-            }
-            lastLegSegments.Insert(0, segment);
-        }
+        var lastLegSegments = GetLastLegSegments(Segments);
 
         var hexesInLastLeg = new List<HexCoordinates> { lastLegSegments[0].From.Coordinates }
             .Concat(lastLegSegments.Select(s => s.To.Coordinates))
@@ -76,6 +64,17 @@ public class MovementPath : IEquatable<MovementPath>
     public int TotalCost { get; }
 
     public int HexesTraveled { get; }
+
+    /// <summary>
+    /// Number of hexes entered during the last leg of movement, i.e. after the last direction
+    /// reversal, counting every entry and including the destination. Unlike
+    /// <see cref="HexesTraveled"/>, repeated hexes are not deduplicated; charge damage uses this
+    /// count minus the target hex (Total Warfare, p. 148).
+    /// </summary>
+    public int HexesEnteredInLastLeg =>
+        Segments.Count == 0
+            ? 0
+            : GetLastLegSegments(Segments).Count(s => s.From.Coordinates != s.To.Coordinates);
 
     public int StraightLineDistance { get; }
     
@@ -200,6 +199,25 @@ public class MovementPath : IEquatable<MovementPath>
         return HashCode.Combine(Start, Destination, IsJump, MaxLevelChange);
     }
     
+    private static List<PathSegment> GetLastLegSegments(IReadOnlyList<PathSegment> segments)
+    {
+        var lastSegment = segments[^1];
+        var lastLegSegments = new List<PathSegment> { lastSegment };
+
+        // Iterate backwards from the second to the last segment
+        for (var i = segments.Count - 2; i >= 0; i--)
+        {
+            var segment = segments[i];
+            if (segment.IsReversed != lastSegment.IsReversed)
+            {
+                break;
+            }
+            lastLegSegments.Insert(0, segment);
+        }
+
+        return lastLegSegments;
+    }
+
     public static MovementPath CreateSingleSegmentPath(HexPosition position, MovementType movementType = MovementType.StandingStill)
     {
         return new MovementPath(new List<PathSegment>
