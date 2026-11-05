@@ -17,9 +17,11 @@ namespace Sanet.MakaMek.Core.Models.Game.Mechanics.PhysicalAttack;
 /// performing a Charge or DFA, and stands in the hex the path terminates in;</item>
 /// <item>a Charge is not declared against a prone target, while a DFA against a prone target is
 /// legal (Total Warfare, p. 151);</item>
-/// <item>a Charge is declared only when the underlying hex levels of the approach hex — the hex
-/// the attacker charges from — and the target differ by at most one level (Total Warfare,
-/// p. 149-151, Different Levels Table);</item>
+/// <item>a Charge is declared only when the effective standing levels of the approach hex — the
+/// hex the attacker charges from — and the target differ by at most one level, counting water
+/// depth as negative levels (Total Warfare, p. 109 and p. 149-151, Different Levels Table);</item>
+/// <item>a physical attack cannot cross the water line: a submerged target can only be attacked
+/// by a submerged attacker (Total Warfare, p. 151);</item>
 /// <item>the last segment enters that hex and pays the MP for the entry;</item>
 /// <item>a DFA has enough Jumping MP to clear the target hex level plus the target's height,
 /// even though entering the hex itself costs one MP;</item>
@@ -53,11 +55,11 @@ public class MovementAttackDeclarationValidator : IMovementAttackDeclarationVali
         var enteringSegment = FindEnteringSegment(movementPath);
         if (movementPath.Destination.Coordinates != targetPosition.Coordinates
             || movementPath.Destination.Surface != targetPosition.Surface
-            || declaration.AttackType == PhysicalAttackType.Charge
-            && !IsChargeLevelDifferenceAllowed(enteringSegment, targetPosition, map)
             || !EntersTargetHex(movementPath, movementType, map)
+            || declaration.AttackType == PhysicalAttackType.Charge
+            && !IsChargeAllowed(attacker, target, enteringSegment, targetPosition, map)
             || declaration.AttackType == PhysicalAttackType.DFA
-            && !CanClearDfaHeight(attacker, target, targetPosition, map)
+            && !IsDfaAllowed(attacker, target, targetPosition, map)
             || movementPath.TotalCost > attacker.GetMovementPoints(movementType)
             || PhysicalAttackDisplacementBudget.IsReserved(target.Id, allUnits))
             return Invalid();
@@ -147,22 +149,55 @@ public class MovementAttackDeclarationValidator : IMovementAttackDeclarationVali
     }
 
     /// <summary>
-    /// A charge can only be made when the underlying hex levels of the approach hex — the hex the
-    /// attacker charges from — and the target differ by at most one level. The attacker's starting
-    /// hex is irrelevant, because the attacker may have climbed or descended on the way there. A
-    /// larger difference can only be bridged by a DFA
-    /// (Total Warfare, p. 149-151, Different Levels Table).
+    /// A charge has to keep the attacker and the target on the same side of the water line and
+    /// within one effective level of each other. The comparison uses the effective standing levels
+    /// of the approach hex — the hex the attacker charges from — and the target hex, so water depth
+    /// counts as negative levels. Raw hex levels would let a surface attacker charge a target that
+    /// is effectively two levels below it in deep water. The attacker's starting hex is irrelevant,
+    /// because the attacker may have climbed or descended on the way there. A larger difference
+    /// can only be bridged by a DFA
+    /// (Total Warfare, p. 109 and p. 149-151, Different Levels Table).
     /// </summary>
-    private static bool IsChargeLevelDifferenceAllowed(PathSegment? enteringSegment,
+    private static bool IsChargeAllowed(IUnit attacker, IUnit target, PathSegment? enteringSegment,
         HexPosition targetPosition, IBattleMap map)
     {
         if (enteringSegment is null) return false;
 
-        var approachHex = map.GetHex(enteringSegment.From.Coordinates);
-        var targetHex = map.GetHex(targetPosition.Coordinates);
-        if (approachHex is null || targetHex is null) return false;
+        var approachEndpoint = GetEndpoint(attacker, enteringSegment.From, map);
+        var targetEndpoint = GetEndpoint(target, targetPosition, map);
+        if (approachEndpoint is not { } approach || targetEndpoint is not { } targetState) return false;
 
-        return Math.Abs(targetHex.Level - approachHex.Level) <= 1;
+        return approach.IsSubmerged == targetState.IsSubmerged
+               && Math.Abs(targetState.StandingLevel - approach.StandingLevel) <= 1;
+    }
+
+    /// <summary>
+    /// A DFA may bridge a level difference of two or more, so the Different Levels Table does not
+    /// apply to it. It still cannot reach a submerged target: the attack comes from above the
+    /// water line, and a unit in Depth 2+ water can only be attacked by units underwater
+    /// (Total Warfare, p. 149-151).
+    /// </summary>
+    private static bool IsDfaAllowed(IUnit attacker, IUnit target, HexPosition targetPosition,
+        IBattleMap map)
+    {
+        var targetEndpoint = GetEndpoint(target, targetPosition, map);
+        return targetEndpoint is { IsSubmerged: false }
+               && CanClearDfaHeight(attacker, target, targetPosition, map);
+    }
+
+    /// <summary>
+    /// Where a unit stands relative to the water line, resolved from the map surface it occupies
+    /// rather than the stored unit hex, which replacing a map hex does not update.
+    /// </summary>
+    private sealed record UnitEndpoint(int StandingLevel, bool IsSubmerged);
+
+    private static UnitEndpoint? GetEndpoint(IUnit unit, HexPosition position, IBattleMap map)
+    {
+        var hex = map.GetHex(position.Coordinates);
+        if (hex is null) return null;
+
+        var (standingLevel, isSubmerged) = hex.GetLosEndpointInfo(position.Surface, unit.Height);
+        return new UnitEndpoint(standingLevel, isSubmerged);
     }
 
     /// <summary>

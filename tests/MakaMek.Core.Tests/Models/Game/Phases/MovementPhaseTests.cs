@@ -3929,6 +3929,127 @@ public class MovementPhaseTests : GamePhaseTestsBase
     }
 
     [Fact]
+    public void HandleCommand_WhenTheTargetStandsInDepthOneWaterTwoEffectiveLevelsDown_ShouldRejectTheCharge()
+    {
+        // Arrange - the approach hex is one level above the target hex, but the Depth 1 water
+        // drops the target's effective standing level to two levels below the attacker; raw hex
+        // levels would wrongly allow this charge
+        var (attacker, target, start, middle, end) = SetUpChargeOnTheMap();
+        Game.BattleMap!.AddHex(new Hex(middle, 1));
+        Game.BattleMap!.GetHex(end)!.AddTerrain(new WaterTerrain(-1));
+        var waterStep = new PathSegment(Position(middle), Position(end),
+            [new TerrainMovementCost { TerrainId = MakaMekTerrains.Water, Value = 4 }]);
+        var idempotencyKey = Guid.NewGuid();
+        var command = MoveCommand(Game.PhaseStepState!.Value.ActivePlayer.Id,
+            [ClearStep(Position(start), Position(middle)), waterStep],
+            MovementType.Walk, Charge(target.Id), idempotencyKey);
+
+        // Act & Assert
+        AssertDeclarationRejected(command, attacker, idempotencyKey);
+    }
+
+    [Fact]
+    public void HandleCommand_WhenTheTargetStandsInDepthOneWaterOneEffectiveLevelDown_ShouldAcceptTheCharge()
+    {
+        // Arrange - Depth 1 water drops the target one level, which a charge can still reach
+        var (attacker, target, start, middle, end) = SetUpChargeOnTheMap();
+        Game.BattleMap!.GetHex(end)!.AddTerrain(new WaterTerrain(-1));
+        var waterStep = new PathSegment(Position(middle), Position(end),
+            [new TerrainMovementCost { TerrainId = MakaMekTerrains.Water, Value = 3 }]);
+        MockFallProcessor.ProcessMovementAttempt(attacker,
+                Arg.Is<EnteringDeepWaterRollContext>(c => c.WaterDepth == 1),
+                Game, MovementType.Walk, Arg.Any<HexPosition?>())
+            .Returns(new FallContextData
+            {
+                UnitId = attacker.Id,
+                GameId = Game.Id,
+                IsFalling = false,
+                PilotingSkillRoll = new PilotingSkillRollData
+                {
+                    RollContext = new EnteringDeepWaterRollContext(1),
+                    DiceResults = [6, 6],
+                    IsSuccessful = true,
+                    PsrBreakdown = new PsrBreakdown { BasePilotingSkill = 4, Modifiers = [] }
+                }
+            });
+        var command = MoveCommand(Game.PhaseStepState!.Value.ActivePlayer.Id,
+            [ClearStep(Position(start), Position(middle)), waterStep],
+            MovementType.Walk, Charge(target.Id));
+
+        // Act
+        _sut.HandleCommand(command);
+
+        // Assert
+        attacker.Position!.Coordinates.ShouldBe(middle);
+        attacker.DeclaredPhysicalAttack.ShouldNotBeNull().AttackType.ShouldBe(PhysicalAttackType.Charge);
+    }
+
+    [Fact]
+    public void HandleCommand_WhenTheChargeTargetIsSubmerged_ShouldRejectTheCharge()
+    {
+        // Arrange - a Depth 2 target is fully submerged, so a surface attacker cannot charge it
+        // even though the raw hex levels and the effective levels are equal
+        var (attacker, target, start, middle, end) = SetUpChargeOnTheMap();
+        Game.BattleMap!.AddHex(new Hex(middle, 1));
+        var waterHex = new Hex(end, 1);
+        waterHex.AddTerrain(new WaterTerrain(-2));
+        Game.BattleMap!.AddHex(waterHex);
+        var waterStep = new PathSegment(Position(middle), Position(end),
+            [new TerrainMovementCost { TerrainId = MakaMekTerrains.Water, Value = 6 }]);
+        var idempotencyKey = Guid.NewGuid();
+        var command = MoveCommand(Game.PhaseStepState!.Value.ActivePlayer.Id,
+            [ClearStep(Position(start), Position(middle)), waterStep],
+            MovementType.Run, Charge(target.Id), idempotencyKey);
+
+        // Act & Assert
+        AssertDeclarationRejected(command, attacker, idempotencyKey);
+    }
+
+    [Fact]
+    public void HandleCommand_WhenChargingFromSubmergedWater_ShouldRejectTheCharge()
+    {
+        // Arrange - a submerged attacker can only attack another submerged unit, so it cannot
+        // charge a surface target even when the effective level difference is one
+        var (attacker, target, start, middle, end) = SetUpChargeOnTheMap();
+        var waterHex = new Hex(middle, 1);
+        waterHex.AddTerrain(new WaterTerrain(-2));
+        Game.BattleMap!.AddHex(waterHex);
+        var climbStep = new PathSegment(Position(start), Position(middle),
+            [new TerrainMovementCost { TerrainId = MakaMekTerrains.Water, Value = 5 }]);
+        var chargeStep = new PathSegment(Position(middle), Position(end),
+            [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 2 }]);
+        var idempotencyKey = Guid.NewGuid();
+        var command = MoveCommand(Game.PhaseStepState!.Value.ActivePlayer.Id,
+            [climbStep, chargeStep], MovementType.Run, Charge(target.Id), idempotencyKey);
+
+        // Act & Assert
+        AssertDeclarationRejected(command, attacker, idempotencyKey);
+    }
+
+    [Fact]
+    public void HandleCommand_WhenTheDfaTargetIsSubmerged_ShouldRejectTheDeclaration()
+    {
+        // Arrange - a DFA bridges level differences, but it cannot reach a fully submerged target
+        var (attacker, target, start, middle, end) = SetUpChargeOnTheMap();
+        Game.BattleMap!.AddHex(new Hex(middle, 1));
+        var waterHex = new Hex(end, 1);
+        waterHex.AddTerrain(new WaterTerrain(-2));
+        Game.BattleMap!.AddHex(waterHex);
+        var centerTorso = attacker.Parts[PartLocation.CenterTorso];
+        centerTorso.TryAddComponent(new JumpJets()).ShouldBeTrue();
+        centerTorso.TryAddComponent(new JumpJets()).ShouldBeTrue();
+        var idempotencyKey = Guid.NewGuid();
+        var command = MoveCommand(Game.PhaseStepState!.Value.ActivePlayer.Id,
+            [
+                new PathSegment(Position(start), Position(middle), [new JumpMovementCost { Value = 1 }]),
+                new PathSegment(Position(middle), Position(end), [new JumpMovementCost { Value = 1 }])
+            ], MovementType.Jump, Dfa(target.Id), idempotencyKey);
+
+        // Act & Assert
+        AssertDeclarationRejected(command, attacker, idempotencyKey);
+    }
+
+    [Fact]
     public void HandleCommand_WhenTheChargePathReverses_ShouldCountOnlyHexesAfterTheLastReversal()
     {
         // Arrange - two backward hexes followed by two forward hexes ending on the target
