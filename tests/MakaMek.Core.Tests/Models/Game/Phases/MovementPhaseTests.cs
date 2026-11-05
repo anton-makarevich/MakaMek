@@ -3875,6 +3875,53 @@ public class MovementPhaseTests : GamePhaseTestsBase
     }
 
     [Fact]
+    public void HandleCommand_WhenTheChargePathReverses_ShouldCountOnlyHexesAfterTheLastReversal()
+    {
+        // Arrange - two backward hexes followed by two forward hexes ending on the target
+        var (attacker, start, middle, end) = SetUpMapAndAttacker();
+        var forward1 = end.GetNeighbour(HexDirection.Bottom);
+        var targetHex = forward1.GetNeighbour(HexDirection.Bottom);
+        var target = DeployMovedTarget(targetHex);
+        var command = MoveCommand(Game.PhaseStepState!.Value.ActivePlayer.Id,
+            [
+                new PathSegment(Position(start), Position(middle),
+                    [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }], true),
+                new PathSegment(Position(middle), Position(end),
+                    [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }], true),
+                ClearStep(Position(end), Position(forward1)),
+                ClearStep(Position(forward1), Position(targetHex))
+            ], MovementType.Walk, Charge(target.Id));
+
+        // Act
+        _sut.HandleCommand(command);
+
+        // Assert - the forward leg entered forward1 and the target; only forward1 counts
+        attacker.DeclaredPhysicalAttack.ShouldNotBeNull().HexesMoved.ShouldBe(1);
+    }
+
+    [Fact]
+    public void HandleCommand_WhenTheChargePathRevisitsAHex_ShouldCountEveryEntry()
+    {
+        // Arrange - the path leaves and re-enters the approach hex without a direction reversal
+        var (attacker, start, middle, end) = SetUpMapAndAttacker();
+        var target = DeployMovedTarget(end);
+        var command = MoveCommand(Game.PhaseStepState!.Value.ActivePlayer.Id,
+            [
+                ClearStep(Position(start), Position(middle)),
+                ClearStep(Position(middle), Position(end)),
+                ClearStep(Position(end), Position(middle)),
+                ClearStep(Position(middle), Position(end))
+            ], MovementType.Walk, Charge(target.Id));
+
+        // Act
+        _sut.HandleCommand(command);
+
+        // Assert - middle and end were each entered twice; the target (end) is excluded, so three
+        // entries remain
+        attacker.DeclaredPhysicalAttack.ShouldNotBeNull().HexesMoved.ShouldBe(3);
+    }
+
+    [Fact]
     public void HandleCommand_WhenTheTargetIsAlreadyReserved_ShouldRejectTheDeclaration()
     {
         // Arrange

@@ -169,8 +169,10 @@ public class MovementAttackDeclarationValidator : IMovementAttackDeclarationVali
     }
 
     /// <summary>
-    /// Hexes traversed before entering the target hex. A deferred move that continues after a fall
-    /// is measured over the combined path, because the executed path is already on the unit.
+    /// Hexes traversed before entering the target hex, counting only the last leg after a
+    /// direction reversal and counting repeated hexes. A deferred move that continues after a fall
+    /// is measured over the combined path, because the executed path is already on the unit
+    /// (Total Warfare, p. 148).
     /// </summary>
     private static int CountHexesMovedBeforeTarget(IUnit attacker, MovementPath continuation,
         HexCoordinates targetCoordinates)
@@ -181,10 +183,9 @@ public class MovementAttackDeclarationValidator : IMovementAttackDeclarationVali
             ? taken.Append(continuation)
             : continuation;
 
-        return combined.Hexes
-            .Distinct()
-            .Count(coordinates =>
-                coordinates != combined.Start.Coordinates
-                && coordinates != targetCoordinates);
+        var enteredInLastLeg = combined.HexesEnteredInLastLeg;
+        return Math.Max(0, combined.Destination.Coordinates == targetCoordinates
+            ? enteredInLastLeg - 1
+            : enteredInLastLeg);
     }
 }
