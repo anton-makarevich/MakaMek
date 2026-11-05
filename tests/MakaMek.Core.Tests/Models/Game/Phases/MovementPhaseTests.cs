@@ -3838,6 +3838,43 @@ public class MovementPhaseTests : GamePhaseTestsBase
     }
 
     [Fact]
+    public void HandleCommand_WhenChargeLevelDifferenceExceedsOne_ShouldRejectTheDeclaration()
+    {
+        // Arrange - the target is two levels above the attacker, which only a DFA can bridge
+        var (attacker, target, start, middle, end) = SetUpChargeOnTheMap();
+        Game.BattleMap!.AddHex(new Hex(end, 2));
+        var climbStep = new PathSegment(Position(middle), Position(end),
+            [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 3 }]);
+        var idempotencyKey = Guid.NewGuid();
+        var command = MoveCommand(Game.PhaseStepState!.Value.ActivePlayer.Id,
+            [ClearStep(Position(start), Position(middle)), climbStep],
+            MovementType.Walk, Charge(target.Id), idempotencyKey);
+
+        // Act & Assert
+        AssertDeclarationRejected(command, attacker, idempotencyKey);
+    }
+
+    [Fact]
+    public void HandleCommand_WhenChargeLevelDifferenceIsOne_ShouldAcceptTheDeclaration()
+    {
+        // Arrange - a target one level higher is a legal charge
+        var (attacker, target, start, middle, end) = SetUpChargeOnTheMap();
+        Game.BattleMap!.AddHex(new Hex(end, 1));
+        var climbStep = new PathSegment(Position(middle), Position(end),
+            [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 2 }]);
+        var command = MoveCommand(Game.PhaseStepState!.Value.ActivePlayer.Id,
+            [ClearStep(Position(start), Position(middle)), climbStep],
+            MovementType.Walk, Charge(target.Id));
+
+        // Act
+        _sut.HandleCommand(command);
+
+        // Assert
+        attacker.Position!.Coordinates.ShouldBe(middle);
+        attacker.DeclaredPhysicalAttack.ShouldNotBeNull().AttackType.ShouldBe(PhysicalAttackType.Charge);
+    }
+
+    [Fact]
     public void HandleCommand_WhenTheTargetIsAlreadyReserved_ShouldRejectTheDeclaration()
     {
         // Arrange

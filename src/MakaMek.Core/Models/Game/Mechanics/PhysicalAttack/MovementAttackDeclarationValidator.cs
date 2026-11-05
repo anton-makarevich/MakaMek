@@ -17,6 +17,8 @@ namespace Sanet.MakaMek.Core.Models.Game.Mechanics.PhysicalAttack;
 /// performing a Charge or DFA, and stands in the hex the path terminates in;</item>
 /// <item>a Charge is not declared against a prone target, while a DFA against a prone target is
 /// legal (Total Warfare, p. 151);</item>
+/// <item>a Charge is declared only when the underlying hex levels of the attacker and target
+/// differ by at most one level (Total Warfare, p. 149-151, Different Levels Table);</item>
 /// <item>the last segment enters that hex and pays the MP for the entry;</item>
 /// <item>a DFA has enough Jumping MP to clear the target hex level plus the target's height,
 /// even though entering the hex itself costs one MP;</item>
@@ -48,11 +50,13 @@ public class MovementAttackDeclarationValidator : IMovementAttackDeclarationVali
 
         var targetPosition = target!.Position!;
         if (movementPath.Destination.Coordinates != targetPosition.Coordinates
-            || movementPath.Destination.Surface != targetPosition.Surface 
-            || !EntersTargetHex(movementPath, movementType, map) 
+            || movementPath.Destination.Surface != targetPosition.Surface
+            || declaration.AttackType == PhysicalAttackType.Charge
+            && !IsChargeLevelDifferenceAllowed(attacker, targetPosition, map)
+            || !EntersTargetHex(movementPath, movementType, map)
             || declaration.AttackType == PhysicalAttackType.DFA
-            && !CanClearDfaHeight(attacker, target, targetPosition, map) 
-            || movementPath.TotalCost > attacker.GetMovementPoints(movementType) 
+            && !CanClearDfaHeight(attacker, target, targetPosition, map)
+            || movementPath.TotalCost > attacker.GetMovementPoints(movementType)
             || PhysicalAttackDisplacementBudget.IsReserved(target.Id, allUnits))
             return Invalid();
 
@@ -134,6 +138,20 @@ public class MovementAttackDeclarationValidator : IMovementAttackDeclarationVali
         var elevationCost = Math.Abs(toHex.GetElevationChange(
             fromHex, enteringSegment.From.Surface, enteringSegment.To.Surface));
         return enteringSegment.Cost >= entryCost + elevationCost;
+    }
+
+    /// <summary>
+    /// A charge can only be made when the underlying hex levels of the attacker and target differ
+    /// by at most one level. A larger difference can only be bridged by a DFA
+    /// (Total Warfare, p. 149-151, Different Levels Table).
+    /// </summary>
+    private static bool IsChargeLevelDifferenceAllowed(IUnit attacker, HexPosition targetPosition, IBattleMap map)
+    {
+        var attackerHex = map.GetHex(attacker.Position!.Coordinates);
+        var targetHex = map.GetHex(targetPosition.Coordinates);
+        if (attackerHex is null || targetHex is null) return false;
+
+        return Math.Abs(targetHex.Level - attackerHex.Level) <= 1;
     }
 
     /// <summary>
