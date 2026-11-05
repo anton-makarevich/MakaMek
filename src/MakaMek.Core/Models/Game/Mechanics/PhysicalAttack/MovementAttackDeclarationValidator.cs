@@ -81,7 +81,7 @@ public class MovementAttackDeclarationValidator : IMovementAttackDeclarationVali
     /// </summary>
     private static bool IsValidDeclaration(PhysicalAttackDeclarationData declaration) =>
         PhysicalAttackDefinitions.IsMovementAttack(declaration.AttackType)
-        && declaration.AttackerLimbs.Count == 0;
+        && declaration.AttackerLimbs is { Count: 0 };
 
     private static bool IsModeAllowed(PhysicalAttackType attackType, MovementType movementType) =>
         attackType switch
