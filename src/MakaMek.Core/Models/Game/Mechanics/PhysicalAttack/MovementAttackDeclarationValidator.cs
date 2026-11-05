@@ -15,6 +15,8 @@ namespace Sanet.MakaMek.Core.Models.Game.Mechanics.PhysicalAttack;
 /// <item>the attack is a Charge with Walk/Run movement or a DFA with Jump movement;</item>
 /// <item>the target is an enemy Mech that has already completed its movement, is not itself
 /// performing a Charge or DFA, and stands in the hex the path terminates in;</item>
+/// <item>a Charge is not declared against a prone target, while a DFA against a prone target is
+/// legal (Total Warfare, p. 151);</item>
 /// <item>the last segment enters that hex and pays the MP for the entry;</item>
 /// <item>the move fits the remaining movement points; and</item>
 /// <item>the target is not already reserved by another displacement attack this turn.</item>
@@ -37,7 +39,7 @@ public class MovementAttackDeclarationValidator : IMovementAttackDeclarationVali
 
         var allUnits = units.ToList();
         var target = allUnits.FirstOrDefault(unit => unit.Id == declaration.TargetId);
-        if (!IsValidTarget(attacker, target)) return Invalid();
+        if (!IsValidTarget(attacker, target, declaration.AttackType)) return Invalid();
 
         var movementPath = new MovementPath(path, movementType);
         if (movementPath.Start.Coordinates != attacker.Position!.Coordinates) return Invalid();
@@ -90,10 +92,18 @@ public class MovementAttackDeclarationValidator : IMovementAttackDeclarationVali
     /// is not finished moving until the Physical Attack Phase, so it cannot be the target of
     /// another Charge or DFA (Total Warfare, p. 148-149).
     /// </summary>
-    private static bool IsValidTarget(IUnit attacker, IUnit? target) =>
+    private static bool IsValidTarget(IUnit attacker, IUnit? target, PhysicalAttackType attackType) =>
         target is Mech { IsDestroyed: false, Position: not null }
         && target.Owner?.Id != attacker.Owner?.Id
-        && target is { HasMoved: true, HasPendingMovementAttack: false };
+        && target is { HasMoved: true, HasPendingMovementAttack: false }
+        && IsLegalAgainstProneTarget(target, attackType);
+
+    /// <summary>
+    /// A Mech cannot charge a prone target, but a DFA against a prone target remains legal
+    /// (Total Warfare, p. 151).
+    /// </summary>
+    private static bool IsLegalAgainstProneTarget(IUnit target, PhysicalAttackType attackType) =>
+        attackType != PhysicalAttackType.Charge || target is not Mech { IsProne: true };
 
     /// <summary>
     /// The path has to enter the target hex from an adjacent hex and pay at least the entry cost
