@@ -3776,6 +3776,21 @@ public class MovementPhaseTests : GamePhaseTestsBase
     }
 
     [Fact]
+    public void HandleCommand_WhenTheDeclarationHasNullLimbs_ShouldRejectIt()
+    {
+        // Arrange - a crafted payload can carry a null limb collection
+        var (attacker, target, start, middle, end) = SetUpChargeOnTheMap();
+        var idempotencyKey = Guid.NewGuid();
+        var declaration = Charge(target.Id) with { AttackerLimbs = null! };
+        var command = MoveCommand(Game.PhaseStepState!.Value.ActivePlayer.Id,
+            [ClearStep(Position(start), Position(middle)), ClearStep(Position(middle), Position(end))],
+            MovementType.Walk, declaration, idempotencyKey);
+
+        // Act & Assert
+        AssertDeclarationRejected(command, attacker, idempotencyKey);
+    }
+
+    [Fact]
     public void HandleCommand_WhenTheMovementModeDoesNotMatchTheAttack_ShouldRejectIt()
     {
         // Arrange
