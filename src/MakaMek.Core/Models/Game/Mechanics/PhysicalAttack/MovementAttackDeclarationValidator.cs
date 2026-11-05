@@ -18,6 +18,8 @@ namespace Sanet.MakaMek.Core.Models.Game.Mechanics.PhysicalAttack;
 /// <item>a Charge is not declared against a prone target, while a DFA against a prone target is
 /// legal (Total Warfare, p. 151);</item>
 /// <item>the last segment enters that hex and pays the MP for the entry;</item>
+/// <item>a DFA has enough Jumping MP to clear the target hex level plus the target's height,
+/// even though entering the hex itself costs one MP;</item>
 /// <item>the move fits the remaining movement points; and</item>
 /// <item>the target is not already reserved by another displacement attack this turn.</item>
 /// </list>
@@ -46,12 +48,13 @@ public class MovementAttackDeclarationValidator : IMovementAttackDeclarationVali
 
         var targetPosition = target!.Position!;
         if (movementPath.Destination.Coordinates != targetPosition.Coordinates
-            || movementPath.Destination.Surface != targetPosition.Surface)
+            || movementPath.Destination.Surface != targetPosition.Surface 
+            || !EntersTargetHex(movementPath, movementType, map) 
+            || declaration.AttackType == PhysicalAttackType.DFA
+            && !CanClearDfaHeight(attacker, target, targetPosition, map) 
+            || movementPath.TotalCost > attacker.GetMovementPoints(movementType) 
+            || PhysicalAttackDisplacementBudget.IsReserved(target.Id, allUnits))
             return Invalid();
-
-        if (!EntersTargetHex(movementPath, movementType, map)) return Invalid();
-        if (movementPath.TotalCost > attacker.GetMovementPoints(movementType)) return Invalid();
-        if (PhysicalAttackDisplacementBudget.IsReserved(target.Id, allUnits)) return Invalid();
 
         var hexesMoved = CountHexesMovedBeforeTarget(attacker, movementPath, targetPosition.Coordinates);
         return MovementAttackDeclarationValidation.Valid(declaration with
@@ -66,8 +69,7 @@ public class MovementAttackDeclarationValidator : IMovementAttackDeclarationVali
 
     private static bool IsValidAttacker(IUnit attacker) =>
         attacker is Mech { IsDestroyed: false, IsProne: false, Position: not null }
-        && !attacker.HasDeclaredPhysicalAttack
-        && !attacker.HasMoved;
+        && attacker is { HasDeclaredPhysicalAttack: false, HasMoved: false };
 
     /// <summary>
     /// A movement declaration has no limb choice: the limbs belong to the attacks declared in the
@@ -132,6 +134,20 @@ public class MovementAttackDeclarationValidator : IMovementAttackDeclarationVali
         var elevationCost = Math.Abs(toHex.GetElevationChange(
             fromHex, enteringSegment.From.Surface, enteringSegment.To.Surface));
         return enteringSegment.Cost >= entryCost + elevationCost;
+    }
+
+    /// <summary>
+    /// A DFA must have enough Jumping MP to clear the target hex level plus the target's height,
+    /// even though entering the target hex costs only one MP. A standing Mech is two levels high
+    /// and a prone one is a single level (Total Warfare, p. 149-150).
+    /// </summary>
+    private static bool CanClearDfaHeight(IUnit attacker, IUnit target, HexPosition targetPosition, IBattleMap map)
+    {
+        var targetHex = map.GetHex(targetPosition.Coordinates);
+        if (targetHex is null) return false;
+
+        var heightRequirement = targetHex.GetStandingLevel(targetPosition.Surface) + target.Height;
+        return attacker.GetMovementPoints(MovementType.Jump) >= heightRequirement;
     }
 
     /// <summary>

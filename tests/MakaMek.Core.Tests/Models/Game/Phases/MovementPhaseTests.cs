@@ -3914,6 +3914,52 @@ public class MovementPhaseTests : GamePhaseTestsBase
     }
 
     [Fact]
+    public void HandleCommand_WhenDfaCannotClearTheTargetHeight_ShouldRejectTheDeclaration()
+    {
+        // Arrange - the target stands on a Level 3 hill and is two levels high, so the DFA needs
+        // 5 Jumping MP even though the adjacent jump only costs 1 MP
+        var (attacker, target, start, middle, end) = SetUpChargeOnTheMap();
+        Game.BattleMap!.AddHex(new Hex(end, 3));
+        var centerTorso = attacker.Parts[PartLocation.CenterTorso];
+        centerTorso.TryAddComponent(new JumpJets()).ShouldBeTrue();
+        centerTorso.TryAddComponent(new JumpJets()).ShouldBeTrue();
+        var idempotencyKey = Guid.NewGuid();
+        var command = MoveCommand(Game.PhaseStepState!.Value.ActivePlayer.Id,
+            [
+                new PathSegment(Position(start), Position(middle), [new JumpMovementCost { Value = 1 }]),
+                new PathSegment(Position(middle), Position(end), [new JumpMovementCost { Value = 1 }])
+            ], MovementType.Jump, Dfa(target.Id), idempotencyKey);
+
+        // Act & Assert
+        AssertDeclarationRejected(command, attacker, idempotencyKey);
+    }
+
+    [Fact]
+    public void HandleCommand_WhenDfaCanClearTheTargetHeight_ShouldAcceptTheDeclaration()
+    {
+        // Arrange - 5 Jumping MP clear the Level 3 hill plus the two-level height of a standing Mech
+        var (attacker, target, start, middle, end) = SetUpChargeOnTheMap();
+        Game.BattleMap!.AddHex(new Hex(end, 3));
+        attacker.Parts[PartLocation.CenterTorso].TryAddComponent(new JumpJets()).ShouldBeTrue();
+        attacker.Parts[PartLocation.CenterTorso].TryAddComponent(new JumpJets()).ShouldBeTrue();
+        attacker.Parts[PartLocation.LeftTorso].TryAddComponent(new JumpJets()).ShouldBeTrue();
+        attacker.Parts[PartLocation.LeftTorso].TryAddComponent(new JumpJets()).ShouldBeTrue();
+        attacker.Parts[PartLocation.RightTorso].TryAddComponent(new JumpJets()).ShouldBeTrue();
+        var command = MoveCommand(Game.PhaseStepState!.Value.ActivePlayer.Id,
+            [
+                new PathSegment(Position(start), Position(middle), [new JumpMovementCost { Value = 1 }]),
+                new PathSegment(Position(middle), Position(end), [new JumpMovementCost { Value = 1 }])
+            ], MovementType.Jump, Dfa(target.Id));
+
+        // Act
+        _sut.HandleCommand(command);
+
+        // Assert
+        attacker.Position!.Coordinates.ShouldBe(middle);
+        attacker.DeclaredPhysicalAttack.ShouldNotBeNull().AttackType.ShouldBe(PhysicalAttackType.DFA);
+    }
+
+    [Fact]
     public void HandleCommand_WhenTheAttackerAlreadyDeclared_ShouldRejectTheDeclaration()
     {
         // Arrange
@@ -4040,7 +4086,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
         _sut.Enter();
         var player = Game.PhaseStepState!.Value.ActivePlayer;
         var unit = (Mech)player.Units.Single(u => u.Id == _unit1Id);
-        var start = new HexCoordinates(1, 1);
+        var start = new HexCoordinates(1, 3);
         var middle = start.GetNeighbour(HexDirection.Top);
         var end = middle.GetNeighbour(HexDirection.Top);
         unit.Deploy(Position(start), null);
