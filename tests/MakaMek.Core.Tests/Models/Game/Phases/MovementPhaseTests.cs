@@ -3890,6 +3890,45 @@ public class MovementPhaseTests : GamePhaseTestsBase
     }
 
     [Fact]
+    public void HandleCommand_WhenTheStartHexLevelDiffersFromTheApproachHex_ShouldAcceptTheCharge()
+    {
+        // Arrange - the attacker starts a hill two levels above the target, but reaches the target's
+        // level before entering its hex, so only the approach hex matters for the level difference
+        var (attacker, target, start, middle, end) = SetUpChargeOnTheMap();
+        Game.BattleMap!.AddHex(new Hex(start, 2));
+        var command = MoveCommand(Game.PhaseStepState!.Value.ActivePlayer.Id,
+            [ClearStep(Position(start), Position(middle)), ClearStep(Position(middle), Position(end))],
+            MovementType.Walk, Charge(target.Id));
+
+        // Act
+        _sut.HandleCommand(command);
+
+        // Assert
+        attacker.Position!.Coordinates.ShouldBe(middle);
+        attacker.DeclaredPhysicalAttack.ShouldNotBeNull().AttackType.ShouldBe(PhysicalAttackType.Charge);
+    }
+
+    [Fact]
+    public void HandleCommand_WhenTheApproachHexLevelDiffersFromTheTarget_ShouldRejectTheCharge()
+    {
+        // Arrange - the attacker starts one level above the target, but charges from a hex two levels
+        // above it, which no Charge can bridge regardless of the starting hex
+        var (attacker, target, start, middle, end) = SetUpChargeOnTheMap();
+        Game.BattleMap!.AddHex(new Hex(start, 1));
+        Game.BattleMap!.AddHex(new Hex(middle, 2));
+        var climbStep = new PathSegment(Position(start), Position(middle),
+            [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 2 }]);
+        var dropStep = new PathSegment(Position(middle), Position(end),
+            [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 3 }]);
+        var idempotencyKey = Guid.NewGuid();
+        var command = MoveCommand(Game.PhaseStepState!.Value.ActivePlayer.Id,
+            [climbStep, dropStep], MovementType.Walk, Charge(target.Id), idempotencyKey);
+
+        // Act & Assert
+        AssertDeclarationRejected(command, attacker, idempotencyKey);
+    }
+
+    [Fact]
     public void HandleCommand_WhenTheChargePathReverses_ShouldCountOnlyHexesAfterTheLastReversal()
     {
         // Arrange - two backward hexes followed by two forward hexes ending on the target
