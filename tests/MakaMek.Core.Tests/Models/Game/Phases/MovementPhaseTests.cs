@@ -3860,6 +3860,22 @@ public class MovementPhaseTests : GamePhaseTestsBase
     }
 
     [Fact]
+    public void HandleCommand_WhenTheTargetIsPerformingAMovementAttack_ShouldRejectTheDeclaration()
+    {
+        // Arrange - a unit that is itself charging or jumping does not finish its movement until
+        // the Physical Attack Phase, so it cannot be the target of another Charge or DFA
+        var (attacker, target, start, middle, end) = SetUpChargeOnTheMap();
+        target.DeclarePhysicalAttack(Charge(attacker.Id));
+        var idempotencyKey = Guid.NewGuid();
+        var command = MoveCommand(Game.PhaseStepState!.Value.ActivePlayer.Id,
+            [ClearStep(Position(start), Position(middle)), ClearStep(Position(middle), Position(end))],
+            MovementType.Walk, Charge(target.Id), idempotencyKey);
+
+        // Act & Assert
+        AssertDeclarationRejected(command, attacker, idempotencyKey);
+    }
+
+    [Fact]
     public void HandleCommand_WhenTheAttackerAlreadyDeclared_ShouldRejectTheDeclaration()
     {
         // Arrange

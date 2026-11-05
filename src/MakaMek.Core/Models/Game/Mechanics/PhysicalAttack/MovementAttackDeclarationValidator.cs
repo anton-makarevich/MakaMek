@@ -13,8 +13,8 @@ namespace Sanet.MakaMek.Core.Models.Game.Mechanics.PhysicalAttack;
 /// <list type="bullet">
 /// <item>the attacker is a standing, intact Mech that has not moved or declared an attack yet;</item>
 /// <item>the attack is a Charge with Walk/Run movement or a DFA with Jump movement;</item>
-/// <item>the target is an enemy Mech that has already completed its movement and stands in the
-/// hex the path terminates in;</item>
+/// <item>the target is an enemy Mech that has already completed its movement, is not itself
+/// performing a Charge or DFA, and stands in the hex the path terminates in;</item>
 /// <item>the last segment enters that hex and pays the MP for the entry;</item>
 /// <item>the move fits the remaining movement points; and</item>
 /// <item>the target is not already reserved by another displacement attack this turn.</item>
@@ -86,12 +86,14 @@ public class MovementAttackDeclarationValidator : IMovementAttackDeclarationVali
     /// <summary>
     /// An enemy Mech that is still in the game and has already finished its movement. A target that
     /// has not moved could still move away, and the declaration is only allowed against a unit the
-    /// attacker has seen complete its move (Background item 11).
+    /// attacker has seen complete its move (Background item 11). A unit performing a Charge or DFA
+    /// is not finished moving until the Physical Attack Phase, so it cannot be the target of
+    /// another Charge or DFA (Total Warfare, p. 148-149).
     /// </summary>
     private static bool IsValidTarget(IUnit attacker, IUnit? target) =>
         target is Mech { IsDestroyed: false, Position: not null }
         && target.Owner?.Id != attacker.Owner?.Id
-        && target.HasMoved;
+        && target is { HasMoved: true, HasPendingMovementAttack: false };
 
     /// <summary>
     /// The path has to enter the target hex from an adjacent hex and pay at least the entry cost
