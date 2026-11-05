@@ -17,8 +17,9 @@ namespace Sanet.MakaMek.Core.Models.Game.Mechanics.PhysicalAttack;
 /// performing a Charge or DFA, and stands in the hex the path terminates in;</item>
 /// <item>a Charge is not declared against a prone target, while a DFA against a prone target is
 /// legal (Total Warfare, p. 151);</item>
-/// <item>a Charge is declared only when the underlying hex levels of the attacker and target
-/// differ by at most one level (Total Warfare, p. 149-151, Different Levels Table);</item>
+/// <item>a Charge is declared only when the underlying hex levels of the approach hex — the hex
+/// the attacker charges from — and the target differ by at most one level (Total Warfare,
+/// p. 149-151, Different Levels Table);</item>
 /// <item>the last segment enters that hex and pays the MP for the entry;</item>
 /// <item>a DFA has enough Jumping MP to clear the target hex level plus the target's height,
 /// even though entering the hex itself costs one MP;</item>
@@ -49,10 +50,11 @@ public class MovementAttackDeclarationValidator : IMovementAttackDeclarationVali
         if (movementPath.Start.Coordinates != attacker.Position!.Coordinates) return Invalid();
 
         var targetPosition = target!.Position!;
+        var enteringSegment = FindEnteringSegment(movementPath);
         if (movementPath.Destination.Coordinates != targetPosition.Coordinates
             || movementPath.Destination.Surface != targetPosition.Surface
             || declaration.AttackType == PhysicalAttackType.Charge
-            && !IsChargeLevelDifferenceAllowed(attacker, targetPosition, map)
+            && !IsChargeLevelDifferenceAllowed(enteringSegment, targetPosition, map)
             || !EntersTargetHex(movementPath, movementType, map)
             || declaration.AttackType == PhysicalAttackType.DFA
             && !CanClearDfaHeight(attacker, target, targetPosition, map)
@@ -112,16 +114,20 @@ public class MovementAttackDeclarationValidator : IMovementAttackDeclarationVali
         attackType != PhysicalAttackType.Charge || target is not Mech { IsProne: true };
 
     /// <summary>
+    /// The last segment that actually changes hex enters the destination hex. A path may end with
+    /// facing changes at the destination, so trailing turn-only segments are ignored.
+    /// </summary>
+    private static PathSegment? FindEnteringSegment(MovementPath path) =>
+        path.Segments.LastOrDefault(segment => segment.From.Coordinates != segment.To.Coordinates);
+
+    /// <summary>
     /// The path has to enter the target hex from an adjacent hex and pay at least the entry cost
     /// this hex charges. For a jump every hex costs one MP, so the entering segment is a single
-    /// jump step; for a ground move the entry cost is the hex entry plus the elevation change. A
-    /// path may end with facing changes at the destination, so the last segment that actually
-    /// changes hex is the one that enters the target.
+    /// jump step; for a ground move the entry cost is the hex entry plus the elevation change.
     /// </summary>
     private static bool EntersTargetHex(MovementPath path, MovementType movementType, IBattleMap map)
     {
-        var enteringSegment = path.Segments.LastOrDefault(segment =>
-            segment.From.Coordinates != segment.To.Coordinates);
+        var enteringSegment = FindEnteringSegment(path);
         if (enteringSegment is null) return false;
         if (enteringSegment.To.Coordinates != path.Destination.Coordinates) return false;
         if (enteringSegment.From.Coordinates.DistanceTo(enteringSegment.To.Coordinates) != 1) return false;
@@ -141,17 +147,22 @@ public class MovementAttackDeclarationValidator : IMovementAttackDeclarationVali
     }
 
     /// <summary>
-    /// A charge can only be made when the underlying hex levels of the attacker and target differ
-    /// by at most one level. A larger difference can only be bridged by a DFA
+    /// A charge can only be made when the underlying hex levels of the approach hex — the hex the
+    /// attacker charges from — and the target differ by at most one level. The attacker's starting
+    /// hex is irrelevant, because the attacker may have climbed or descended on the way there. A
+    /// larger difference can only be bridged by a DFA
     /// (Total Warfare, p. 149-151, Different Levels Table).
     /// </summary>
-    private static bool IsChargeLevelDifferenceAllowed(IUnit attacker, HexPosition targetPosition, IBattleMap map)
+    private static bool IsChargeLevelDifferenceAllowed(PathSegment? enteringSegment,
+        HexPosition targetPosition, IBattleMap map)
     {
-        var attackerHex = map.GetHex(attacker.Position!.Coordinates);
-        var targetHex = map.GetHex(targetPosition.Coordinates);
-        if (attackerHex is null || targetHex is null) return false;
+        if (enteringSegment is null) return false;
 
-        return Math.Abs(targetHex.Level - attackerHex.Level) <= 1;
+        var approachHex = map.GetHex(enteringSegment.From.Coordinates);
+        var targetHex = map.GetHex(targetPosition.Coordinates);
+        if (approachHex is null || targetHex is null) return false;
+
+        return Math.Abs(targetHex.Level - approachHex.Level) <= 1;
     }
 
     /// <summary>
