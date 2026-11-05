@@ -3876,6 +3876,44 @@ public class MovementPhaseTests : GamePhaseTestsBase
     }
 
     [Fact]
+    public void HandleCommand_WhenChargingAProneMech_ShouldRejectTheDeclaration()
+    {
+        // Arrange - a Mech cannot charge a prone target
+        var (attacker, target, start, middle, end) = SetUpChargeOnTheMap();
+        ((Mech)target).SetProne();
+        var idempotencyKey = Guid.NewGuid();
+        var command = MoveCommand(Game.PhaseStepState!.Value.ActivePlayer.Id,
+            [ClearStep(Position(start), Position(middle)), ClearStep(Position(middle), Position(end))],
+            MovementType.Walk, Charge(target.Id), idempotencyKey);
+
+        // Act & Assert
+        AssertDeclarationRejected(command, attacker, idempotencyKey);
+    }
+
+    [Fact]
+    public void HandleCommand_WhenDfaTargetsAProneMech_ShouldAcceptTheDeclaration()
+    {
+        // Arrange - a DFA against a prone target remains legal
+        var (attacker, target, start, middle, end) = SetUpChargeOnTheMap();
+        ((Mech)target).SetProne();
+        var centerTorso = attacker.Parts[PartLocation.CenterTorso];
+        centerTorso.TryAddComponent(new JumpJets()).ShouldBeTrue();
+        centerTorso.TryAddComponent(new JumpJets()).ShouldBeTrue();
+        var command = MoveCommand(Game.PhaseStepState!.Value.ActivePlayer.Id,
+            [
+                new PathSegment(Position(start), Position(middle), [new JumpMovementCost { Value = 1 }]),
+                new PathSegment(Position(middle), Position(end), [new JumpMovementCost { Value = 1 }])
+            ], MovementType.Jump, Dfa(target.Id));
+
+        // Act
+        _sut.HandleCommand(command);
+
+        // Assert
+        attacker.Position!.Coordinates.ShouldBe(middle);
+        attacker.DeclaredPhysicalAttack.ShouldNotBeNull().AttackType.ShouldBe(PhysicalAttackType.DFA);
+    }
+
+    [Fact]
     public void HandleCommand_WhenTheAttackerAlreadyDeclared_ShouldRejectTheDeclaration()
     {
         // Arrange
