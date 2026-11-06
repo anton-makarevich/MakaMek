@@ -78,6 +78,43 @@ public class PhysicalAttackIndicatorMotionTests
     });
 
     [Fact]
+    public Task ChargeAndDfaResolveTheirOwnIcons() => Dispatch(() =>
+    {
+        using var engine = StartEngine();
+        using var charge = CreateIndicator(PhysicalAttackType.Charge);
+        using var dfa = CreateIndicator(PhysicalAttackType.DFA);
+
+        var chargeGeometry = charge.IconPath.Data;
+        var dfaGeometry = dfa.IconPath.Data;
+        chargeGeometry.ShouldNotBeNull("the charge icon comes from the icon resources");
+        dfaGeometry.ShouldNotBeNull("the death from above icon comes from the icon resources");
+        dfaGeometry.ShouldNotBeSameAs(chargeGeometry);
+        chargeGeometry.Bounds.Width.ShouldBeGreaterThan(5);
+        chargeGeometry.Bounds.Height.ShouldBeGreaterThan(5);
+        dfaGeometry.Bounds.Width.ShouldBeGreaterThan(5);
+        dfaGeometry.Bounds.Height.ShouldBeGreaterThan(5);
+
+        PhysicalAttackIndicatorControl.IconResourceKey(PhysicalAttackType.Charge).ShouldBe("ChargeIcon");
+        PhysicalAttackIndicatorControl.IconResourceKey(PhysicalAttackType.DFA).ShouldBe("DfaIcon");
+    });
+
+    [Fact]
+    public Task CoLocatedUnitsPlaceTheBadgeInsideTheSharedHex() => Dispatch(() =>
+    {
+        // A blocked domino can leave two units in one hex: there is no edge to shift along.
+        var sharedHex = new HexCoordinates(1, 1);
+        var center = PhysicalAttackIndicatorControl.IndicatorCenter(sharedHex, sharedHex);
+        var hexCenter = HexCenter(sharedHex);
+
+        double.IsNaN(center.X).ShouldBeFalse("the centre must not be computed from a zero-length line");
+        double.IsNaN(center.Y).ShouldBeFalse();
+        Distance(center, hexCenter).ShouldBeGreaterThan(0, "the badge does not sit under the unit");
+        Distance(center, hexCenter).ShouldBe(
+            Math.Sqrt(2) * PhysicalAttackIndicatorControl.EdgeShift, 3,
+            "a co-located pair takes a fixed diagonal offset");
+    });
+
+    [Fact]
     public Task TheBadgeSitsOnTheSharedEdgeShiftedToTheRightOfTheAttack() => Dispatch(() =>
     {
         // Attacker at one end of the edge, target at the other. Pixel space grows downwards, so the

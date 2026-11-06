@@ -82,6 +82,24 @@ public class PhysicalAttackResolutionPhaseTests : GamePhaseTestsBase
     }
 
     [Fact]
+    public void Enter_PendingChargeIsSkipped_AndOtherAttacksStillResolve()
+    {
+        // Arrange: Charge resolution lands in a later slice, so the queue must skip it instead of
+        // throwing with no definition for the attack type.
+        SetMap();
+        Declare(_player1Mech, _player2Mech, PhysicalAttackType.Charge);
+        Declare(_player2Mech, _player1Mech, PhysicalAttackType.Punch, PartLocation.LeftArm);
+        ResolverReturnsMiss();
+
+        // Act
+        Should.NotThrow(() => _sut.Enter());
+
+        // Assert
+        var resolutions = PublishedCommands().OfType<PhysicalAttackResolutionCommand>().ToList();
+        resolutions.ShouldHaveSingleItem().AttackerId.ShouldBe(_player2Mech.Id);
+    }
+
+    [Fact]
     public void Enter_TwoArmPunch_ResolvesAndPublishesEachArmSeparately()
     {
         // Arrange

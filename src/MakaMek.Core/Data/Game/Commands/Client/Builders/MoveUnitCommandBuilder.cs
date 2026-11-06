@@ -1,3 +1,5 @@
+using Sanet.MakaMek.Core.Data.Game.Mechanics.PhysicalAttacks;
+using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Map.Models;
 
@@ -7,6 +9,7 @@ public class MoveUnitCommandBuilder(Guid gameId, Guid playerId) : ClientCommandB
 {
     private Guid? _unitId;
     private MovementPath? _movementPath;
+    private Guid? _movementAttackTargetId;
 
     public override bool CanBuild => 
         _unitId != null 
@@ -22,6 +25,15 @@ public class MoveUnitCommandBuilder(Guid gameId, Guid playerId) : ClientCommandB
         _movementPath = movementPath;
     }
 
+    /// <summary>
+    /// Declares a Charge or DFA against the target as part of this move. The attack type follows
+    /// the movement type once the path is set: a jump is a DFA, a walk or run is a charge.
+    /// </summary>
+    public void SetMovementAttackTarget(IUnit target)
+    {
+        _movementAttackTargetId = target.Id;
+    }
+
     public MoveUnitCommand? Build()
     {
         if (_unitId == null || _movementPath == null)
@@ -34,7 +46,8 @@ public class MoveUnitCommandBuilder(Guid gameId, Guid playerId) : ClientCommandB
             UnitId = _unitId.Value,
             MovementType = _movementPath.MovementType,
             MovementPath = _movementPath.ToData(),
-            IsCompleted = true
+            IsCompleted = true,
+            Declaration = CreateDeclaration()
         };
     }
 
@@ -42,5 +55,27 @@ public class MoveUnitCommandBuilder(Guid gameId, Guid playerId) : ClientCommandB
     {
         _unitId = null;
         _movementPath = null;
+        _movementAttackTargetId = null;
+    }
+
+    private PhysicalAttackDeclarationData? CreateDeclaration()
+    {
+        if (_unitId == null || _movementPath == null || _movementAttackTargetId is not { } targetId)
+            return null;
+
+        var attackType = _movementPath.MovementType switch
+        {
+            MovementType.Jump => PhysicalAttackType.DFA,
+            MovementType.Walk or MovementType.Run => PhysicalAttackType.Charge,
+            _ => (PhysicalAttackType?)null
+        };
+        if (attackType is not { } type) return null;
+
+        return new PhysicalAttackDeclarationData
+        {
+            AttackType = type,
+            AttackerLimbs = [],
+            TargetId = targetId
+        };
     }
 }

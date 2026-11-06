@@ -4,12 +4,15 @@ using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
+using Sanet.MakaMek.Core.Data.Game.Mechanics.PhysicalAttacks;
 using Sanet.MakaMek.Core.Data.Game.Mechanics.PilotingSkillRollContexts;
 using Sanet.MakaMek.Core.Data.Units.Components;
+using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Phases;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Units;
+using Sanet.MakaMek.Core.Models.Units.Components;
 using Sanet.MakaMek.Core.Models.Units.Components.Internal;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Models.Units.Pilots;
@@ -3589,5 +3592,802 @@ public class MovementPhaseTests : GamePhaseTestsBase
         // Assert
         CommandPublisher.Received().PublishCommand(Arg.Is<MoveUnitCommand>(cmd => cmd.UnitId == _unit1Id && cmd.MovementPath.Count == 1 && cmd.IsCompleted));
         CommandPublisher.Received().PublishCommand(Arg.Is<MechFallCommand>(cmd => cmd.UnitId == _unit1Id));
+    }
+
+    // --- Charge and DFA declarations carried by a move ---
+
+    private static PathSegment ClearStep(HexPosition from, HexPosition to) =>
+        new(from, to, [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]);
+
+    private static HexPosition Position(HexCoordinates coordinates) =>
+        new(coordinates, HexDirection.Top);
+
+    /// <summary>
+    /// A target that has already finished its move, as the movement phase requires before it can
+    /// be charged or jumped on.
+    /// </summary>
+    private IUnit DeployMovedTarget(HexCoordinates coordinates)
+    {
+        var target = Game.Players[1].Units[0];
+        var position = Position(coordinates);
+        target.Deploy(position, null);
+        target.Move(MovementPath.CreateSingleSegmentPath(position), null, true);
+        return target;
+    }
+
+    private static PhysicalAttackDeclarationData Charge(Guid targetId) => new()
+    {
+        AttackType = PhysicalAttackType.Charge,
+        AttackerLimbs = [],
+        TargetId = targetId
+    };
+
+    private static PhysicalAttackDeclarationData Dfa(Guid targetId) => new()
+    {
+        AttackType = PhysicalAttackType.DFA,
+        AttackerLimbs = [],
+        TargetId = targetId
+    };
+
+    private MoveUnitCommand MoveCommand(Guid playerId, IReadOnlyList<PathSegment> segments,
+        MovementType movementType, PhysicalAttackDeclarationData declaration, Guid? idempotencyKey = null) => new()
+    {
+        GameOriginId = Game.Id,
+        PlayerId = playerId,
+        UnitId = _unit1Id,
+        MovementType = movementType,
+        IsCompleted = true,
+        IdempotencyKey = idempotencyKey,
+        MovementPath = segments.Select(s => s.ToData()).ToList(),
+        Declaration = declaration
+    };
+
+    private (Mech Attacker, HexCoordinates Start, HexCoordinates Middle, HexCoordinates End)
+        SetUpMapAndAttacker()
+    {
+        SetMap();
+        _sut.Enter();
+        var player = Game.PhaseStepState!.Value.ActivePlayer;
+        var attacker = (Mech)player.Units.Single(u => u.Id == _unit1Id);
+        var start = new HexCoordinates(3, 3);
+        var middle = start.GetNeighbour(HexDirection.Bottom);
+        var end = middle.GetNeighbour(HexDirection.Bottom);
+        attacker.Deploy(Position(start), null);
+        return (attacker, start, middle, end);
+    }
+
+    private (Mech Attacker, IUnit Target, HexCoordinates Start, HexCoordinates Middle, HexCoordinates End)
+        SetUpChargeOnTheMap()
+    {
+        var (attacker, start, middle, end) = SetUpMapAndAttacker();
+        var target = DeployMovedTarget(end);
+        return (attacker, target, start, middle, end);
+    }
+
+    private void AssertDeclarationRejected(MoveUnitCommand command, IUnit attacker, Guid idempotencyKey)
+    {
+        CommandPublisher.ClearReceivedCalls();
+
+        _sut.HandleCommand(command);
+
+        CommandPublisher.Received(1).PublishCommand(Arg.Is<ErrorCommand>(cmd =>
+            cmd.IdempotencyKey == idempotencyKey && cmd.ErrorCode == ErrorCode.ValidationFailed));
+        CommandPublisher.DidNotReceive().PublishCommand(Arg.Any<MoveUnitCommand>());
+        attacker.HasDeclaredPhysicalAttack.ShouldBeFalse();
+        attacker.HasMoved.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void HandleCommand_WhenChargeIsValid_ShouldStoreTheDeclarationWithTheComputedDistance()
+    {
+        // Arrange
+        var (attacker, target, start, middle, end) = SetUpChargeOnTheMap();
+        var playerId = Game.PhaseStepState!.Value.ActivePlayer.Id;
+        var idempotencyKey = Guid.NewGuid();
+        var command = MoveCommand(playerId, [ClearStep(Position(start), Position(middle)),
+            ClearStep(Position(middle), Position(end))], MovementType.Walk, Charge(target.Id), idempotencyKey);
+        CommandPublisher.ClearReceivedCalls();
+
+        // Act
+        _sut.HandleCommand(command);
+
+        // Assert - the declaration is stored, the distance is the hex traversed before the target,
+        // and the attacker waits in the approach hex until the attack resolves
+        attacker.Position!.Coordinates.ShouldBe(middle);
+        attacker.MovementTaken!.Destination.Coordinates.ShouldBe(end);
+        attacker.MovementPointsSpent.ShouldBe(2, "the MP to enter the target hex is spent at declaration");
+        var declaration = attacker.DeclaredPhysicalAttack.ShouldNotBeNull();
+        declaration.AttackType.ShouldBe(PhysicalAttackType.Charge);
+        declaration.TargetId.ShouldBe(target.Id);
+        declaration.HexesMoved.ShouldBe(1);
+        CommandPublisher.DidNotReceive().PublishCommand(Arg.Any<ErrorCommand>());
+        CommandPublisher.Received(1).PublishCommand(Arg.Is<MoveUnitCommand>(cmd =>
+            cmd.IsCompleted && cmd.Declaration != null && cmd.Declaration.HexesMoved == 1));
+    }
+
+    [Fact]
+    public void HandleCommand_WhenDfaIsValid_ShouldStoreTheDeclarationAndKeepTheAttackerAirborne()
+    {
+        // Arrange
+        var (attacker, target, start, middle, end) = SetUpChargeOnTheMap();
+        var centerTorso = attacker.Parts[PartLocation.CenterTorso];
+        centerTorso.TryAddComponent(new JumpJets()).ShouldBeTrue();
+        centerTorso.TryAddComponent(new JumpJets()).ShouldBeTrue();
+        var jumpStep = new PathSegment(Position(start), Position(middle), [new JumpMovementCost { Value = 1 }]);
+        var lastJumpStep = new PathSegment(Position(middle), Position(end), [new JumpMovementCost { Value = 1 }]);
+        var command = MoveCommand(Game.PhaseStepState!.Value.ActivePlayer.Id,
+            [jumpStep, lastJumpStep], MovementType.Jump, Dfa(target.Id));
+
+        // Act
+        _sut.HandleCommand(command);
+
+        // Assert - the DFA lands when it resolves, not while the weapons are declared
+        attacker.Position!.Coordinates.ShouldBe(middle);
+        attacker.DeclaredPhysicalAttack.ShouldNotBeNull().AttackType.ShouldBe(PhysicalAttackType.DFA);
+        attacker.DeclaredPhysicalAttack!.HexesMoved.ShouldBe(1);
+    }
+
+    [Fact]
+    public void HandleCommand_WhenTheTargetHasNotMoved_ShouldRejectTheDeclaration()
+    {
+        // Arrange
+        var (attacker, target, start, middle, end) = SetUpChargeOnTheMap();
+        // Undo the target's move: a unit that can still move might move away
+        target.ResetTurnState();
+        var idempotencyKey = Guid.NewGuid();
+        var command = MoveCommand(Game.PhaseStepState!.Value.ActivePlayer.Id,
+            [ClearStep(Position(start), Position(middle)), ClearStep(Position(middle), Position(end))],
+            MovementType.Walk, Charge(target.Id), idempotencyKey);
+
+        // Act & Assert
+        AssertDeclarationRejected(command, attacker, idempotencyKey);
+    }
+
+    [Fact]
+    public void HandleCommand_WhenTheTargetIsFriendly_ShouldRejectTheDeclaration()
+    {
+        // Arrange
+        var (attacker, _, start, middle, end) = SetUpChargeOnTheMap();
+        var friendly = Game.PhaseStepState!.Value.ActivePlayer.Units[1];
+        friendly.Deploy(Position(end), null);
+        friendly.Move(MovementPath.CreateSingleSegmentPath(Position(end)), null, true);
+        var idempotencyKey = Guid.NewGuid();
+        var command = MoveCommand(Game.PhaseStepState!.Value.ActivePlayer.Id,
+            [ClearStep(Position(start), Position(middle)), ClearStep(Position(middle), Position(end))],
+            MovementType.Walk, Charge(friendly.Id), idempotencyKey);
+
+        // Act & Assert
+        AssertDeclarationRejected(command, attacker, idempotencyKey);
+    }
+
+    [Fact]
+    public void HandleCommand_WhenTheDeclarationHasLimbs_ShouldRejectIt()
+    {
+        // Arrange
+        var (attacker, target, start, middle, end) = SetUpChargeOnTheMap();
+        var idempotencyKey = Guid.NewGuid();
+        var declaration = Charge(target.Id) with { AttackerLimbs = [PartLocation.LeftArm] };
+        var command = MoveCommand(Game.PhaseStepState!.Value.ActivePlayer.Id,
+            [ClearStep(Position(start), Position(middle)), ClearStep(Position(middle), Position(end))],
+            MovementType.Walk, declaration, idempotencyKey);
+
+        // Act & Assert
+        AssertDeclarationRejected(command, attacker, idempotencyKey);
+    }
+
+    [Fact]
+    public void HandleCommand_WhenTheDeclarationHasNullLimbs_ShouldRejectIt()
+    {
+        // Arrange - a crafted payload can carry a null limb collection
+        var (attacker, target, start, middle, end) = SetUpChargeOnTheMap();
+        var idempotencyKey = Guid.NewGuid();
+        var declaration = Charge(target.Id) with { AttackerLimbs = null! };
+        var command = MoveCommand(Game.PhaseStepState!.Value.ActivePlayer.Id,
+            [ClearStep(Position(start), Position(middle)), ClearStep(Position(middle), Position(end))],
+            MovementType.Walk, declaration, idempotencyKey);
+
+        // Act & Assert
+        AssertDeclarationRejected(command, attacker, idempotencyKey);
+    }
+
+    [Fact]
+    public void HandleCommand_WhenTheMovementModeDoesNotMatchTheAttack_ShouldRejectIt()
+    {
+        // Arrange
+        var (attacker, target, start, middle, end) = SetUpChargeOnTheMap();
+        var idempotencyKey = Guid.NewGuid();
+        var command = MoveCommand(Game.PhaseStepState!.Value.ActivePlayer.Id,
+            [ClearStep(Position(start), Position(middle)), ClearStep(Position(middle), Position(end))],
+            MovementType.Walk, Dfa(target.Id), idempotencyKey);
+
+        // Act & Assert
+        AssertDeclarationRejected(command, attacker, idempotencyKey);
+    }
+
+    [Fact]
+    public void HandleCommand_WhenThePathEndsElsewhere_ShouldRejectTheDeclaration()
+    {
+        // Arrange
+        var (attacker, target, start, middle, _) = SetUpChargeOnTheMap();
+        var idempotencyKey = Guid.NewGuid();
+        var command = MoveCommand(Game.PhaseStepState!.Value.ActivePlayer.Id,
+            [ClearStep(Position(start), Position(middle))],
+            MovementType.Walk, Charge(target.Id), idempotencyKey);
+
+        // Act & Assert
+        AssertDeclarationRejected(command, attacker, idempotencyKey);
+    }
+
+    [Fact]
+    public void HandleCommand_WhenTheEntryCostIsNotPaid_ShouldRejectTheDeclaration()
+    {
+        // Arrange
+        var (attacker, target, start, middle, end) = SetUpChargeOnTheMap();
+        var idempotencyKey = Guid.NewGuid();
+        var freeStep = new PathSegment(Position(middle), Position(end),
+            [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 0 }]);
+        var command = MoveCommand(Game.PhaseStepState!.Value.ActivePlayer.Id,
+            [ClearStep(Position(start), Position(middle)), freeStep],
+            MovementType.Walk, Charge(target.Id), idempotencyKey);
+
+        // Act & Assert
+        AssertDeclarationRejected(command, attacker, idempotencyKey);
+    }
+
+    [Fact]
+    public void HandleCommand_WhenTheMoveExceedsTheRemainingPoints_ShouldRejectTheDeclaration()
+    {
+        // Arrange
+        var (attacker, target, start, middle, end) = SetUpChargeOnTheMap();
+        var centerTorso = attacker.Parts[PartLocation.CenterTorso];
+        centerTorso.TryAddComponent(new JumpJets()).ShouldBeTrue(); // a single jump MP
+        var idempotencyKey = Guid.NewGuid();
+        var command = MoveCommand(Game.PhaseStepState!.Value.ActivePlayer.Id,
+            [
+                new PathSegment(Position(start), Position(middle), [new JumpMovementCost { Value = 1 }]),
+                new PathSegment(Position(middle), Position(end), [new JumpMovementCost { Value = 1 }])
+            ], MovementType.Jump, Dfa(target.Id), idempotencyKey);
+
+        // Act & Assert
+        AssertDeclarationRejected(command, attacker, idempotencyKey);
+    }
+
+    [Fact]
+    public void HandleCommand_WhenChargeLevelDifferenceExceedsOne_ShouldRejectTheDeclaration()
+    {
+        // Arrange - the target is two levels above the attacker, which only a DFA can bridge
+        var (attacker, target, start, middle, end) = SetUpChargeOnTheMap();
+        Game.BattleMap!.AddHex(new Hex(end, 2));
+        var climbStep = new PathSegment(Position(middle), Position(end),
+            [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 3 }]);
+        var idempotencyKey = Guid.NewGuid();
+        var command = MoveCommand(Game.PhaseStepState!.Value.ActivePlayer.Id,
+            [ClearStep(Position(start), Position(middle)), climbStep],
+            MovementType.Walk, Charge(target.Id), idempotencyKey);
+
+        // Act & Assert
+        AssertDeclarationRejected(command, attacker, idempotencyKey);
+    }
+
+    [Fact]
+    public void HandleCommand_WhenChargeLevelDifferenceIsOne_ShouldAcceptTheDeclaration()
+    {
+        // Arrange - a target one level higher is a legal charge
+        var (attacker, target, start, middle, end) = SetUpChargeOnTheMap();
+        Game.BattleMap!.AddHex(new Hex(end, 1));
+        var climbStep = new PathSegment(Position(middle), Position(end),
+            [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 2 }]);
+        var command = MoveCommand(Game.PhaseStepState!.Value.ActivePlayer.Id,
+            [ClearStep(Position(start), Position(middle)), climbStep],
+            MovementType.Walk, Charge(target.Id));
+
+        // Act
+        _sut.HandleCommand(command);
+
+        // Assert
+        attacker.Position!.Coordinates.ShouldBe(middle);
+        attacker.DeclaredPhysicalAttack.ShouldNotBeNull().AttackType.ShouldBe(PhysicalAttackType.Charge);
+    }
+
+    [Fact]
+    public void HandleCommand_WhenTheStartHexLevelDiffersFromTheApproachHex_ShouldAcceptTheCharge()
+    {
+        // Arrange - the attacker starts a hill two levels above the target, but reaches the target's
+        // level before entering its hex, so only the approach hex matters for the level difference
+        var (attacker, target, start, middle, end) = SetUpChargeOnTheMap();
+        Game.BattleMap!.AddHex(new Hex(start, 2));
+        var command = MoveCommand(Game.PhaseStepState!.Value.ActivePlayer.Id,
+            [ClearStep(Position(start), Position(middle)), ClearStep(Position(middle), Position(end))],
+            MovementType.Walk, Charge(target.Id));
+
+        // Act
+        _sut.HandleCommand(command);
+
+        // Assert
+        attacker.Position!.Coordinates.ShouldBe(middle);
+        attacker.DeclaredPhysicalAttack.ShouldNotBeNull().AttackType.ShouldBe(PhysicalAttackType.Charge);
+    }
+
+    [Fact]
+    public void HandleCommand_WhenTheApproachHexLevelDiffersFromTheTarget_ShouldRejectTheCharge()
+    {
+        // Arrange - the attacker starts one level above the target, but charges from a hex two levels
+        // above it, which no Charge can bridge regardless of the starting hex
+        var (attacker, target, start, middle, end) = SetUpChargeOnTheMap();
+        Game.BattleMap!.AddHex(new Hex(start, 1));
+        Game.BattleMap!.AddHex(new Hex(middle, 2));
+        var climbStep = new PathSegment(Position(start), Position(middle),
+            [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 2 }]);
+        var dropStep = new PathSegment(Position(middle), Position(end),
+            [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 3 }]);
+        var idempotencyKey = Guid.NewGuid();
+        var command = MoveCommand(Game.PhaseStepState!.Value.ActivePlayer.Id,
+            [climbStep, dropStep], MovementType.Walk, Charge(target.Id), idempotencyKey);
+
+        // Act & Assert
+        AssertDeclarationRejected(command, attacker, idempotencyKey);
+    }
+
+    [Fact]
+    public void HandleCommand_WhenTheTargetStandsInDepthOneWaterTwoEffectiveLevelsDown_ShouldRejectTheCharge()
+    {
+        // Arrange - the approach hex is one level above the target hex, but the Depth 1 water
+        // drops the target's effective standing level to two levels below the attacker; raw hex
+        // levels would wrongly allow this charge
+        var (attacker, target, start, middle, end) = SetUpChargeOnTheMap();
+        Game.BattleMap!.AddHex(new Hex(middle, 1));
+        Game.BattleMap!.GetHex(end)!.AddTerrain(new WaterTerrain(-1));
+        var waterStep = new PathSegment(Position(middle), Position(end),
+            [new TerrainMovementCost { TerrainId = MakaMekTerrains.Water, Value = 4 }]);
+        var idempotencyKey = Guid.NewGuid();
+        var command = MoveCommand(Game.PhaseStepState!.Value.ActivePlayer.Id,
+            [ClearStep(Position(start), Position(middle)), waterStep],
+            MovementType.Walk, Charge(target.Id), idempotencyKey);
+
+        // Act & Assert
+        AssertDeclarationRejected(command, attacker, idempotencyKey);
+    }
+
+    [Fact]
+    public void HandleCommand_WhenTheTargetStandsInDepthOneWaterOneEffectiveLevelDown_ShouldAcceptTheCharge()
+    {
+        // Arrange - Depth 1 water drops the target one level, which a charge can still reach
+        var (attacker, target, start, middle, end) = SetUpChargeOnTheMap();
+        Game.BattleMap!.GetHex(end)!.AddTerrain(new WaterTerrain(-1));
+        var waterStep = new PathSegment(Position(middle), Position(end),
+            [new TerrainMovementCost { TerrainId = MakaMekTerrains.Water, Value = 3 }]);
+        MockFallProcessor.ProcessMovementAttempt(attacker,
+                Arg.Is<EnteringDeepWaterRollContext>(c => c.WaterDepth == 1),
+                Game, MovementType.Walk, Arg.Any<HexPosition?>())
+            .Returns(new FallContextData
+            {
+                UnitId = attacker.Id,
+                GameId = Game.Id,
+                IsFalling = false,
+                PilotingSkillRoll = new PilotingSkillRollData
+                {
+                    RollContext = new EnteringDeepWaterRollContext(1),
+                    DiceResults = [6, 6],
+                    IsSuccessful = true,
+                    PsrBreakdown = new PsrBreakdown { BasePilotingSkill = 4, Modifiers = [] }
+                }
+            });
+        var command = MoveCommand(Game.PhaseStepState!.Value.ActivePlayer.Id,
+            [ClearStep(Position(start), Position(middle)), waterStep],
+            MovementType.Walk, Charge(target.Id));
+
+        // Act
+        _sut.HandleCommand(command);
+
+        // Assert
+        attacker.Position!.Coordinates.ShouldBe(middle);
+        attacker.DeclaredPhysicalAttack.ShouldNotBeNull().AttackType.ShouldBe(PhysicalAttackType.Charge);
+    }
+
+    [Fact]
+    public void HandleCommand_WhenTheChargeTargetIsSubmerged_ShouldRejectTheCharge()
+    {
+        // Arrange - a Depth 2 target is fully submerged, so a surface attacker cannot charge it
+        // even though the raw hex levels and the effective levels are equal
+        var (attacker, target, start, middle, end) = SetUpChargeOnTheMap();
+        Game.BattleMap!.AddHex(new Hex(middle, 1));
+        var waterHex = new Hex(end, 1);
+        waterHex.AddTerrain(new WaterTerrain(-2));
+        Game.BattleMap!.AddHex(waterHex);
+        var waterStep = new PathSegment(Position(middle), Position(end),
+            [new TerrainMovementCost { TerrainId = MakaMekTerrains.Water, Value = 6 }]);
+        var idempotencyKey = Guid.NewGuid();
+        var command = MoveCommand(Game.PhaseStepState!.Value.ActivePlayer.Id,
+            [ClearStep(Position(start), Position(middle)), waterStep],
+            MovementType.Run, Charge(target.Id), idempotencyKey);
+
+        // Act & Assert
+        AssertDeclarationRejected(command, attacker, idempotencyKey);
+    }
+
+    [Fact]
+    public void HandleCommand_WhenChargingFromSubmergedWater_ShouldRejectTheCharge()
+    {
+        // Arrange - a submerged attacker can only attack another submerged unit, so it cannot
+        // charge a surface target even when the effective level difference is one
+        var (attacker, target, start, middle, end) = SetUpChargeOnTheMap();
+        var waterHex = new Hex(middle, 1);
+        waterHex.AddTerrain(new WaterTerrain(-2));
+        Game.BattleMap!.AddHex(waterHex);
+        var climbStep = new PathSegment(Position(start), Position(middle),
+            [new TerrainMovementCost { TerrainId = MakaMekTerrains.Water, Value = 5 }]);
+        var chargeStep = new PathSegment(Position(middle), Position(end),
+            [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 2 }]);
+        var idempotencyKey = Guid.NewGuid();
+        var command = MoveCommand(Game.PhaseStepState!.Value.ActivePlayer.Id,
+            [climbStep, chargeStep], MovementType.Run, Charge(target.Id), idempotencyKey);
+
+        // Act & Assert
+        AssertDeclarationRejected(command, attacker, idempotencyKey);
+    }
+
+    [Fact]
+    public void HandleCommand_WhenTheDfaTargetIsSubmerged_ShouldRejectTheDeclaration()
+    {
+        // Arrange - a DFA bridges level differences, but it cannot reach a fully submerged target
+        var (attacker, target, start, middle, end) = SetUpChargeOnTheMap();
+        Game.BattleMap!.AddHex(new Hex(middle, 1));
+        var waterHex = new Hex(end, 1);
+        waterHex.AddTerrain(new WaterTerrain(-2));
+        Game.BattleMap!.AddHex(waterHex);
+        var centerTorso = attacker.Parts[PartLocation.CenterTorso];
+        centerTorso.TryAddComponent(new JumpJets()).ShouldBeTrue();
+        centerTorso.TryAddComponent(new JumpJets()).ShouldBeTrue();
+        var idempotencyKey = Guid.NewGuid();
+        var command = MoveCommand(Game.PhaseStepState!.Value.ActivePlayer.Id,
+            [
+                new PathSegment(Position(start), Position(middle), [new JumpMovementCost { Value = 1 }]),
+                new PathSegment(Position(middle), Position(end), [new JumpMovementCost { Value = 1 }])
+            ], MovementType.Jump, Dfa(target.Id), idempotencyKey);
+
+        // Act & Assert
+        AssertDeclarationRejected(command, attacker, idempotencyKey);
+    }
+
+    [Fact]
+    public void HandleCommand_WhenTheChargePathReverses_ShouldCountOnlyHexesAfterTheLastReversal()
+    {
+        // Arrange - two backward hexes followed by two forward hexes ending on the target
+        var (attacker, start, middle, end) = SetUpMapAndAttacker();
+        var forward1 = end.GetNeighbour(HexDirection.Bottom);
+        var targetHex = forward1.GetNeighbour(HexDirection.Bottom);
+        var target = DeployMovedTarget(targetHex);
+        var command = MoveCommand(Game.PhaseStepState!.Value.ActivePlayer.Id,
+            [
+                new PathSegment(Position(start), Position(middle),
+                    [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }], true),
+                new PathSegment(Position(middle), Position(end),
+                    [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }], true),
+                ClearStep(Position(end), Position(forward1)),
+                ClearStep(Position(forward1), Position(targetHex))
+            ], MovementType.Walk, Charge(target.Id));
+
+        // Act
+        _sut.HandleCommand(command);
+
+        // Assert - the forward leg entered forward1 and the target; only forward1 counts
+        attacker.DeclaredPhysicalAttack.ShouldNotBeNull().HexesMoved.ShouldBe(1);
+    }
+
+    [Fact]
+    public void HandleCommand_WhenTheChargePathRevisitsAHex_ShouldCountEveryEntry()
+    {
+        // Arrange - the path leaves and re-enters the approach hex without a direction reversal
+        var (attacker, start, middle, end) = SetUpMapAndAttacker();
+        var target = DeployMovedTarget(end);
+        var command = MoveCommand(Game.PhaseStepState!.Value.ActivePlayer.Id,
+            [
+                ClearStep(Position(start), Position(middle)),
+                ClearStep(Position(middle), Position(end)),
+                ClearStep(Position(end), Position(middle)),
+                ClearStep(Position(middle), Position(end))
+            ], MovementType.Walk, Charge(target.Id));
+
+        // Act
+        _sut.HandleCommand(command);
+
+        // Assert - middle and end were each entered twice; the target (end) is excluded, so three
+        // entries remain
+        attacker.DeclaredPhysicalAttack.ShouldNotBeNull().HexesMoved.ShouldBe(3);
+    }
+
+    [Fact]
+    public void HandleCommand_WhenTheTargetIsAlreadyReserved_ShouldRejectTheDeclaration()
+    {
+        // Arrange
+        var (attacker, target, start, middle, end) = SetUpChargeOnTheMap();
+        var reservingUnit = Game.PhaseStepState!.Value.ActivePlayer.Units[1];
+        reservingUnit.Deploy(Position(start.GetNeighbour(HexDirection.Top)), null);
+        reservingUnit.DeclarePhysicalAttack(new PhysicalAttackDeclarationData
+        {
+            AttackType = PhysicalAttackType.Push,
+            AttackerLimbs = [PartLocation.LeftArm, PartLocation.RightArm],
+            TargetId = target.Id
+        });
+        var idempotencyKey = Guid.NewGuid();
+        var command = MoveCommand(Game.PhaseStepState!.Value.ActivePlayer.Id,
+            [ClearStep(Position(start), Position(middle)), ClearStep(Position(middle), Position(end))],
+            MovementType.Walk, Charge(target.Id), idempotencyKey);
+
+        // Act & Assert
+        AssertDeclarationRejected(command, attacker, idempotencyKey);
+    }
+
+    [Fact]
+    public void HandleCommand_WhenTheTargetIsPerformingAMovementAttack_ShouldRejectTheDeclaration()
+    {
+        // Arrange - a unit that is itself charging or jumping does not finish its movement until
+        // the Physical Attack Phase, so it cannot be the target of another Charge or DFA
+        var (attacker, target, start, middle, end) = SetUpChargeOnTheMap();
+        target.DeclarePhysicalAttack(Charge(attacker.Id));
+        var idempotencyKey = Guid.NewGuid();
+        var command = MoveCommand(Game.PhaseStepState!.Value.ActivePlayer.Id,
+            [ClearStep(Position(start), Position(middle)), ClearStep(Position(middle), Position(end))],
+            MovementType.Walk, Charge(target.Id), idempotencyKey);
+
+        // Act & Assert
+        AssertDeclarationRejected(command, attacker, idempotencyKey);
+    }
+
+    [Fact]
+    public void HandleCommand_WhenChargingAProneMech_ShouldRejectTheDeclaration()
+    {
+        // Arrange - a Mech cannot charge a prone target
+        var (attacker, target, start, middle, end) = SetUpChargeOnTheMap();
+        ((Mech)target).SetProne();
+        var idempotencyKey = Guid.NewGuid();
+        var command = MoveCommand(Game.PhaseStepState!.Value.ActivePlayer.Id,
+            [ClearStep(Position(start), Position(middle)), ClearStep(Position(middle), Position(end))],
+            MovementType.Walk, Charge(target.Id), idempotencyKey);
+
+        // Act & Assert
+        AssertDeclarationRejected(command, attacker, idempotencyKey);
+    }
+
+    [Fact]
+    public void HandleCommand_WhenDfaTargetsAProneMech_ShouldAcceptTheDeclaration()
+    {
+        // Arrange - a DFA against a prone target remains legal
+        var (attacker, target, start, middle, end) = SetUpChargeOnTheMap();
+        ((Mech)target).SetProne();
+        var centerTorso = attacker.Parts[PartLocation.CenterTorso];
+        centerTorso.TryAddComponent(new JumpJets()).ShouldBeTrue();
+        centerTorso.TryAddComponent(new JumpJets()).ShouldBeTrue();
+        var command = MoveCommand(Game.PhaseStepState!.Value.ActivePlayer.Id,
+            [
+                new PathSegment(Position(start), Position(middle), [new JumpMovementCost { Value = 1 }]),
+                new PathSegment(Position(middle), Position(end), [new JumpMovementCost { Value = 1 }])
+            ], MovementType.Jump, Dfa(target.Id));
+
+        // Act
+        _sut.HandleCommand(command);
+
+        // Assert
+        attacker.Position!.Coordinates.ShouldBe(middle);
+        attacker.DeclaredPhysicalAttack.ShouldNotBeNull().AttackType.ShouldBe(PhysicalAttackType.DFA);
+    }
+
+    [Fact]
+    public void HandleCommand_WhenDfaCannotClearTheTargetHeight_ShouldRejectTheDeclaration()
+    {
+        // Arrange - the target stands on a Level 3 hill and is two levels high, so the DFA needs
+        // 5 Jumping MP even though the adjacent jump only costs 1 MP
+        var (attacker, target, start, middle, end) = SetUpChargeOnTheMap();
+        Game.BattleMap!.AddHex(new Hex(end, 3));
+        var centerTorso = attacker.Parts[PartLocation.CenterTorso];
+        centerTorso.TryAddComponent(new JumpJets()).ShouldBeTrue();
+        centerTorso.TryAddComponent(new JumpJets()).ShouldBeTrue();
+        var idempotencyKey = Guid.NewGuid();
+        var command = MoveCommand(Game.PhaseStepState!.Value.ActivePlayer.Id,
+            [
+                new PathSegment(Position(start), Position(middle), [new JumpMovementCost { Value = 1 }]),
+                new PathSegment(Position(middle), Position(end), [new JumpMovementCost { Value = 1 }])
+            ], MovementType.Jump, Dfa(target.Id), idempotencyKey);
+
+        // Act & Assert
+        AssertDeclarationRejected(command, attacker, idempotencyKey);
+    }
+
+    [Fact]
+    public void HandleCommand_WhenDfaCanClearTheTargetHeight_ShouldAcceptTheDeclaration()
+    {
+        // Arrange - 5 Jumping MP clear the Level 3 hill plus the two-level height of a standing Mech
+        var (attacker, target, start, middle, end) = SetUpChargeOnTheMap();
+        Game.BattleMap!.AddHex(new Hex(end, 3));
+        attacker.Parts[PartLocation.CenterTorso].TryAddComponent(new JumpJets()).ShouldBeTrue();
+        attacker.Parts[PartLocation.CenterTorso].TryAddComponent(new JumpJets()).ShouldBeTrue();
+        attacker.Parts[PartLocation.LeftTorso].TryAddComponent(new JumpJets()).ShouldBeTrue();
+        attacker.Parts[PartLocation.LeftTorso].TryAddComponent(new JumpJets()).ShouldBeTrue();
+        attacker.Parts[PartLocation.RightTorso].TryAddComponent(new JumpJets()).ShouldBeTrue();
+        var command = MoveCommand(Game.PhaseStepState!.Value.ActivePlayer.Id,
+            [
+                new PathSegment(Position(start), Position(middle), [new JumpMovementCost { Value = 1 }]),
+                new PathSegment(Position(middle), Position(end), [new JumpMovementCost { Value = 1 }])
+            ], MovementType.Jump, Dfa(target.Id));
+
+        // Act
+        _sut.HandleCommand(command);
+
+        // Assert
+        attacker.Position!.Coordinates.ShouldBe(middle);
+        attacker.DeclaredPhysicalAttack.ShouldNotBeNull().AttackType.ShouldBe(PhysicalAttackType.DFA);
+    }
+
+    [Fact]
+    public void HandleCommand_WhenTheAttackerAlreadyDeclared_ShouldRejectTheDeclaration()
+    {
+        // Arrange
+        var (attacker, target, start, middle, end) = SetUpChargeOnTheMap();
+        attacker.DeclarePhysicalAttack(new PhysicalAttackDeclarationData
+        {
+            AttackType = PhysicalAttackType.Punch,
+            AttackerLimbs = [PartLocation.LeftArm],
+            TargetId = target.Id
+        });
+        var idempotencyKey = Guid.NewGuid();
+        var command = MoveCommand(Game.PhaseStepState!.Value.ActivePlayer.Id,
+            [ClearStep(Position(start), Position(middle)), ClearStep(Position(middle), Position(end))],
+            MovementType.Walk, Charge(target.Id), idempotencyKey);
+
+        // Act & Assert
+        _sut.HandleCommand(command);
+        CommandPublisher.Received(1).PublishCommand(Arg.Is<ErrorCommand>(cmd => cmd.IdempotencyKey == idempotencyKey));
+        attacker.DeclaredPhysicalAttack!.AttackType.ShouldBe(PhysicalAttackType.Punch);
+    }
+
+    [Fact]
+    public void HandleCommand_WhenThePathEndsWithAFacingChange_ShouldAcceptTheCharge()
+    {
+        // Arrange - the path finder may append rotation segments after the unit enters the target
+        var (attacker, target, start, middle, end) = SetUpChargeOnTheMap();
+        var turnAtTarget = new PathSegment(
+            new HexPosition(end, HexDirection.Top),
+            new HexPosition(end, HexDirection.Bottom),
+            [new RotationMovementCost { FromFacing = HexDirection.Top, ToFacing = HexDirection.Bottom, Value = 1 }]);
+        var command = MoveCommand(Game.PhaseStepState!.Value.ActivePlayer.Id,
+            [ClearStep(Position(start), Position(middle)), ClearStep(Position(middle), Position(end)), turnAtTarget],
+            MovementType.Walk, Charge(target.Id));
+
+        // Act
+        _sut.HandleCommand(command);
+
+        // Assert - the trailing turn keeps the unit in the approach hex, facing the target
+        attacker.Position!.Coordinates.ShouldBe(middle);
+        attacker.DeclaredPhysicalAttack.ShouldNotBeNull().HexesMoved.ShouldBe(1);
+    }
+
+    [Fact]
+    public void HandleCommand_WhenTheMoveIsDeferred_ShouldCountTheCombinedPath()
+    {
+        // Arrange - the unit already executed part of its move and now continues it with a charge
+        var (attacker, start, middle, end) = SetUpMapAndAttacker();
+        var afterMid = end.GetNeighbour(HexDirection.Bottom);
+        var targetHex = afterMid.GetNeighbour(HexDirection.Bottom);
+        var declaredTarget = DeployMovedTarget(targetHex);
+        attacker.Move(new MovementPath([ClearStep(Position(start), Position(middle))], MovementType.Walk),
+            null, false);
+        var command = MoveCommand(Game.PhaseStepState!.Value.ActivePlayer.Id,
+            [ClearStep(Position(middle), Position(end)), ClearStep(Position(end), Position(afterMid)),
+                ClearStep(Position(afterMid), Position(targetHex))],
+            MovementType.Walk, Charge(declaredTarget.Id));
+
+        // Act
+        _sut.HandleCommand(command);
+
+        // Assert - the executed and the continuation hexes count, the origin and the target do not
+        attacker.DeclaredPhysicalAttack.ShouldNotBeNull().HexesMoved.ShouldBe(3);
+    }
+
+    [Fact]
+    public void HandleCommand_WhenAnInterruptTruncatesTheMove_ShouldNotStoreTheDeclaration()
+    {
+        // Arrange - a run that skids on a road never completes the charge
+        SetMap();
+        _sut.Enter();
+        var player = Game.PhaseStepState!.Value.ActivePlayer;
+        var unit = (Mech)player.Units.Single(u => u.Id == _unit1Id);
+        var start = new HexPosition(1, 2, HexDirection.Top);
+        unit.Deploy(start, null);
+        var roadHex = Game.BattleMap!.GetHex(new HexCoordinates(2, 2));
+        roadHex!.AddTerrain(new RoadTerrain());
+        var targetHex = new HexCoordinates(3, 2);
+        var target = DeployMovedTarget(targetHex);
+        var command = MoveCommand(player.Id,
+            [
+                new PathSegment(start, new HexPosition(2, 2, HexDirection.Top),
+                    [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]),
+                new PathSegment(new HexPosition(2, 2, HexDirection.Top), new HexPosition(2, 2, HexDirection.Bottom),
+                    [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 0 }]),
+                new PathSegment(new HexPosition(2, 2, HexDirection.Bottom), new HexPosition(3, 2, HexDirection.Bottom),
+                    [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])
+            ], MovementType.Run, Charge(target.Id));
+        MockFallProcessor.ProcessMovementAttempt(unit,
+                Arg.Is<SkidCheckRollContext>(c => c.SkidDistance == 1 && c.HexesMoved == 1),
+                Game, MovementType.Run, Arg.Any<HexPosition?>())
+            .Returns(new FallContextData
+            {
+                UnitId = unit.Id,
+                GameId = Game.Id,
+                IsFalling = true,
+                PilotingSkillRoll = new PilotingSkillRollData
+                {
+                    RollContext = new SkidCheckRollContext(1, 3),
+                    DiceResults = [2, 2],
+                    IsSuccessful = false,
+                    PsrBreakdown = new PsrBreakdown { BasePilotingSkill = 4, Modifiers = [] }
+                },
+                FallingDamageData = new FallingDamageData(
+                    HexDirection.Top,
+                    new HitLocationsData([], 5),
+                    new DiceResult(3), HitDirection.Front
+                )
+            });
+
+        // Act
+        _sut.HandleCommand(command);
+
+        // Assert
+        CommandPublisher.Received(1).PublishCommand(Arg.Is<MoveUnitCommand>(cmd =>
+            cmd.UnitId == _unit1Id && cmd.Declaration == null));
+        unit.HasDeclaredPhysicalAttack.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void HandleCommand_WhenAValidDfaLandsInAHazard_ShouldKeepTheDeclaration()
+    {
+        // Arrange - the landing PSR fails after the declaration was applied
+        SetMap();
+        _sut.Enter();
+        var player = Game.PhaseStepState!.Value.ActivePlayer;
+        var unit = (Mech)player.Units.Single(u => u.Id == _unit1Id);
+        var start = new HexCoordinates(1, 3);
+        var middle = start.GetNeighbour(HexDirection.Top);
+        var end = middle.GetNeighbour(HexDirection.Top);
+        unit.Deploy(Position(start), null);
+        var centerTorso = unit.Parts[PartLocation.CenterTorso];
+        centerTorso.TryAddComponent(new JumpJets()).ShouldBeTrue();
+        centerTorso.TryAddComponent(new JumpJets()).ShouldBeTrue();
+        unit.GetAllComponents<Gyro>().First().Hit();
+        var target = DeployMovedTarget(end);
+        var fallContextData = new FallContextData
+        {
+            UnitId = unit.Id,
+            GameId = Game.Id,
+            IsFalling = true,
+            PilotingSkillRoll = new PilotingSkillRollData
+            {
+                RollContext = new PilotingSkillRollContext(PilotingSkillRollType.JumpWithDamage),
+                DiceResults = [2, 2],
+                IsSuccessful = false,
+                PsrBreakdown = new PsrBreakdown { BasePilotingSkill = 4, Modifiers = [] }
+            },
+            FallingDamageData = new FallingDamageData(
+                HexDirection.Top,
+                new HitLocationsData([], 5),
+                new DiceResult(3), HitDirection.Front
+            )
+        };
+        MockFallProcessor.ProcessMovementAttempt(unit,
+                Arg.Is<PilotingSkillRollContext>(c => c.RollType == PilotingSkillRollType.JumpWithDamage),
+                Game, MovementType.Jump)
+            .Returns(fallContextData);
+        var command = MoveCommand(player.Id,
+            [
+                new PathSegment(Position(start), Position(middle), [new JumpMovementCost { Value = 1 }]),
+                new PathSegment(Position(middle), Position(end), [new JumpMovementCost { Value = 1 }])
+            ], MovementType.Jump, Dfa(target.Id));
+
+        // Act
+        _sut.HandleCommand(command);
+
+        // Assert - a landing hazard does not void the declaration
+        CommandPublisher.Received().PublishCommand(Arg.Is<MechFallCommand>(cmd => cmd.UnitId == _unit1Id));
+        unit.HasPendingMovementAttack.ShouldBeTrue();
+        unit.Position!.Coordinates.ShouldBe(middle, "the attacker fell before entering the target hex");
     }
 }

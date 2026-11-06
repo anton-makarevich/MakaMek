@@ -128,7 +128,9 @@ internal sealed class PhysicalAttackIndicatorControl : Grid, IDisposable
 
     /// <summary>
     /// The centre of the badge in map pixels: the middle of the shared edge, shifted to the right of
-    /// the attack direction so mutual declarations do not overlap.
+    /// the attack direction so mutual declarations do not overlap. Units can end up sharing a hex
+    /// (a blocked domino leaves two of them there), where there is no edge to shift along; the badge
+    /// then takes a fixed offset inside that shared hex.
     /// </summary>
     internal static Point IndicatorCenter(HexCoordinates from, HexCoordinates to)
     {
@@ -139,7 +141,8 @@ internal sealed class PhysicalAttackIndicatorControl : Grid, IDisposable
         var dx = toCenter.X - fromCenter.X;
         var dy = toCenter.Y - fromCenter.Y;
         var length = Math.Sqrt(dx * dx + dy * dy);
-        if (length < double.Epsilon) return midpoint;
+        if (length < double.Epsilon)
+            return new Point(midpoint.X + EdgeShift, midpoint.Y - EdgeShift);
 
         // Pixel coordinates grow downwards, so the right of the attack direction is (-dy, dx).
         return new Point(
@@ -148,14 +151,16 @@ internal sealed class PhysicalAttackIndicatorControl : Grid, IDisposable
     }
 
     /// <summary>
-    /// The resource key of the icon for an attack type. Punch, Kick and Push each have their own
-    /// icon so the declaration badge is unambiguous; anything else falls back to the punch icon
-    /// rather than drawing nothing.
+    /// The resource key of the icon for an attack type. Punch, Kick, Push, Charge and DFA each have
+    /// their own icon so the declaration badge is unambiguous; anything else falls back to the
+    /// punch icon rather than drawing nothing.
     /// </summary>
     internal static string IconResourceKey(PhysicalAttackType attackType) => attackType switch
     {
         PhysicalAttackType.Kick => "KickIcon",
         PhysicalAttackType.Push => "PushIcon",
+        PhysicalAttackType.Charge => "ChargeIcon",
+        PhysicalAttackType.DFA => "DfaIcon",
         _ => "PunchIcon"
     };
 

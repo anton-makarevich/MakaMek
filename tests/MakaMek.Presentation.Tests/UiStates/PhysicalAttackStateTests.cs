@@ -867,6 +867,27 @@ public class PhysicalAttackStateTests
     }
 
     [Fact]
+    public void HandleUnitSelectionFromList_DoesNotSelectAUnitThatAlreadyCharged()
+    {
+        // Arrange - the unit declared a Charge while moving, so it cannot attack in this phase
+        DeployPair();
+        Attacker.DeclarePhysicalAttack(new PhysicalAttackDeclarationData
+        {
+            AttackType = PhysicalAttackType.Charge,
+            AttackerLimbs = [],
+            TargetId = Enemy.Id
+        });
+
+        // Act
+        _sut.HandleUnitSelectionFromList(Attacker);
+        _sut.HandleHexSelection(new Hex(AttackerHex));
+
+        // Assert
+        _sut.Attacker.ShouldBeNull();
+        _sut.CurrentStep.ShouldNotBe(PhysicalAttackStep.TargetSelection);
+    }
+
+    [Fact]
     public void HandleUnitSelectionFromList_WithAnUnreachableEnemy_InTargetSelection_IsIgnored()
     {
         DeployPair();

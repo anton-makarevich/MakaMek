@@ -1,4 +1,5 @@
 using System.Text;
+using Sanet.MakaMek.Core.Data.Game.Mechanics.PhysicalAttacks;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.Localization;
 using Sanet.MakaMek.Map.Data;
@@ -12,6 +13,13 @@ public record struct MoveUnitCommand: IClientUnitCommand
     public required Guid GameOriginId { get; set; }
     public DateTime Timestamp { get; set; }
     public Guid? IdempotencyKey { get; init; }
+
+    /// <summary>
+    /// The Charge or DFA declaration carried by this move, or null when the unit attacks nothing.
+    /// The server validates it, computes <see cref="PhysicalAttackDeclarationData.HexesMoved"/> and
+    /// rebroadcasts the move with the stored declaration.
+    /// </summary>
+    public PhysicalAttackDeclarationData? Declaration { get; init; }
 
     public string GetPayloadHash()
     {
@@ -52,6 +60,18 @@ public record struct MoveUnitCommand: IClientUnitCommand
             sb.Append(':');
             sb.Append(segment.ElevationChange);
         }
+
+        // The declaration changes what the move means, so it belongs to the command identity.
+        if (Declaration is { } declaration)
+        {
+            sb.Append('|');
+            sb.Append((int)declaration.AttackType);
+            sb.Append(':');
+            sb.Append(declaration.TargetId);
+            sb.Append(':');
+            sb.Append(declaration.HexesMoved?.ToString() ?? string.Empty);
+        }
+
         return sb.ToString();
     }
 
@@ -76,6 +96,19 @@ public record struct MoveUnitCommand: IClientUnitCommand
         var completedKey = IsCompleted ? "Command_MoveUnit_Completed" : "Command_MoveUnit_Incomplete";
         var completedTemplate = localizationService.GetString(completedKey);
         stringBuilder.Append(completedTemplate);
+
+        if (Declaration is { } declaration
+            && game.Players.SelectMany(p => p.Units).FirstOrDefault(u => u.Id == declaration.TargetId) is { } target)
+        {
+            stringBuilder.AppendLine();
+            stringBuilder.AppendFormat(
+                localizationService.GetString("Command_MoveUnit_Declaration"),
+                player?.Name,
+                unit.Model,
+                localizationService.GetString($"PhysicalAttackType_{declaration.AttackType}"),
+                target.Model);
+        }
+
         return stringBuilder.ToString();
     }
 

@@ -111,8 +111,10 @@ public class PhysicalAttackResolutionPhase(ServerGame game) : GamePhase(game)
             }
 
             // A paired-arm attack such as Push resolves once for the whole declaration; a punch
-            // still enqueues one independent item per declared arm.
-            var definition = PhysicalAttackDefinitions.Get(declaration.AttackType);
+            // still enqueues one independent item per declared arm. A movement-origin attack
+            // (Charge or DFA) has no definition yet: its resolution mechanics land in a later
+            // slice, so it must be skipped instead of throwing here.
+            if (!PhysicalAttackDefinitions.TryGet(declaration.AttackType, out var definition)) continue;
             var limbs = definition.ResolvesAsSingleAttack
                 ? declaration.AttackerLimbs.Take(1)
                 : declaration.AttackerLimbs;

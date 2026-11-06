@@ -6,14 +6,18 @@ using Sanet.MakaMek.Core.Data.Game.Mechanics;
 using Sanet.MakaMek.Core.Data.Game.Mechanics.PilotingSkillRollContexts;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Movement.Actions;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Movement.Interrupters;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.PhysicalAttack;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Map.Models;
 
 namespace Sanet.MakaMek.Core.Models.Game.Phases;
 
-public class MovementPhase(ServerGame game) : MainGamePhase(game)
+public class MovementPhase(ServerGame game, IMovementAttackDeclarationValidator? declarationValidator = null)
+    : MainGamePhase(game)
 {
+    private readonly IMovementAttackDeclarationValidator _declarationValidator =
+        declarationValidator ?? new MovementAttackDeclarationValidator();
     private Guid? _deferredMovementUnitId;
     private bool _requestDeferStepConsumption;
 
@@ -65,8 +69,10 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
                     });
                     return;
                 }
-                
-                HandleUnitAction(command, moveCommand.PlayerId);
+
+                if (ValidateMovementAttack(moveCommand) is not { } commandToProcess) return;
+
+                HandleUnitAction(commandToProcess, moveCommand.PlayerId);
                 break;
             case TryStandupCommand standupCommand:
                 if (HasUnitMoved(standupCommand.PlayerId, standupCommand.UnitId, "TryStandupCommand"))
@@ -116,6 +122,37 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
         }
     }
 
+    /// <summary>
+    /// Validates a Charge or DFA carried by the move and returns the command to process, with the
+    /// server-computed declaration, or null when the command was rejected. A rejected declaration
+    /// leaves the unit where it was, so it can submit another move.
+    /// </summary>
+    private MoveUnitCommand? ValidateMovementAttack(MoveUnitCommand command)
+    {
+        if (command.Declaration is not { } declaration) return command;
+
+        var player = Game.Players.FirstOrDefault(p => p.Id == command.PlayerId);
+        var unit = player?.Units.FirstOrDefault(u => u.Id == command.UnitId);
+        var result = unit is null || Game.BattleMap is null || !command.IsCompleted
+            ? MovementAttackDeclarationValidation.Invalid(ErrorCode.ValidationFailed)
+            : _declarationValidator.Validate(unit, command.MovementPath, command.MovementType,
+                declaration, Game.Players.SelectMany(p => p.Units), Game.BattleMap);
+
+        if (result.IsValid) return command with { Declaration = result.Declaration };
+
+        Game.Logger.LogWarning(
+            "Rejecting {AttackType} declaration for unit {UnitId}: {ErrorCode}",
+            declaration.AttackType, command.UnitId, result.ErrorCode);
+        Game.CommandPublisher.PublishCommand(new ErrorCommand
+        {
+            GameOriginId = Game.Id,
+            IdempotencyKey = command.IdempotencyKey,
+            ErrorCode = result.ErrorCode ?? ErrorCode.ValidationFailed,
+            Timestamp = DateTime.UtcNow
+        });
+        return null;
+    }
+
     private readonly IReadOnlyList<IMovementInterruptHandler> _segmentInterruptHandlers =
     [
         new BridgeCollapseInterruptHandler(),
@@ -137,6 +174,11 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
         var player = Game.Players.FirstOrDefault(p => p.Id == moveCommand.PlayerId);
         var unit = player?.Units.FirstOrDefault(u => u.Id == moveCommand.UnitId);
 
+        // The interrupts and the actions they produce describe where the unit actually got to. A
+        // declaration on the original command must not ride along into a truncated or skidding
+        // move, which is never a completed charge or DFA.
+        var interruptCommand = moveCommand with { Declaration = null };
+
         if (unit != null && moveCommand.MovementType != MovementType.Jump)
         {
             for (var i = 0; i < moveCommand.MovementPath.Count; i++)
@@ -145,7 +187,7 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
                 {
                     var context = new MovementInterruptContext
                     {
-                        MoveCommand = moveCommand,
+                        MoveCommand = interruptCommand,
                         SegmentIndex = i,
                         Unit = unit,
                         Game = Game
@@ -174,7 +216,7 @@ public class MovementPhase(ServerGame game) : MainGamePhase(game)
         {
             var context = new MovementInterruptContext
             {
-                MoveCommand = moveCommand,
+                MoveCommand = interruptCommand,
                 SegmentIndex = moveCommand.MovementPath.Count - 1,
                 Unit = unit!,
                 Game = Game,
