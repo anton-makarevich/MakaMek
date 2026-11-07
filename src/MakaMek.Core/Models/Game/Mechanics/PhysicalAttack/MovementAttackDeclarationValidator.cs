@@ -187,13 +187,16 @@ public class MovementAttackDeclarationValidator : IMovementAttackDeclarationVali
     /// A DFA may bridge a level difference of two or more, so the Different Levels Table does not
     /// apply to it. It still cannot reach a submerged target: the attack comes from above the
     /// water line, and a unit in Depth 2+ water can only be attacked by units underwater
-    /// (Total Warfare, p. 149-151).
+    /// (Total Warfare, p. 149-151). A submerged attacker cannot declare a DFA either, because a
+    /// completely submerged Mech cannot fire its jump jets (Total Warfare, p. 151).
     /// </summary>
     private static bool IsDfaAllowed(IUnit attacker, IUnit target, HexPosition targetPosition,
         IBattleMap map)
     {
+        var attackerEndpoint = GetEndpoint(attacker, attacker.Position!, map);
         var targetEndpoint = GetEndpoint(target, targetPosition, map);
-        return targetEndpoint is { IsSubmerged: false }
+        return attackerEndpoint is { IsSubmerged: false }
+               && targetEndpoint is { IsSubmerged: false }
                && CanClearDfaHeight(attacker, target, targetPosition, map);
     }
 
