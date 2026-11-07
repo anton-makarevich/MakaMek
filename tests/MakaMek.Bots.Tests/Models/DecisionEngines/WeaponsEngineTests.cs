@@ -118,12 +118,21 @@ public class WeaponsEngineTests
 
         _clientGame.Players.Returns([_player, enemyPlayer]);
 
-        _tacticalEvaluator.EvaluateTargets(attacker, Arg.Any<MovementPath>(), Arg.Any<IReadOnlyList<IUnit>>())
+        _tacticalEvaluator.EvaluateTargets(attacker, Arg.Any<MovementPath>(),
+                Arg.Any<IReadOnlyList<IUnit>>(), Arg.Any<ITurnState>())
             .Returns([
                 new TargetEvaluationData
                 {
                     TargetId = Guid.NewGuid(),
-                    ConfigurationScores = []
+                    ConfigurationScores =
+                    [
+                        new WeaponConfigurationEvaluationData
+                        {
+                            Configuration = new WeaponConfiguration { Type = WeaponConfigurationType.None, Value = 0 },
+                            Score = 10,
+                            ViableWeapons = []
+                        }
+                    ]
                 }
             ]);
 
@@ -143,7 +152,7 @@ public class WeaponsEngineTests
     }
 
     [Fact]
-    public async Task MakeDecision_WhenAllWeaponsHaveZeroHitProbability_ShouldDeclareEmptyAttack()
+    public async Task MakeDecision_WhenBestConfigurationScoreIsZero_ShouldDeclareEmptyAttack()
     {
         var attacker = CreateMockUnit(canFireWeapons: true, hasDeclaredWeaponAttack: false,
             position: new HexPosition(new HexCoordinates(1, 1), HexDirection.Top));
@@ -166,7 +175,8 @@ public class WeaponsEngineTests
         var weapon = new TestWeapon(new WeaponDefinition("TestLaser", 5, 1, new WeaponRange(0, 3, 6, 9), WeaponType.Energy, 100, null,
             WeaponComponentType: MakaMekComponent.MachineGun));
 
-        _tacticalEvaluator.EvaluateTargets(attacker, Arg.Any<MovementPath>(), Arg.Any<IReadOnlyList<IUnit>>())
+        _tacticalEvaluator.EvaluateTargets(attacker, Arg.Any<MovementPath>(),
+                Arg.Any<IReadOnlyList<IUnit>>(), Arg.Any<ITurnState>())
             .Returns([
                 new TargetEvaluationData
                 {
@@ -196,6 +206,128 @@ public class WeaponsEngineTests
         commandCaptured.ShouldBeTrue();
         capturedCommand.UnitId.ShouldBe(attacker.Id);
         capturedCommand.WeaponTargets.Count.ShouldBe(0);
+    }
+
+    [Fact]
+    public async Task MakeDecision_WhenNoWeaponHasAPositiveHitProbability_ShouldDeclareEmptyAttack()
+    {
+        var attacker = CreateMockUnit(canFireWeapons: true, hasDeclaredWeaponAttack: false,
+            position: new HexPosition(new HexCoordinates(1, 1), HexDirection.Top));
+        attacker.GetProjectedHeatValue(_clientGame.RulesProvider).Returns(0);
+        attacker.HeatDissipation.Returns(0);
+        _player.AliveUnits.Returns([attacker]);
+
+        var enemy = CreateMockUnit(canFireWeapons: true, hasDeclaredWeaponAttack: false,
+            position: new HexPosition(new HexCoordinates(1, 4), HexDirection.Top),
+            isDeployed: true,
+            name: "Enemy");
+        var enemyPlayer = Substitute.For<IPlayer>();
+        enemyPlayer.Id.Returns(Guid.NewGuid());
+        enemyPlayer.AliveUnits.Returns([enemy]);
+
+        _clientGame.Players.Returns([_player, enemyPlayer]);
+
+        var weapon = new TestWeapon(new WeaponDefinition("ZeroProb", 5, 0, new WeaponRange(0, 3, 6, 9),
+            WeaponType.Energy, 100, null, WeaponComponentType: MakaMekComponent.MachineGun));
+        var enemyId = enemy.Id;
+
+        _tacticalEvaluator.EvaluateTargets(attacker, Arg.Any<MovementPath>(),
+                Arg.Any<IReadOnlyList<IUnit>>(), Arg.Any<ITurnState>())
+            .Returns([
+                new TargetEvaluationData
+                {
+                    TargetId = enemyId,
+                    ConfigurationScores =
+                    [
+                        new WeaponConfigurationEvaluationData
+                        {
+                            Configuration = new WeaponConfiguration { Type = WeaponConfigurationType.None, Value = 0 },
+                            Score = 10,
+                            ViableWeapons = [new WeaponEvaluationData { Weapon = weapon, HitProbability = 0 }]
+                        }
+                    ]
+                }
+            ]);
+
+        WeaponAttackDeclarationCommand capturedCommand = default;
+        var commandCaptured = false;
+        await _clientGame.DeclareWeaponAttack(Arg.Do<WeaponAttackDeclarationCommand>(cmd =>
+        {
+            capturedCommand = cmd;
+            commandCaptured = true;
+        }));
+
+        await _sut.MakeDecision(_player, _turnState);
+
+        commandCaptured.ShouldBeTrue();
+        capturedCommand.UnitId.ShouldBe(attacker.Id);
+        capturedCommand.WeaponTargets.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task MakeDecision_WhenAmmoWeaponHasNoShotsLeft_ShouldDeclareEmptyAttack()
+    {
+        var attacker = CreateMockUnit(canFireWeapons: true, hasDeclaredWeaponAttack: false,
+            position: new HexPosition(new HexCoordinates(1, 1), HexDirection.Top));
+        attacker.GetProjectedHeatValue(_clientGame.RulesProvider).Returns(0);
+        attacker.HeatDissipation.Returns(0);
+        _player.AliveUnits.Returns([attacker]);
+
+        var enemy = CreateMockUnit(canFireWeapons: true, hasDeclaredWeaponAttack: false,
+            position: new HexPosition(new HexCoordinates(1, 4), HexDirection.Top),
+            isDeployed: true,
+            name: "Enemy");
+        var enemyPlayer = Substitute.For<IPlayer>();
+        enemyPlayer.Id.Returns(Guid.NewGuid());
+        enemyPlayer.AliveUnits.Returns([enemy]);
+
+        _clientGame.Players.Returns([_player, enemyPlayer]);
+
+        var ammoWeapon = new TestWeapon(new WeaponDefinition(
+            "AmmoWeapon",
+            10,
+            0,
+            new WeaponRange(0, 3, 6, 9),
+            WeaponType.Ballistic,
+            100,
+            null,
+            WeaponComponentType: MakaMekComponent.AC5,
+            AmmoComponentType: MakaMekComponent.ISAmmoAC5));
+
+        attacker.GetRemainingAmmoShots(ammoWeapon).Returns(0);
+        var enemyId = enemy.Id;
+
+        _tacticalEvaluator.EvaluateTargets(attacker, Arg.Any<MovementPath>(),
+                Arg.Any<IReadOnlyList<IUnit>>(), Arg.Any<ITurnState>())
+            .Returns([
+                new TargetEvaluationData
+                {
+                    TargetId = enemyId,
+                    ConfigurationScores =
+                    [
+                        new WeaponConfigurationEvaluationData
+                        {
+                            Configuration = new WeaponConfiguration { Type = WeaponConfigurationType.None, Value = 0 },
+                            Score = 10,
+                            ViableWeapons = [new WeaponEvaluationData { Weapon = ammoWeapon, HitProbability = 0.9 }]
+                        }
+                    ]
+                }
+            ]);
+
+        WeaponAttackDeclarationCommand capturedCommand = default;
+        var commandCaptured = false;
+        await _clientGame.DeclareWeaponAttack(Arg.Do<WeaponAttackDeclarationCommand>(cmd =>
+        {
+            capturedCommand = cmd;
+            commandCaptured = true;
+        }));
+
+        await _sut.MakeDecision(_player, _turnState);
+
+        commandCaptured.ShouldBeTrue();
+        capturedCommand.UnitId.ShouldBe(attacker.Id);
+        capturedCommand.WeaponTargets.ShouldBeEmpty();
     }
 
     [Fact]
@@ -614,7 +746,8 @@ public class WeaponsEngineTests
 
         _clientGame.Players.Returns([_player]);
 
-        _tacticalEvaluator.EvaluateTargets(attacker, Arg.Any<MovementPath>(), Arg.Any<IReadOnlyList<IUnit>>())
+        _tacticalEvaluator.EvaluateTargets(attacker, Arg.Any<MovementPath>(),
+                Arg.Any<IReadOnlyList<IUnit>>(), Arg.Any<ITurnState>())
             .Returns(_ => throw new InvalidOperationException("Unexpected"));
 
         WeaponAttackDeclarationCommand capturedCommand = default;
@@ -737,7 +870,8 @@ public class WeaponsEngineTests
         var enemyId = enemy.Id;
         var torsoConfig = new WeaponConfiguration { Type = WeaponConfigurationType.TorsoRotation, Value = 1 };
 
-        _tacticalEvaluator.EvaluateTargets(attacker, Arg.Any<MovementPath>(), Arg.Any<IReadOnlyList<IUnit>>())
+        _tacticalEvaluator.EvaluateTargets(attacker, Arg.Any<MovementPath>(),
+                Arg.Any<IReadOnlyList<IUnit>>(), Arg.Any<ITurnState>())
             .Returns([
                 new TargetEvaluationData
                 {

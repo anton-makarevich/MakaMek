@@ -223,6 +223,22 @@ public class WeaponsAttackStateTests
     }
 
     [Fact]
+    public void Constructor_WhenThereIsNoActivePlayer_Throws()
+    {
+        // Arrange - clearing the active player leaves the state without a unit to act for
+        _game.HandleCommand(new ChangeActivePlayerCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = Guid.NewGuid(),
+            UnitsToPlay = 1
+        });
+        _game.PhaseStepState.ShouldBeNull();
+
+        // Act & Assert
+        Should.Throw<InvalidOperationException>(() => new WeaponsAttackState(_battleMapViewModel));
+    }
+
+    [Fact]
     public void HandleUnitSelection_TransitionsToActionSelection()
     {
         // Act
@@ -1673,6 +1689,16 @@ public class WeaponsAttackStateTests
         actions[0].Label.ShouldBe("Skip Attack");
         actions[1].Label.ShouldBe("Turn Torso");
         actions[2].Label.ShouldBe("Select Target");
+    }
+
+    [Fact]
+    public void ConfirmWeaponSelections_WhenNoAttackerIsSelected_DoesNotPublishACommand()
+    {
+        // Act - no unit has been selected yet, so there is nothing to declare
+        _sut.ConfirmWeaponSelections();
+
+        // Assert
+        _commandPublisher.DidNotReceive().PublishCommand(Arg.Any<WeaponAttackDeclarationCommand>());
     }
 
     [Fact]

@@ -3216,6 +3216,21 @@ public class BattleMapViewModelTests
     }
 
     [Fact]
+    public void PhysicalAttackResolution_OfACharge_RemovesTheIndicatorInOneGo()
+    {
+        // Arrange - a charge resolves once for the whole declaration and has no limb
+        var (attacker, target) = DeployPhysicalAttackers();
+        SendChargeMove(attacker, target);
+        _sut.PhysicalAttackIndicators.ShouldHaveSingleItem();
+
+        // Act
+        ResolvePhysicalAttack(attacker, target, PhysicalAttackType.Charge, PartLocation.LeftArm);
+
+        // Assert
+        _sut.PhysicalAttackIndicators.ShouldBeEmpty();
+    }
+
+    [Fact]
     public void PhysicalAttackResolution_OfAMiss_RemovesTheIndicator()
     {
         // Arrange

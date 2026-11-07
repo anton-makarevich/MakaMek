@@ -269,4 +269,25 @@ public class MoveUnitCommandBuilderTests
         command.ShouldNotBeNull();
         command.Value.Declaration.ShouldBeNull();
     }
+
+    [Fact]
+    public void Build_HasNoDeclaration_WhenTheMovementTypeCannotChargeOrDfa()
+    {
+        // Arrange - a prone or stationary move cannot carry a charge or a DFA
+        var target = new MechFactory(
+            new TotalWarfareRulesProvider(),
+            new ClassicBattletechComponentProvider(),
+            Substitute.For<ILocalizationService>()).Create(MechFactoryTests.CreateDummyMechData());
+        _builder.SetUnit(_unit);
+        _builder.SetMovementPath(new MovementPath([new PathSegment(new HexPosition(1,1,HexDirection.Bottom),
+            new HexPosition(1,2,HexDirection.Bottom), [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])], MovementType.Prone));
+        _builder.SetMovementAttackTarget(target);
+
+        // Act
+        var command = _builder.Build();
+
+        // Assert
+        command.ShouldNotBeNull();
+        command.Value.Declaration.ShouldBeNull();
+    }
 }

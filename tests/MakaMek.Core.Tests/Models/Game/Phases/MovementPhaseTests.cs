@@ -1831,6 +1831,11 @@ public class MovementPhaseTests : GamePhaseTestsBase
             ]
         };
 
+        var fallingDamageData = new FallingDamageData(
+            HexDirection.Top,
+            new HitLocationsData([], 5),
+            new DiceResult(3), HitDirection.Front
+        );
         var fallContextData = new FallContextData
         {
             UnitId = unit.Id,
@@ -1843,11 +1848,10 @@ public class MovementPhaseTests : GamePhaseTestsBase
                 IsSuccessful = false,
                 PsrBreakdown = new PsrBreakdown { BasePilotingSkill = 4, Modifiers = [] }
             },
-            FallingDamageData = new FallingDamageData(
-                HexDirection.Top,
-                new HitLocationsData([], 5),
-                new DiceResult(3), HitDirection.Front
-            )
+            FallingDamageData = fallingDamageData,
+            // A skid command is only emitted when the fall carries skid damage. Without it the
+            // ApplySkidAction is never created and the deferral rule is not exercised.
+            SkidDamageData = fallingDamageData
         };
 
         MockFallProcessor.ProcessMovementAttempt(unit, Arg.Is<SkidCheckRollContext>(c => c.SkidDistance == 1 && c.HexesMoved == 1), Game, MovementType.Run, Arg.Any<HexPosition?>()).Returns(fallContextData);
@@ -1857,13 +1861,14 @@ public class MovementPhaseTests : GamePhaseTestsBase
         // Act
         _sut.HandleCommand(moveCommand);
 
-        // Assert - ApplySkidAction forces deferAfterFall = false (lines 201-202),
-        // so turn is finalized even though Mech can stand up
+        // Assert - ApplySkidAction forces deferAfterFall = false, so the turn is finalized
+        // instead of waiting for a stand-up move
         unit.HasMoved.ShouldBeTrue();
         unit.Position!.Coordinates.ShouldBe(new HexCoordinates(2, 1));
         CommandPublisher.Received().PublishCommand(Arg.Is<MoveUnitCommand>(cmd =>
             cmd.UnitId == _unit1Id && cmd.IsCompleted && cmd.MovementPath.Count == 3));
         CommandPublisher.Received().PublishCommand(Arg.Is<MechFallCommand>(cmd => cmd.UnitId == _unit1Id));
+        CommandPublisher.Received().PublishCommand(Arg.Is<MechSkidCommand>(cmd => cmd.UnitId == _unit1Id));
         CommandPublisher.Received().PublishCommand(Arg.Any<ChangeActivePlayerCommand>());
     }
 
