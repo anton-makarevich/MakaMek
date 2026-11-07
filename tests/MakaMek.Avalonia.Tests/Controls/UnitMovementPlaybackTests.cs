@@ -3,6 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
+using Avalonia.Threading;
 using MonacoLabs.Presto;
 using NSubstitute;
 using Sanet.Localization;
@@ -10,10 +11,14 @@ using Sanet.MakaMek.Assets.Services;
 using Sanet.MakaMek.Avalonia.Controls;
 using Sanet.MakaMek.Avalonia.Services;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
+using Sanet.MakaMek.Core.Data.Game.Mechanics.PhysicalAttacks;
+using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Map.Data;
 using Sanet.MakaMek.Map.Models;
+using Sanet.MakaMek.Map.Models.MovementCosts;
+using Sanet.MakaMek.Map.Models.Terrains;
 using Sanet.MakaMek.Presentation.ViewModels;
 using Sanet.MakaMek.Services;
 using Shouldly;
@@ -182,6 +187,171 @@ public class UnitMovementPlaybackTests
     });
 
     [Fact]
+    public Task FullMotion_Charge_EndsInTheApproachHex_WithoutSnapping() => Dispatch(() =>
+    {
+        using var engine = StartEngine();
+        using var harness = new Harness();
+        harness.SetAuthoritativePosition(1, 0, HexDirection.TopRight);
+
+        harness.Control.OnMoveCommand(Move(
+            MovementType.Walk,
+            Declaration(PhysicalAttackType.Charge),
+            Segment(0, 0, 0, 0, 0, 1),
+            Segment(0, 0, 1, 1, 0, 1),
+            Segment(1, 0, 1, 2, 0, 1)));
+
+        engine.Advance(4900);
+
+        Canvas.GetLeft(harness.Control).ShouldBe(Pixel(1, 0).X, 2);
+        Canvas.GetTop(harness.Control).ShouldBe(Pixel(1, 0).Y, 2);
+        RotationOf(harness.Control).ShouldBe(60, 0.001);
+
+        engine.Advance(200);
+
+        Canvas.GetLeft(harness.Control).ShouldBe(Pixel(1, 0).X, 0.001);
+        Canvas.GetTop(harness.Control).ShouldBe(Pixel(1, 0).Y, 0.001);
+        RotationOf(harness.Control).ShouldBe(60, 0.001);
+    });
+
+    [Fact]
+    public Task FullMotion_Dfa_EndsInTheLastJumpPathHex() => Dispatch(() =>
+    {
+        using var engine = StartEngine();
+        using var harness = new Harness();
+        harness.SetAuthoritativePosition(1, 0);
+
+        harness.Control.OnMoveCommand(Move(
+            MovementType.Jump,
+            Declaration(PhysicalAttackType.DFA),
+            Segment(0, 0, 0, 1, 0, 0),
+            Segment(1, 0, 0, 2, 0, 0)));
+
+        engine.Advance(4900);
+
+        Canvas.GetLeft(harness.Control).ShouldBe(Pixel(1, 0).X, 2);
+
+        engine.Advance(200);
+
+        Canvas.GetLeft(harness.Control).ShouldBe(Pixel(1, 0).X, 0.001);
+        Canvas.GetTop(harness.Control).ShouldBe(Pixel(1, 0).Y, 0.001);
+        RotationOf(harness.Control).ShouldBe(0, 0.001);
+    });
+
+    [Fact]
+    public Task ReducedMotion_Charge_DoesNotPassThroughTheTargetHex() => Dispatch(() =>
+    {
+        using var engine = StartEngine();
+        using var harness = new Harness();
+        harness.SetAuthoritativePosition(1, 0, HexDirection.TopRight);
+        var observedLeft = new List<double>();
+        var observedAngles = new List<double>();
+        ObserveRenderedMotion(harness.Control, observedLeft, observedAngles);
+        Presto.Defaults.ReducedMotion = true;
+        try
+        {
+            harness.Control.OnMoveCommand(Move(
+                MovementType.Walk,
+                Declaration(PhysicalAttackType.Charge),
+                Segment(0, 0, 0, 0, 0, 1),
+                Segment(0, 0, 1, 1, 0, 1),
+                Segment(1, 0, 1, 2, 0, 1)));
+
+            observedLeft.ShouldNotContain(left => Math.Abs(left - Pixel(2, 0).X) < 0.001,
+                "the target hex must never be displayed before the attack resolves");
+            observedLeft.Last().ShouldBe(Pixel(1, 0).X, 0.001);
+            observedAngles.Last().ShouldBe(60, 0.001);
+            Canvas.GetLeft(harness.Control).ShouldBe(Pixel(1, 0).X, 0.001);
+            RotationOf(harness.Control).ShouldBe(60, 0.001);
+        }
+        finally
+        {
+            Presto.Defaults.ReducedMotion = false;
+        }
+    });
+
+    [Fact]
+    public Task ReducedMotion_Dfa_DoesNotPassThroughTheTargetHex() => Dispatch(() =>
+    {
+        using var engine = StartEngine();
+        using var harness = new Harness();
+        harness.SetAuthoritativePosition(1, 0);
+        var observedLeft = new List<double>();
+        var observedAngles = new List<double>();
+        ObserveRenderedMotion(harness.Control, observedLeft, observedAngles);
+        Presto.Defaults.ReducedMotion = true;
+        try
+        {
+            harness.Control.OnMoveCommand(Move(
+                MovementType.Jump,
+                Declaration(PhysicalAttackType.DFA),
+                Segment(0, 0, 1, 1, 0, 0),
+                Segment(1, 0, 0, 2, 0, 0)));
+
+            observedLeft.ShouldNotContain(left => Math.Abs(left - Pixel(2, 0).X) < 0.001,
+                "the target hex must never be displayed before the attack resolves");
+            observedLeft.Last().ShouldBe(Pixel(1, 0).X, 0.001);
+            observedAngles.Last().ShouldBe(0, 0.001);
+            Canvas.GetLeft(harness.Control).ShouldBe(Pixel(1, 0).X, 0.001);
+            RotationOf(harness.Control).ShouldBe(0, 0.001);
+        }
+        finally
+        {
+            Presto.Defaults.ReducedMotion = false;
+        }
+    });
+
+    [Fact]
+    public Task MovementPathOverlay_MarksTargetEntrySegments_ForDeclaredCharge() =>
+        DispatchAsync(async () =>
+        {
+            using var harness = new Harness();
+            harness.Unit.MovementTaken.Returns(OverlayPath());
+            harness.Unit.DeclaredPhysicalAttack.Returns(Declaration(PhysicalAttackType.Charge));
+
+            await Settle();
+
+            var segments = PathSegmentsOf(harness);
+            segments.Count.ShouldBe(3);
+            segments[0].IsPendingAttackEntry.ShouldBeFalse();
+            segments[1].IsPendingAttackEntry.ShouldBeTrue();
+            segments[2].IsPendingAttackEntry.ShouldBeTrue();
+        });
+
+    [Fact]
+    public Task MovementPathOverlay_RefreshesWhenDeclarationArrivesWithSamePath() =>
+        DispatchAsync(async () =>
+        {
+            using var harness = new Harness();
+            harness.Unit.MovementTaken.Returns(OverlayPath());
+
+            await Settle();
+
+            PathSegmentsOf(harness).ShouldAllBe(segment => !segment.IsPendingAttackEntry);
+
+            harness.Unit.DeclaredPhysicalAttack.Returns(Declaration(PhysicalAttackType.Charge));
+
+            await Settle();
+
+            var segments = PathSegmentsOf(harness);
+            segments.Count.ShouldBe(3);
+            segments[0].IsPendingAttackEntry.ShouldBeFalse();
+            segments[1].IsPendingAttackEntry.ShouldBeTrue();
+            segments[2].IsPendingAttackEntry.ShouldBeTrue();
+        });
+
+    [Fact]
+    public Task MovementPathOverlay_LeavesEverySegmentUnmarked_WithoutDeclaration() =>
+        DispatchAsync(async () =>
+        {
+            using var harness = new Harness();
+            harness.Unit.MovementTaken.Returns(OverlayPath());
+
+            await Settle();
+
+            PathSegmentsOf(harness).ShouldAllBe(segment => !segment.IsPendingAttackEntry);
+        });
+
+    [Fact]
     public void FrameRectangles_FollowTheSheetCoordinateFormula()
     {
         const int padding = 2;
@@ -195,7 +365,8 @@ public class UnitMovementPlaybackTests
     }
 
     private static MoveUnitCommand Move(int fromQ, int fromR, int toQ, int toR,
-        MovementType movementType = MovementType.Walk) =>
+        MovementType movementType = MovementType.Walk,
+        PhysicalAttackDeclarationData? declaration = null) =>
         new()
         {
             GameOriginId = Guid.NewGuid(),
@@ -203,24 +374,102 @@ public class UnitMovementPlaybackTests
             PlayerId = Guid.Empty,
             MovementType = movementType,
             IsCompleted = true,
+            Declaration = declaration,
             MovementPath =
             [
-                new PathSegmentData
-                {
-                    From = new HexPositionData
-                    {
-                        Coordinates = new HexCoordinateData(fromQ, fromR),
-                        Facing = (int)HexDirection.Top
-                    },
-                    To = new HexPositionData
-                    {
-                        Coordinates = new HexCoordinateData(toQ, toR),
-                        Facing = (int)HexDirection.Top
-                    },
-                    Costs = []
-                }
+                Segment(fromQ, fromR, (int)HexDirection.Top, toQ, toR, (int)HexDirection.Top)
             ]
         };
+
+    private static MoveUnitCommand Move(MovementType movementType,
+        PhysicalAttackDeclarationData? declaration,
+        params PathSegmentData[] segments) =>
+        new()
+        {
+            GameOriginId = Guid.NewGuid(),
+            UnitId = Guid.Empty,
+            PlayerId = Guid.Empty,
+            MovementType = movementType,
+            IsCompleted = true,
+            Declaration = declaration,
+            MovementPath = segments
+        };
+
+    private static PathSegmentData Segment(int fromQ, int fromR, int fromFacing, int toQ, int toR,
+        int toFacing, int cost = 1) =>
+        new()
+        {
+            From = new HexPositionData
+            {
+                Coordinates = new HexCoordinateData(fromQ, fromR),
+                Facing = fromFacing
+            },
+            To = new HexPositionData
+            {
+                Coordinates = new HexCoordinateData(toQ, toR),
+                Facing = toFacing
+            },
+            Costs = cost == 0
+                ? []
+                : [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = cost }]
+        };
+
+    private static PhysicalAttackDeclarationData Declaration(PhysicalAttackType attackType) =>
+        new()
+        {
+            AttackType = attackType,
+            AttackerLimbs = [],
+            TargetId = Guid.NewGuid()
+        };
+
+    private static MovementPath OverlayPath() =>
+        new(new List<Sanet.MakaMek.Map.Models.PathSegment>
+        {
+            new(new HexPosition(0, 0, HexDirection.Top),
+                new HexPosition(1, 0, HexDirection.Top),
+                [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]),
+            new(new HexPosition(1, 0, HexDirection.Top),
+                new HexPosition(2, 0, HexDirection.Top),
+                [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]),
+            new(new HexPosition(2, 0, HexDirection.Top),
+                new HexPosition(2, 0, HexDirection.TopRight),
+                [new RotationMovementCost
+                {
+                    FromFacing = HexDirection.Top,
+                    ToFacing = HexDirection.TopRight,
+                    Value = 1
+                }])
+        }, MovementType.Walk);
+
+    private static (double X, double Y) Pixel(int q, int r)
+    {
+        var coordinates = new HexCoordinates(q, r);
+        return (coordinates.H, coordinates.V);
+    }
+
+    private static double RotationOf(Control control) =>
+        control.RenderTransform is RotateTransform rotate ? Normalize(rotate.Angle) : 0;
+
+    private static double Normalize(double degrees) => (degrees % 360 + 360) % 360;
+
+    private static void ObserveRenderedMotion(UnitControl control, List<double> lefts,
+        List<double> angles)
+    {
+        control.PropertyChanged += (_, args) =>
+        {
+            if (args.Property == Canvas.LeftProperty)
+            {
+                lefts.Add(Canvas.GetLeft(control));
+            }
+            else if (args.Property.Name == nameof(Visual.RenderTransform))
+            {
+                angles.Add(RotationOf(control));
+            }
+        };
+    }
+
+    private static List<PathSegmentControl> PathSegmentsOf(Harness harness) =>
+        harness.Canvas.Children.OfType<PathSegmentControl>().ToList();
 
     private static Image ImageOf(UnitControl control) => control.Children.OfType<Image>().First();
 
@@ -247,6 +496,7 @@ public class UnitMovementPlaybackTests
 
             _position = new HexPosition(new HexCoordinates(2, 0), HexDirection.Top);
             var unit = Substitute.For<IUnit>();
+            Unit = unit;
             unit.Id.Returns(Guid.NewGuid());
             unit.Model.Returns(Model);
             unit.IsDeployed.Returns(true);
@@ -275,8 +525,8 @@ public class UnitMovementPlaybackTests
 
             ViewModel = viewModel;
             Control = new UnitControl(unit, imageService, viewModel, spriteService);
-            var canvas = new Canvas();
-            canvas.Children.Add(Control);
+            Canvas = new Canvas();
+            Canvas.Children.Add(Control);
         }
 
         public UnitSpriteSet SpriteSet { get; }
@@ -285,12 +535,17 @@ public class UnitMovementPlaybackTests
 
         public UnitControl Control { get; }
 
+        public Canvas Canvas { get; }
+
+        public IUnit Unit { get; }
+
         public BattleMapViewModel ViewModel { get; }
 
         public HexPosition AuthoritativePosition => _position;
 
-        public void SetAuthoritativePosition(int q, int r) =>
-            _position = new HexPosition(new HexCoordinates(q, r), HexDirection.Top);
+        public void SetAuthoritativePosition(int q, int r,
+            HexDirection facing = HexDirection.Top) =>
+            _position = new HexPosition(new HexCoordinates(q, r), facing);
 
         public void Dispose() => Control.Dispose();
     }
@@ -322,5 +577,26 @@ public class UnitMovementPlaybackTests
         var session = HeadlessUnitTestSession.GetOrStartForAssembly(
             typeof(UnitMovementPlaybackTests).Assembly);
         return session.Dispatch(action, CancellationToken.None);
+    }
+
+    private static Task DispatchAsync(Func<Task> action)
+    {
+        var session = HeadlessUnitTestSession.GetOrStartForAssembly(
+            typeof(UnitMovementPlaybackTests).Assembly);
+        return session.Dispatch(async () =>
+        {
+            await action();
+            return true;
+        }, CancellationToken.None);
+    }
+
+    /// <summary>Lets the 32 ms unit-state poll run and update the overlay on the UI thread.</summary>
+    private static async Task Settle()
+    {
+        for (var i = 0; i < 10; i++)
+        {
+            Dispatcher.UIThread.RunJobs();
+            await Task.Delay(32);
+        }
     }
 }
