@@ -488,9 +488,7 @@ public abstract class Unit : IUnit
     /// current turn. Such a declaration is made while moving and blocks weapon firing and other
     /// physical attacks until it resolves or the attacker is destroyed.
     /// </summary>
-    public bool HasPendingMovementAttack =>
-        DeclaredPhysicalAttack is { } declaration
-        && PhysicalAttackDefinitions.IsMovementAttack(declaration.AttackType);
+    public bool HasPendingMovementAttack => DeclaredPhysicalAttack.IsMovementAttack();
 
     /// <summary>
     /// Indicates whether this unit has applied heat for the current turn

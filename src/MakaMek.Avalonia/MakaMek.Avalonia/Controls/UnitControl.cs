@@ -21,8 +21,8 @@ using Sanet.MakaMek.Avalonia.Converters;
 using Sanet.MakaMek.Avalonia.Services;
 using Sanet.MakaMek.Avalonia.Utils;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
+using Sanet.MakaMek.Core.Data.Game.Mechanics.PhysicalAttacks;
 using Sanet.MakaMek.Core.Events;
-using Sanet.MakaMek.Core.Models.Game.Mechanics.Movement;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Map.Models;
 using Sanet.MakaMek.Presentation.Models.Movement;
@@ -317,7 +317,7 @@ namespace Sanet.MakaMek.Avalonia.Controls
                     Events = _unit.Notifications,
                     CurrentHeat = _unit.CurrentHeat,
                     MovementTaken = _unit.MovementTaken,
-                    HasDeclaredMovementAttack = MovementStopRule.IsMovementAttack(_unit.DeclaredPhysicalAttack)
+                    HasDeclaredMovementAttack = _unit.DeclaredPhysicalAttack.IsMovementAttack()
                 })
                 .DistinctUntilChanged()
                 .ObserveOn(SynchronizationContext.Current) // Ensure events are processed on the UI thread

@@ -28,6 +28,21 @@ Assembly/root namespaces are prefixed `Sanet.` (e.g. `MakaMek.Core` → `Sanet.M
 
 Tests use **xUnit** + **Shouldly** (assertions) + **NSubstitute** (mocking). UI (Avalonia) is intentionally excluded from coverage; presentation logic lives in `MakaMek.Presentation` (ViewModels/UiStates) specifically so it *can* be unit-tested without the UI. Prefer adding logic there over the Avalonia layer.
 
+## Code style: extensions over static helpers
+
+- Do not add free-standing static helper classes whose methods take a domain type as their first
+  parameter. Expose type-specific behavior as extension methods on that type in a
+  `<Type>Extensions` class.
+- Use the C# 14 extension-block form already used across the codebase
+  (`public static class FooExtensions { extension(Foo foo) { ... } }`) and place the extension in
+  the layer that owns the added behavior.
+- `static` classes remain appropriate for genuine services, factories, and calculators that are
+  injected or operate across several unrelated types. The rule targets helpers that only exist to
+  graft methods onto one type.
+- Example: `MovementPath.GetStopPosition(...)` and `PhysicalAttackDeclarationData.IsMovementAttack()`
+  live in `MovementPathExtensions` / `PhysicalAttackDeclarationExtensions`, not in a
+  `MovementStopRule` static helper.
+
 ## Versioning (required for PRs)
 
 `Directory.Build.props` holds a single `<VersionPrefix>` for all packages. **Every PR that modifies files under `src/` must bump this version** — `pr-version-check.yml` fails the PR if the version is not greater than `main`. Bump it as part of your change.

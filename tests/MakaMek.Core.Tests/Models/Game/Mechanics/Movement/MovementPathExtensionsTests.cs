@@ -6,35 +6,18 @@ using Shouldly;
 
 namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics.Movement;
 
-public class MovementStopRuleTests
+public class MovementPathExtensionsTests
 {
-    [Fact]
-    public void IsMovementAttack_ReturnsTrue_ForChargeAndDfa()
-    {
-        MovementStopRule.IsMovementAttack(Declaration(PhysicalAttackType.Charge)).ShouldBeTrue();
-        MovementStopRule.IsMovementAttack(Declaration(PhysicalAttackType.DFA)).ShouldBeTrue();
-    }
-
-    [Fact]
-    public void IsMovementAttack_ReturnsFalse_ForNullAndOtherPhysicalAttacks()
-    {
-        MovementStopRule.IsMovementAttack(null).ShouldBeFalse();
-        MovementStopRule.IsMovementAttack(Declaration(PhysicalAttackType.Punch)).ShouldBeFalse();
-        MovementStopRule.IsMovementAttack(Declaration(PhysicalAttackType.Kick)).ShouldBeFalse();
-        MovementStopRule.IsMovementAttack(Declaration(PhysicalAttackType.Push)).ShouldBeFalse();
-    }
-
     [Fact]
     public void GetStopPosition_ReturnsNull_WhenDeclarationIsNull()
     {
-        MovementStopRule.GetStopPosition(TwoHexPath(), null).ShouldBeNull();
+        TwoHexPath().GetStopPosition(null).ShouldBeNull();
     }
 
     [Fact]
     public void GetStopPosition_ReturnsNull_ForNonMovementAttack()
     {
-        MovementStopRule.GetStopPosition(TwoHexPath(), Declaration(PhysicalAttackType.Punch))
-            .ShouldBeNull();
+        TwoHexPath().GetStopPosition(Declaration(PhysicalAttackType.Punch)).ShouldBeNull();
     }
 
     [Fact]
@@ -50,7 +33,7 @@ public class MovementStopRuleTests
                 new HexPosition(2, 0, HexDirection.TopRight), [])
         }, MovementType.Walk);
 
-        var stop = MovementStopRule.GetStopPosition(path, Declaration(PhysicalAttackType.Charge));
+        var stop = path.GetStopPosition(Declaration(PhysicalAttackType.Charge));
 
         stop.ShouldBe(new HexPosition(1, 0, HexDirection.Top));
     }
@@ -66,7 +49,7 @@ public class MovementStopRuleTests
                 new HexPosition(2, 0, HexDirection.TopRight), [])
         }, MovementType.Jump);
 
-        var stop = MovementStopRule.GetStopPosition(path, Declaration(PhysicalAttackType.DFA));
+        var stop = path.GetStopPosition(Declaration(PhysicalAttackType.DFA));
 
         stop.ShouldBe(new HexPosition(1, 0, HexDirection.TopRight));
     }
@@ -80,8 +63,7 @@ public class MovementStopRuleTests
                 new HexPosition(0, 0, HexDirection.TopRight), [])
         }, MovementType.Walk);
 
-        MovementStopRule.GetStopPosition(path, Declaration(PhysicalAttackType.Charge))
-            .ShouldBeNull();
+        path.GetStopPosition(Declaration(PhysicalAttackType.Charge)).ShouldBeNull();
     }
 
     private static MovementPath TwoHexPath() =>

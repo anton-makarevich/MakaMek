@@ -214,7 +214,7 @@ public abstract class BaseGame : IGame
         if (unit == null) return;
         var wasCompleted = unit.HasMoved;
         var path = new MovementPath(moveCommand.MovementPath, moveCommand.MovementType);
-        var stopAt = MovementStopRule.GetStopPosition(path, moveCommand.Declaration);
+        var stopAt = path.GetStopPosition(moveCommand.Declaration);
         var hex = BattleMap?.GetHex((stopAt ?? path.Destination).Coordinates);
         unit.Move(path, hex, moveCommand.IsCompleted, stopAt);
 

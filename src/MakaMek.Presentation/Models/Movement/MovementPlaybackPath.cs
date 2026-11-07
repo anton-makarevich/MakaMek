@@ -11,8 +11,8 @@ namespace Sanet.MakaMek.Presentation.Models.Movement;
 /// <c>Unit.Position</c> without a snap when <c>CompletePlayback</c> restores the authoritative state.
 /// </summary>
 /// <remarks>
-/// The stop position comes from <see cref="MovementStopRule.GetStopPosition"/>, the same rule the
-/// model applies in <c>BaseGame.OnMoveUnit</c>. When that rule returns no stop position (an
+/// The stop position comes from <see cref="MovementPathExtensions.GetStopPosition"/>, the same rule
+/// the model applies in <c>BaseGame.OnMoveUnit</c>. When that rule returns no stop position (an
 /// ordinary move, an interrupt replacement, a skid, or a truncated command) the input segments are
 /// returned unchanged. Otherwise the last translation and any trailing turns in the target hex are
 /// dropped. A translation samples its <c>From.Facing</c> until it ends, so if the retained path would
@@ -33,7 +33,7 @@ public static class MovementPlaybackPath
         if (segments.Count == 0) return segments;
 
         var path = new MovementPath(segments, movementType);
-        var stopPosition = MovementStopRule.GetStopPosition(path, declaration);
+        var stopPosition = path.GetStopPosition(declaration);
         if (stopPosition is not { } stop) return segments;
 
         var lastTranslationIndex = path.GetLastTranslationIndex();
