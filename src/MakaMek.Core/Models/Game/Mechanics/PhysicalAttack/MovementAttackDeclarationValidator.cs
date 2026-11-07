@@ -11,7 +11,8 @@ namespace Sanet.MakaMek.Core.Models.Game.Mechanics.PhysicalAttack;
 /// The default Charge and DFA declaration policy (Total Warfare p. 148-149 and the physical attacks
 /// PRD, R6.1). A movement-origin declaration is valid only when:
 /// <list type="bullet">
-/// <item>the attacker is a standing, intact Mech that has not moved or declared an attack yet;</item>
+/// <item>the attacker is a standing, intact, non-shutdown Mech that has not moved or declared an
+/// attack yet;</item>
 /// <item>the attack is a Charge with Walk/Run movement or a DFA with Jump movement;</item>
 /// <item>the target is an enemy Mech that has already completed its movement, is not itself
 /// performing a Charge or DFA, and stands in the hex the path terminates in;</item>
@@ -22,7 +23,8 @@ namespace Sanet.MakaMek.Core.Models.Game.Mechanics.PhysicalAttack;
 /// depth as negative levels (Total Warfare, p. 109 and p. 149-151, Different Levels Table);</item>
 /// <item>a physical attack cannot cross the water line: a submerged target can only be attacked
 /// by a submerged attacker (Total Warfare, p. 151);</item>
-/// <item>the last segment enters that hex and pays the MP for the entry;</item>
+/// <item>the last segment enters that hex and pays the MP for the entry; for a Charge, it must
+/// enter from the hex directly in front of the charging unit;</item>
 /// <item>a DFA has enough Jumping MP to clear the target hex level plus the target's height,
 /// even though entering the hex itself costs one MP;</item>
 /// <item>the move fits the remaining movement points; and</item>
@@ -76,7 +78,7 @@ public class MovementAttackDeclarationValidator : IMovementAttackDeclarationVali
         MovementAttackDeclarationValidation.Invalid(ErrorCode.ValidationFailed);
 
     private static bool IsValidAttacker(IUnit attacker) =>
-        attacker is Mech { IsDestroyed: false, IsProne: false, Position: not null }
+        attacker is Mech { IsDestroyed: false, IsShutdown: false, IsProne: false, Position: not null }
         && attacker is { HasDeclaredPhysicalAttack: false, HasMoved: false };
 
     /// <summary>
@@ -169,11 +171,22 @@ public class MovementAttackDeclarationValidator : IMovementAttackDeclarationVali
     /// because the attacker may have climbed or descended on the way there. A larger difference
     /// can only be bridged by a DFA
     /// (Total Warfare, p. 109 and p. 149-151, Different Levels Table).
+    /// <para>
+    /// The target also has to be in the hex directly in front of the charging unit at the start of
+    /// the Physical Attack Phase, disregarding torso twists (Total Warfare, p. 149). The attacker
+    /// waits in the approach hex facing along the entering segment, so a backward entry leaves the
+    /// target behind the attacker and cannot be a charge.
+    /// </para>
     /// </summary>
     private static bool IsChargeAllowed(IUnit attacker, IUnit target, PathSegment? enteringSegment,
         HexPosition targetPosition, IBattleMap map)
     {
         if (enteringSegment is null) return false;
+
+        if (enteringSegment.IsReversed
+            || enteringSegment.From.Coordinates.GetNeighbour(enteringSegment.From.Facing)
+                != targetPosition.Coordinates)
+            return false;
 
         var approachEndpoint = GetEndpoint(attacker, enteringSegment.From, map);
         var targetEndpoint = GetEndpoint(target, targetPosition, map);
@@ -189,6 +202,12 @@ public class MovementAttackDeclarationValidator : IMovementAttackDeclarationVali
     /// water line, and a unit in Depth 2+ water can only be attacked by units underwater
     /// (Total Warfare, p. 149-151). A submerged attacker cannot declare a DFA either, because a
     /// completely submerged Mech cannot fire its jump jets (Total Warfare, p. 151).
+    /// <para>
+    /// A target standing in Depth 1 water is only half-submerged — its torso and arms stay above
+    /// the surface — so it remains a legal DFA target. Jumping into a water hex is allowed (the
+    /// landing only calls for a Piloting Skill Roll), so the landing hex being water does not
+    /// invalidate the declaration.
+    /// </para>
     /// </summary>
     private static bool IsDfaAllowed(IUnit attacker, IUnit target, HexPosition targetPosition,
         IBattleMap map)

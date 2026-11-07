@@ -3604,8 +3604,9 @@ public class MovementPhaseTests : GamePhaseTestsBase
     private static PathSegment ClearStep(HexPosition from, HexPosition to) =>
         new(from, to, [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]);
 
-    private static HexPosition Position(HexCoordinates coordinates) =>
-        new(coordinates, HexDirection.Top);
+    private static HexPosition Position(HexCoordinates coordinates,
+        HexDirection facing = HexDirection.Bottom) =>
+        new(coordinates, facing);
 
     /// <summary>
     /// A target that has already finished its move, as the movement phase requires before it can
@@ -3785,6 +3786,47 @@ public class MovementPhaseTests : GamePhaseTestsBase
         // Assert
         attacker.Position!.Coordinates.ShouldBe(middle);
         attacker.DeclaredPhysicalAttack.ShouldNotBeNull().TargetId.ShouldBe(target.Id);
+    }
+
+    [Fact]
+    public void HandleCommand_WhenTheAttackerIsShutdown_ShouldRejectTheDeclaration()
+    {
+        // Arrange - a shutdown Mech cannot move or make attacks, so it cannot charge
+        var (attacker, target, start, middle, end) = SetUpChargeOnTheMap();
+        attacker.Shutdown(new ShutdownData { Reason = ShutdownReason.Heat, Turn = Game.Turn - 1 });
+        var idempotencyKey = Guid.NewGuid();
+        var command = MoveCommand(Game.PhaseStepState!.Value.ActivePlayer.Id,
+            [ClearStep(Position(start), Position(middle)), ClearStep(Position(middle), Position(end))],
+            MovementType.Walk, Charge(target.Id), idempotencyKey);
+
+        // Act & Assert
+        AssertDeclarationRejected(command, attacker, idempotencyKey);
+    }
+
+    [Fact]
+    public void HandleCommand_WhenTheChargeEntersTheTargetHexBackward_ShouldRejectTheDeclaration()
+    {
+        // Arrange - walking backward into the target hex leaves the target behind the attacker's
+        // feet, so it is not in the hex directly in front of the charging unit at the start of the
+        // Physical Attack Phase (Total Warfare, p. 149)
+        var (attacker, target, start, middle, end) = SetUpChargeOnTheMap();
+        var turnToFaceAway = new PathSegment(Position(start), Position(start, HexDirection.Top),
+            [new RotationMovementCost
+            {
+                FromFacing = HexDirection.Bottom,
+                ToFacing = HexDirection.Top,
+                Value = 1
+            }]);
+        var backwardStep = new PathSegment(Position(start, HexDirection.Top), Position(middle, HexDirection.Top),
+            [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }], IsReversed: true);
+        var backwardEntry = new PathSegment(Position(middle, HexDirection.Top), Position(end, HexDirection.Top),
+            [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }], IsReversed: true);
+        var idempotencyKey = Guid.NewGuid();
+        var command = MoveCommand(Game.PhaseStepState!.Value.ActivePlayer.Id,
+            [turnToFaceAway, backwardStep, backwardEntry], MovementType.Walk, Charge(target.Id), idempotencyKey);
+
+        // Act & Assert
+        AssertDeclarationRejected(command, attacker, idempotencyKey);
     }
 
     [Fact]
@@ -4094,6 +4136,46 @@ public class MovementPhaseTests : GamePhaseTestsBase
     }
 
     [Fact]
+    public void HandleCommand_WhenTheDfaTargetStandsInDepthOneWater_ShouldAcceptTheDeclaration()
+    {
+        // Arrange - a standing Mech in Depth 1 water keeps its torso above the surface, so it is
+        // not fully submerged and is a legal DFA target. Jumping into the water hex is allowed
+        // with a PSR, so the landing does not invalidate the declaration (Total Warfare, p. 151)
+        var (attacker, target, start, middle, end) = SetUpChargeOnTheMap();
+        Game.BattleMap!.GetHex(end)!.AddTerrain(new WaterTerrain(-1));
+        var centerTorso = attacker.Parts[PartLocation.CenterTorso];
+        centerTorso.TryAddComponent(new JumpJets()).ShouldBeTrue();
+        centerTorso.TryAddComponent(new JumpJets()).ShouldBeTrue();
+        MockFallProcessor.ProcessMovementAttempt(attacker,
+                Arg.Is<EnteringDeepWaterRollContext>(c => c.WaterDepth == 1),
+                Game, MovementType.Jump, Arg.Any<HexPosition?>())
+            .Returns(new FallContextData
+            {
+                UnitId = attacker.Id,
+                GameId = Game.Id,
+                IsFalling = false,
+                PilotingSkillRoll = new PilotingSkillRollData
+                {
+                    RollContext = new EnteringDeepWaterRollContext(1),
+                    DiceResults = [6, 6],
+                    IsSuccessful = true,
+                    PsrBreakdown = new PsrBreakdown { BasePilotingSkill = 4, Modifiers = [] }
+                }
+            });
+        var command = MoveCommand(Game.PhaseStepState!.Value.ActivePlayer.Id,
+            [
+                new PathSegment(Position(start), Position(middle), [new JumpMovementCost { Value = 1 }]),
+                new PathSegment(Position(middle), Position(end), [new JumpMovementCost { Value = 1 }])
+            ], MovementType.Jump, Dfa(target.Id));
+
+        // Act
+        _sut.HandleCommand(command);
+
+        // Assert
+        attacker.DeclaredPhysicalAttack.ShouldNotBeNull().AttackType.ShouldBe(PhysicalAttackType.DFA);
+    }
+
+    [Fact]
     public void HandleCommand_WhenTheDfaAttackerIsSubmerged_ShouldRejectTheDeclaration()
     {
         // Arrange - a fully submerged Mech cannot fire its jump jets, so it cannot declare a DFA
@@ -4124,9 +4206,9 @@ public class MovementPhaseTests : GamePhaseTestsBase
         var target = DeployMovedTarget(targetHex);
         var command = MoveCommand(Game.PhaseStepState!.Value.ActivePlayer.Id,
             [
-                new PathSegment(Position(start), Position(middle),
+                new PathSegment(Position(start, HexDirection.Top), Position(middle, HexDirection.Top),
                     [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }], true),
-                new PathSegment(Position(middle), Position(end),
+                new PathSegment(Position(middle, HexDirection.Top), Position(end, HexDirection.Top),
                     [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }], true),
                 ClearStep(Position(end), Position(forward1)),
                 ClearStep(Position(forward1), Position(targetHex))
@@ -4149,7 +4231,8 @@ public class MovementPhaseTests : GamePhaseTestsBase
             [
                 ClearStep(Position(start), Position(middle)),
                 ClearStep(Position(middle), Position(end)),
-                ClearStep(Position(end), Position(middle)),
+                new PathSegment(Position(end, HexDirection.Top), Position(middle, HexDirection.Top),
+                    [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]),
                 ClearStep(Position(middle), Position(end))
             ], MovementType.Walk, Charge(target.Id));
 
@@ -4311,9 +4394,9 @@ public class MovementPhaseTests : GamePhaseTestsBase
         // Arrange - the path finder may append rotation segments after the unit enters the target
         var (attacker, target, start, middle, end) = SetUpChargeOnTheMap();
         var turnAtTarget = new PathSegment(
-            new HexPosition(end, HexDirection.Top),
             new HexPosition(end, HexDirection.Bottom),
-            [new RotationMovementCost { FromFacing = HexDirection.Top, ToFacing = HexDirection.Bottom, Value = 1 }]);
+            new HexPosition(end, HexDirection.Top),
+            [new RotationMovementCost { FromFacing = HexDirection.Bottom, ToFacing = HexDirection.Top, Value = 1 }]);
         var command = MoveCommand(Game.PhaseStepState!.Value.ActivePlayer.Id,
             [ClearStep(Position(start), Position(middle)), ClearStep(Position(middle), Position(end)), turnAtTarget],
             MovementType.Walk, Charge(target.Id));
@@ -4381,7 +4464,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
         _sut.Enter();
         var player = Game.PhaseStepState!.Value.ActivePlayer;
         var unit = (Mech)player.Units.Single(u => u.Id == _unit1Id);
-        var start = new HexPosition(1, 2, HexDirection.Top);
+        var start = new HexPosition(1, 2, HexDirection.BottomRight);
         unit.Deploy(start, null);
         var roadHex = Game.BattleMap!.GetHex(new HexCoordinates(2, 2));
         roadHex!.AddTerrain(new RoadTerrain());
@@ -4389,11 +4472,11 @@ public class MovementPhaseTests : GamePhaseTestsBase
         var target = DeployMovedTarget(targetHex);
         var command = MoveCommand(player.Id,
             [
-                new PathSegment(start, new HexPosition(2, 2, HexDirection.Top),
+                new PathSegment(start, new HexPosition(2, 2, HexDirection.BottomRight),
                     [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]),
-                new PathSegment(new HexPosition(2, 2, HexDirection.Top), new HexPosition(2, 2, HexDirection.Bottom),
+                new PathSegment(new HexPosition(2, 2, HexDirection.BottomRight), new HexPosition(2, 2, HexDirection.TopRight),
                     [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 0 }]),
-                new PathSegment(new HexPosition(2, 2, HexDirection.Bottom), new HexPosition(3, 2, HexDirection.Bottom),
+                new PathSegment(new HexPosition(2, 2, HexDirection.TopRight), new HexPosition(3, 2, HexDirection.TopRight),
                     [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])
             ], MovementType.Run, Charge(target.Id));
         MockFallProcessor.ProcessMovementAttempt(unit,
