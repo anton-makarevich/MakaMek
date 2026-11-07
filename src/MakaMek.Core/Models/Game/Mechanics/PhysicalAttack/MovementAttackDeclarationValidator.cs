@@ -100,13 +100,25 @@ public class MovementAttackDeclarationValidator : IMovementAttackDeclarationVali
     /// has not moved could still move away, and the declaration is only allowed against a unit the
     /// attacker has seen complete its move (Background item 11). A unit performing a Charge or DFA
     /// is not finished moving until the Physical Attack Phase, so it cannot be the target of
-    /// another Charge or DFA (Total Warfare, p. 148-149).
+    /// another Charge or DFA (Total Warfare, p. 148-149). A unit that began the turn shutdown or
+    /// with an unconscious pilot counts as having taken its movement action first for this purpose
+    /// (Total Warfare, p. 144).
     /// </summary>
     private static bool IsValidTarget(IUnit attacker, IUnit? target, PhysicalAttackType attackType) =>
         target is Mech { IsDestroyed: false, Position: not null }
         && target.Owner?.Id != attacker.Owner?.Id
-        && target is { HasMoved: true, HasPendingMovementAttack: false }
+        && target is { HasPendingMovementAttack: false }
+        && (target.HasMoved || StartedTurnIncapacitated(target))
         && IsLegalAgainstProneTarget(target, attackType);
+
+    /// <summary>
+    /// A unit observed shutdown or with an unconscious pilot during the Movement Phase cannot take
+    /// a movement action this turn: shutdown is entered in the heat or end phase, and an unconscious
+    /// pilot cannot move. It is therefore treated as having taken its movement action first
+    /// (Total Warfare, p. 144).
+    /// </summary>
+    private static bool StartedTurnIncapacitated(IUnit target) =>
+        target.IsShutdown || target.Pilot is { IsConscious: false };
 
     /// <summary>
     /// A Mech cannot charge a prone target, but a DFA against a prone target remains legal

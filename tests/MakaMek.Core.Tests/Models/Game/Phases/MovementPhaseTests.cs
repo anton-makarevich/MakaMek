@@ -3749,6 +3749,45 @@ public class MovementPhaseTests : GamePhaseTestsBase
     }
 
     [Fact]
+    public void HandleCommand_WhenTheTargetStartedTheTurnShutdown_ShouldAllowTheCharge()
+    {
+        // Arrange - a unit that began the turn shutdown is treated as having moved first even
+        // though it never received a move command
+        var (attacker, target, start, middle, end) = SetUpChargeOnTheMap();
+        target.ResetTurnState();
+        target.Shutdown(new ShutdownData { Reason = ShutdownReason.Heat, Turn = Game.Turn - 1 });
+        var command = MoveCommand(Game.PhaseStepState!.Value.ActivePlayer.Id,
+            [ClearStep(Position(start), Position(middle)), ClearStep(Position(middle), Position(end))],
+            MovementType.Walk, Charge(target.Id));
+
+        // Act
+        _sut.HandleCommand(command);
+
+        // Assert
+        attacker.Position!.Coordinates.ShouldBe(middle);
+        attacker.DeclaredPhysicalAttack.ShouldNotBeNull().TargetId.ShouldBe(target.Id);
+    }
+
+    [Fact]
+    public void HandleCommand_WhenTheTargetStartedTheTurnUnconscious_ShouldAllowTheCharge()
+    {
+        // Arrange - a unit whose pilot began the turn unconscious counts as having moved first
+        var (attacker, target, start, middle, end) = SetUpChargeOnTheMap();
+        target.ResetTurnState();
+        target.Pilot!.KnockUnconscious(Game.Turn - 1);
+        var command = MoveCommand(Game.PhaseStepState!.Value.ActivePlayer.Id,
+            [ClearStep(Position(start), Position(middle)), ClearStep(Position(middle), Position(end))],
+            MovementType.Walk, Charge(target.Id));
+
+        // Act
+        _sut.HandleCommand(command);
+
+        // Assert
+        attacker.Position!.Coordinates.ShouldBe(middle);
+        attacker.DeclaredPhysicalAttack.ShouldNotBeNull().TargetId.ShouldBe(target.Id);
+    }
+
+    [Fact]
     public void HandleCommand_WhenTheTargetIsFriendly_ShouldRejectTheDeclaration()
     {
         // Arrange
