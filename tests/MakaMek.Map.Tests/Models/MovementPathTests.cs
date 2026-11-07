@@ -715,6 +715,43 @@ public class MovementPathTests
     }
 
     [Fact]
+    public void HexesEnteredInLastLeg_ShouldCountOnlyAfterFall_WhenMechFell()
+    {
+        // Arrange - two hexes entered before the fall and two after it
+        var executedLeg = new MovementPath(
+            new List<PathSegment>
+            {
+                new(
+                    new HexPosition(new HexCoordinates(1, 1), HexDirection.Top),
+                    new HexPosition(new HexCoordinates(1, 2), HexDirection.Top),
+                    [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]),
+                new(
+                    new HexPosition(new HexCoordinates(1, 2), HexDirection.Top),
+                    new HexPosition(new HexCoordinates(1, 3), HexDirection.Top),
+                    [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])
+            }, MovementType.Walk)
+            .WithLastSegmentEvent(new SegmentEvent(SegmentEventType.Fall));
+        var continuation = new MovementPath(
+            new List<PathSegment>
+            {
+                new(
+                    new HexPosition(new HexCoordinates(1, 3), HexDirection.Top),
+                    new HexPosition(new HexCoordinates(1, 4), HexDirection.Top),
+                    [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]),
+                new(
+                    new HexPosition(new HexCoordinates(1, 4), HexDirection.Top),
+                    new HexPosition(new HexCoordinates(1, 5), HexDirection.Top),
+                    [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])
+            }, MovementType.Walk);
+
+        // Act
+        var combinedPath = executedLeg.Append(continuation);
+
+        // Assert - only the hexes entered after the fall count (Total Warfare, p. 148)
+        combinedPath.HexesEnteredInLastLeg.ShouldBe(2);
+    }
+
+    [Fact]
     public void EventsWithLocations_ShouldReturnEmpty_WhenNoSegmentsHaveEvents()
     {
         var sut = new MovementPath(new List<PathSegment>

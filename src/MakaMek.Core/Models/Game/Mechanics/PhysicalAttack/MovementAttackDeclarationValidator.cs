@@ -230,10 +230,10 @@ public class MovementAttackDeclarationValidator : IMovementAttackDeclarationVali
     }
 
     /// <summary>
-    /// Hexes traversed before entering the target hex, counting only the last leg after a
-    /// direction reversal and counting repeated hexes. A deferred move that continues after a fall
-    /// is measured over the combined path, because the executed path is already on the unit
-    /// (Total Warfare, p. 148).
+    /// Hexes traversed before entering the target hex, counting only the last leg after the last
+    /// direction reversal and, if the attacker fell, after the fall (Total Warfare, p. 148). A
+    /// deferred move that continues after a fall is measured over the combined path because the
+    /// executed path is already on the unit; the fall event in that path resets the count.
     /// </summary>
     private static int CountHexesMovedBeforeTarget(IUnit attacker, MovementPath continuation,
         HexCoordinates targetCoordinates)

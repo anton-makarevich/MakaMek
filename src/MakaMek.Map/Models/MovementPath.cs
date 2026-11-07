@@ -67,14 +67,31 @@ public class MovementPath : IEquatable<MovementPath>
 
     /// <summary>
     /// Number of hexes entered during the last leg of movement, i.e. after the last direction
-    /// reversal, counting every entry and including the destination. Unlike
-    /// <see cref="HexesTraveled"/>, repeated hexes are not deduplicated; charge damage uses this
-    /// count minus the target hex (Total Warfare, p. 148).
+    /// reversal and, if the Mech fell, after the segment where it fell, counting every entry and
+    /// including the destination. Unlike <see cref="HexesTraveled"/>, repeated hexes are not
+    /// deduplicated; charge damage uses this count minus the target hex (Total Warfare, p. 148).
     /// </summary>
-    public int HexesEnteredInLastLeg =>
-        Segments.Count == 0
-            ? 0
-            : GetLastLegSegments(Segments).Count(s => s.From.Coordinates != s.To.Coordinates);
+    public int HexesEnteredInLastLeg
+    {
+        get
+        {
+            if (Segments.Count == 0) return 0;
+
+            var lastLeg = GetLastLegSegments(Segments);
+            var startIndex = Segments.Count - lastLeg.Count;
+
+            // Hexes moved before a fall do not apply to charge distance (Total Warfare, p. 148).
+            for (var i = startIndex; i < Segments.Count; i++)
+            {
+                if (Segments[i].Events.Any(e => e.Type == SegmentEventType.Fall))
+                    startIndex = i + 1;
+            }
+
+            return Segments
+                .Skip(startIndex)
+                .Count(s => s.From.Coordinates != s.To.Coordinates);
+        }
+    }
 
     public int StraightLineDistance { get; }
     

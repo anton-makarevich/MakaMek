@@ -4349,6 +4349,31 @@ public class MovementPhaseTests : GamePhaseTestsBase
     }
 
     [Fact]
+    public void HandleCommand_WhenTheAttackerFellBeforeContinuing_ShouldCountOnlyHexesAfterTheFall()
+    {
+        // Arrange - the first leg ended in a fall and the unit stood up before continuing
+        var (attacker, start, middle, end) = SetUpMapAndAttacker();
+        var afterMid = end.GetNeighbour(HexDirection.Bottom);
+        var targetHex = afterMid.GetNeighbour(HexDirection.Bottom);
+        var declaredTarget = DeployMovedTarget(targetHex);
+        var executedLeg = new MovementPath([ClearStep(Position(start), Position(middle))],
+                MovementType.Run)
+            .WithLastSegmentEvent(new SegmentEvent(SegmentEventType.Fall));
+        attacker.Move(executedLeg, null, false);
+        attacker.RegisterStandupAttempt(MovementType.Run);
+        var command = MoveCommand(Game.PhaseStepState!.Value.ActivePlayer.Id,
+            [ClearStep(Position(middle), Position(end)), ClearStep(Position(end), Position(afterMid)),
+                ClearStep(Position(afterMid), Position(targetHex))],
+            MovementType.Run, Charge(declaredTarget.Id));
+
+        // Act
+        _sut.HandleCommand(command);
+
+        // Assert - hexes entered before the fall do not apply (Total Warfare, p. 148)
+        attacker.DeclaredPhysicalAttack.ShouldNotBeNull().HexesMoved.ShouldBe(2);
+    }
+
+    [Fact]
     public void HandleCommand_WhenAnInterruptTruncatesTheMove_ShouldNotStoreTheDeclaration()
     {
         // Arrange - a run that skids on a road never completes the charge
