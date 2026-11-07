@@ -209,4 +209,30 @@ public class PathSegmentViewModelTests
         // Act & Assert
         sut.Events.ShouldBe(events);
     }
+
+    [Fact]
+    public void IsPendingAttackEntry_DefaultsToFalse()
+    {
+        var segment = new PathSegment(
+            new HexPosition(new HexCoordinates(0, 0), HexDirection.Top),
+            new HexPosition(new HexCoordinates(1, 0), HexDirection.Top),
+            []);
+
+        var sut = new PathSegmentViewModel(segment);
+
+        sut.IsPendingAttackEntry.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void IsPendingAttackEntry_ReturnsExplicitValue()
+    {
+        var segment = new PathSegment(
+            new HexPosition(new HexCoordinates(0, 0), HexDirection.Top),
+            new HexPosition(new HexCoordinates(1, 0), HexDirection.Top),
+            []);
+
+        var sut = new PathSegmentViewModel(segment, isPendingAttackEntry: true);
+
+        sut.IsPendingAttackEntry.ShouldBeTrue();
+    }
 }

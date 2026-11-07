@@ -1092,4 +1092,91 @@ public class MovementPathTests
         result.ShouldBe(
             $"1. 0101:0->0102:0{Environment.NewLine}- rotated 1 side(s), 1 MP{Environment.NewLine}- entered Clear, 2 MP");
     }
+
+    [Fact]
+    public void GetLastTranslationIndex_ReturnsLastCoordinateChangingSegment_WhenTrailingTurns()
+    {
+        var path = new MovementPath(new List<PathSegment>
+        {
+            new(new HexPosition(0, 0, HexDirection.Top),
+                new HexPosition(1, 0, HexDirection.Top), []),
+            new(new HexPosition(1, 0, HexDirection.Top),
+                new HexPosition(2, 0, HexDirection.Top), []),
+            new(new HexPosition(2, 0, HexDirection.Top),
+                new HexPosition(2, 0, HexDirection.TopRight), [])
+        }, MovementType.Walk);
+
+        path.GetLastTranslationIndex().ShouldBe(1);
+    }
+
+    [Fact]
+    public void GetLastTranslationIndex_ReturnsZero_ForSingleTranslation()
+    {
+        var path = new MovementPath(new List<PathSegment>
+        {
+            new(new HexPosition(0, 0, HexDirection.Top),
+                new HexPosition(1, 0, HexDirection.Top), [])
+        }, MovementType.Walk);
+
+        path.GetLastTranslationIndex().ShouldBe(0);
+    }
+
+    [Fact]
+    public void GetLastTranslationIndex_ReturnsMinusOne_ForTurnOnlyPath()
+    {
+        var path = new MovementPath(new List<PathSegment>
+        {
+            new(new HexPosition(0, 0, HexDirection.Top),
+                new HexPosition(0, 0, HexDirection.TopRight), []),
+            new(new HexPosition(0, 0, HexDirection.TopRight),
+                new HexPosition(0, 0, HexDirection.BottomRight), [])
+        }, MovementType.Walk);
+
+        path.GetLastTranslationIndex().ShouldBe(-1);
+    }
+
+    [Fact]
+    public void GetLastTranslationIndex_ReturnsMinusOne_ForRedundantSegments()
+    {
+        var path = new MovementPath(new List<PathSegment>
+        {
+            new(new HexPosition(0, 0, HexDirection.Top),
+                new HexPosition(0, 0, HexDirection.Top), []),
+            new(new HexPosition(0, 0, HexDirection.Top),
+                new HexPosition(0, 0, HexDirection.Top), [])
+        }, MovementType.Walk);
+
+        path.GetLastTranslationIndex().ShouldBe(-1);
+    }
+
+    [Fact]
+    public void GetLastTranslationIndex_UsesOrderedSegments_WhenCoordinatesRepeat()
+    {
+        // A -> B -> A -> C: Hexes deduplicates to A, B, C and loses the final A -> C entry.
+        var path = new MovementPath(new List<PathSegment>
+        {
+            new(new HexPosition(0, 0, HexDirection.Top),
+                new HexPosition(1, 0, HexDirection.Top), []),
+            new(new HexPosition(1, 0, HexDirection.Top),
+                new HexPosition(0, 0, HexDirection.Top), []),
+            new(new HexPosition(0, 0, HexDirection.Top),
+                new HexPosition(2, 0, HexDirection.Top), [])
+        }, MovementType.Walk);
+
+        path.GetLastTranslationIndex().ShouldBe(2);
+    }
+
+    [Fact]
+    public void GetLastTranslationIndex_ReturnsLastTranslation_ForJumpWithDifferingFacings()
+    {
+        var path = new MovementPath(new List<PathSegment>
+        {
+            new(new HexPosition(0, 0, HexDirection.Top),
+                new HexPosition(1, 0, HexDirection.TopRight), []),
+            new(new HexPosition(1, 0, HexDirection.TopRight),
+                new HexPosition(2, 0, HexDirection.TopRight), [])
+        }, MovementType.Jump);
+
+        path.GetLastTranslationIndex().ShouldBe(1);
+    }
 }

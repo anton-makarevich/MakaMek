@@ -181,6 +181,23 @@ public class MovementPath : IEquatable<MovementPath>
         return new MovementPath(combinedSegments, MovementType, MaxLevelChange);
     }
     
+    /// <summary>
+    /// Index of the last segment that changes coordinates, or -1 when the path has no translation
+    /// (turns and redundant zero-length segments only). The ordered segments are scanned directly
+    /// instead of <see cref="Hexes"/>, which deduplicates coordinates and cannot represent paths
+    /// such as A → B → A → C.
+    /// </summary>
+    public int GetLastTranslationIndex()
+    {
+        for (var i = Segments.Count - 1; i >= 0; i--)
+        {
+            if (Segments[i].From.Coordinates != Segments[i].To.Coordinates)
+                return i;
+        }
+
+        return -1;
+    }
+
     public MovementPath RemoveTrailingTurns()
     {
         var segments = Segments.ToList();

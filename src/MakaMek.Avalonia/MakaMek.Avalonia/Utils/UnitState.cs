@@ -28,6 +28,12 @@ internal class UnitState : IEquatable<UnitState>
     
     public MovementPath? MovementTaken { get; init; }
 
+    /// <summary>
+    /// Whether the unit has declared a Charge or DFA. The recorded path overlay depends on it, so it
+    /// participates in change detection even when the path itself does not change.
+    /// </summary>
+    public bool HasDeclaredMovementAttack { get; init; }
+
     public bool Equals(UnitState? other)
     {
         if (other == null) return false;
@@ -45,6 +51,7 @@ internal class UnitState : IEquatable<UnitState>
                TotalCurrentStructure == other.TotalCurrentStructure &&
                Status == other.Status &&
                CurrentHeat == other.CurrentHeat &&
+               HasDeclaredMovementAttack == other.HasDeclaredMovementAttack &&
                AreMovementPathsEqual(MovementTaken, other.MovementTaken) &&
                AreEventsEqual(Events, other.Events);
     }
@@ -65,7 +72,8 @@ internal class UnitState : IEquatable<UnitState>
             TorsoDirection?.GetHashCode() ?? 0,
             Status,
             HashCode.Combine(TotalCurrentArmor, TotalCurrentStructure),
-            HashCode.Combine(CurrentHeat, MovementTaken?.GetHashCode() ?? 0, SelectionKind.GetHashCode())
+            HashCode.Combine(CurrentHeat, MovementTaken?.GetHashCode() ?? 0, SelectionKind.GetHashCode(),
+                HasDeclaredMovementAttack.GetHashCode())
         );
     }
 

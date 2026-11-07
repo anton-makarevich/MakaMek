@@ -20,6 +20,8 @@ public class PathSegmentControl : Panel
     private const double ChevronHeight = 6;
     private const double ChevronSpacing = 8;
     private const double ChevronBaseOffset = 24;
+    private const double DefaultOpacity = 0.8;
+    private const double PendingAttackEntryOpacity = 0.45;
 
     public PathSegmentControl(PathSegmentViewModel segment, Color color)
     {
@@ -31,12 +33,31 @@ public class PathSegmentControl : Panel
         {
             Stroke = new SolidColorBrush(color),
             StrokeThickness = StrokeThickness,
-            Fill = new SolidColorBrush(color),
-            Opacity = 0.8,
-            Data = CreatePathGeometry()
+            Opacity = _segment.IsPendingAttackEntry ? PendingAttackEntryOpacity : DefaultOpacity,
+            Data = CreateMovementGeometry()
         };
-        
+
+        if (_segment.IsPendingAttackEntry)
+        {
+            // The unit waits in the approach hex until the attack resolves, so the target-entry
+            // stretch reads as intent rather than as executed movement.
+            path.StrokeDashArray = [4, 3];
+        }
+
         Children.Add(path);
+
+        // The arrows stay fully opaque and solid so the overlay still shows the MP spent.
+        if (_segment.Cost > 0)
+        {
+            Children.Add(new Path
+            {
+                Stroke = new SolidColorBrush(color),
+                StrokeThickness = StrokeThickness,
+                Fill = new SolidColorBrush(color),
+                Opacity = DefaultOpacity,
+                Data = CreateArrowGeometry()
+            });
+        }
 
         AddEventMarkers(color);
         AddElevationIndicators(color);
@@ -44,6 +65,8 @@ public class PathSegmentControl : Panel
         SetValue(Canvas.LeftProperty, _segment.FromX - HexCoordinatesPixelExtensions.HexWidth*0.5);
         SetValue(Canvas.TopProperty, _segment.FromY - HexCoordinatesPixelExtensions.HexHeight*0.5);
     }
+
+    internal bool IsPendingAttackEntry => _segment.IsPendingAttackEntry;
 
     private void AddEventMarkers(Color color)
     {
@@ -161,7 +184,7 @@ public class PathSegmentControl : Panel
         };
     }
 
-    private Geometry CreatePathGeometry()
+    private Geometry CreateMovementGeometry()
     {
         var geometry = new GeometryGroup();
         
@@ -195,7 +218,13 @@ public class PathSegmentControl : Panel
             });
         }
 
-        // Add arrows based on Cost value
+        return geometry;
+    }
+
+    private Geometry CreateArrowGeometry()
+    {
+        var geometry = new GeometryGroup();
+
         var dirX = _segment.ArrowDirectionVector.X;
         var dirY = _segment.ArrowDirectionVector.Y;
         var endPoint = new Point(_segment.EndX, _segment.EndY);

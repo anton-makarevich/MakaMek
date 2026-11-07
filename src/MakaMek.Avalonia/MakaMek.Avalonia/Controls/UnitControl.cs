@@ -22,6 +22,7 @@ using Sanet.MakaMek.Avalonia.Services;
 using Sanet.MakaMek.Avalonia.Utils;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Events;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.Movement;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Map.Models;
 using Sanet.MakaMek.Presentation.Models.Movement;
@@ -62,6 +63,7 @@ namespace Sanet.MakaMek.Avalonia.Controls
         private readonly StackPanel _eventsPanel;
         private readonly TimeSpan _eventDisplayDuration = TimeSpan.FromSeconds(5);
         private readonly List<PathSegmentControl> _unitMovementPathSegments = [];
+        private bool _unitMovementPathHasDeclaredAttack;
 
         // The hexagonal outline that marks the selected unit, and the motion that plays it.
         private readonly SelectionHex _selectionHex;
@@ -314,7 +316,8 @@ namespace Sanet.MakaMek.Avalonia.Controls
                     Status = _unit.Status,
                     Events = _unit.Notifications,
                     CurrentHeat = _unit.CurrentHeat,
-                    MovementTaken = _unit.MovementTaken
+                    MovementTaken = _unit.MovementTaken,
+                    HasDeclaredMovementAttack = MovementStopRule.IsMovementAttack(_unit.DeclaredPhysicalAttack)
                 })
                 .DistinctUntilChanged()
                 .ObserveOn(SynchronizationContext.Current) // Ensure events are processed on the UI thread
@@ -655,7 +658,11 @@ namespace Sanet.MakaMek.Avalonia.Controls
             while (_pendingMoves.Count > 0)
             {
                 var command = _pendingMoves.Dequeue();
-                var timeline = MovementPlaybackTimeline.Create(command.MovementPath, command.MovementType);
+                // A declared Charge or DFA is modelled as waiting in the approach hex, so its
+                // playback must end there too rather than in the target hex.
+                var playbackPath = MovementPlaybackPath.Resolve(
+                    command.MovementPath, command.MovementType, command.Declaration);
+                var timeline = MovementPlaybackTimeline.Create(playbackPath, command.MovementType);
                 if (timeline is null) continue; // standing still or a no-op path: nothing to show
 
                 StartPlayback(timeline);
@@ -833,12 +840,15 @@ namespace Sanet.MakaMek.Avalonia.Controls
             };
         }
 
-        private void ShowMovementPath(MovementPath path)
+        private void ShowMovementPath(MovementPath path, bool hasDeclaredMovementAttack)
         {
-            // Only update if the path has changed
-            if (_unitMovementPathSegments.Count == path.Segments.Count)
+            // Rebuild only when the overlay shape or its declared-attack styling changes. The path
+            // itself already drives an update through UnitState; a declaration that arrives without
+            // changing the path must still refresh the target-entry styling.
+            if (_unitMovementPathSegments.Count == path.Segments.Count
+                && _unitMovementPathHasDeclaredAttack == hasDeclaredMovementAttack)
             {
-                return; // Path unchanged
+                return; // Path and declaration unchanged
             }
 
             HideMovementPath(); // Clear stale segments
@@ -849,10 +859,21 @@ namespace Sanet.MakaMek.Avalonia.Controls
                 ? Color.Parse(_unit.Owner.Tint)
                 : Colors.Yellow;
 
+            // The full MovementTaken path shows the committed intent and every MP spent. For a
+            // declared Charge or DFA, the segments from the last translation onward are the
+            // target-entry stretch: the unit waits in the approach hex until the attack resolves,
+            // so they are drawn in a distinct "pending attack entry" style instead of implying the
+            // unit already stands in the target hex.
+            var lastTranslationIndex = path.GetLastTranslationIndex();
+
             var zIndex = 0;
-            foreach (var segment in path.Segments)
+            for (var index = 0; index < path.Segments.Count; index++)
             {
-                var segmentViewModel = new PathSegmentViewModel(segment);
+                var isPendingAttackEntry = hasDeclaredMovementAttack
+                                           && lastTranslationIndex >= 0
+                                           && index >= lastTranslationIndex;
+                var segmentViewModel = new PathSegmentViewModel(
+                    path.Segments[index], isPendingAttackEntry);
                 var segmentControl = new PathSegmentControl(segmentViewModel, color);
                 _unitMovementPathSegments.Add(segmentControl);
                 canvas.Children.Add(segmentControl);
@@ -860,6 +881,7 @@ namespace Sanet.MakaMek.Avalonia.Controls
                 zIndex = segmentControl.ZIndex;
             }
 
+            _unitMovementPathHasDeclaredAttack = hasDeclaredMovementAttack;
             ZIndex = zIndex + 1;
         }
 
@@ -876,6 +898,7 @@ namespace Sanet.MakaMek.Avalonia.Controls
             }
 
             _unitMovementPathSegments.Clear();
+            _unitMovementPathHasDeclaredAttack = false;
         }
 
         private void UpdateDestroyedState(Path destroyedCross)
@@ -927,7 +950,7 @@ namespace Sanet.MakaMek.Avalonia.Controls
             // Show movement path when MovementTaken has cost
             if (state.MovementTaken is { TotalCost: > 0 })
             {
-                ShowMovementPath(state.MovementTaken);
+                ShowMovementPath(state.MovementTaken, state.HasDeclaredMovementAttack);
             }
             else
             {

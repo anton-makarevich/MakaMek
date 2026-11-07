@@ -9,11 +9,19 @@ public class PathSegmentViewModel : BaseViewModel
     private readonly PathSegment _segment;
     private const double TurnLength = 40;
 
-    public PathSegmentViewModel(PathSegment segment)
+    public PathSegmentViewModel(PathSegment segment, bool isPendingAttackEntry = false)
     {
         _segment = segment;
+        IsPendingAttackEntry = isPendingAttackEntry;
     }
-    
+
+    /// <summary>
+    /// True for a target-entry segment of a declared Charge or DFA: the unit committed to entering
+    /// the target hex but waits in the approach hex until the attack resolves, so the segment is
+    /// drawn in a distinct style rather than as ordinary movement.
+    /// </summary>
+    public bool IsPendingAttackEntry { get; }
+
     public HexPosition From => _segment.From;
     public HexPosition To => _segment.To;
     public int Cost => _segment.Cost;
