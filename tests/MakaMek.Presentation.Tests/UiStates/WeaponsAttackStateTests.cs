@@ -268,9 +268,9 @@ public class WeaponsAttackStateTests
     }
 
     [Fact]
-    public void GetAvailableActions_WhenTheUnitHasAPendingMovementAttack_ReturnsOnlySkip()
+    public void GetAvailableActions_WhenTheUnitHasAPendingMovementAttack_AllowsOnlySkipAndTorsoTwist()
     {
-        // Arrange - a charging unit can neither fire nor rotate its torso this turn
+        // Arrange - a charging unit cannot fire, but it may still twist its torso this turn
         SetPhase(PhaseNames.WeaponsAttack);
         SetActivePlayer();
         var attacker = _battleMapViewModel.Units.First(u => u.Owner!.Id == _player.Id);
@@ -286,8 +286,33 @@ public class WeaponsAttackStateTests
         // Act
         _sut.HandleUnitSelectionFromList(attacker);
 
+        // Assert - no target selection, but the torso twist remains available
+        _sut.GetAvailableActions().Select(action => action.Label)
+            .ShouldBe(["Skip Attack", "Turn Torso"]);
+    }
+
+    [Fact]
+    public void GetAvailableActions_WhenTheUnitHasAPendingMovementAttack_TorsoTwistOpensConfiguration()
+    {
+        // Arrange
+        SetPhase(PhaseNames.WeaponsAttack);
+        SetActivePlayer();
+        var attacker = _battleMapViewModel.Units.First(u => u.Owner!.Id == _player.Id);
+        attacker.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom), null);
+        attacker.AssignPilot(_pilot);
+        attacker.DeclarePhysicalAttack(new PhysicalAttackDeclarationData
+        {
+            AttackType = PhysicalAttackType.Charge,
+            AttackerLimbs = [],
+            TargetId = Guid.NewGuid()
+        });
+        _sut.HandleUnitSelectionFromList(attacker);
+
+        // Act
+        _sut.GetAvailableActions().First(a => a.Label == "Turn Torso").OnExecute();
+
         // Assert
-        _sut.GetAvailableActions().Select(action => action.Label).ShouldBe(["Skip Attack"]);
+        _sut.CurrentStep.ShouldBe(WeaponsAttackStep.WeaponsConfiguration);
     }
 
     [Fact]

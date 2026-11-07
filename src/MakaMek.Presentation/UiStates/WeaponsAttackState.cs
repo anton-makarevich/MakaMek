@@ -286,8 +286,11 @@ public class WeaponsAttackState : IUiState, ICombatSelectionRoles
                 true,
                 ConfirmWeaponSelections));
 
-            if (Attacker.IsImmobile || Attacker.HasPendingMovementAttack) return actions;
+            if (Attacker.IsImmobile) return actions;
             
+            // A unit with a pending Charge or DFA cannot fire, but it may still twist its torso:
+            // charge alignment follows the feet, so a twist does not affect the attack
+            // (Total Warfare, p. 148).
             // Add torso rotation action if available
             // TODO: once arms flip is implemented we should add an action per type instead of filtering
             var torsoRotationOption = Attacker
