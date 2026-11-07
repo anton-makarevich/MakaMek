@@ -14,6 +14,7 @@ using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.Localization;
 using Sanet.MakaMek.Map.Data;
+using Sanet.MakaMek.Map.Models;
 using Shouldly;
 
 namespace Sanet.MakaMek.Core.Tests.Data.Serialization.Converters;
@@ -623,6 +624,92 @@ public class GameCommandJsonConverterTests
 
         // Assert
         type.ShouldBeNull();
+    }
+
+    [Fact]
+    public void MoveUnitCommand_RoundTripsTheMovementAttackDeclaration()
+    {
+        // Arrange
+        var targetId = Guid.NewGuid();
+        var command = new MoveUnitCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = Guid.NewGuid(),
+            UnitId = Guid.NewGuid(),
+            MovementType = MovementType.Walk,
+            IsCompleted = true,
+            MovementPath =
+            [
+                new PathSegmentData
+                {
+                    From = new HexPositionData
+                    {
+                        Coordinates = new HexCoordinateData(1, 1), Facing = 0
+                    },
+                    To = new HexPositionData
+                    {
+                        Coordinates = new HexCoordinateData(1, 2), Facing = 0
+                    },
+                    Costs = []
+                }
+            ],
+            Declaration = new PhysicalAttackDeclarationData
+            {
+                AttackType = PhysicalAttackType.Charge,
+                AttackerLimbs = [],
+                TargetId = targetId,
+                HexesMoved = 2
+            }
+        };
+
+        // Act
+        var json = JsonSerializer.Serialize<IGameCommand>(command, _options);
+        var restored = JsonSerializer.Deserialize<IGameCommand>(json, _options)
+            .ShouldBeOfType<MoveUnitCommand>();
+
+        // Assert
+        var declaration = restored.Declaration.ShouldNotBeNull();
+        declaration.AttackType.ShouldBe(PhysicalAttackType.Charge);
+        declaration.TargetId.ShouldBe(targetId);
+        declaration.HexesMoved.ShouldBe(2);
+        declaration.AttackerLimbs.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void MoveUnitCommand_WithoutDeclaration_DeserializesToNullDeclaration()
+    {
+        // Arrange
+        var command = new MoveUnitCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = Guid.NewGuid(),
+            UnitId = Guid.NewGuid(),
+            MovementType = MovementType.Walk,
+            IsCompleted = true,
+            MovementPath =
+            [
+                new PathSegmentData
+                {
+                    From = new HexPositionData
+                    {
+                        Coordinates = new HexCoordinateData(1, 1), Facing = 0
+                    },
+                    To = new HexPositionData
+                    {
+                        Coordinates = new HexCoordinateData(1, 2), Facing = 0
+                    },
+                    Costs = []
+                }
+            ]
+        };
+
+        // Act
+        var json = JsonSerializer.Serialize<IGameCommand>(command, _options);
+        var restored = JsonSerializer.Deserialize<IGameCommand>(json, _options)
+            .ShouldBeOfType<MoveUnitCommand>();
+
+        // Assert
+        restored.Declaration.ShouldBeNull();
     }
 }
 

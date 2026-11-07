@@ -662,6 +662,96 @@ public class MovementPathTests
     }
     
     [Fact]
+    public void HexesEnteredInLastLeg_ShouldCountOnlyLastLeg_WhenDirectionChanges()
+    {
+        // Arrange - two backward hexes followed by one forward hex
+        var backwardSegments = new List<PathSegment>
+        {
+            new(
+                new HexPosition(new HexCoordinates(1, 1), HexDirection.Top),
+                new HexPosition(new HexCoordinates(1, 2), HexDirection.Top),
+                [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }],
+                true),
+            new(
+                new HexPosition(new HexCoordinates(1, 2), HexDirection.Top),
+                new HexPosition(new HexCoordinates(1, 3), HexDirection.Top),
+                [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }],
+                true)
+        };
+        var forwardSegments = new List<PathSegment>
+        {
+            new(
+                new HexPosition(new HexCoordinates(1, 3), HexDirection.Top),
+                new HexPosition(new HexCoordinates(1, 4), HexDirection.Top),
+                [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])
+        };
+        var combinedPath = new MovementPath(backwardSegments, MovementType.Walk)
+            .Append(new MovementPath(forwardSegments, MovementType.Walk));
+
+        // Assert - only the forward leg is counted
+        combinedPath.HexesEnteredInLastLeg.ShouldBe(1);
+    }
+
+    [Fact]
+    public void HexesEnteredInLastLeg_ShouldCountRepeatedHexes()
+    {
+        // Arrange - the path returns to its starting hex without a direction reversal
+        var segments = new List<PathSegment>
+        {
+            new(
+                new HexPosition(new HexCoordinates(1, 1), HexDirection.Top),
+                new HexPosition(new HexCoordinates(1, 2), HexDirection.Top),
+                [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]),
+            new(
+                new HexPosition(new HexCoordinates(1, 2), HexDirection.Top),
+                new HexPosition(new HexCoordinates(1, 1), HexDirection.Top),
+                [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])
+        };
+        var path = new MovementPath(segments, MovementType.Walk);
+
+        // Assert - both entries count, while HexesTraveled deduplicates them
+        path.HexesEnteredInLastLeg.ShouldBe(2);
+        path.HexesTraveled.ShouldBe(1);
+    }
+
+    [Fact]
+    public void HexesEnteredInLastLeg_ShouldCountOnlyAfterFall_WhenMechFell()
+    {
+        // Arrange - two hexes entered before the fall and two after it
+        var executedLeg = new MovementPath(
+            new List<PathSegment>
+            {
+                new(
+                    new HexPosition(new HexCoordinates(1, 1), HexDirection.Top),
+                    new HexPosition(new HexCoordinates(1, 2), HexDirection.Top),
+                    [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]),
+                new(
+                    new HexPosition(new HexCoordinates(1, 2), HexDirection.Top),
+                    new HexPosition(new HexCoordinates(1, 3), HexDirection.Top),
+                    [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])
+            }, MovementType.Walk)
+            .WithLastSegmentEvent(new SegmentEvent(SegmentEventType.Fall));
+        var continuation = new MovementPath(
+            new List<PathSegment>
+            {
+                new(
+                    new HexPosition(new HexCoordinates(1, 3), HexDirection.Top),
+                    new HexPosition(new HexCoordinates(1, 4), HexDirection.Top),
+                    [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]),
+                new(
+                    new HexPosition(new HexCoordinates(1, 4), HexDirection.Top),
+                    new HexPosition(new HexCoordinates(1, 5), HexDirection.Top),
+                    [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])
+            }, MovementType.Walk);
+
+        // Act
+        var combinedPath = executedLeg.Append(continuation);
+
+        // Assert - only the hexes entered after the fall count (Total Warfare, p. 148)
+        combinedPath.HexesEnteredInLastLeg.ShouldBe(2);
+    }
+
+    [Fact]
     public void EventsWithLocations_ShouldReturnEmpty_WhenNoSegmentsHaveEvents()
     {
         var sut = new MovementPath(new List<PathSegment>

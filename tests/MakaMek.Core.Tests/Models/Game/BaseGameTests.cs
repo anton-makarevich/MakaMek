@@ -31,6 +31,7 @@ using Sanet.MakaMek.Map.Data;
 using Sanet.MakaMek.Map.Factories;
 using Sanet.MakaMek.Map.Generators;
 using Sanet.MakaMek.Map.Models;
+using Sanet.MakaMek.Map.Models.MovementCosts;
 using Sanet.MakaMek.Map.Models.Terrains;
 using Sanet.MakaMek.Core.Models.Game.Dice;
 
@@ -812,6 +813,71 @@ public sealed class BaseGameTests : BaseGame
         // Assert
         mech.HasDeclaredPhysicalAttack.ShouldBeFalse();
         mech.DeclaredPhysicalAttack.ShouldBeNull();
+    }
+
+    [Fact]
+    public void OnMoveUnit_ShouldStoreTheChargeDeclaration_AndKeepItThroughTheLaterPhases()
+    {
+        // Arrange - a charge is declared as part of a completed move
+        var joinCommand = new JoinGameCommand
+        {
+            PlayerId = Guid.NewGuid(),
+            PlayerName = "Player1",
+            GameOriginId = Guid.NewGuid(),
+            Units = [MechFactoryTests.CreateDummyMechData()],
+            Tint = "#FF0000",
+            PilotAssignments = []
+        };
+        OnPlayerJoined(joinCommand);
+        var player = Players.First();
+        var mech = player.Units.First();
+        mech.AssignPilot(new MechWarrior("John", "Doe"));
+        mech.Deploy(new HexPosition(new HexCoordinates(3, 3), HexDirection.BottomLeft), null);
+        TurnPhase = PhaseNames.Movement;
+        var targetId = Guid.NewGuid();
+        var moveCommand = new MoveUnitCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = player.Id,
+            UnitId = mech.Id,
+            MovementType = MovementType.Walk,
+            IsCompleted = true,
+            MovementPath =
+            [
+                new PathSegment(new HexPosition(new HexCoordinates(3, 3), HexDirection.BottomLeft),
+                    new HexPosition(new HexCoordinates(3, 2), HexDirection.BottomLeft),
+                    [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]).ToData()
+            ],
+            Declaration = new PhysicalAttackDeclarationData
+            {
+                AttackType = PhysicalAttackType.Charge,
+                AttackerLimbs = [],
+                TargetId = targetId,
+                HexesMoved = 2
+            }
+        };
+
+        // Act
+        OnMoveUnit(moveCommand);
+
+        // Assert - the declaration is stored with the distance from the command
+        mech.HasPendingMovementAttack.ShouldBeTrue();
+        mech.DeclaredPhysicalAttack!.HexesMoved.ShouldBe(2);
+        mech.Position!.Coordinates.ShouldBe(new HexCoordinates(3, 3),
+            "the attacker waits in the approach hex until the charge resolves");
+
+        // Act - every phase change resets the phase state, never the declaration
+        TurnPhase = PhaseNames.WeaponsAttack;
+        TurnPhase = PhaseNames.WeaponAttackResolution;
+
+        // Assert
+        mech.HasPendingMovementAttack.ShouldBeTrue();
+
+        // Act - only the turn-level reset clears it
+        OnTurnEnded(player.Id);
+
+        // Assert
+        mech.HasDeclaredPhysicalAttack.ShouldBeFalse();
     }
 
     [Fact]

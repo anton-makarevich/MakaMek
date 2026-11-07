@@ -3216,6 +3216,21 @@ public class BattleMapViewModelTests
     }
 
     [Fact]
+    public void PhysicalAttackResolution_OfACharge_RemovesTheIndicatorInOneGo()
+    {
+        // Arrange - a charge resolves once for the whole declaration and has no limb
+        var (attacker, target) = DeployPhysicalAttackers();
+        SendChargeMove(attacker, target);
+        _sut.PhysicalAttackIndicators.ShouldHaveSingleItem();
+
+        // Act
+        ResolvePhysicalAttack(attacker, target, PhysicalAttackType.Charge, PartLocation.LeftArm);
+
+        // Assert
+        _sut.PhysicalAttackIndicators.ShouldBeEmpty();
+    }
+
+    [Fact]
     public void PhysicalAttackResolution_OfAMiss_RemovesTheIndicator()
     {
         // Arrange
@@ -3307,6 +3322,102 @@ public class BattleMapViewModelTests
         // Assert
         _sut.PhysicalAttackIndicators.ShouldBeNull();
     }
+
+    [Fact]
+    public void MoveWithAChargeDeclaration_AddsAnIndicatorBetweenTheApproachHexAndTheTarget()
+    {
+        // Arrange
+        var (attacker, target) = DeployPhysicalAttackers();
+        var approachHex = attacker.Position!.Coordinates;
+
+        // Act - the charge waits in front of the target until it resolves
+        SendChargeMove(attacker, target);
+
+        // Assert
+        var indicator = _sut.PhysicalAttackIndicators.ShouldHaveSingleItem();
+        indicator.AttackType.ShouldBe(PhysicalAttackType.Charge);
+        indicator.AttackerId.ShouldBe(attacker.Id);
+        indicator.TargetId.ShouldBe(target.Id);
+        indicator.From.ShouldBe(approachHex);
+        indicator.To.ShouldBe(target.Position!.Coordinates);
+        attacker.Position.Coordinates.ShouldBe(approachHex,
+            "the attacker does not enter the target hex until the attack resolves");
+    }
+
+    [Fact]
+    public void ChargeIndicator_SurvivesTheWeaponsPhases()
+    {
+        // Arrange
+        var (attacker, target) = DeployPhysicalAttackers();
+        SendChargeMove(attacker, target);
+
+        // Act & Assert
+        SetPhase(PhaseNames.WeaponsAttack);
+        _sut.PhysicalAttackIndicators.ShouldHaveSingleItem();
+
+        SetPhase(PhaseNames.WeaponAttackResolution);
+        _sut.PhysicalAttackIndicators.ShouldHaveSingleItem();
+    }
+
+    [Fact]
+    public void ChargeIndicator_IsRemovedWhenTheAttackerIsDestroyed()
+    {
+        // Arrange
+        var (attacker, target) = DeployPhysicalAttackers();
+        SendChargeMove(attacker, target);
+        _sut.PhysicalAttackIndicators.ShouldHaveSingleItem();
+
+        // Act - the destruction clears the declaration without a resolution
+        attacker.Parts[PartLocation.Head].BlowOff().ShouldBeTrue();
+        attacker.UpdateDestroyedStatus();
+        attacker.IsDestroyed.ShouldBeTrue();
+        SetPhase(PhaseNames.WeaponsAttack);
+
+        // Assert
+        _sut.PhysicalAttackIndicators.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void ChargeIndicator_IsClearedWhenThePhysicalAttackResolutionEnds()
+    {
+        // Arrange
+        var (attacker, target) = DeployPhysicalAttackers();
+        SendChargeMove(attacker, target);
+        SetPhase(PhaseNames.WeaponsAttack);
+        SetPhase(PhaseNames.PhysicalAttack);
+        SetPhase(PhaseNames.PhysicalAttackResolution);
+        _sut.PhysicalAttackIndicators.ShouldHaveSingleItem();
+
+        // Act
+        SetPhase(PhaseNames.Heat);
+
+        // Assert
+        _sut.PhysicalAttackIndicators.ShouldBeEmpty();
+    }
+
+    private void SendChargeMove(IUnit attacker, IUnit target)
+        => _game.HandleCommand(new MoveUnitCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = attacker.Owner!.Id,
+            UnitId = attacker.Id,
+            MovementType = MovementType.Walk,
+            IsCompleted = true,
+            MovementPath =
+            [
+                new PathSegment(
+                    new HexPosition(attacker.Position!.Coordinates, HexDirection.Top),
+                    new HexPosition(target.Position!.Coordinates, HexDirection.Top),
+                    [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]).ToData()
+            ],
+            Declaration = new PhysicalAttackDeclarationData
+            {
+                AttackType = PhysicalAttackType.Charge,
+                AttackerLimbs = [],
+                TargetId = target.Id,
+                HexesMoved = 1
+            }
+        });
 
     private (IUnit Attacker, IUnit Target) DeployPhysicalAttackers()
     {

@@ -135,6 +135,13 @@ public interface IUnit
     bool HasDeclaredPhysicalAttack { get; }
 
     /// <summary>
+    /// Whether the unit has a pending movement-origin physical attack (Charge or DFA) for the
+    /// current turn. Such a declaration blocks weapon firing and other physical attacks until it
+    /// resolves or the attacker is destroyed.
+    /// </summary>
+    bool HasPendingMovementAttack { get; }
+
+    /// <summary>
     /// Indicates whether this unit has applied heat for the current turn
     /// </summary>
     bool HasAppliedHeat { get; }
@@ -319,7 +326,13 @@ public interface IUnit
     /// <returns>Components of the specified type at the specified location containing the given slot</returns>
     T? GetMountedComponentAtLocation<T>(PartLocation? location, int slot) where T : Component;
 
-    void Move(MovementPath movementPath, Hex? destination, bool isCompleted);
+    /// <summary>
+    /// Applies a movement to the unit. The path is kept as the movement of record, including any
+    /// final segment whose MP the unit spent but whose hex it does not occupy yet: a Charge or DFA
+    /// waits in <paramref name="stopAt"/> until the attack resolves.
+    /// </summary>
+    void Move(MovementPath movementPath, Hex? destination, bool isCompleted,
+        HexPosition? stopAt = null);
 
     /// <summary>
     /// Fires a weapon based on the provided weapon data and consumes ammo if required.

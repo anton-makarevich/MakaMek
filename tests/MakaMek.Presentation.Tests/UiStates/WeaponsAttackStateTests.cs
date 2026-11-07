@@ -5,6 +5,7 @@ using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
+using Sanet.MakaMek.Core.Data.Game.Mechanics.PhysicalAttacks;
 using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Models.Game;
@@ -222,6 +223,22 @@ public class WeaponsAttackStateTests
     }
 
     [Fact]
+    public void Constructor_WhenThereIsNoActivePlayer_Throws()
+    {
+        // Arrange - clearing the active player leaves the state without a unit to act for
+        _game.HandleCommand(new ChangeActivePlayerCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = Guid.NewGuid(),
+            UnitsToPlay = 1
+        });
+        _game.PhaseStepState.ShouldBeNull();
+
+        // Act & Assert
+        Should.Throw<InvalidOperationException>(() => new WeaponsAttackState(_battleMapViewModel));
+    }
+
+    [Fact]
     public void HandleUnitSelection_TransitionsToActionSelection()
     {
         // Act
@@ -248,6 +265,83 @@ public class WeaponsAttackStateTests
 
         // Assert
         _battleMapViewModel.SelectedUnit.ShouldBe(unit);
+    }
+
+    [Fact]
+    public void GetAvailableActions_WhenTheUnitHasAPendingMovementAttack_AllowsOnlySkipAndTorsoTwist()
+    {
+        // Arrange - a charging unit cannot fire, but it may still twist its torso this turn
+        SetPhase(PhaseNames.WeaponsAttack);
+        SetActivePlayer();
+        var attacker = _battleMapViewModel.Units.First(u => u.Owner!.Id == _player.Id);
+        attacker.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom), null);
+        attacker.AssignPilot(_pilot);
+        attacker.DeclarePhysicalAttack(new PhysicalAttackDeclarationData
+        {
+            AttackType = PhysicalAttackType.Charge,
+            AttackerLimbs = [],
+            TargetId = Guid.NewGuid()
+        });
+
+        // Act
+        _sut.HandleUnitSelectionFromList(attacker);
+
+        // Assert - no target selection, but the torso twist remains available
+        _sut.GetAvailableActions().Select(action => action.Label)
+            .ShouldBe(["Skip Attack", "Turn Torso"]);
+    }
+
+    [Fact]
+    public void GetAvailableActions_WhenTheUnitHasAPendingMovementAttack_TorsoTwistOpensConfiguration()
+    {
+        // Arrange
+        SetPhase(PhaseNames.WeaponsAttack);
+        SetActivePlayer();
+        var attacker = _battleMapViewModel.Units.First(u => u.Owner!.Id == _player.Id);
+        attacker.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom), null);
+        attacker.AssignPilot(_pilot);
+        attacker.DeclarePhysicalAttack(new PhysicalAttackDeclarationData
+        {
+            AttackType = PhysicalAttackType.Charge,
+            AttackerLimbs = [],
+            TargetId = Guid.NewGuid()
+        });
+        _sut.HandleUnitSelectionFromList(attacker);
+
+        // Act
+        _sut.GetAvailableActions().First(a => a.Label == "Turn Torso").OnExecute();
+
+        // Assert
+        _sut.CurrentStep.ShouldBe(WeaponsAttackStep.WeaponsConfiguration);
+    }
+
+    [Fact]
+    public void HandleHexSelection_WhenAFriendlyUnitSharesTheTargetHex_SelectsTheEnemy()
+    {
+        // Arrange - two units can share a hex after a blocked domino; clicking it must pick the
+        // enemy, not the friendly that happens to be enumerated first
+        SetPhase(PhaseNames.WeaponsAttack);
+        SetActivePlayer();
+        var ownedUnits = _battleMapViewModel.Units
+            .Where(u => u.Owner!.Id == _player.Id)
+            .ToList();
+        var attacker = ownedUnits[0];
+        attacker.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom), null);
+        attacker.AssignPilot(_pilot);
+        attacker.Parts[PartLocation.RightArm].TryAddComponent(new MediumLaser(), [4]).ShouldBeTrue();
+        var friendly = ownedUnits[1];
+        var enemy = _battleMapViewModel.Units.First(u => u.Owner!.Id != _player.Id);
+        var targetHex = new HexPosition(new HexCoordinates(1, 3), HexDirection.Top);
+        friendly.Deploy(targetHex, null);
+        enemy.Deploy(targetHex, null);
+        _sut.HandleUnitSelectionFromList(attacker);
+        _sut.GetAvailableActions().First(a => a.Label == "Select Target").OnExecute();
+
+        // Act
+        _sut.HandleHexSelection(new Hex(targetHex.Coordinates));
+
+        // Assert
+        _sut.SelectedTarget.ShouldBe(enemy);
     }
 
     [Fact]
@@ -1620,6 +1714,16 @@ public class WeaponsAttackStateTests
         actions[0].Label.ShouldBe("Skip Attack");
         actions[1].Label.ShouldBe("Turn Torso");
         actions[2].Label.ShouldBe("Select Target");
+    }
+
+    [Fact]
+    public void ConfirmWeaponSelections_WhenNoAttackerIsSelected_DoesNotPublishACommand()
+    {
+        // Act - no unit has been selected yet, so there is nothing to declare
+        _sut.ConfirmWeaponSelections();
+
+        // Assert
+        _commandPublisher.DidNotReceive().PublishCommand(Arg.Any<WeaponAttackDeclarationCommand>());
     }
 
     [Fact]
