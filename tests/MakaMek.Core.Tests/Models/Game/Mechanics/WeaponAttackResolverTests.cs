@@ -379,12 +379,10 @@ public class WeaponAttackResolverTests
             weapon.FirstMountPart!.Level,
             target.Height);
         battleMap.GetLineOfSight(
-            attacker.Position!.Coordinates,
-            target.Position!.Coordinates,
+            attacker.Position!,
+            target.Position!,
             weapon.FirstMountPart.Level,
-            target.Height,
-            attacker.Position.Surface,
-            target.Position.Surface).Returns(losResult);
+            target.Height).Returns(losResult);
 
         var result = _sut.ResolveAttack(attacker, target, weapon, weaponTargetData, battleMap);
 
@@ -425,12 +423,10 @@ public class WeaponAttackResolverTests
             weapon.FirstMountPart!.Level,
             target.Height);
         battleMap.GetLineOfSight(
-            attacker.Position!.Coordinates,
-            target.Position!.Coordinates,
+            attacker.Position!,
+            target.Position!,
             weapon.FirstMountPart.Level,
-            target.Height,
-            attacker.Position.Surface,
-            target.Position.Surface).Returns(losResult);
+            target.Height).Returns(losResult);
 
         var result = sut.ResolveAttack(attacker, target, weapon, weaponTargetData, battleMap);
 

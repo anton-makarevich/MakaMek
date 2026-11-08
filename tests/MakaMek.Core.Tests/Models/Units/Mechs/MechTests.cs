@@ -135,6 +135,17 @@ public class MechTests
     }
 
     [Fact]
+    public void CanHavePartialCover_ReturnsFalse_WhenAirborne()
+    {
+        // Arrange
+        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
+        sut.Deploy(new HexPosition(new HexCoordinates(1, 0), HexDirection.Top, AirborneLevel: 3), null);
+
+        // Act & Assert
+        sut.CanHavePartialCover.ShouldBeFalse("an airborne mech cannot have partial cover");
+    }
+
+    [Fact]
     public void Constructor_InitializesAllParts()
     {
         // Arrange & Act

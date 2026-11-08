@@ -56,12 +56,10 @@ public class PhysicalAttackCalculator : IPhysicalAttackCalculator
     public PhysicalAttackBreakdown GetModifierBreakdown(PhysicalAttackScenario scenario, IBattleMap map)
     {
         var losResult = map.GetLineOfSight(
-            scenario.AttackerPosition.Coordinates,
-            scenario.TargetPosition.Coordinates,
+            scenario.AttackerPosition,
+            scenario.TargetPosition,
             scenario.AttackerHeight,
-            scenario.TargetHeight,
-            scenario.AttackerPosition.Surface,
-            scenario.TargetPosition.Surface);
+            scenario.TargetHeight);
 
         var terrainModifiers = losResult.GetTerrainToHitModifiers(_rules);
 

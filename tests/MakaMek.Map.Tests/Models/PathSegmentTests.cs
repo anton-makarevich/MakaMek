@@ -54,6 +54,23 @@ public class PathSegmentTests
     }
 
     [Fact]
+    public void Data_RoundTrip_PreservesAirborneLevelOnBothEndpoints()
+    {
+        // Arrange
+        var from = new HexPosition(new HexCoordinates(1, 1), HexDirection.Top, AirborneLevel: 2);
+        var to = new HexPosition(new HexCoordinates(2, 2), HexDirection.Bottom, HexSurface.Bridge, 3);
+        var segment = new PathSegment(from, to, []);
+
+        // Act
+        var restored = new PathSegment(segment.ToData());
+
+        // Assert
+        restored.From.AirborneLevel.ShouldBe(2);
+        restored.To.AirborneLevel.ShouldBe(3);
+        restored.To.Surface.ShouldBe(HexSurface.Bridge);
+    }
+
+    [Fact]
     public void ToData_ReturnsCorrectData()
     {
         // Arrange

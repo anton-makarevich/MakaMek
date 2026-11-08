@@ -605,7 +605,22 @@ public class BattleMapTests
         // Assert
         path.ShouldBeNull("Path should be null for invalid target position");
     }
-    
+
+    [Fact]
+    public void FindJumpPath_ReturnsNull_WhenMapHasNoHexDataInBounds()
+    {
+        // Arrange - the coordinates are inside the declared bounds but no hexes were added
+        var sut = new BattleMap(3, 3);
+        var from = new HexPosition(new HexCoordinates(1, 1), HexDirection.Top);
+        var to = new HexPosition(new HexCoordinates(2, 1), HexDirection.Top);
+
+        // Act
+        var path = sut.FindPath(from, to, MovementType.Jump, 2, 1);
+
+        // Assert
+        path.ShouldBeNull("a jump needs real hex data to measure levels");
+    }
+
     [Fact]
     public void IsOnMap_ReturnsTrueForValidCoordinates()
     {
@@ -726,6 +741,27 @@ public class BattleMapTests
         path.HexesTraveled.ShouldBe(0);
         path.TurnsTaken.ShouldBe(0);
         path.TotalCost.ShouldBe(0);
+    }
+
+    [Fact]
+    public void FindPath_SameHex_SameFacing_Walk_ReturnsSingleZeroCostSegment()
+    {
+        // Arrange - the unit already stands where it wants to go, facing the right way
+        var sut = new BattleMap(2, 2);
+        var hex = new Hex(new HexCoordinates(1, 1));
+        sut.AddHex(hex);
+        var position = new HexPosition(hex.Coordinates, HexDirection.Top);
+
+        // Act
+        var path = sut.FindPath(position, position, MovementType.Walk, 3, 1);
+
+        // Assert
+        path.ShouldNotBeNull("standing still is a valid walk");
+        path.Segments.ShouldHaveSingleItem();
+        path.Segments[0].From.ShouldBe(position);
+        path.Segments[0].To.ShouldBe(position);
+        path.TotalCost.ShouldBe(0);
+        path.TurnsTaken.ShouldBe(0);
     }
 
     [Fact]
@@ -1069,6 +1105,100 @@ public class BattleMapTests
         sut.GetLineOfSight(start, end, 0).HasLineOfSight.ShouldBeFalse("LOS blocked with no heights");
         // Attacker height 2, target height 0 - clear (standing mech can see over level 1)
         sut.GetLineOfSight(start, end, 2,1).HasLineOfSight.ShouldBeTrue("LOS clear with attacker height 2");
+    }
+
+    [Fact]
+    public void GetLineOfSight_AirborneAttackerClearsAHillThatBlocksAGroundedAttacker()
+    {
+        // Arrange
+        var sut = CreateFlatMap(1, 5, (_, _) => 0);
+        sut.GetHex(new HexCoordinates(1, 3))!.WithLevel(3);
+        var start = new HexCoordinates(1, 1);
+        var end = new HexCoordinates(1, 5);
+
+        // Act & Assert
+        sut.GetLineOfSight(start, end, attackHeight: 2, targetHeight: 2)
+            .HasLineOfSight.ShouldBeFalse("the grounded mech is below the hill");
+        sut.GetLineOfSight(start, end, attackHeight: 2, targetHeight: 2, fromBaseLevel: 8)
+            .HasLineOfSight.ShouldBeTrue("the airborne base level clears the hill");
+    }
+
+    [Fact]
+    public void GetLineOfSight_AirborneEndpointOverWaterIsNotSubmerged()
+    {
+        // Arrange
+        var sut = CreateFlatMap(1, 3, (_, _) => 0);
+        sut.GetHex(new HexCoordinates(1, 1))!.AddTerrain(new WaterTerrain(-2));
+        var start = new HexCoordinates(1, 1);
+        var end = new HexCoordinates(1, 3);
+
+        // Act & Assert
+        sut.GetLineOfSight(start, end, attackHeight: 2, targetHeight: 2)
+            .BlockReason.ShouldBe(LineOfSightBlockReason.WaterSubmersion);
+        sut.GetLineOfSight(start, end, attackHeight: 2, targetHeight: 2, fromBaseLevel: 5)
+            .HasLineOfSight.ShouldBeTrue("an airborne position is never submerged");
+    }
+
+    [Fact]
+    public void GetLineOfSight_BaseLevelChangesTheResultFromEitherEndpoint()
+    {
+        // Arrange
+        var sut = CreateFlatMap(1, 5, (_, _) => 0);
+        sut.GetHex(new HexCoordinates(1, 3))!.WithLevel(3);
+        var start = new HexCoordinates(1, 1);
+        var end = new HexCoordinates(1, 5);
+
+        // Act & Assert
+        sut.GetLineOfSight(start, end, 2, 2).HasLineOfSight.ShouldBeFalse();
+        sut.GetLineOfSight(start, end, 2, 2, toBaseLevel: 6).HasLineOfSight.ShouldBeTrue();
+        sut.GetLineOfSight(end, start, 2, 2).HasLineOfSight.ShouldBeFalse();
+        sut.GetLineOfSight(end, start, 2, 2, fromBaseLevel: 6).HasLineOfSight.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void GetLineOfSight_WithPositions_UsesAirborneLevelFromPosition()
+    {
+        // Arrange - a level 3 hill blocks the grounded mech but not the airborne one
+        var sut = CreateFlatMap(1, 5, (_, _) => 0);
+        sut.GetHex(new HexCoordinates(1, 3))!.WithLevel(3);
+        var grounded = new HexPosition(new HexCoordinates(1, 1), HexDirection.Top);
+        var airborne = grounded with { AirborneLevel = 8 };
+        var target = new HexPosition(new HexCoordinates(1, 5), HexDirection.Top);
+
+        // Act & Assert
+        sut.GetLineOfSight(grounded, target, attackHeight: 2, targetHeight: 2)
+            .HasLineOfSight.ShouldBeFalse("the grounded mech is below the hill");
+        sut.GetLineOfSight(airborne, target, attackHeight: 2, targetHeight: 2)
+            .HasLineOfSight.ShouldBeTrue("the airborne base level stored on the position clears the hill");
+    }
+
+    [Fact]
+    public void GetLineOfSight_WithPositions_UsesSurfaceFromPosition()
+    {
+        // Arrange - the target hex is deep water with a bridge deck; its surface decides submersion
+        var sut = new BattleMap(1, 3);
+        var from = new HexCoordinates(1, 1);
+        var to = new HexCoordinates(1, 3);
+
+        var fromHex = new Hex(from);
+        fromHex.AddTerrain(new ClearTerrain());
+        sut.AddHex(fromHex);
+        sut.AddHex(new Hex(new HexCoordinates(1, 2)));
+
+        var toHex = new Hex(to);
+        toHex.AddTerrain(new WaterTerrain(-2));
+        toHex.AddTerrain(new BridgeTerrain(0, 0));
+        sut.AddHex(toHex);
+
+        var attacker = new HexPosition(from, HexDirection.Top);
+        var targetOnGround = new HexPosition(to, HexDirection.Top, HexSurface.Ground);
+        var targetOnBridge = targetOnGround with { Surface = HexSurface.Bridge };
+
+        // Act & Assert
+        sut.GetLineOfSight(attacker, targetOnGround, 1, 1)
+            .BlockReason.ShouldBe(LineOfSightBlockReason.WaterSubmersion);
+        sut.GetLineOfSight(attacker, targetOnBridge, 1, 1)
+            .HasLineOfSight.ShouldBeTrue("the bridge surface stored on the position is not submerged");
     }
 
     [Fact]
@@ -1690,7 +1820,7 @@ public class BattleMapTests
     }
     
     [Fact]
-    public void GetJumpReachableHexes_IgnoresLevelChanges()
+    public void GetJumpReachableHexes_ExcludesHexesAboveJumpCeiling()
     {
         // Arrange - Create a sut with varying elevations
         var sut = new BattleMap(3, 1);
@@ -1699,23 +1829,43 @@ public class BattleMapTests
         hex1.AddTerrain(new ClearTerrain());
         sut.AddHex(hex1);
         
-        var hex2 = new Hex(new HexCoordinates(2, 1), level: 5); // High elevation
+        var hex2 = new Hex(new HexCoordinates(2, 1), level: 5); // Above the ceiling of 0 + 2
         hex2.AddTerrain(new ClearTerrain());
         sut.AddHex(hex2);
         
-        var hex3 = new Hex(new HexCoordinates(3, 1), level: 3);
+        var hex3 = new Hex(new HexCoordinates(3, 1), level: 3); // Also above the ceiling
         hex3.AddTerrain(new ClearTerrain());
         sut.AddHex(hex3);
 
         var start = new HexCoordinates(1, 1);
 
-        // Act - Jump ignores level changes
+        // Act
         var reachable = sut.GetJumpReachableHexes(start, 2).ToList();
 
         // Assert
-        reachable.Count.ShouldBe(2, "Both hexes should be reachable by jump regardless of level");
-        reachable.Select(h => h.Coordinates).ShouldContain(new HexCoordinates(2, 1));
-        reachable.Select(h => h.Coordinates).ShouldContain(new HexCoordinates(3, 1));
+        reachable.ShouldBeEmpty("No hex above the jump ceiling can be reached");
+    }
+
+    [Fact]
+    public void GetJumpReachableHexes_IncludesHexesWithinJumpCeiling()
+    {
+        // Arrange
+        var sut = new BattleMap(3, 1);
+        var hex1 = new Hex(new HexCoordinates(1, 1), level: 0);
+        hex1.AddTerrain(new ClearTerrain());
+        sut.AddHex(hex1);
+        var hex2 = new Hex(new HexCoordinates(2, 1), level: 2);
+        hex2.AddTerrain(new ClearTerrain());
+        sut.AddHex(hex2);
+        var hex3 = new Hex(new HexCoordinates(3, 1), level: 2);
+        hex3.AddTerrain(new ClearTerrain());
+        sut.AddHex(hex3);
+
+        // Act
+        var reachable = sut.GetJumpReachableHexes(new HexCoordinates(1, 1), 2).ToList();
+
+        // Assert
+        reachable.Select(h => h.Coordinates).ShouldBe([new HexCoordinates(2, 1), new HexCoordinates(3, 1)]);
     }
 
     [Fact]
@@ -1735,8 +1885,8 @@ public class BattleMapTests
         var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.Top);
         var target = new HexPosition(new HexCoordinates(2, 1), HexDirection.Top);
 
-        // Act - Jump should cost 1 MP regardless of level
-        var path = sut.FindPath(start, target, MovementType.Jump, 1, 1);
+        // Act - Jump should cost 1 MP regardless of level, when the ceiling allows it
+        var path = sut.FindPath(start, target, MovementType.Jump, 5, 1);
 
         // Assert
         path.ShouldNotBeNull();
@@ -1744,7 +1894,7 @@ public class BattleMapTests
     }
 
     [Fact]
-    public void FindJumpPath_CanTraverseAnyLevelChange()
+    public void FindJumpPath_RejectsTargetAboveJumpCeiling()
     {
         // Arrange - Create a sut with extreme elevation change
         var sut = new BattleMap(2, 1);
@@ -1760,11 +1910,401 @@ public class BattleMapTests
         var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.Top);
         var target = new HexPosition(new HexCoordinates(2, 1), HexDirection.Top);
 
-        // Act - Jump can traverse any level change
+        // Act - 1 Jumping MP gives a ceiling of level 1
         var path = sut.FindPath(start, target, MovementType.Jump, 1, 1);
 
         // Assert
-        path.ShouldNotBeNull("Jump should be able to traverse any level change");
+        path.ShouldBeNull("A target above starting level plus Jumping MP cannot be reached");
+    }
+
+    [Fact]
+    public void FindJumpPath_CanJumpDownAnyNumberOfLevels()
+    {
+        // Arrange
+        var sut = new BattleMap(2, 1);
+        var hex1 = new Hex(new HexCoordinates(1, 1), level: 10);
+        hex1.AddTerrain(new ClearTerrain());
+        sut.AddHex(hex1);
+        var hex2 = new Hex(new HexCoordinates(2, 1), level: 0);
+        hex2.AddTerrain(new ClearTerrain());
+        sut.AddHex(hex2);
+
+        var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.Top);
+        var target = new HexPosition(new HexCoordinates(2, 1), HexDirection.Top);
+
+        // Act
+        var path = sut.FindPath(start, target, MovementType.Jump, 1, 1);
+
+        // Assert
+        path.ShouldNotBeNull("A unit with at least 1 Jumping MP may jump down any number of levels");
+    }
+
+    [Fact]
+    public void FindJumpPath_BuildsVerticalProfileBetweenGroundedEndpoints()
+    {
+        // Arrange - the last approach hex (3,1) is level 4
+        var sut = CreateFlatMap(4, 1, (q, _) => q == 3 ? 4 : 0);
+        var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.Top);
+        var target = new HexPosition(new HexCoordinates(4, 1), HexDirection.Top);
+
+        // Act
+        var path = sut.FindPath(start, target, MovementType.Jump, 4, 1);
+
+        // Assert
+        path.ShouldNotBeNull();
+        path.Start.AirborneLevel.ShouldBeNull("the jump start is grounded");
+        path.Destination.AirborneLevel.ShouldBeNull("the jump destination is grounded");
+        path.Segments[0].To.AirborneLevel.ShouldBe(2, "interpolated between level 0 and the approach waypoint 4");
+        path.Segments[1].From.AirborneLevel.ShouldBe(2, "shared endpoints keep the same level");
+        path.Segments[1].To.AirborneLevel.ShouldBe(4, "the approach hex is a hard waypoint");
+        path.Segments[2].From.AirborneLevel.ShouldBe(4, "shared endpoints keep the same level");
+        path.Segments[^1].To.AirborneLevel.ShouldBeNull("the jump destination is grounded");
+    }
+
+    [Fact]
+    public void FindJumpPath_AdjacentJump_PutsWaypointOnStartPosition()
+    {
+        // Arrange - one hex jump to a higher destination; the start is also the approach hex
+        var sut = CreateFlatMap(2, 1, (q, _) => q == 2 ? 3 : 0);
+        var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.Top);
+        var target = new HexPosition(new HexCoordinates(2, 1), HexDirection.Top);
+
+        // Act
+        var path = sut.FindPath(start, target, MovementType.Jump, 3, 1);
+
+        // Assert
+        path.ShouldNotBeNull();
+        path.Segments.ShouldHaveSingleItem();
+        path.Segments[0].From.AirborneLevel.ShouldBe(3,
+            "an adjacent jump has no intermediate position, so the start carries the approach waypoint");
+        path.Segments[0].To.AirborneLevel.ShouldBeNull("the destination stays grounded");
+    }
+
+    [Fact]
+    public void FindJumpPath_AdjacentJumpFromUnderBridge_UsesStandingLevelForCeiling()
+    {
+        // Arrange - pure level-calculation case: a unit on the ground under a level 0 bridge deck
+        // of height 2 has a ceiling of 1 with 1 MP. The start hex is not crossed, so the deck must
+        // not block the adjacent clear hex at level 0. A unit cannot fire jump jets under a bridge
+        // in play; this exercises the level math only.
+        var sut = CreateFlatMap(2, 1, (_, _) => 0);
+        sut.GetHex(new HexCoordinates(1, 1))!.AddTerrain(new BridgeTerrain(2, 0));
+        var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.Top, HexSurface.Ground);
+        var target = new HexPosition(new HexCoordinates(2, 1), HexDirection.Top);
+
+        // Act
+        var path = sut.FindPath(start, target, MovementType.Jump, 1, 1);
+        var reachable = sut.GetJumpReachableHexes(start.Coordinates, 1, startSurface: HexSurface.Ground)
+            .Select(h => h.Coordinates)
+            .ToList();
+
+        // Assert
+        reachable.ShouldContain(target.Coordinates, "reachability already skips the start hex");
+        path.ShouldNotBeNull("the start hex reference level is not part of the crossed path");
+        path.Segments.ShouldHaveSingleItem();
+        path.Destination.Coordinates.ShouldBe(target.Coordinates);
+    }
+
+    [Fact]
+    public void FindJumpPath_AdjacentJumpFromDeepWater_UsesBottomLevelForCeiling()
+    {
+        // Arrange - pure level-calculation case: standing on a level 0 riverbed of depth 2 (-2),
+        // 1 MP gives a ceiling of -1, so the water surface must not block the adjacent level -1
+        // hex. A deep-water unit cannot fire jump jets in play; this exercises the level math only.
+        var sut = CreateFlatMap(2, 1, (q, _) => q == 2 ? -1 : 0);
+        sut.GetHex(new HexCoordinates(1, 1))!.AddTerrain(new WaterTerrain(-2));
+        var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.Top);
+        var target = new HexPosition(new HexCoordinates(2, 1), HexDirection.Top);
+
+        // Act
+        var path = sut.FindPath(start, target, MovementType.Jump, 1, 1);
+
+        // Assert
+        path.ShouldNotBeNull("the water surface above the unit is not part of the crossed path");
+        path.Destination.Coordinates.ShouldBe(target.Coordinates);
+    }
+
+    [Fact]
+    public void FindJumpPath_RejectsRouteWhoseIntermediateHexExceedsCeiling()
+    {
+        // Arrange - the only route crosses a level 5 hex with a ceiling of 2
+        var sut = CreateFlatMap(3, 1, (q, _) => q == 2 ? 5 : 0);
+        var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.Top);
+        var target = new HexPosition(new HexCoordinates(3, 1), HexDirection.Top);
+
+        // Act
+        var path = sut.FindPath(start, target, MovementType.Jump, 2, 1);
+
+        // Assert
+        path.ShouldBeNull("every crossed hex must be at or below the ceiling");
+    }
+
+    [Fact]
+    public void FindJumpPath_ChoosesALegalShortestRouteWhenAnotherIsBlocked()
+    {
+        // Arrange - two shortest routes via (3,2) and (3,3); the first is too high
+        var sut = CreateFlatMap(5, 3, (q, r) => q == 3 && r == 2 ? 5 : 0);
+        var start = new HexPosition(new HexCoordinates(2, 2), HexDirection.Top);
+        var target = new HexPosition(new HexCoordinates(4, 2), HexDirection.Top);
+
+        // Act
+        var path = sut.FindPath(start, target, MovementType.Jump, 2, 1);
+
+        // Assert
+        path.ShouldNotBeNull();
+        path.StraightLineDistance.ShouldBe(2, "the chosen route must still be a shortest route");
+        path.Hexes.ShouldContain(new HexCoordinates(3, 3));
+        path.Hexes.ShouldNotContain(new HexCoordinates(3, 2));
+    }
+
+    [Fact]
+    public void FindJumpPath_IgnoresTreeHeightForClearance()
+    {
+        // Arrange - a light woods hex still has the underlying level as its reference level
+        var sut = CreateFlatMap(4, 1, (_, _) => 0);
+        sut.GetHex(new HexCoordinates(2, 1))!.AddTerrain(new LightWoodsTerrain());
+        var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.Top);
+        var target = new HexPosition(new HexCoordinates(4, 1), HexDirection.Top);
+
+        // Act
+        var path = sut.FindPath(start, target, MovementType.Jump, 3, 1);
+
+        // Assert
+        path.ShouldNotBeNull("trees do not count toward the jump-height ceiling");
+        path.Segments[0].To.AirborneLevel.ShouldBe(0);
+    }
+
+    [Fact]
+    public void FindJumpPath_UsesBridgeDeckForClearance()
+    {
+        // Arrange - a level 0 bridge deck of height 2 must clear a ceiling of 1
+        var sut = CreateFlatMap(3, 1, (_, _) => 0);
+        sut.GetHex(new HexCoordinates(2, 1))!.AddTerrain(new BridgeTerrain(2, 0));
+        var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.Top);
+        var target = new HexPosition(new HexCoordinates(3, 1), HexDirection.Top);
+
+        // Act
+        var oneMpPath = sut.FindPath(start, target, MovementType.Jump, 1, 1);
+        var twoMpPath = sut.FindPath(start, target, MovementType.Jump, 2, 1);
+
+        // Assert
+        oneMpPath.ShouldBeNull("the bridge deck at level 2 exceeds a ceiling of 1");
+        twoMpPath.ShouldNotBeNull("a ceiling of 2 clears the bridge deck");
+    }
+
+    [Fact]
+    public void FindJumpPath_UsesWaterSurfaceForClearance()
+    {
+        // Arrange - water at level 2 with depth 3; only its surface counts
+        var sut = CreateFlatMap(3, 1, (q, _) => q == 1 ? -2 : q == 2 ? 2 : 0);
+        sut.GetHex(new HexCoordinates(2, 1))!.AddTerrain(new WaterTerrain(-3));
+        var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.Top);
+        var target = new HexPosition(new HexCoordinates(3, 1), HexDirection.Top);
+
+        // Act
+        var path = sut.FindPath(start, target, MovementType.Jump, 2, 1);
+
+        // Assert
+        path.ShouldBeNull("the water surface is level 2, above the ceiling of 0");
+    }
+
+    [Fact]
+    public void FindJumpPath_ClampsProfileAboveTheReferenceLevel()
+    {
+        // Arrange - the profile between low anchors would pass through empty air at (2,1),
+        // but that hex is a level 5 hill, so the profile must not dip below it
+        var sut = CreateFlatMap(4, 1, (q, _) => q == 2 ? 5 : 0);
+        var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.Top);
+        var target = new HexPosition(new HexCoordinates(4, 1), HexDirection.Top);
+
+        // Act
+        var path = sut.FindPath(start, target, MovementType.Jump, 5, 1);
+
+        // Assert
+        path.ShouldNotBeNull();
+        path.Segments[0].To.AirborneLevel.ShouldBe(5);
+        path.Segments[1].From.AirborneLevel.ShouldBe(5);
+    }
+
+    [Fact]
+    public void FindJumpPath_DescendingProfile_InterpolatesBelowTheStartLevel()
+    {
+        // Arrange - a jump from a level 4 hill down to flat ground, with no raised approach hex
+        var sut = CreateFlatMap(4, 1, (q, _) => q == 1 ? 4 : 0);
+        var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.Top);
+        var target = new HexPosition(new HexCoordinates(4, 1), HexDirection.Top);
+
+        // Act
+        var path = sut.FindPath(start, target, MovementType.Jump, 3, 1);
+
+        // Assert
+        path.ShouldNotBeNull();
+        path.Start.AirborneLevel.ShouldBeNull("the jump start is grounded");
+        path.Destination.AirborneLevel.ShouldBeNull("the jump destination is grounded");
+        path.Segments[0].To.AirborneLevel.ShouldBe(2,
+            "the descending profile drops halfway from level 4 to the approach waypoint at level 0");
+        path.Segments[1].To.AirborneLevel.ShouldBe(0, "the approach hex is the lowest waypoint");
+    }
+
+    [Fact]
+    public void FindJumpPath_BridgeStart_UsesBridgeDeckAsStartLevel()
+    {
+        // Arrange - the bridge deck is level 5, so 1 Jumping MP gives a ceiling of 6
+        var sut = CreateFlatMap(2, 1, (q, _) => q == 2 ? 6 : 0);
+        sut.GetHex(new HexCoordinates(1, 1))!.AddTerrain(new BridgeTerrain(5, 0));
+        var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.Top, HexSurface.Bridge);
+        var target = new HexPosition(new HexCoordinates(2, 1), HexDirection.Top);
+
+        // Act
+        var path = sut.FindPath(start, target, MovementType.Jump, 1, 1);
+
+        // Assert
+        path.ShouldNotBeNull("the bridge deck, not the hex level, is the jump start level");
+    }
+
+    [Fact]
+    public void FindJumpPath_WaterStart_UsesWaterBottomAsStartLevel()
+    {
+        // Arrange - water at level 0 with depth 2 starts the jump at level -2
+        var sut = CreateFlatMap(2, 1, (q, _) => q == 2 ? 2 : 0);
+        sut.GetHex(new HexCoordinates(1, 1))!.AddTerrain(new WaterTerrain(-2));
+        var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.Top);
+        var target = new HexPosition(new HexCoordinates(2, 1), HexDirection.Top);
+
+        // Act - a ceiling of -2 + 3 = 1 cannot clear a level 2 destination
+        var path = sut.FindPath(start, target, MovementType.Jump, 3, 1);
+
+        // Assert
+        path.ShouldBeNull("the water bottom, not the surface, is the jump start level");
+    }
+
+    [Fact]
+    public void FindJumpPath_CacheSeparatesDifferentJumpBudgets()
+    {
+        // Arrange - the same endpoints yield different ceilings for different budgets
+        var sut = CreateFlatMap(2, 1, (q, _) => q == 2 ? 4 : 0);
+        var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.Top);
+        var target = new HexPosition(new HexCoordinates(2, 1), HexDirection.Top);
+
+        // Act
+        var permissivePath = sut.FindPath(start, target, MovementType.Jump, 4, 1);
+        var narrowPath = sut.FindPath(start, target, MovementType.Jump, 1, 1);
+
+        // Assert
+        permissivePath.ShouldNotBeNull();
+        narrowPath.ShouldBeNull("the cached path must not be reused under a tighter jump ceiling");
+    }
+
+    [Fact]
+    public void GetJumpReachableHexes_ExcludesDestinationWithoutLegalShortestRoute()
+    {
+        // Arrange - both shortest midpoints are illegal, so only a longer route exists
+        var sut = CreateFlatMap(5, 3, (q, r) => q == 3 && (r == 2 || r == 3) ? 5 : 0);
+        var start = new HexCoordinates(2, 2);
+        var target = new HexCoordinates(4, 2);
+
+        // Act
+        var reachable = sut.GetJumpReachableHexes(start, 4).Select(h => h.Coordinates).ToList();
+
+        // Assert
+        reachable.ShouldNotContain(target,
+            "a longer detour does not make a jump to the destination legal");
+    }
+
+    [Fact]
+    public void GetJumpReachableHexes_IncludesDestinationWithLegalShortestRoute()
+    {
+        // Arrange - one of the two shortest midpoints is legal
+        var sut = CreateFlatMap(5, 3, (q, r) => q == 3 && r == 2 ? 5 : 0);
+        var start = new HexCoordinates(2, 2);
+
+        // Act
+        var reachable = sut.GetJumpReachableHexes(start, 2).ToList();
+
+        // Assert
+        var target = reachable.Single(h => h.Coordinates == new HexCoordinates(4, 2));
+        target.Cost.ShouldBe(2, "cost is the number of hexes in the shortest route");
+    }
+
+    [Fact]
+    public void GetJumpReachableHexes_CanJumpOverAProhibitedHex()
+    {
+        // Arrange - the midpoint is prohibited but a jump passes over it
+        var sut = CreateFlatMap(3, 1, (_, _) => 0);
+        var start = new HexCoordinates(1, 1);
+        var target = new HexCoordinates(3, 1);
+        var prohibited = new HashSet<HexCoordinates> { new(2, 1) };
+
+        // Act
+        var reachable = sut.GetJumpReachableHexes(start, 2, prohibited).Select(h => h.Coordinates).ToList();
+
+        // Assert
+        reachable.ShouldContain(target, "prohibited hexes only block the destination");
+        reachable.ShouldNotContain(new HexCoordinates(2, 1));
+    }
+
+    [Fact]
+    public void GetJumpReachableHexes_BridgeStart_UsesBridgeDeckAsStartLevel()
+    {
+        // Arrange - a level 0 bridge deck of height 5 gives a ceiling of 6 with 1 Jumping MP
+        var sut = CreateFlatMap(2, 1, (q, _) => q == 2 ? 6 : 0);
+        sut.GetHex(new HexCoordinates(1, 1))!.AddTerrain(new BridgeTerrain(5, 0));
+        var start = new HexCoordinates(1, 1);
+
+        // Act
+        var fromDeck = sut.GetJumpReachableHexes(start, 1, startSurface: HexSurface.Bridge)
+            .Select(h => h.Coordinates).ToList();
+        var fromGround = sut.GetJumpReachableHexes(start, 1, startSurface: HexSurface.Ground)
+            .Select(h => h.Coordinates).ToList();
+
+        // Assert
+        fromDeck.ShouldContain(new HexCoordinates(2, 1));
+        fromGround.ShouldNotContain(new HexCoordinates(2, 1),
+            "under the bridge the start level is the hex level, not the deck");
+    }
+
+    [Fact]
+    public void GetJumpReachableHexes_WaterStart_UsesWaterBottomAsStartLevel()
+    {
+        // Arrange - water at level 0 with depth 2 starts at level -2, so 3 MP give a ceiling of 1
+        var sut = CreateFlatMap(2, 1, (q, _) => q == 2 ? 2 : 0);
+        sut.GetHex(new HexCoordinates(1, 1))!.AddTerrain(new WaterTerrain(-2));
+        var start = new HexCoordinates(1, 1);
+
+        // Act
+        var reachable = sut.GetJumpReachableHexes(start, 3).Select(h => h.Coordinates).ToList();
+
+        // Assert
+        reachable.ShouldNotContain(new HexCoordinates(2, 1),
+            "the water bottom, not the surface, is the jump start level");
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    public void GetJumpReachableHexes_WithNonPositiveMovementPoints_ReturnsEmpty(int movementPoints)
+    {
+        // Arrange
+        var sut = CreateFlatMap(3, 3, (_, _) => 0);
+
+        // Act
+        var reachable = sut.GetJumpReachableHexes(new HexCoordinates(2, 2), movementPoints);
+
+        // Assert
+        reachable.ShouldBeEmpty("a jump needs at least one movement point");
+    }
+
+    [Fact]
+    public void GetJumpReachableHexes_WithStartOffTheMap_ReturnsEmpty()
+    {
+        // Arrange
+        var sut = CreateFlatMap(3, 3, (_, _) => 0);
+
+        // Act
+        var reachable = sut.GetJumpReachableHexes(new HexCoordinates(0, 0), 2);
+
+        // Assert
+        reachable.ShouldBeEmpty("an off-map start has no hex to measure the ceiling from");
     }
 
     [Fact]
@@ -2320,7 +2860,7 @@ public class BattleMapTests
         var target = new HexPosition(new HexCoordinates(2, 1), HexDirection.Top);
 
         // Act
-        var path = sut.FindPath(start, target, MovementType.Jump, 1, 1);
+        var path = sut.FindPath(start, target, MovementType.Jump, 3, 1);
 
         // Assert
         path.ShouldNotBeNull();
@@ -2973,5 +3513,21 @@ public class BattleMapTests
         var result = sut.GetAffectedCoordinates(coord).ToList();
 
         result.ShouldBe([coord]);
+    }
+
+    private static BattleMap CreateFlatMap(int width, int height, Func<int, int, int> levelFor)
+    {
+        var map = new BattleMap(width, height);
+        for (var q = 1; q <= width; q++)
+        {
+            for (var r = 1; r <= height; r++)
+            {
+                var hex = new Hex(new HexCoordinates(q, r), levelFor(q, r));
+                hex.AddTerrain(new ClearTerrain());
+                map.AddHex(hex);
+            }
+        }
+
+        return map;
     }
 }

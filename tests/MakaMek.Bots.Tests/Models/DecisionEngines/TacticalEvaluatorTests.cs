@@ -75,7 +75,7 @@ public class TacticalEvaluatorTests
         var enemies = new List<IUnit> { enemy };
 
         // Setup LoS
-        _battleMap.GetLineOfSight(Arg.Any<HexCoordinates>(), Arg.Any<HexCoordinates>(), Arg.Any<int>(), Arg.Any<int>(), Arg.Any<HexSurface?>(), Arg.Any<HexSurface?>())
+        _battleMap.GetLineOfSight(Arg.Any<HexPosition>(), Arg.Any<HexPosition>(), Arg.Any<int>(), Arg.Any<int>())
             .Returns(LineOfSightResult.Unblocked(new HexCoordinates(1, 1), new HexCoordinates(1, 4)));
         
         // Setup ToHit
@@ -118,7 +118,7 @@ public class TacticalEvaluatorTests
         var enemies = new List<IUnit> { enemy };
 
         // Setup LoS - Obstruction
-        _battleMap.GetLineOfSight(Arg.Any<HexCoordinates>(), Arg.Any<HexCoordinates>(), Arg.Any<int>(), Arg.Any<int>(), Arg.Any<HexSurface?>(), Arg.Any<HexSurface?>()).Returns(LineOfSightResult.Blocked(
+        _battleMap.GetLineOfSight(Arg.Any<HexPosition>(), Arg.Any<HexPosition>(), Arg.Any<int>(), Arg.Any<int>()).Returns(LineOfSightResult.Blocked(
             new HexCoordinates(1, 1), new HexCoordinates(1, 4), new HexCoordinates(1, 2)));
 
         // Act
@@ -150,7 +150,7 @@ public class TacticalEvaluatorTests
         
         var enemies = new List<IUnit> { enemy };
 
-        _battleMap.GetLineOfSight(Arg.Any<HexCoordinates>(), Arg.Any<HexCoordinates>(), Arg.Any<int>(), Arg.Any<int>(), Arg.Any<HexSurface?>(), Arg.Any<HexSurface?>())
+        _battleMap.GetLineOfSight(Arg.Any<HexPosition>(), Arg.Any<HexPosition>(), Arg.Any<int>(), Arg.Any<int>())
             .Returns(LineOfSightResult.Unblocked(new HexCoordinates(1, 1), new HexCoordinates(1, 12)));
 
         // Act
@@ -195,7 +195,7 @@ public class TacticalEvaluatorTests
         var enemies = new List<IUnit> { enemy };
 
         // Setup LoS
-        _battleMap.GetLineOfSight(Arg.Any<HexCoordinates>(), Arg.Any<HexCoordinates>(), Arg.Any<int>(), Arg.Any<int>(), Arg.Any<HexSurface?>(), Arg.Any<HexSurface?>())
+        _battleMap.GetLineOfSight(Arg.Any<HexPosition>(), Arg.Any<HexPosition>(), Arg.Any<int>(), Arg.Any<int>())
             .Returns(hasLos 
                 ? LineOfSightResult.Unblocked(new HexCoordinates(1, 1), new HexCoordinates(1, 4))
                 : LineOfSightResult.Blocked(new HexCoordinates(1, 1), new HexCoordinates(1, 4), new HexCoordinates(1, 2)));
@@ -252,7 +252,7 @@ public class TacticalEvaluatorTests
         var enemies = new List<IUnit> { enemy };
 
         // Setup LoS
-        _battleMap.GetLineOfSight(Arg.Any<HexCoordinates>(), Arg.Any<HexCoordinates>(), Arg.Any<int>(), Arg.Any<int>(), Arg.Any<HexSurface?>(), Arg.Any<HexSurface?>())
+        _battleMap.GetLineOfSight(Arg.Any<HexPosition>(), Arg.Any<HexPosition>(), Arg.Any<int>(), Arg.Any<int>())
             .Returns(LineOfSightResult.Unblocked(new HexCoordinates(1, 1), new HexCoordinates(1, 4)));
         
         // Setup ToHit
@@ -296,7 +296,7 @@ public class TacticalEvaluatorTests
 
         var potentialTargets = new List<IUnit> { enemy1, enemy2 };
 
-        _battleMap.GetLineOfSight(Arg.Any<HexCoordinates>(), Arg.Any<HexCoordinates>(), Arg.Any<int>(), Arg.Any<int>(), Arg.Any<HexSurface?>(), Arg.Any<HexSurface?>())
+        _battleMap.GetLineOfSight(Arg.Any<HexPosition>(), Arg.Any<HexPosition>(), Arg.Any<int>(), Arg.Any<int>())
             .Returns(LineOfSightResult.Unblocked(new HexCoordinates(1, 1), new HexCoordinates(1, 6)));
         
         // ToHit for Enemy 1 -> 8 (prob 0.4166)
@@ -349,7 +349,7 @@ public class TacticalEvaluatorTests
         var enemies = new List<IUnit> { enemy };
 
         // Enemy should be counted even if there is no LoS
-        _battleMap.GetLineOfSight(Arg.Any<HexCoordinates>(), Arg.Any<HexCoordinates>(), Arg.Any<int>(), Arg.Any<int>(), Arg.Any<HexSurface?>(), Arg.Any<HexSurface?>())
+        _battleMap.GetLineOfSight(Arg.Any<HexPosition>(), Arg.Any<HexPosition>(), Arg.Any<int>(), Arg.Any<int>())
             .Returns(LineOfSightResult.Blocked(new HexCoordinates(1, 1), new HexCoordinates(1, 12), new HexCoordinates(1, 2)));
         
         // Setup ToHit
@@ -392,7 +392,7 @@ public class TacticalEvaluatorTests
 
         var potentialTargets = new List<IUnit> { enemy };
 
-        _battleMap.GetLineOfSight(Arg.Any<HexCoordinates>(), Arg.Any<HexCoordinates>(), Arg.Any<int>(), Arg.Any<int>(), Arg.Any<HexSurface?>(), Arg.Any<HexSurface?>())
+        _battleMap.GetLineOfSight(Arg.Any<HexPosition>(), Arg.Any<HexPosition>(), Arg.Any<int>(), Arg.Any<int>())
             .Returns(LineOfSightResult.Unblocked(new HexCoordinates(1, 1), new HexCoordinates(1, 11)));
         _toHitCalculator.GetToHitNumber(Arg.Any<AttackScenario>(), Arg.Any<Weapon>(), Arg.Any<IBattleMap>())
             .Returns(8);
@@ -433,7 +433,7 @@ public class TacticalEvaluatorTests
 
         var potentialTargets = new List<IUnit> { enemy };
 
-        _battleMap.GetLineOfSight(Arg.Any<HexCoordinates>(), Arg.Any<HexCoordinates>(), Arg.Any<int>(), Arg.Any<int>(), Arg.Any<HexSurface?>(), Arg.Any<HexSurface?>())
+        _battleMap.GetLineOfSight(Arg.Any<HexPosition>(), Arg.Any<HexPosition>(), Arg.Any<int>(), Arg.Any<int>())
             .Returns(LineOfSightResult.Unblocked(new HexCoordinates(1, 1), new HexCoordinates(4, 1)));
         _toHitCalculator.GetToHitNumber(Arg.Any<AttackScenario>(), Arg.Any<Weapon>(), Arg.Any<IBattleMap>())
             .Returns(8);
@@ -470,7 +470,7 @@ public class TacticalEvaluatorTests
 
         var potentialTargets = new List<IUnit> { enemy };
 
-        _battleMap.GetLineOfSight(Arg.Any<HexCoordinates>(), Arg.Any<HexCoordinates>(), Arg.Any<int>(), Arg.Any<int>(), Arg.Any<HexSurface?>(), Arg.Any<HexSurface?>())
+        _battleMap.GetLineOfSight(Arg.Any<HexPosition>(), Arg.Any<HexPosition>(), Arg.Any<int>(), Arg.Any<int>())
             .Returns(LineOfSightResult.Unblocked(new HexCoordinates(1, 1), new HexCoordinates(4, 1)));
         _toHitCalculator.GetToHitNumber(Arg.Any<AttackScenario>(), Arg.Any<Weapon>(), Arg.Any<IBattleMap>())
             .Returns(8);
@@ -511,7 +511,7 @@ public class TacticalEvaluatorTests
     
         var potentialTargets = new List<IUnit> { enemy };
 
-        _battleMap.GetLineOfSight(Arg.Any<HexCoordinates>(), Arg.Any<HexCoordinates>(), Arg.Any<int>(), Arg.Any<int>(), Arg.Any<HexSurface?>(), Arg.Any<HexSurface?>())
+        _battleMap.GetLineOfSight(Arg.Any<HexPosition>(), Arg.Any<HexPosition>(), Arg.Any<int>(), Arg.Any<int>())
             .Returns(LineOfSightResult.Unblocked(new HexCoordinates(1, 1), new HexCoordinates(4, 1)));
         _toHitCalculator.GetToHitNumber(Arg.Any<AttackScenario>(), Arg.Any<Weapon>(), Arg.Any<IBattleMap>())
             .Returns(8);

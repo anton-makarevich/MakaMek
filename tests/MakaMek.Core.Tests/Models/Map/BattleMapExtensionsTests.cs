@@ -702,26 +702,26 @@ public class BattleMapExtensionsTests
     }
 
     [Fact]
-    public void GetReachableHexesForPosition_JumpMovement_IgnoresLevelChanges()
+    public void GetReachableHexesForPosition_JumpMovement_ReachesHexesWithinJumpCeiling()
     {
-        // Arrange - Create a map with extreme elevation
+        // Arrange - Levels are within the ceiling of start level 0 + 2 Jumping MP
         var map = new BattleMap(3, 1);
         
         var hex1 = new Hex(new HexCoordinates(1, 1), level: 0);
         hex1.AddTerrain(new ClearTerrain());
         map.AddHex(hex1);
         
-        var hex2 = new Hex(new HexCoordinates(2, 1), level: 10); // Extreme level change
+        var hex2 = new Hex(new HexCoordinates(2, 1), level: 2);
         hex2.AddTerrain(new ClearTerrain());
         map.AddHex(hex2);
         
-        var hex3 = new Hex(new HexCoordinates(3, 1), level: 5);
+        var hex3 = new Hex(new HexCoordinates(3, 1), level: 2);
         hex3.AddTerrain(new ClearTerrain());
         map.AddHex(hex3);
 
         var startPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Top);
 
-        // Act - Jump ignores level changes
+        // Act
         var reachabilityData = map.GetReachableHexesForPosition(
             startPosition,
             movementPoints: 2,
@@ -732,7 +732,7 @@ public class BattleMapExtensionsTests
             2,
             0);
 
-        // Assert - Jump can reach all hexes within rangeBracket regardless of level
+        // Assert - The wrapper passes jump reachability through unchanged
         reachabilityData.AllReachableHexes.Select(x => x.Coordinates).ShouldContain(new HexCoordinates(2, 1));
         reachabilityData.AllReachableHexes.Select(x => x.Coordinates).ShouldContain(new HexCoordinates(3, 1));
         reachabilityData.BackwardReachableHexes.ShouldBeEmpty();

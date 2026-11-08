@@ -703,9 +703,11 @@ public class Mech : Unit
 
     /// <summary>
     /// Determines if this mech can have partial cover from elevation.
-    /// Only standing mechs (not prone) can have partial cover.
+    /// Only a standing, grounded mech can have partial cover: a prone mech or one that is
+    /// airborne (for example a DFA attacker waiting in its approach hex) is disqualified
+    /// (Total Warfare, p. 102 &amp; p. 106).
     /// </summary>
-    public override bool CanHavePartialCover => !IsProne;
+    public override bool CanHavePartialCover => !IsProne && Position?.AirborneLevel is null;
 
     /// <summary>
     /// Resets the turn state for the mech, including torso rotation

@@ -41,12 +41,24 @@ public interface IBattleMap
 
     /// <summary>
     /// Gets all valid hexes that can be reached with jumping movement, where each hex costs 1 MP
-    /// regardless of terrain or facing direction
+    /// regardless of terrain or facing direction. The start surface determines the jump start level
+    /// (bridge deck or water bottom) used by the jump-height ceiling.
     /// </summary>
     IEnumerable<HexReachabilityData> GetJumpReachableHexes(
         HexCoordinates start,
         int movementPoints,
-        IReadOnlySet<HexCoordinates>? prohibitedHexes = null);
+        IReadOnlySet<HexCoordinates>? prohibitedHexes = null,
+        HexSurface startSurface = HexSurface.Ground);
+
+    /// <summary>
+    /// Calculates the line of sight between two positions, taking each position's surface and
+    /// airborne level directly from the <see cref="HexPosition"/>.
+    /// </summary>
+    /// <param name="from">Source position, including its surface and airborne level.</param>
+    /// <param name="to">Target position, including its surface and airborne level.</param>
+    /// <param name="attackHeight">Height of the attacking weapon in levels (added to the base level).</param>
+    /// <param name="targetHeight">Height of the target unit in levels (added to the base level).</param>
+    LineOfSightResult GetLineOfSight(HexPosition from, HexPosition to, int attackHeight, int targetHeight = 0);
 
     /// <summary>
     /// Calculates the line of sight between two hexes and returns a result with full context.
@@ -57,11 +69,15 @@ public interface IBattleMap
     /// <param name="targetHeight">Height of the target unit in levels (added to hex level). Defaults to 0 for no target.</param>
     /// <param name="fromSurface">Surface of the attacker endpoint. When null, the hex optimistically infers Bridge if a bridge is present.</param>
     /// <param name="toSurface">Surface of the target endpoint. When null, the hex optimistically infers Bridge if a bridge is present.</param>
+    /// <param name="fromBaseLevel">Absolute base level of the attacker when it is airborne. When supplied,
+    /// the LOS level is this base plus <paramref name="attackHeight"/> and the endpoint is never submerged.</param>
+    /// <param name="toBaseLevel">Absolute base level of the target when it is airborne. When supplied,
+    /// the LOS level is this base plus <paramref name="targetHeight"/> and the endpoint is never submerged.</param>
     /// <returns>
     /// A <see cref="LineOfSightResult"/> whose <see cref="LineOfSightResult.HasLineOfSight"/> property
     /// indicates whether LOS exists, with additional details about the blocking hex and reason.
     /// </returns>
-    LineOfSightResult GetLineOfSight(HexCoordinates from, HexCoordinates to, int attackHeight, int targetHeight = 0, HexSurface? fromSurface = null, HexSurface? toSurface = null);
+    LineOfSightResult GetLineOfSight(HexCoordinates from, HexCoordinates to, int attackHeight, int targetHeight = 0, HexSurface? fromSurface = null, HexSurface? toSurface = null, int? fromBaseLevel = null, int? toBaseLevel = null);
 
     IEnumerable<Hex> GetHexes();
 
