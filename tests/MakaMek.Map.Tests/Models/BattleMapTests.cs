@@ -1983,9 +1983,10 @@ public class BattleMapTests
     [Fact]
     public void FindJumpPath_AdjacentJumpFromUnderBridge_UsesStandingLevelForCeiling()
     {
-        // Arrange - a unit on the ground under a level 0 bridge deck of height 2 has a ceiling
-        // of 1 with 1 MP. The start hex is not crossed, so the deck must not block the adjacent
-        // clear hex at level 0.
+        // Arrange - pure level-calculation case: a unit on the ground under a level 0 bridge deck
+        // of height 2 has a ceiling of 1 with 1 MP. The start hex is not crossed, so the deck must
+        // not block the adjacent clear hex at level 0. A unit cannot fire jump jets under a bridge
+        // in play; this exercises the level math only.
         var sut = CreateFlatMap(2, 1, (_, _) => 0);
         sut.GetHex(new HexCoordinates(1, 1))!.AddTerrain(new BridgeTerrain(2, 0));
         var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.Top, HexSurface.Ground);
@@ -2007,8 +2008,9 @@ public class BattleMapTests
     [Fact]
     public void FindJumpPath_AdjacentJumpFromDeepWater_UsesBottomLevelForCeiling()
     {
-        // Arrange - a unit in level 0 water of depth 2 stands on the riverbed (-2), so 1 MP gives
-        // a ceiling of -1. The water surface must not block the adjacent level -1 hex.
+        // Arrange - pure level-calculation case: standing on a level 0 riverbed of depth 2 (-2),
+        // 1 MP gives a ceiling of -1, so the water surface must not block the adjacent level -1
+        // hex. A deep-water unit cannot fire jump jets in play; this exercises the level math only.
         var sut = CreateFlatMap(2, 1, (q, _) => q == 2 ? -1 : 0);
         sut.GetHex(new HexCoordinates(1, 1))!.AddTerrain(new WaterTerrain(-2));
         var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.Top);
