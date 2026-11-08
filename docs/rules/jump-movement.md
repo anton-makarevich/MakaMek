@@ -84,7 +84,11 @@ For a jump path `p0 … pn`:
 - Other intermediate levels interpolate linearly from the start level (the unit's standing level
   in `p0`) to the approach waypoint, round **up** (`Math.Ceiling`), and are clamped to
   `[referenceLevel(p_i), startLevel + availableJumpingMP]`.
-- A route whose approach waypoint exceeds the ceiling is rejected (defensive guard).
+- A route whose approach waypoint exceeds the ceiling is rejected (defensive guard). The
+  exception is an adjacent jump: it has no crossed hex before the destination, so only the
+  destination must clear `startLevel + availableJumpingMP`. A bridge deck above the unit, or the
+  water surface it stands below, therefore does not block a legal adjacent jump. The stored
+  waypoint on the start position still uses the reference levels, so adjacent DFA LOS is unchanged.
 
 The same profile is used for path validity (the ceiling) and DFA line of sight. Presentation does
 not derive a second jump curve.

@@ -1981,6 +1981,48 @@ public class BattleMapTests
     }
 
     [Fact]
+    public void FindJumpPath_AdjacentJumpFromUnderBridge_UsesStandingLevelForCeiling()
+    {
+        // Arrange - a unit on the ground under a level 0 bridge deck of height 2 has a ceiling
+        // of 1 with 1 MP. The start hex is not crossed, so the deck must not block the adjacent
+        // clear hex at level 0.
+        var sut = CreateFlatMap(2, 1, (_, _) => 0);
+        sut.GetHex(new HexCoordinates(1, 1))!.AddTerrain(new BridgeTerrain(2, 0));
+        var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.Top, HexSurface.Ground);
+        var target = new HexPosition(new HexCoordinates(2, 1), HexDirection.Top);
+
+        // Act
+        var path = sut.FindPath(start, target, MovementType.Jump, 1, 1);
+        var reachable = sut.GetJumpReachableHexes(start.Coordinates, 1, startSurface: HexSurface.Ground)
+            .Select(h => h.Coordinates)
+            .ToList();
+
+        // Assert
+        reachable.ShouldContain(target.Coordinates, "reachability already skips the start hex");
+        path.ShouldNotBeNull("the start hex reference level is not part of the crossed path");
+        path.Segments.ShouldHaveSingleItem();
+        path.Destination.Coordinates.ShouldBe(target.Coordinates);
+    }
+
+    [Fact]
+    public void FindJumpPath_AdjacentJumpFromDeepWater_UsesBottomLevelForCeiling()
+    {
+        // Arrange - a unit in level 0 water of depth 2 stands on the riverbed (-2), so 1 MP gives
+        // a ceiling of -1. The water surface must not block the adjacent level -1 hex.
+        var sut = CreateFlatMap(2, 1, (q, _) => q == 2 ? -1 : 0);
+        sut.GetHex(new HexCoordinates(1, 1))!.AddTerrain(new WaterTerrain(-2));
+        var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.Top);
+        var target = new HexPosition(new HexCoordinates(2, 1), HexDirection.Top);
+
+        // Act
+        var path = sut.FindPath(start, target, MovementType.Jump, 1, 1);
+
+        // Assert
+        path.ShouldNotBeNull("the water surface above the unit is not part of the crossed path");
+        path.Destination.Coordinates.ShouldBe(target.Coordinates);
+    }
+
+    [Fact]
     public void FindJumpPath_RejectsRouteWhoseIntermediateHexExceedsCeiling()
     {
         // Arrange - the only route crosses a level 5 hex with a ceiling of 2

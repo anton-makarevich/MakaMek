@@ -794,9 +794,17 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
             referenceLevels[i] = GetHex(route[i])!.GetReferenceLevel();
 
         var approachIndex = lastIndex - 1;
-        var approachLevel = Math.Max(referenceLevels[approachIndex], referenceLevels[lastIndex]);
-        if (approachLevel > ceiling)
+
+        // The start hex is not part of the crossed path, so an adjacent jump checks the
+        // destination against the unit's standing level. Its reference level (a bridge deck
+        // above or a water surface it is standing below) is not a clearance requirement.
+        var startSideLevel = lastIndex == 1 ? startLevel : referenceLevels[approachIndex];
+        if (Math.Max(startSideLevel, referenceLevels[lastIndex]) > ceiling)
             return null;
+
+        // The stored waypoint still uses the reference level of the approach hex, which is the
+        // start hex for an adjacent jump, so an adjacent DFA can read its LOS level from it.
+        var approachLevel = Math.Max(referenceLevels[approachIndex], referenceLevels[lastIndex]);
 
         if (lastIndex == 1)
         {
