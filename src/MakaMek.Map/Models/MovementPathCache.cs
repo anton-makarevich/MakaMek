@@ -7,15 +7,32 @@ public class MovementPathCache
 {
     private readonly Dictionary<MovementPathCacheKey, MovementPath> _cache = [];
 
-    public void Add(MovementPath path, int unitHeight)
+    public void Add(
+        MovementPath path,
+        int unitHeight,
+        int? jumpMovementPoints = null,
+        HexPosition? keyStart = null,
+        HexPosition? keyDestination = null)
     {
-        var key = new MovementPathCacheKey(path.Start, path.Destination, path.IsJump, path.MaxLevelChange, unitHeight);
+        var key = new MovementPathCacheKey(
+            keyStart ?? path.Start,
+            keyDestination ?? path.Destination,
+            path.IsJump,
+            path.MaxLevelChange,
+            unitHeight,
+            jumpMovementPoints);
         _cache[key] = path;
     }
 
-    public MovementPath? Get(HexPosition start, HexPosition destination, bool isJump, int? maxLevelChange = null, int unitHeight = 0)
+    public MovementPath? Get(
+        HexPosition start,
+        HexPosition destination,
+        bool isJump,
+        int? maxLevelChange = null,
+        int unitHeight = 0,
+        int? jumpMovementPoints = null)
     {
-        var key = new MovementPathCacheKey(start, destination, isJump, maxLevelChange, unitHeight);
+        var key = new MovementPathCacheKey(start, destination, isJump, maxLevelChange, unitHeight, jumpMovementPoints);
         return _cache.TryGetValue(key, out var cachedPath) 
             ? cachedPath 
             : null;

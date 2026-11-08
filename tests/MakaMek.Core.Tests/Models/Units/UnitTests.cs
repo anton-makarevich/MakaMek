@@ -2615,6 +2615,58 @@ public class UnitTests
         sut.DeclaredPhysicalAttack.ShouldBeNull();
     }
 
+    [Fact]
+    public void ResetTurnState_ShouldGroundAPendingDfaPosition()
+    {
+        // Arrange
+        var sut = CreateTestUnit();
+        var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
+        sut.Deploy(start, null);
+        var dfaStop = start with { AirborneLevel = 4 };
+        sut.Move(MovementPath.CreateSingleSegmentPath(start, MovementType.Jump), null,
+            isCompleted: true, stopAt: dfaStop);
+        sut.DeclarePhysicalAttack(new PhysicalAttackDeclarationData
+        {
+            AttackType = PhysicalAttackType.DFA,
+            AttackerLimbs = [],
+            TargetId = Guid.NewGuid()
+        });
+        sut.Position!.AirborneLevel.ShouldBe(4);
+
+        // Act
+        sut.ResetTurnState();
+
+        // Assert
+        sut.Position!.AirborneLevel.ShouldBeNull("the airborne level ends with the pending attack");
+    }
+
+    [Fact]
+    public void DestroyingTheUnit_ShouldGroundAPendingDfaPosition()
+    {
+        // Arrange
+        var sut = CreateTestUnit();
+        var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
+        sut.Deploy(start, null);
+        var dfaStop = start with { AirborneLevel = 4 };
+        sut.Move(MovementPath.CreateSingleSegmentPath(start, MovementType.Jump), null,
+            isCompleted: true, stopAt: dfaStop);
+        sut.DeclarePhysicalAttack(new PhysicalAttackDeclarationData
+        {
+            AttackType = PhysicalAttackType.DFA,
+            AttackerLimbs = [],
+            TargetId = Guid.NewGuid()
+        });
+
+        // Act - a blown-off head destroys the unit
+        sut.ApplyCriticalHits([
+            new LocationCriticalHitsData(PartLocation.Head, [6, 6], 0, null, true)
+        ]);
+
+        // Assert
+        sut.IsDestroyed.ShouldBeTrue();
+        sut.Position!.AirborneLevel.ShouldBeNull("a destroyed unit is not still airborne");
+    }
+
     [Theory]
     [InlineData(PhysicalAttackType.Charge, true)]
     [InlineData(PhysicalAttackType.DFA, true)]

@@ -96,6 +96,7 @@ public abstract class Unit : IUnit
             if (IsDestroyed && HasPendingMovementAttack)
             {
                 DeclaredPhysicalAttack = null;
+                ClearAirborneLevel();
             }
         }
     }
@@ -560,6 +561,17 @@ public abstract class Unit : IUnit
     private void ResetPhysicalAttackDeclaration()
     {
         DeclaredPhysicalAttack = null;
+        ClearAirborneLevel();
+    }
+
+    /// <summary>
+    /// Returns the unit to a grounded position once its pending movement-origin attack ends.
+    /// The airborne level exists only while the DFA approach position is authoritative.
+    /// </summary>
+    private void ClearAirborneLevel()
+    {
+        if (Position is { AirborneLevel: not null } position)
+            Position = position with { AirborneLevel = null };
     }
 
     /// <summary>

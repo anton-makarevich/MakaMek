@@ -435,7 +435,9 @@ public class WeaponsAttackState : IUiState, ICombatSelectionRoles
                         level,
                         targetHeight,
                         unitPosition.Surface,
-                        toSurface);
+                        toSurface,
+                        unitPosition.AirborneLevel,
+                        targetUnit?.Position?.AirborneLevel);
                 }
             }
         }
@@ -613,12 +615,10 @@ public class WeaponsAttackState : IUiState, ICombatSelectionRoles
 
         // Compute reversed LOS and partial cover for the attacker
         var reversedLosResult = Game.BattleMap?.GetLineOfSight(
-            SelectedTarget.Position.Coordinates,
-            Attacker.Position.Coordinates,
+            SelectedTarget.Position,
+            Attacker.Position,
             SelectedTarget.Height,
-            Attacker.Height,
-            SelectedTarget.Position.Surface,
-            Attacker.Position.Surface);
+            Attacker.Height);
         
         var attackerHasPartialCover = reversedLosResult != null && 
                                       Game.RulesProvider.HasPartialCover(Attacker, reversedLosResult);

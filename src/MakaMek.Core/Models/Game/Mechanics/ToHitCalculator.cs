@@ -56,12 +56,10 @@ public class ToHitCalculator : IToHitCalculator
     public ToHitBreakdown GetModifierBreakdown(AttackScenario scenario, Weapon weapon, IBattleMap map)
     {
         var losResult = map.GetLineOfSight(
-            scenario.AttackerPosition.Coordinates,
-            scenario.TargetPosition.Coordinates,
+            scenario.AttackerPosition,
+            scenario.TargetPosition,
             weapon.FirstMountPart?.Level ?? scenario.AttackerHeight,
-            scenario.TargetHeight,
-            scenario.AttackerPosition.Surface,
-            scenario.TargetPosition.Surface);
+            scenario.TargetHeight);
         var arc = GetFiringArc(scenario, weapon);
         var distance = scenario.AttackerPosition.Coordinates.DistanceTo(scenario.TargetPosition.Coordinates);
 

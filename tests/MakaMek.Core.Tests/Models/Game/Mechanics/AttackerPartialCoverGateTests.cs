@@ -38,12 +38,10 @@ public class AttackerPartialCoverGateTests
             _target.Height,
             _attacker.Height);
         _battleMap.GetLineOfSight(
-                _target.Position!.Coordinates,
-                _attacker.Position!.Coordinates,
+                _target.Position!,
+                _attacker.Position!,
                 _target.Height,
-                _attacker.Height,
-                _target.Position.Surface,
-                _attacker.Position.Surface)
+                _attacker.Height)
             .Returns(losResult);
         return losResult;
     }

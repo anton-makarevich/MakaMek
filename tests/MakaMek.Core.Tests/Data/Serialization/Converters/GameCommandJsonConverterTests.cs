@@ -676,6 +676,44 @@ public class GameCommandJsonConverterTests
     }
 
     [Fact]
+    public void MoveUnitCommand_RoundTripsTheAirborneLevel()
+    {
+        // Arrange
+        var command = new MoveUnitCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = Guid.NewGuid(),
+            UnitId = Guid.NewGuid(),
+            MovementType = MovementType.Jump,
+            IsCompleted = true,
+            MovementPath =
+            [
+                new PathSegmentData
+                {
+                    From = new HexPositionData
+                    {
+                        Coordinates = new HexCoordinateData(1, 1), Facing = 0
+                    },
+                    To = new HexPositionData
+                    {
+                        Coordinates = new HexCoordinateData(1, 2), Facing = 0, AirborneLevel = 3
+                    },
+                    Costs = []
+                }
+            ]
+        };
+
+        // Act
+        var json = JsonSerializer.Serialize<IGameCommand>(command, _options);
+        var restored = JsonSerializer.Deserialize<IGameCommand>(json, _options)
+            .ShouldBeOfType<MoveUnitCommand>();
+
+        // Assert
+        restored.MovementPath[0].To.AirborneLevel.ShouldBe(3);
+        restored.MovementPath[0].From.AirborneLevel.ShouldBeNull();
+    }
+
+    [Fact]
     public void MoveUnitCommand_WithoutDeclaration_DeserializesToNullDeclaration()
     {
         // Arrange

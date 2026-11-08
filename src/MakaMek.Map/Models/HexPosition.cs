@@ -5,7 +5,16 @@ namespace Sanet.MakaMek.Map.Models;
 /// <summary>
 /// Represents a position on the hex map, combining coordinates and facing direction
 /// </summary>
-public record HexPosition(HexCoordinates Coordinates, HexDirection Facing, HexSurface Surface = HexSurface.Ground)
+/// <param name="AirborneLevel">
+/// The base/elevation level of the unit at this position while it is airborne, or <c>null</c>
+/// when the position is grounded. It is the unit's base level, not its LOS top: consumers add
+/// the unit or mount height. Jump pathfinding writes it on intermediate jump positions.
+/// </param>
+public record HexPosition(
+    HexCoordinates Coordinates,
+    HexDirection Facing,
+    HexSurface Surface = HexSurface.Ground,
+    int? AirborneLevel = null)
 {
     public HexPosition(int q, int r, HexDirection facing, HexSurface surface = HexSurface.Ground)
         : this(new HexCoordinates(q, r), facing, surface)
@@ -13,7 +22,8 @@ public record HexPosition(HexCoordinates Coordinates, HexDirection Facing, HexSu
     }
 
     public HexPosition(HexPositionData data)
-        : this(new HexCoordinates(data.Coordinates), (HexDirection)data.Facing, (HexSurface)data.Surface)
+        : this(new HexCoordinates(data.Coordinates), (HexDirection)data.Facing, (HexSurface)data.Surface,
+            data.AirborneLevel)
     {
     }
 
@@ -65,12 +75,13 @@ public record HexPosition(HexCoordinates Coordinates, HexDirection Facing, HexSu
     {
         Coordinates = Coordinates.ToData(),
         Facing = (int)Facing,
-        Surface = (int)Surface
+        Surface = (int)Surface,
+        AirborneLevel = AirborneLevel
     };
 
     /// <summary>
     /// Returns a new position with the same coordinates but facing the opposite direction
     /// </summary>
     public HexPosition GetOppositeDirectionPosition() =>
-        new(Coordinates, (HexDirection)((int)(Facing + 3) % 6), Surface);
+        this with { Facing = (HexDirection)((int)(Facing + 3) % 6) };
 }

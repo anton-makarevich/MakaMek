@@ -144,6 +144,40 @@ public class ToHitCalculatorTests
     }
 
     [Fact]
+    public void GetModifierBreakdown_UsesTheStoredAirborneLevelForEveryShooter()
+    {
+        // Arrange - two hills block a grounded target in the middle, but not an airborne one
+        var map = BattleMapFactory.GenerateMap(1, 5,
+            new SingleTerrainGenerator(1, 5, new ClearTerrain()));
+        map.GetHex(new HexCoordinates(1, 2))!.WithLevel(3);
+        map.GetHex(new HexCoordinates(1, 4))!.WithLevel(3);
+        var groundedTarget = new HexPosition(new HexCoordinates(1, 3), HexDirection.Top);
+        var airborneTarget = groundedTarget with { AirborneLevel = 6 };
+
+        AttackScenario Scenario(HexCoordinates shooter, HexPosition target) =>
+            AttackScenario.FromHypothetical(
+                attackerGunnery: 4,
+                attackerPosition: new HexPosition(shooter, HexDirection.Top),
+                attackerMovementType: MovementType.StandingStill,
+                targetPosition: target,
+                targetHexesMoved: 0,
+                attackerModifiers: [],
+                attackerHeight: 2,
+                targetHeight: 2);
+
+        // Act & Assert
+        _sut.GetModifierBreakdown(Scenario(new HexCoordinates(1, 1), groundedTarget), _weapon, map)
+            .HasLineOfSight.ShouldBeFalse("the grounded target is behind a hill");
+        _sut.GetModifierBreakdown(Scenario(new HexCoordinates(1, 1), airborneTarget), _weapon, map)
+            .HasLineOfSight.ShouldBeTrue("the stored airborne level clears the hill");
+
+        _sut.GetModifierBreakdown(Scenario(new HexCoordinates(1, 5), groundedTarget), _weapon, map)
+            .HasLineOfSight.ShouldBeFalse("the same hill blocks the other shooter");
+        _sut.GetModifierBreakdown(Scenario(new HexCoordinates(1, 5), airborneTarget), _weapon, map)
+            .HasLineOfSight.ShouldBeTrue("every shooter uses the target's stored level");
+    }
+
+    [Fact]
     public void GetToHitModifier_OutOfRange_ReturnsMaxValue()
     {
         // Arrange

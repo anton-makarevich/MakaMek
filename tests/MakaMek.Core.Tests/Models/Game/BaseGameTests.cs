@@ -881,6 +881,111 @@ public sealed class BaseGameTests : BaseGame
     }
 
     [Fact]
+    public void OnMoveUnit_MultiHexDfa_CarriesTheApproachWaypointToTheStopPosition()
+    {
+        // Arrange
+        var joinCommand = new JoinGameCommand
+        {
+            PlayerId = Guid.NewGuid(),
+            PlayerName = "Player1",
+            GameOriginId = Guid.NewGuid(),
+            Units = [MechFactoryTests.CreateDummyMechData()],
+            Tint = "#FF0000",
+            PilotAssignments = []
+        };
+        OnPlayerJoined(joinCommand);
+        var player = Players.First();
+        var mech = player.Units.First();
+        mech.AssignPilot(new MechWarrior("John", "Doe"));
+        var start = new HexPosition(new HexCoordinates(3, 3), HexDirection.BottomLeft);
+        mech.Deploy(start, null);
+        TurnPhase = PhaseNames.Movement;
+
+        var approach = new HexPosition(new HexCoordinates(3, 4), HexDirection.BottomLeft,
+            AirborneLevel: 3);
+        var target = new HexPosition(new HexCoordinates(3, 5), HexDirection.BottomLeft);
+        var moveCommand = new MoveUnitCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = player.Id,
+            UnitId = mech.Id,
+            MovementType = MovementType.Jump,
+            IsCompleted = true,
+            MovementPath =
+            [
+                new PathSegment(start, approach, [new JumpMovementCost { Value = 1 }]).ToData(),
+                new PathSegment(approach, target, [new JumpMovementCost { Value = 1 }]).ToData()
+            ],
+            Declaration = new PhysicalAttackDeclarationData
+            {
+                AttackType = PhysicalAttackType.DFA,
+                AttackerLimbs = [],
+                TargetId = Guid.NewGuid()
+            }
+        };
+
+        // Act
+        OnMoveUnit(moveCommand);
+
+        // Assert
+        mech.Position!.Coordinates.ShouldBe(approach.Coordinates,
+            "the DFA attacker waits in the approach hex");
+        mech.Position.AirborneLevel.ShouldBe(3,
+            "the approach waypoint travels with the stop position");
+    }
+
+    [Fact]
+    public void OnMoveUnit_AdjacentDfa_CarriesTheWaypointOnTheStartPosition()
+    {
+        // Arrange
+        var joinCommand = new JoinGameCommand
+        {
+            PlayerId = Guid.NewGuid(),
+            PlayerName = "Player1",
+            GameOriginId = Guid.NewGuid(),
+            Units = [MechFactoryTests.CreateDummyMechData()],
+            Tint = "#FF0000",
+            PilotAssignments = []
+        };
+        OnPlayerJoined(joinCommand);
+        var player = Players.First();
+        var mech = player.Units.First();
+        mech.AssignPilot(new MechWarrior("John", "Doe"));
+        var start = new HexPosition(new HexCoordinates(3, 3), HexDirection.BottomLeft,
+            AirborneLevel: 4);
+        mech.Deploy(start, null);
+        TurnPhase = PhaseNames.Movement;
+
+        var target = new HexPosition(new HexCoordinates(3, 4), HexDirection.BottomLeft);
+        var moveCommand = new MoveUnitCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = player.Id,
+            UnitId = mech.Id,
+            MovementType = MovementType.Jump,
+            IsCompleted = true,
+            MovementPath =
+            [
+                new PathSegment(start, target, [new JumpMovementCost { Value = 1 }]).ToData()
+            ],
+            Declaration = new PhysicalAttackDeclarationData
+            {
+                AttackType = PhysicalAttackType.DFA,
+                AttackerLimbs = [],
+                TargetId = Guid.NewGuid()
+            }
+        };
+
+        // Act
+        OnMoveUnit(moveCommand);
+
+        // Assert
+        mech.Position!.Coordinates.ShouldBe(start.Coordinates);
+        mech.Position.AirborneLevel.ShouldBe(4,
+            "an adjacent DFA keeps the waypoint on its start/approach position");
+    }
+
+    [Fact]
     public void OnWeaponsAttack_ShouldNotProcessAttack_WhenSensorsAreDestroyed()
     {
         // Arrange

@@ -57,6 +57,18 @@ public static class HexExtensions
                 : hex.GetBottomLevel();
         }
 
+        /// <summary>
+        /// The level a jumping unit must clear when crossing this hex: the bridge deck when the
+        /// bridge is the top surface, otherwise the hex level (the water surface, never the bottom).
+        /// Tree height is ignored. Building roof levels join this helper when building terrain exists.
+        /// </summary>
+        public int GetReferenceLevel()
+        {
+            return hex.GetBridgeHeight() is { } bridgeHeight
+                ? hex.Level + bridgeHeight
+                : hex.Level;
+        }
+
         public int GetElevationChange(Hex fromHex, HexSurface fromSurface, HexSurface toSurface)
         {
             return hex.GetStandingLevel(toSurface) - fromHex.GetStandingLevel(fromSurface);

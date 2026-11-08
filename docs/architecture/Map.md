@@ -45,14 +45,16 @@ The Map module implements the core logic for the game's hex-based battle map. It
   - Standard pathfinding accounts for turning costs, movement costs per terrain, and optionally prohibited hexes.
   - Returns a sequence of `PathSegment` objects representing each step (move/turn) with associated cost.
   - **Enhanced Parameters:** Both `FindPath` and reachability methods now support `prohibitedHexes` parameter for avoiding specific areas.
+- **Jump profile:** Jump paths carry a single vertical profile on `HexPosition.AirborneLevel`. The first and last positions are grounded (`null`). The last translation's `From` (the approach position, `destination - 1`) is always a hard waypoint at `max(referenceLevel(approach), referenceLevel(destination))`; an adjacent jump therefore stores it on the start position. Other intermediate levels are linearly interpolated, rounded up, and clamped between the hex reference level and the jump ceiling. The same values feed path validity and DFA LOS; presentation is flat top-down 2D and does not render a vertical arc.
 - **Reachability:** Efficiently computes all hexes reachable within a movement budget, considering facing, terrain, and prohibited areas.
-- **Jump movement:** Ignores terrain/facing, each hex costs 1. Supports prohibited hexes for tactical restrictions.
+- **Jump movement:** Ignores terrain/facing for cost; each crossed hex costs 1 MP. The path must be a shortest route and every crossed hex (destination included) must satisfy `referenceLevel(hex) <= startHex.Level + availableJumpingMP`. Jump pathfinding picks the first legal shortest route deterministically rather than enumerating every route. `GetJumpReachableHexes` runs one breadth-first search through clear hexes and includes a destination only when its legal search distance equals the geometric distance. Prohibited hexes only exclude destinations: a jump passes over them. The jump cache key includes the jump MP budget because the ceiling depends on it.
 
 ### 6. Line-of-Sight (LOS)
 - **LOS Calculation:**
   - Determines if two hexes are mutually visible, considering height interpolation and terrain intervening factors.
   - Uses a line-drawing algorithm on the hex grid, with special handling for ambiguous (divided) segments.
   - LOS is blocked if intervening height or total terrain factor exceeds thresholds.
+  - Optional attacker and target base levels let an airborne position (a pending DFA approach) supply its absolute endpoint level instead of the surface standing level; such an endpoint is never treated as submerged. The path cache still keys on coordinates only.
   - LOS paths are cached for efficiency.
 - **LOS Hex Listing:** 
   - `GetHexesAlongLineOfSight` method returns detailed hex information along the LOS path.

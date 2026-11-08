@@ -53,6 +53,56 @@ public class HexExtensionsTests
         depth.ShouldBe(2);
     }
 
+    [Theory]
+    [InlineData(typeof(ClearTerrain), 3, 3)]
+    [InlineData(typeof(LightWoodsTerrain), 3, 3)] // Tree height is ignored
+    [InlineData(typeof(HeavyWoodsTerrain), 3, 3)] // Tree height is ignored
+    [InlineData(typeof(WaterTerrain), 3, 3)]      // Water surface, not the bottom
+    public void GetReferenceLevel_ReturnsHexLevel(Type terrainType, int hexLevel, int expected)
+    {
+        // Arrange
+        var sut = new Hex(new HexCoordinates(1, 1), level: hexLevel);
+        var terrain = terrainType == typeof(WaterTerrain)
+            ? new WaterTerrain(-2)
+            : (Terrain)Activator.CreateInstance(terrainType)!;
+        sut.AddTerrain(terrain);
+
+        // Act
+        var level = sut.GetReferenceLevel();
+
+        // Assert
+        level.ShouldBe(expected);
+    }
+
+    [Fact]
+    public void GetReferenceLevel_ReturnsBridgeDeckOverLand()
+    {
+        // Arrange
+        var sut = new Hex(new HexCoordinates(1, 1), level: 2);
+        sut.AddTerrain(new BridgeTerrain(3, 0));
+
+        // Act
+        var level = sut.GetReferenceLevel();
+
+        // Assert
+        level.ShouldBe(5);
+    }
+
+    [Fact]
+    public void GetReferenceLevel_ReturnsBridgeDeckOverWater()
+    {
+        // Arrange
+        var sut = new Hex(new HexCoordinates(1, 1), level: 0);
+        sut.AddTerrain(new WaterTerrain(-2));
+        sut.AddTerrain(new BridgeTerrain(3, 0));
+
+        // Act
+        var level = sut.GetReferenceLevel();
+
+        // Assert
+        level.ShouldBe(3, "the bridge deck is the surface to clear, not the water bottom");
+    }
+
     [Fact]
     public void GetGroundElevationChange_ReturnsZero_WhenLevelsAreSame()
     {

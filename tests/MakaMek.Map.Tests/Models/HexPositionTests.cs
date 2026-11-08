@@ -57,6 +57,78 @@ public class HexPositionTests
         position.Facing.ShouldBe(facing);
     }
 
+    [Fact]
+    public void Constructor_WithData_MapsAirborneLevel()
+    {
+        // Arrange
+        var data = new HexPositionData
+        {
+            Coordinates = new HexCoordinateData(2, 3),
+            Facing = (int)HexDirection.Bottom,
+            Surface = (int)HexSurface.Bridge,
+            AirborneLevel = 4
+        };
+
+        // Act
+        var position = new HexPosition(data);
+
+        // Assert
+        position.AirborneLevel.ShouldBe(4);
+        position.Surface.ShouldBe(HexSurface.Bridge);
+    }
+
+    [Fact]
+    public void Constructor_WithLegacyDataWithoutAirborneLevel_DefaultsToGrounded()
+    {
+        // Arrange - a payload written before the field existed
+        var data = new HexPositionData
+        {
+            Coordinates = new HexCoordinateData(2, 3),
+            Facing = (int)HexDirection.Bottom
+        };
+
+        // Act
+        var position = new HexPosition(data);
+
+        // Assert
+        position.AirborneLevel.ShouldBeNull();
+    }
+
+    [Fact]
+    public void ToData_MapsAirborneLevel()
+    {
+        // Arrange
+        var position = new HexPosition(
+            new HexCoordinates(2, 3),
+            HexDirection.Bottom,
+            HexSurface.Ground,
+            AirborneLevel: 4);
+
+        // Act
+        var data = position.ToData();
+
+        // Assert
+        data.AirborneLevel.ShouldBe(4);
+    }
+
+    [Fact]
+    public void GetOppositeDirectionPosition_PreservesSurfaceAndAirborneLevel()
+    {
+        // Arrange
+        var position = new HexPosition(
+            new HexCoordinates(2, 3),
+            HexDirection.Top,
+            HexSurface.Bridge,
+            AirborneLevel: 4);
+
+        // Act
+        var result = position.GetOppositeDirectionPosition();
+
+        // Assert
+        result.Surface.ShouldBe(HexSurface.Bridge);
+        result.AirborneLevel.ShouldBe(4);
+    }
+
     [Theory]
     [InlineData(HexDirection.Top, HexDirection.Top, 0)] // No turn
     [InlineData(HexDirection.Top, HexDirection.TopRight, 1)] // Turn 1 step clockwise

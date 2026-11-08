@@ -62,6 +62,29 @@ public class MovementPathTests
     }
     
     [Fact]
+    public void Data_RoundTrip_PreservesAirborneLevels()
+    {
+        // Arrange
+        var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.Top);
+        var middle = new HexPosition(new HexCoordinates(1, 2), HexDirection.Top, AirborneLevel: 2);
+        var destination = new HexPosition(new HexCoordinates(1, 3), HexDirection.Top);
+        var path = new MovementPath(
+        [
+            new PathSegment(start, middle, [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]),
+            new PathSegment(middle, destination, [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])
+        ], MovementType.Jump);
+
+        // Act
+        var restored = new MovementPath(path.ToData(), MovementType.Jump);
+
+        // Assert
+        restored.Start.AirborneLevel.ShouldBeNull();
+        restored.Segments[0].To.AirborneLevel.ShouldBe(2);
+        restored.Segments[1].From.AirborneLevel.ShouldBe(2);
+        restored.Destination.AirborneLevel.ShouldBeNull();
+    }
+
+    [Fact]
     public void Constructor_ShouldThrow_WhenSegmentsEmpty()
     {
         // Act & Assert

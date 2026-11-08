@@ -68,12 +68,10 @@ public class WeaponAttackResolver : IWeaponAttackResolver
         attackDirection = target.GetAttackDirection(attacker);
 
         var losResult = battleMap.GetLineOfSight(
-            attacker.Position!.Coordinates,
-            target.Position!.Coordinates,
+            attacker.Position!,
+            target.Position!,
             weapon.FirstMountPart.Level,
-            target.Height,
-            attacker.Position.Surface,
-            target.Position.Surface);
+            target.Height);
         var hasPartialCover = _rulesProvider.HasPartialCover(target, losResult);
         var coveringHex = hasPartialCover && losResult.HexPath.Count >= 2
             ? losResult.HexPath[^2].Hex.Coordinates.ToData()

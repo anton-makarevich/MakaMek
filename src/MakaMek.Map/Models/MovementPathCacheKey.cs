@@ -5,4 +5,5 @@ public readonly record struct MovementPathCacheKey(
     HexPosition? Destination,
     bool IsJump,
     int? MaxLevelChange,
-    int UnitHeight);
+    int UnitHeight,
+    int? JumpMovementPoints = null);

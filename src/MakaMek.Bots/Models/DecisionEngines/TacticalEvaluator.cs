@@ -180,12 +180,10 @@ public class TacticalEvaluator : ITacticalEvaluator
             
             // Check line of sight
             if (!_game.BattleMap.GetLineOfSight(
-                    enemy.Position.Coordinates,
-                    position.Coordinates,
+                    enemy.Position,
+                    position,
                     enemy.Height,
-                    defenderHeight,
-                    enemy.Position.Surface,
-                    position.Surface).HasLineOfSight)
+                    defenderHeight).HasLineOfSight)
                 continue;
 
             var range = enemy.Position.Coordinates.DistanceTo(position.Coordinates);
@@ -261,7 +259,7 @@ public class TacticalEvaluator : ITacticalEvaluator
         var configWeapons = new Dictionary<WeaponConfiguration, List<WeaponEvaluationData>>();
 
         // Check line of sight
-        if (!_game.BattleMap.GetLineOfSight(attackerPath.Destination.Coordinates, targetPath.Destination.Coordinates, attacker.Height, targetHeight, attackerPath.Destination.Surface, targetPath.Destination.Surface).HasLineOfSight)
+        if (!_game.BattleMap.GetLineOfSight(attackerPath.Destination, targetPath.Destination, attacker.Height, targetHeight).HasLineOfSight)
             return configWeapons;
 
         var distanceToTarget = attackerPath.Destination.Coordinates.DistanceTo(targetPath.Destination.Coordinates);

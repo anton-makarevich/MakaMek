@@ -12,12 +12,10 @@ public class AttackerPartialCoverGate : IAttackResolutionGate
     public bool ShouldSkip(IUnit attacker, IUnit target, Weapon weapon, LocationSlotAssignment primaryAssignment, IBattleMap battleMap, IRulesProvider rulesProvider, ILogger logger)
     {
         var reversedLosResult = battleMap.GetLineOfSight(
-            target.Position!.Coordinates,
-            attacker.Position!.Coordinates,
+            target.Position!,
+            attacker.Position!,
             target.Height,
-            attacker.Height,
-            target.Position.Surface,
-            attacker.Position.Surface);
+            attacker.Height);
 
         var attackerHasPartialCover = rulesProvider.HasPartialCover(attacker, reversedLosResult);
         var canBeCovered = rulesProvider.CanPartBeCovered(primaryAssignment.Location);
