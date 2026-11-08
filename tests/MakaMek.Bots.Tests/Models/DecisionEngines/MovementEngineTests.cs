@@ -162,7 +162,7 @@ public class MovementEngineTests
         // Mock empty reachable hexes for all movement types
         _battleMap.GetReachableHexes(Arg.Any<HexPosition>(), Arg.Any<int>(), Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>(), Arg.Any<int?>())
             .Returns(new List<HexReachabilityData>());
-        _battleMap.GetJumpReachableHexes(Arg.Any<HexCoordinates>(), Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>())
+        _battleMap.GetJumpReachableHexes(Arg.Any<HexCoordinates>(), Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>(), Arg.Any<HexSurface>())
             .Returns(new List<HexReachabilityData>());
         
         MoveUnitCommand capturedCommand = default;
@@ -404,7 +404,7 @@ public class MovementEngineTests
         
         _battleMap.GetReachableHexes(Arg.Any<HexPosition>(), Arg.Any<int>(), Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>(), Arg.Any<int?>())
             .Returns(reachableHexes);
-        _battleMap.GetJumpReachableHexes(Arg.Any<HexCoordinates>(), Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>())
+        _battleMap.GetJumpReachableHexes(Arg.Any<HexCoordinates>(), Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>(), Arg.Any<HexSurface>())
             .Returns(jumpReachableHexes);
         
         var targetPosition = new HexPosition(targetHex, HexDirection.Top);
@@ -455,7 +455,7 @@ public class MovementEngineTests
         
         _battleMap.GetReachableHexes(Arg.Any<HexPosition>(), Arg.Any<int>(), Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>(), Arg.Any<int?>())
             .Returns(reachableHexes);
-        _battleMap.GetJumpReachableHexes(Arg.Any<HexCoordinates>(), Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>())
+        _battleMap.GetJumpReachableHexes(Arg.Any<HexCoordinates>(), Arg.Any<int>(), Arg.Any<IReadOnlySet<HexCoordinates>>(), Arg.Any<HexSurface>())
             .Returns(jumpReachableHexes);
         
         var targetPosition = new HexPosition(targetHex, HexDirection.Top);

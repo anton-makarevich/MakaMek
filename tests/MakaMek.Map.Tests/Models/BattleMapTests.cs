@@ -2001,21 +2001,35 @@ public class BattleMapTests
     }
 
     [Fact]
-    public void FindJumpPath_ClampsProfileBelowTheCeiling()
+    public void FindJumpPath_BridgeStart_UsesBridgeDeckAsStartLevel()
     {
-        // Arrange - the unit starts on a tall bridge while the ceiling uses the hex level
-        var sut = CreateFlatMap(4, 1, (_, _) => 0);
+        // Arrange - the bridge deck is level 5, so 1 Jumping MP gives a ceiling of 6
+        var sut = CreateFlatMap(2, 1, (q, _) => q == 2 ? 6 : 0);
         sut.GetHex(new HexCoordinates(1, 1))!.AddTerrain(new BridgeTerrain(5, 0));
         var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.Top, HexSurface.Bridge);
-        var target = new HexPosition(new HexCoordinates(4, 1), HexDirection.Top);
+        var target = new HexPosition(new HexCoordinates(2, 1), HexDirection.Top);
 
         // Act
+        var path = sut.FindPath(start, target, MovementType.Jump, 1, 1);
+
+        // Assert
+        path.ShouldNotBeNull("the bridge deck, not the hex level, is the jump start level");
+    }
+
+    [Fact]
+    public void FindJumpPath_WaterStart_UsesWaterBottomAsStartLevel()
+    {
+        // Arrange - water at level 0 with depth 2 starts the jump at level -2
+        var sut = CreateFlatMap(2, 1, (q, _) => q == 2 ? 2 : 0);
+        sut.GetHex(new HexCoordinates(1, 1))!.AddTerrain(new WaterTerrain(-2));
+        var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.Top);
+        var target = new HexPosition(new HexCoordinates(2, 1), HexDirection.Top);
+
+        // Act - a ceiling of -2 + 3 = 1 cannot clear a level 2 destination
         var path = sut.FindPath(start, target, MovementType.Jump, 3, 1);
 
         // Assert
-        path.ShouldNotBeNull();
-        path.Segments[0].To.AirborneLevel.ShouldBe(3,
-            "the interpolated level from the bridge deck is clamped to the ceiling of 0 + 3");
+        path.ShouldBeNull("the water bottom, not the surface, is the jump start level");
     }
 
     [Fact]
@@ -2081,6 +2095,42 @@ public class BattleMapTests
         // Assert
         reachable.ShouldContain(target, "prohibited hexes only block the destination");
         reachable.ShouldNotContain(new HexCoordinates(2, 1));
+    }
+
+    [Fact]
+    public void GetJumpReachableHexes_BridgeStart_UsesBridgeDeckAsStartLevel()
+    {
+        // Arrange - a level 0 bridge deck of height 5 gives a ceiling of 6 with 1 Jumping MP
+        var sut = CreateFlatMap(2, 1, (q, _) => q == 2 ? 6 : 0);
+        sut.GetHex(new HexCoordinates(1, 1))!.AddTerrain(new BridgeTerrain(5, 0));
+        var start = new HexCoordinates(1, 1);
+
+        // Act
+        var fromDeck = sut.GetJumpReachableHexes(start, 1, startSurface: HexSurface.Bridge)
+            .Select(h => h.Coordinates).ToList();
+        var fromGround = sut.GetJumpReachableHexes(start, 1, startSurface: HexSurface.Ground)
+            .Select(h => h.Coordinates).ToList();
+
+        // Assert
+        fromDeck.ShouldContain(new HexCoordinates(2, 1));
+        fromGround.ShouldNotContain(new HexCoordinates(2, 1),
+            "under the bridge the start level is the hex level, not the deck");
+    }
+
+    [Fact]
+    public void GetJumpReachableHexes_WaterStart_UsesWaterBottomAsStartLevel()
+    {
+        // Arrange - water at level 0 with depth 2 starts at level -2, so 3 MP give a ceiling of 1
+        var sut = CreateFlatMap(2, 1, (q, _) => q == 2 ? 2 : 0);
+        sut.GetHex(new HexCoordinates(1, 1))!.AddTerrain(new WaterTerrain(-2));
+        var start = new HexCoordinates(1, 1);
+
+        // Act
+        var reachable = sut.GetJumpReachableHexes(start, 3).Select(h => h.Coordinates).ToList();
+
+        // Assert
+        reachable.ShouldNotContain(new HexCoordinates(2, 1),
+            "the water bottom, not the surface, is the jump start level");
     }
 
     [Fact]

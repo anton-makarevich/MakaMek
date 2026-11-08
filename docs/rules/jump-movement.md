@@ -18,11 +18,19 @@ Total Warfare constrains the outcome but not the intermediate geometry.
 Implementation: `BattleMap.FindJumpPath` and `BattleMap.GetJumpReachableHexes` share the rule
 
 ```text
-referenceLevel(hex) <= startHex.Level + availableJumpingMP
+referenceLevel(hex) <= startLevel + availableJumpingMP
 ```
 
-`availableJumpingMP` is the requested movement budget, not the path cost. The start hex itself is
-not checked. The destination is part of the crossed path and **is** checked.
+`availableJumpingMP` is the requested movement budget, not the path cost. `startLevel` is the
+unit's **standing level** in the start hex, not the raw hex level:
+
+| Start surface | Start level |
+|---|---|
+| Plain ground | `Hex.Level` |
+| Bridge deck | `Hex.Level + bridge height` |
+| Water (ground surface) | the riverbed, `Hex.Level - water depth` |
+
+The start hex itself is not checked. The destination is part of the crossed path and **is** checked.
 
 ### Choosing among equally short routes
 
@@ -48,15 +56,14 @@ distance. A longer detour around a too-high hex therefore does not make the dest
 The helper is `HexExtensions.GetReferenceLevel()`. Building roof levels join this helper with the
 building-terrain change.
 
-### Open questions
+### Start level
 
-- **Start level on a bridge.** The ceiling uses `startHex.Level` exactly, as the issue decision
-  specifies. A unit standing on a bridge deck starts higher than `startHex.Level`; whether the deck
-  should be the jump start level is not settled by the quoted rule.
-- **Water start.** The same decision uses `startHex.Level`, so a unit in Depth 1 water starts at the
-  hex level (the surface) rather than the water bottom. Total Warfare's example treats the bottom
-  as the starting elevation, so this is recorded as an open rules question rather than a closed
-  interpretation.
+A unit standing on a bridge starts from the **bridge deck** (`Hex.Level + bridge height`). A unit
+in water starts from the **riverbed** (`Hex.Level - water depth`), not the water surface. This is
+the same standing-level rule used elsewhere in movement and LOS (`Hex.GetStandingLevel`).
+
+Crossing clearance is unchanged: when a jump passes over a water hex, the level it must clear is
+still the water surface, not the bottom.
 
 ## The vertical profile
 
@@ -74,9 +81,9 @@ For a jump path `p0 … pn`:
 
   This is calculated for every jump, not only a DFA. An adjacent jump has no intermediate
   position, so its start position carries the waypoint instead.
-- Other intermediate levels interpolate linearly from `referenceLevel(p0)` to the approach
-  waypoint, round **up** (`Math.Ceiling`), and are clamped to
-  `[referenceLevel(p_i), startHex.Level + availableJumpingMP]`.
+- Other intermediate levels interpolate linearly from the start level (the unit's standing level
+  in `p0`) to the approach waypoint, round **up** (`Math.Ceiling`), and are clamped to
+  `[referenceLevel(p_i), startLevel + availableJumpingMP]`.
 - A route whose approach waypoint exceeds the ceiling is rejected (defensive guard).
 
 The same profile is used for path validity (the ceiling) and DFA line of sight. Presentation does

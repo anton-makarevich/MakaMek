@@ -382,14 +382,15 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
     public IEnumerable<HexReachabilityData> GetJumpReachableHexes(
         HexCoordinates start,
         int movementPoints,
-        IReadOnlySet<HexCoordinates>? prohibitedHexes = null)
+        IReadOnlySet<HexCoordinates>? prohibitedHexes = null,
+        HexSurface startSurface = HexSurface.Ground)
     {
         prohibitedHexes ??= new HashSet<HexCoordinates>();
         var startHex = GetHex(start);
         if (startHex == null || movementPoints <= 0)
             return [];
 
-        var ceiling = startHex.Level + movementPoints;
+        var ceiling = startHex.GetStandingLevel(startSurface) + movementPoints;
 
         // A destination is reachable when a legal path of geometric length exists. Prohibited
         // hexes only block destinations: a jump passes over them.
@@ -716,14 +717,16 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
         }
 
         // The path must follow a shortest route, and every crossed hex (destination included) must
-        // stay at or below the jump-height ceiling. Take the first legal route: choosing among
-        // equally short legal routes has no rules effect here.
-        var ceiling = startHex.Level + movementPoints;
+        // stay at or below the jump-height ceiling. The start level is the unit's standing level:
+        // a bridge deck when it starts on a bridge, the riverbed when it starts in water. Take the
+        // first legal route: choosing among equally short legal routes has no rules effect here.
+        var startLevel = startHex.GetStandingLevel(from.Surface);
+        var ceiling = startLevel + movementPoints;
         var route = FindFirstLegalJumpRoute(from.Coordinates, to.Coordinates, distance, ceiling);
         if (route == null)
             return null;
 
-        var levels = BuildJumpLevels(route, ceiling);
+        var levels = BuildJumpLevels(route, startLevel, ceiling);
         if (levels == null)
             return null;
 
@@ -779,7 +782,7 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
     /// destination)</c>, whether or not the jump is a DFA, so DFA LOS can read it directly. An
     /// adjacent jump has no intermediate position, so its start position carries that waypoint.
     /// </summary>
-    private int?[]? BuildJumpLevels(IReadOnlyList<HexCoordinates> route, int ceiling)
+    private int?[]? BuildJumpLevels(IReadOnlyList<HexCoordinates> route, int startLevel, int ceiling)
     {
         var lastIndex = route.Count - 1;
         var levels = new int?[route.Count];
@@ -803,8 +806,8 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
 
         for (var i = 1; i < approachIndex; i++)
         {
-            var interpolated = referenceLevels[0]
-                               + CeilingDivide((approachLevel - referenceLevels[0]) * i, approachIndex);
+            var interpolated = startLevel
+                               + CeilingDivide((approachLevel - startLevel) * i, approachIndex);
             levels[i] = Math.Clamp(interpolated, referenceLevels[i], ceiling);
         }
 

@@ -188,7 +188,8 @@ public static class BattleMapExtensions
                     .GetJumpReachableHexes(
                         position.Coordinates,
                         movementPoints,
-                        prohibitedHexes)
+                        prohibitedHexes,
+                        position.Surface)
                     .Where(x => !friendlyUnitsCoordinates.Contains(x.Coordinates))
                     .ToList();
 

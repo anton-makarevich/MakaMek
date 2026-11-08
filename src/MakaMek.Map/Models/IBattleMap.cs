@@ -41,12 +41,14 @@ public interface IBattleMap
 
     /// <summary>
     /// Gets all valid hexes that can be reached with jumping movement, where each hex costs 1 MP
-    /// regardless of terrain or facing direction
+    /// regardless of terrain or facing direction. The start surface determines the jump start level
+    /// (bridge deck or water bottom) used by the jump-height ceiling.
     /// </summary>
     IEnumerable<HexReachabilityData> GetJumpReachableHexes(
         HexCoordinates start,
         int movementPoints,
-        IReadOnlySet<HexCoordinates>? prohibitedHexes = null);
+        IReadOnlySet<HexCoordinates>? prohibitedHexes = null,
+        HexSurface startSurface = HexSurface.Ground);
 
     /// <summary>
     /// Calculates the line of sight between two positions, taking each position's surface and
