@@ -19,6 +19,7 @@ using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Internal;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Energy;
+using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Missile;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Models.Units.Pilots;
 using Sanet.MakaMek.Core.Services.Cryptography;
@@ -2646,5 +2647,77 @@ public class WeaponsAttackStateTests
         weaponVm.AimedShotTarget.ShouldBe(PartLocation.Head);
         _battleMapViewModel.IsUnitPartSelectorVisible.ShouldBeFalse();
         _battleMapViewModel.UnitPartSelector.ShouldBeNull();
+    }
+
+    [Fact]
+    public void UpdateWeaponViewModels_UsesEachWeaponsOwnRange_WhenTargetIsOnlyReachableBySomeWeapons()
+    {
+        // Arrange - a long-range LRM can hit the target, while the medium laser cannot reach it
+        SetPhase(PhaseNames.WeaponsAttack);
+        SetActivePlayer();
+
+        var attackerPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
+        var targetPosition = new HexPosition(new HexCoordinates(1, 11), HexDirection.Bottom);
+
+        var attacker = _battleMapViewModel.Units.First(u => u.Owner!.Id == _player.Id);
+        attacker.Deploy(attackerPosition, null);
+        attacker.AssignPilot(_pilot);
+        attacker.Parts[PartLocation.LeftTorso].TryAddComponent(new Lrm5(), [1]).ShouldBeTrue();
+        attacker.Parts[PartLocation.RightTorso].TryAddComponent(new MediumLaser(), [1]).ShouldBeTrue();
+
+        var target = _battleMapViewModel.Units.First(u => u.Owner!.Id != _player.Id);
+        target.Deploy(targetPosition, null);
+
+        _sut.HandleUnitSelectionFromList(attacker);
+        _sut.GetAvailableActions().First(a => a.Label == "Select Target").OnExecute();
+
+        // Act - the hex is highlighted because the LRM reaches it
+        _sut.HandleHexSelection(new Hex(targetPosition.Coordinates));
+
+        // Assert - range is evaluated per weapon, not per hex
+        _sut.SelectedTarget.ShouldBe(target);
+        var lrmVm = _sut.WeaponSelectionItems.First(vm => vm.Weapon is Lrm5);
+        var laserVm = _sut.WeaponSelectionItems.First(vm => vm.Weapon is MediumLaser);
+        lrmVm.IsInRange.ShouldBeTrue("the LRM-5 reaches the distant target");
+        laserVm.IsInRange.ShouldBeFalse("the medium laser's long range is shorter than the distance");
+    }
+
+    [Fact]
+    public void HandleWeaponSelection_AfterTargetSelectionIsCancelled_DoesNotAssignAWeaponTarget()
+    {
+        // Arrange - select a target and arm a weapon so its view model stays enabled
+        SetPhase(PhaseNames.WeaponsAttack);
+        SetActivePlayer();
+
+        var attackerPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
+        var targetPosition = new HexPosition(new HexCoordinates(1, 2), HexDirection.Bottom);
+
+        var attacker = _battleMapViewModel.Units.First(u => u.Owner!.Id == _player.Id);
+        attacker.Deploy(attackerPosition, null);
+        attacker.AssignPilot(_pilot);
+        attacker.Parts[PartLocation.LeftTorso].TryAddComponent(new MediumLaser(), [1]).ShouldBeTrue();
+
+        var target = _battleMapViewModel.Units.First(u => u.Owner!.Id != _player.Id);
+        target.Deploy(targetPosition, null);
+
+        _sut.HandleUnitSelectionFromList(attacker);
+        _sut.GetAvailableActions().First(a => a.Label == "Select Target").OnExecute();
+        _sut.HandleHexSelection(new Hex(targetPosition.Coordinates));
+
+        var weaponVm = _sut.WeaponSelectionItems.First(vm => vm.Weapon is MediumLaser);
+        weaponVm.IsSelected = true;
+        attacker.WeaponAttackState.WeaponTargets.ShouldNotBeEmpty();
+
+        // Cancel target selection by clicking a hex outside the weapon range
+        _sut.HandleHexSelection(new Hex(new HexCoordinates(10, 10)));
+        _sut.SelectedTarget.ShouldBeNull();
+        attacker.WeaponAttackState.WeaponTargets.ShouldBeEmpty();
+
+        // Act - a stale view model must not resurrect the cancelled target
+        weaponVm.IsSelected = false;
+
+        // Assert
+        _sut.SelectedTarget.ShouldBeNull();
+        attacker.WeaponAttackState.WeaponTargets.ShouldBeEmpty();
     }
 }
