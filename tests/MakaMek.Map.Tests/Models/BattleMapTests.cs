@@ -1981,6 +1981,25 @@ public class BattleMapTests
     }
 
     [Fact]
+    public void FindJumpPath_WithApproachWaypointOffset_IncludesItInTheProfileAndCacheKey()
+    {
+        // Arrange - an adjacent jump to a level-3 destination, built with and without a rules offset
+        var sut = CreateFlatMap(2, 1, (q, _) => q == 2 ? 3 : 0);
+        var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.Top);
+        var target = new HexPosition(new HexCoordinates(2, 1), HexDirection.Top);
+
+        // Act
+        var withoutOffset = sut.FindPath(start, target, MovementType.Jump, 3, 1);
+        var withOffset = sut.FindPath(start, target, MovementType.Jump, 3, 1,
+            approachWaypointOffset: 2);
+
+        // Assert - the offset is added by the caller and is part of the cache identity
+        withoutOffset!.Segments[0].From.AirborneLevel.ShouldBe(3);
+        withOffset!.Segments[0].From.AirborneLevel.ShouldBe(5,
+            "the caller-supplied offset is applied to the approach waypoint");
+    }
+
+    [Fact]
     public void FindJumpPath_AdjacentJumpFromUnderBridge_UsesStandingLevelForCeiling()
     {
         // Arrange - pure level-calculation case: a unit on the ground under a level 0 bridge deck

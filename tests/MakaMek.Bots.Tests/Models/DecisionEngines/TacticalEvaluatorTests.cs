@@ -4,6 +4,7 @@ using Sanet.MakaMek.Bots.Models;
 using Sanet.MakaMek.Bots.Models.DecisionEngines;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Units;
+using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
@@ -11,6 +12,7 @@ using Sanet.MakaMek.Core.Models.Units.Pilots;
 using Shouldly;
 using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
+using Sanet.MakaMek.Core.Data.Game.Mechanics.PhysicalAttacks;
 using Sanet.MakaMek.Map.Models;
 using Sanet.MakaMek.Map.Models.MovementCosts;
 using Sanet.MakaMek.Map.Models.Terrains;
@@ -535,6 +537,118 @@ public class TacticalEvaluatorTests
         // Assert
         results[0].ShouldBe(cachedData);
         turnState.DidNotReceive().AddTargetEvaluation(Arg.Any<TargetEvaluationKey>(), Arg.Any<TargetEvaluationData>());
+    }
+
+    [Fact]
+    public void EvaluateTargets_PendingDfaTarget_UsesTheAirborneApproachPosition()
+    {
+        // Arrange
+        var attacker = MovementEngineTests.CreateTestMech();
+        var pilot = Substitute.For<IPilot>();
+        pilot.Gunnery.Returns(4);
+        attacker.AssignPilot(pilot);
+        var attackerPos = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
+        var attackerPath = new MovementPath(
+            [new PathSegment(attackerPos, attackerPos,
+                [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 0 }])],
+            MovementType.Walk);
+        attacker.Move(attackerPath, null);
+        var weapon = new TestWeapon(new WeaponDefinition("TestLaser", 5, 1,
+            new WeaponRange(0, 3, 6, 9), WeaponType.Energy, 100));
+        attacker.Parts[PartLocation.RightArm].TryAddComponent(weapon);
+
+        var target = CreatePendingDfaTarget(
+            new HexPosition(new HexCoordinates(1, 3), HexDirection.Top, AirborneLevel: 5),
+            new HexPosition(new HexCoordinates(1, 2), HexDirection.Top));
+
+        _battleMap.GetLineOfSight(Arg.Any<HexPosition>(), Arg.Any<HexPosition>(),
+                Arg.Any<int>(), Arg.Any<int>())
+            .Returns(LineOfSightResult.Unblocked(new HexCoordinates(1, 1), new HexCoordinates(1, 3)));
+        _toHitCalculator.GetToHitNumber(Arg.Any<AttackScenario>(), Arg.Any<Weapon>(), Arg.Any<IBattleMap>())
+            .Returns(8);
+
+        // Act
+        _sut.EvaluateTargets(attacker, attackerPath, [target]);
+
+        // Assert - LOS and the scenario use the approach position, but HexesTraveled still comes
+        // from MovementTaken (the full jump path).
+        _battleMap.Received().GetLineOfSight(
+            Arg.Any<HexPosition>(),
+            Arg.Is<HexPosition>(p => p.Coordinates == new HexCoordinates(1, 3) && p.AirborneLevel == 5),
+            Arg.Any<int>(),
+            Arg.Any<int>());
+        _toHitCalculator.Received().GetToHitNumber(
+            Arg.Is<AttackScenario>(s => s.TargetPosition.Coordinates == new HexCoordinates(1, 3)
+                                        && s.TargetPosition.AirborneLevel == 5),
+            Arg.Any<Weapon>(),
+            Arg.Any<IBattleMap>());
+        target.MovementTaken!.HexesTraveled.ShouldBe(1,
+            "the movement path is preserved for the TMM input");
+    }
+
+    [Fact]
+    public void EvaluatePath_PendingDfaEnemy_UsesTheAirborneApproachPositionAsTheAttacker()
+    {
+        // Arrange
+        var defender = Substitute.For<IUnit>();
+        var defenderPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
+        var defenderPath = MovementPath.CreateSingleSegmentPath(defenderPosition);
+
+        var enemy = CreatePendingDfaTarget(
+            new HexPosition(new HexCoordinates(1, 4), HexDirection.Top, AirborneLevel: 5),
+            new HexPosition(new HexCoordinates(1, 5), HexDirection.Top));
+        enemy.Parts[PartLocation.RightArm].TryAddComponent(new TestWeapon(
+            new WeaponDefinition("TestLaser", 5, 1, new WeaponRange(0, 3, 6, 9), WeaponType.Energy, 100)));
+
+        _battleMap.GetLineOfSight(Arg.Any<HexPosition>(), Arg.Any<HexPosition>(),
+                Arg.Any<int>(), Arg.Any<int>())
+            .Returns(LineOfSightResult.Unblocked(new HexCoordinates(1, 4), new HexCoordinates(1, 1)));
+        _toHitCalculator.GetToHitNumber(Arg.Any<AttackScenario>(), Arg.Any<Weapon>(), Arg.Any<IBattleMap>())
+            .Returns(8);
+
+        // Act
+        _sut.EvaluatePath(defender, defenderPath, [enemy]);
+
+        // Assert - the enemy fires from the approach hex while keeping the jump movement type
+        _toHitCalculator.Received().GetToHitNumber(
+            Arg.Is<AttackScenario>(s => s.AttackerPosition.Coordinates == new HexCoordinates(1, 4)
+                                        && s.AttackerPosition.AirborneLevel == 5
+                                        && s.AttackerMovementType == MovementType.Jump),
+            Arg.Any<Weapon>(),
+            Arg.Any<IBattleMap>());
+    }
+
+    [Fact]
+    public void TargetEvaluationKey_DistinguishesGroundedAndAirborneTargetsAtTheSameCoordinates()
+    {
+        // Arrange
+        var coordinates = new HexCoordinates(1, 3);
+        var grounded = new TargetEvaluationKey(Guid.NewGuid(), new HexCoordinates(1, 1),
+            HexDirection.Bottom, MovementType.Walk, Guid.NewGuid(), coordinates,
+            HexDirection.Top);
+        var airborne = grounded with { TargetAirborneLevel = 5 };
+
+        // Act & Assert
+        airborne.ShouldNotBe(grounded);
+    }
+
+    private static Mech CreatePendingDfaTarget(HexPosition approach, HexPosition declaredTarget)
+    {
+        var target = MovementEngineTests.CreateTestMech();
+        target.RemoveFromBoard();
+        target.Deploy(approach, null);
+        target.Move(new MovementPath(
+        [
+            new PathSegment(approach, declaredTarget,
+                [new JumpMovementCost { Value = 1 }])
+        ], MovementType.Jump), null, true, approach);
+        target.DeclarePhysicalAttack(new PhysicalAttackDeclarationData
+        {
+            AttackType = PhysicalAttackType.DFA,
+            AttackerLimbs = [],
+            TargetId = Guid.NewGuid()
+        });
+        return target;
     }
 
     private class TestWeapon(WeaponDefinition definition) : Weapon(definition);

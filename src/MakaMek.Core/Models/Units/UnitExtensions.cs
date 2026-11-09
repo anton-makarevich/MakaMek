@@ -1,3 +1,4 @@
+using Sanet.MakaMek.Core.Data.Game.Mechanics.PhysicalAttacks;
 using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Models.Units.Components;
@@ -24,6 +25,16 @@ public static class UnitExtensions
             var data = unit.ToData();
             return mechFactory.Create(data);
         }
+
+        /// <summary>
+        /// Whether the unit is a Death From Above attacker still waiting in its approach hex. Such a
+        /// unit is airborne for line-of-sight purposes during the Weapon Attack Phase; the airborne
+        /// base level is stored on <see cref="IUnit.Position"/> by the shared move handler.
+        /// </summary>
+        public bool IsAirborneDfaAttacker =>
+            unit.HasPendingMovementAttack
+            && unit.DeclaredPhysicalAttack.IsDfa()
+            && unit.Position?.AirborneLevel is not null;
 
         /// <summary>
         /// Converts a Unit to a UnitData object for serialization or storage

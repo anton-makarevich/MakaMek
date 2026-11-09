@@ -12,10 +12,18 @@ public record LineOfSightResult
     /// <summary>Target hex coordinates for this calculation.</summary>
     public required HexCoordinates To { get; init; }
 
-    /// <summary>Height of the attacking unit (in levels, added to attacker hex level).</summary>
+    /// <summary>
+    /// Height of the attacking unit at <see cref="From"/> as an absolute LOS level: for a grounded
+    /// endpoint it is the surface standing level plus <c>attackHeight</c>; for an airborne endpoint
+    /// it is <see cref="HexPosition.AirborneLevel"/> plus <c>attackHeight</c>.
+    /// </summary>
     public required int AttackerLosLevel { get; init; }
 
-    /// <summary>Height of the target unit (in levels, added to target hex level).</summary>
+    /// <summary>
+    /// Height of the target unit at <see cref="To"/> as an absolute LOS level: for a grounded
+    /// endpoint it is the surface standing level plus <c>targetHeight</c>; for an airborne endpoint
+    /// it is <see cref="HexPosition.AirborneLevel"/> plus <c>targetHeight</c>.
+    /// </summary>
     public required int TargetLosLevel { get; init; }
 
     /// <summary>True when there is a clear line of sight from <see cref="From"/> to <see cref="To"/>.</summary>

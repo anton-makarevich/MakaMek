@@ -47,6 +47,27 @@ public class AttackerPartialCoverGateTests
     }
 
     [Fact]
+    public void ShouldSkip_PassesTheAirborneAttackerPositionToLos()
+    {
+        // Arrange - a pending DFA attacker is airborne; the gate must not drop that level
+        _attacker.Position.Returns(new HexPosition(new HexCoordinates(0, 0), HexDirection.Top,
+            AirborneLevel: 4));
+        SetupLos();
+        _rulesProvider.HasPartialCover(_attacker, Arg.Any<LineOfSightResult>()).Returns(false);
+        var primaryAssignment = new LocationSlotAssignment(PartLocation.LeftLeg, 1, 1);
+
+        // Act
+        _sut.ShouldSkip(_attacker, _target, _weapon, primaryAssignment, _battleMap, _rulesProvider, _logger);
+
+        // Assert
+        _battleMap.Received(1).GetLineOfSight(
+            _target.Position!,
+            Arg.Is<HexPosition>(p => p.AirborneLevel == 4),
+            _target.Height,
+            _attacker.Height);
+    }
+
+    [Fact]
     public void ShouldSkip_ReturnsTrue_WhenAttackerHasPartialCoverAndWeaponLocationCanBeCovered()
     {
         var losResult = SetupLos();

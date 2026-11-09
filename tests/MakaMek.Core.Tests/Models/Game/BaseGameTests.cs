@@ -881,7 +881,7 @@ public sealed class BaseGameTests : BaseGame
     }
 
     [Fact]
-    public void OnMoveUnit_MultiHexDfa_CarriesTheApproachWaypointToTheStopPosition()
+    public void OnMoveUnit_MultiHexDfa_DerivesTheApproachWaypointInsteadOfTrustingTheSubmittedValue()
     {
         // Arrange
         var joinCommand = new JoinGameCommand
@@ -901,6 +901,9 @@ public sealed class BaseGameTests : BaseGame
         mech.Deploy(start, null);
         TurnPhase = PhaseNames.Movement;
 
+        // The approach hex is higher than the target hex. The submitted waypoint says 3, which is
+        // forged; the map-derived value is max(2, 0) = 2.
+        BattleMap!.GetHex(new HexCoordinates(3, 4))!.WithLevel(2);
         var approach = new HexPosition(new HexCoordinates(3, 4), HexDirection.BottomLeft,
             AirborneLevel: 3);
         var target = new HexPosition(new HexCoordinates(3, 5), HexDirection.BottomLeft);
@@ -930,12 +933,16 @@ public sealed class BaseGameTests : BaseGame
         // Assert
         mech.Position!.Coordinates.ShouldBe(approach.Coordinates,
             "the DFA attacker waits in the approach hex");
-        mech.Position.AirborneLevel.ShouldBe(3,
-            "the approach waypoint travels with the stop position");
+        mech.Position.AirborneLevel.ShouldBe(4,
+            "the airborne base is derived from the map, not taken from the submitted waypoint");
+        mech.MovementTaken!.Segments[0].To.AirborneLevel.ShouldBe(3,
+            "the serialized jump path is left exactly as submitted");
+        mech.MovementTaken.Destination.Coordinates.ShouldBe(target.Coordinates);
+        mech.MovementTaken.HexesTraveled.ShouldBe(2);
     }
 
     [Fact]
-    public void OnMoveUnit_AdjacentDfa_CarriesTheWaypointOnTheStartPosition()
+    public void OnMoveUnit_AdjacentDfa_DerivesTheLevelFromTheTargetHex()
     {
         // Arrange
         var joinCommand = new JoinGameCommand
@@ -951,8 +958,10 @@ public sealed class BaseGameTests : BaseGame
         var player = Players.First();
         var mech = player.Units.First();
         mech.AssignPilot(new MechWarrior("John", "Doe"));
+        // The submitted start waypoint is forged (4); the target hex is level 2, so max(0, 2) + 2 = 4.
         var start = new HexPosition(new HexCoordinates(3, 3), HexDirection.BottomLeft,
             AirborneLevel: 4);
+        BattleMap!.GetHex(new HexCoordinates(3, 4))!.WithLevel(2);
         mech.Deploy(start, null);
         TurnPhase = PhaseNames.Movement;
 
@@ -982,7 +991,113 @@ public sealed class BaseGameTests : BaseGame
         // Assert
         mech.Position!.Coordinates.ShouldBe(start.Coordinates);
         mech.Position.AirborneLevel.ShouldBe(4,
-            "an adjacent DFA keeps the waypoint on its start/approach position");
+            "an adjacent DFA uses max(approach reference level, target reference level)");
+    }
+
+    [Fact]
+    public void OnMoveUnit_DfaWithMissingWaypointLevel_DerivesTheAirborneLevel()
+    {
+        // Arrange
+        var joinCommand = new JoinGameCommand
+        {
+            PlayerId = Guid.NewGuid(),
+            PlayerName = "Player1",
+            GameOriginId = Guid.NewGuid(),
+            Units = [MechFactoryTests.CreateDummyMechData()],
+            Tint = "#FF0000",
+            PilotAssignments = []
+        };
+        OnPlayerJoined(joinCommand);
+        var player = Players.First();
+        var mech = player.Units.First();
+        mech.AssignPilot(new MechWarrior("John", "Doe"));
+        var start = new HexPosition(new HexCoordinates(3, 3), HexDirection.BottomLeft);
+        mech.Deploy(start, null);
+        TurnPhase = PhaseNames.Movement;
+
+        // Legacy payload: no airborne level anywhere and a level-1 target hex (max(0, 1) + 2 = 3).
+        BattleMap!.GetHex(new HexCoordinates(3, 4))!.WithLevel(1);
+        var approach = new HexPosition(new HexCoordinates(3, 4), HexDirection.BottomLeft);
+        var target = new HexPosition(new HexCoordinates(3, 5), HexDirection.BottomLeft);
+        var moveCommand = new MoveUnitCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = player.Id,
+            UnitId = mech.Id,
+            MovementType = MovementType.Jump,
+            IsCompleted = true,
+            MovementPath =
+            [
+                new PathSegment(start, approach, [new JumpMovementCost { Value = 1 }]).ToData(),
+                new PathSegment(approach, target, [new JumpMovementCost { Value = 1 }]).ToData()
+            ],
+            Declaration = new PhysicalAttackDeclarationData
+            {
+                AttackType = PhysicalAttackType.DFA,
+                AttackerLimbs = [],
+                TargetId = Guid.NewGuid()
+            }
+        };
+
+        // Act
+        OnMoveUnit(moveCommand);
+
+        // Assert
+        mech.Position!.AirborneLevel.ShouldBe(3);
+    }
+
+    [Fact]
+    public void OnMoveUnit_ChargeStopPosition_StaysGrounded()
+    {
+        // Arrange
+        var joinCommand = new JoinGameCommand
+        {
+            PlayerId = Guid.NewGuid(),
+            PlayerName = "Player1",
+            GameOriginId = Guid.NewGuid(),
+            Units = [MechFactoryTests.CreateDummyMechData()],
+            Tint = "#FF0000",
+            PilotAssignments = []
+        };
+        OnPlayerJoined(joinCommand);
+        var player = Players.First();
+        var mech = player.Units.First();
+        mech.AssignPilot(new MechWarrior("John", "Doe"));
+        var start = new HexPosition(new HexCoordinates(3, 3), HexDirection.BottomLeft);
+        mech.Deploy(start, null);
+        TurnPhase = PhaseNames.Movement;
+
+        var approach = new HexPosition(new HexCoordinates(3, 4), HexDirection.BottomLeft,
+            AirborneLevel: 4);
+        var target = new HexPosition(new HexCoordinates(3, 5), HexDirection.BottomLeft);
+        var moveCommand = new MoveUnitCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = player.Id,
+            UnitId = mech.Id,
+            MovementType = MovementType.Walk,
+            IsCompleted = true,
+            MovementPath =
+            [
+                new PathSegment(start, approach, [new TerrainMovementCost
+                    { TerrainId = MakaMekTerrains.Clear, Value = 1 }]).ToData(),
+                new PathSegment(approach, target, [new TerrainMovementCost
+                    { TerrainId = MakaMekTerrains.Clear, Value = 1 }]).ToData()
+            ],
+            Declaration = new PhysicalAttackDeclarationData
+            {
+                AttackType = PhysicalAttackType.Charge,
+                AttackerLimbs = [],
+                TargetId = Guid.NewGuid()
+            }
+        };
+
+        // Act
+        OnMoveUnit(moveCommand);
+
+        // Assert
+        mech.Position!.Coordinates.ShouldBe(approach.Coordinates);
+        mech.Position.AirborneLevel.ShouldBeNull("only a pending DFA attacker is airborne");
     }
 
     [Fact]

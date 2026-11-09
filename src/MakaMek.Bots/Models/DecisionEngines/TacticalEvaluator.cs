@@ -91,7 +91,8 @@ public class TacticalEvaluator : ITacticalEvaluator
             var key = new TargetEvaluationKey(
                 attacker.Id, attackerPath.Destination.Coordinates, attackerPath.Destination.Facing,
                 attackerPath.MovementType,
-                target.Id, target.Position.Coordinates, target.Position.Facing
+                target.Id, target.Position.Coordinates, target.Position.Facing,
+                target.Position.AirborneLevel
             );
             
             if (turnState?.TryGetTargetEvaluation(key, out var cachedData) == true)
@@ -103,6 +104,7 @@ public class TacticalEvaluator : ITacticalEvaluator
             var targetPath = target.MovementTaken ?? MovementPath.CreateSingleSegmentPath(target.Position);
             var viableWeapons = EvaluateWeaponsForTarget(attacker,
                 attackerPath,
+                target.Position,
                 targetPath,
                 weapons,
                 allConfigs,
@@ -205,8 +207,18 @@ public class TacticalEvaluator : ITacticalEvaluator
                     continue;
 
                 // Calculate hit probability using ToHitCalculator with full accuracy
-                // For defensive calculation, we're the target
-                var hitProbability = CalculateHitProbability(enemy, enemyPath, defenderPath, weapon, null, defenderHeight, defenderIsProne);
+                // For defensive calculation, we're the target. A pending movement attack enemy
+                // (such as a DFA attacker) is at its current approach position; MovementTaken is
+                // still used for its movement type.
+                var hitProbability = CalculateHitProbability(enemy,
+                    enemyPath,
+                    enemy.Position,
+                    defenderPath,
+                    position,
+                    weapon,
+                    null,
+                    defenderHeight,
+                    defenderIsProne);
                 
                 // Calculate threat value
                 var threatValue = hitProbability * weapon.Damage * arcMultiplier;
@@ -246,6 +258,7 @@ public class TacticalEvaluator : ITacticalEvaluator
     private Dictionary<WeaponConfiguration, List<WeaponEvaluationData>> EvaluateWeaponsForTarget(
         IUnit attacker,
         MovementPath attackerPath,
+        HexPosition targetPosition,
         MovementPath targetPath,
         IReadOnlyList<Weapon> weapons,
         IReadOnlyList<WeaponConfiguration> allConfigs,
@@ -258,11 +271,12 @@ public class TacticalEvaluator : ITacticalEvaluator
 
         var configWeapons = new Dictionary<WeaponConfiguration, List<WeaponEvaluationData>>();
 
-        // Check line of sight
-        if (!_game.BattleMap.GetLineOfSight(attackerPath.Destination, targetPath.Destination, attacker.Height, targetHeight).HasLineOfSight)
+        // Check line of sight. Use the target's current position: for a pending DFA attacker that
+        // is the airborne approach position, while MovementTaken still describes the full jump.
+        if (!_game.BattleMap.GetLineOfSight(attackerPath.Destination, targetPosition, attacker.Height, targetHeight).HasLineOfSight)
             return configWeapons;
 
-        var distanceToTarget = attackerPath.Destination.Coordinates.DistanceTo(targetPath.Destination.Coordinates);
+        var distanceToTarget = attackerPath.Destination.Coordinates.DistanceTo(targetPosition.Coordinates);
 
         // Evaluate weapons for each configuration
         foreach (var config in allConfigs)
@@ -287,13 +301,21 @@ public class TacticalEvaluator : ITacticalEvaluator
 
                 // Check arc using resolved facing
                 var isInArc =
-                    attackerPath.Destination.Coordinates.IsInWeaponFiringArc(targetPath.Destination.Coordinates, weapon,
+                    attackerPath.Destination.Coordinates.IsInWeaponFiringArc(targetPosition.Coordinates, weapon,
                         facing);
                 if (!isInArc)
                     continue;
 
                 // Calculate hit probability with the configuration's facing
-                var hitProbability = CalculateHitProbability(attacker, attackerPath, targetPath, weapon, facing, targetHeight, isTargetProne);
+                var hitProbability = CalculateHitProbability(attacker,
+                    attackerPath,
+                    attackerPath.Destination,
+                    targetPath,
+                    targetPosition,
+                    weapon,
+                    facing,
+                    targetHeight,
+                    isTargetProne);
 
                 if (hitProbability <= 0)
                     continue;
@@ -321,7 +343,9 @@ public class TacticalEvaluator : ITacticalEvaluator
     private double CalculateHitProbability(
         IUnit attacker,
         MovementPath attackerPath,
+        HexPosition attackerPosition,
         MovementPath targetPath,
+        HexPosition targetPosition,
         Weapon weapon,
         HexDirection? attackerFacing = null,
         int targetHeight = 0,
@@ -335,29 +359,27 @@ public class TacticalEvaluator : ITacticalEvaluator
         if (weaponLocation == null)
             return 0;
 
-        var targetPosition = targetPath.Destination;
-
         // Get current attack modifiers from the attacker (heat, prone, sensors, arm actuators, etc.)
         var attackerModifiers = attacker.GetAttackModifiers(weaponLocation.Value);
 
         // Determine attacker's movement type (use actual if available, otherwise assume it will walk for now)
         var attackerMovementType = attackerPath.MovementType;
 
-        // Use provided facing or default to path destination facing
-        var facing = attackerFacing ?? attackerPath.Destination.Facing;
+        // Use provided facing or default to the position's facing
+        var facing = attackerFacing ?? attackerPosition.Facing;
 
-        // Compute water depth at attacker's destination hex
-        var attackerDestinationHex = _game.BattleMap.GetHex(attackerPath.Destination.Coordinates);
+        // Compute water depth at the attacker's evaluated position
+        var attackerDestinationHex = _game.BattleMap.GetHex(attackerPosition.Coordinates);
         var attackerWaterDepth = attackerDestinationHex?.GetWaterDepth();
 
-        // Compute water depth at target's destination hex
-        var targetDestinationHex = _game.BattleMap.GetHex(targetPath.Destination.Coordinates);
+        // Compute water depth at the target's evaluated position
+        var targetDestinationHex = _game.BattleMap.GetHex(targetPosition.Coordinates);
         var targetWaterDepth = targetDestinationHex?.GetWaterDepth();
 
-        // Create a hypothetical attack scenario with destination-based submersion
+        // Create a hypothetical attack scenario with position-based submersion and airborne LOS
         var scenario = AttackScenario.FromHypothetical(
             attackerGunnery: attacker.Pilot.Gunnery,
-            attackerPosition: attackerPath.Destination,
+            attackerPosition: attackerPosition,
             attackerMovementType: attackerMovementType,
             targetPosition: targetPosition,
             targetHexesMoved: targetPath.HexesTraveled,

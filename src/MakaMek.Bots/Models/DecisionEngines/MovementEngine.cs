@@ -211,7 +211,8 @@ public class MovementEngine : IBotDecisionEngine
                     unit.MaxLevelChangeForward,
                     unit.MaxLevelChangeBackward,
                     occupiedHexes,
-                    PathFindingMode.Longest);
+                    PathFindingMode.Longest,
+                    approachWaypointOffset: _clientGame.RulesProvider.GetDfaAirborneBaseOffset());
 
                 reachablePaths.AddRange(paths.Values);
             }

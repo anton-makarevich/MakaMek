@@ -12,7 +12,8 @@ public class MovementPathCache
         int unitHeight,
         int? jumpMovementPoints = null,
         HexPosition? keyStart = null,
-        HexPosition? keyDestination = null)
+        HexPosition? keyDestination = null,
+        int approachWaypointOffset = 0)
     {
         var key = new MovementPathCacheKey(
             keyStart ?? path.Start,
@@ -20,7 +21,8 @@ public class MovementPathCache
             path.IsJump,
             path.MaxLevelChange,
             unitHeight,
-            jumpMovementPoints);
+            jumpMovementPoints,
+            approachWaypointOffset);
         _cache[key] = path;
     }
 
@@ -30,9 +32,11 @@ public class MovementPathCache
         bool isJump,
         int? maxLevelChange = null,
         int unitHeight = 0,
-        int? jumpMovementPoints = null)
+        int? jumpMovementPoints = null,
+        int approachWaypointOffset = 0)
     {
-        var key = new MovementPathCacheKey(start, destination, isJump, maxLevelChange, unitHeight, jumpMovementPoints);
+        var key = new MovementPathCacheKey(start, destination, isJump, maxLevelChange, unitHeight,
+            jumpMovementPoints, approachWaypointOffset);
         return _cache.TryGetValue(key, out var cachedPath) 
             ? cachedPath 
             : null;

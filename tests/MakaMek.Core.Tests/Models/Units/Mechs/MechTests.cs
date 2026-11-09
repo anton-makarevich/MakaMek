@@ -21,6 +21,9 @@ using Sanet.MakaMek.Core.Models.Units.Components.Internal.Actuators;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Energy;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Models.Units.Pilots;
+using Sanet.MakaMek.Core.Tests.Utils;
+using Sanet.MakaMek.Core.Utils;
+using Sanet.Localization;
 using Sanet.MakaMek.Map.Models;
 using Sanet.MakaMek.Map.Models.MovementCosts;
 using Sanet.MakaMek.Map.Models.Terrains;
@@ -111,6 +114,47 @@ public class MechTests
 
         // Act & Assert
         sut.Height.ShouldBe(1, "prone mech should have height 1");
+    }
+
+    [Fact]
+    public void Height_ReturnsStandingHeight_WhenProneButAirborne()
+    {
+        // Arrange - a pending DFA attacker that fell stays airborne until the attack resolves;
+        // the rule's "two levels" is the standing height, so it must not drop to 1.
+        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
+        sut.Deploy(new HexPosition(new HexCoordinates(1, 0), HexDirection.Top, AirborneLevel: 3), null);
+        sut.SetProne();
+
+        // Act & Assert
+        sut.Height.ShouldBe(2, "an airborne mech keeps the standing height even when prone");
+    }
+
+    [Fact]
+    public void CloneUnit_DoesNotRestoreThePendingDfaAirborneState()
+    {
+        // Arrange
+        var factory = new MechFactory(new TotalWarfareRulesProvider(),
+            new ClassicBattletechComponentProvider(), Substitute.For<ILocalizationService>());
+        var sut = factory.Create(MechFactoryTests.CreateDummyMechData());
+        var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
+        sut.Deploy(start, null);
+        sut.Move(MovementPath.CreateSingleSegmentPath(start, MovementType.Jump), null,
+            isCompleted: true, stopAt: start with { AirborneLevel = 4 });
+        sut.DeclarePhysicalAttack(new PhysicalAttackDeclarationData
+        {
+            AttackType = PhysicalAttackType.DFA,
+            AttackerLimbs = [],
+            TargetId = Guid.NewGuid()
+        });
+
+        // Act
+        var data = sut.ToData();
+        var clone = sut.CloneUnit(factory);
+
+        // Assert - the position snapshot carries the level, but the declaration is not exported
+        data.State!.Value.Position!.AirborneLevel.ShouldBe(4);
+        clone.HasDeclaredPhysicalAttack.ShouldBeFalse();
+        clone.Position.ShouldBeNull("the factory does not restore a position");
     }
 
     [Fact]
