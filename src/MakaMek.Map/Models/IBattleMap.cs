@@ -18,6 +18,11 @@ public interface IBattleMap
     /// <summary>
     /// Finds a path between two positions, considering facing direction and movement costs
     /// </summary>
+    /// <param name="approachWaypointOffset">
+    /// Extra levels added to a jump path's approach waypoint above the reference level of the
+    /// higher of the approach and destination hexes. The rules layer supplies this value; the map
+    /// itself does not know what a Death From Above is. Ignored for non-jump movement.
+    /// </param>
     MovementPath? FindPath(HexPosition start,
         HexPosition target,
         MovementType movementType,
@@ -25,7 +30,8 @@ public interface IBattleMap
         int unitHeight,
         IReadOnlySet<HexCoordinates>? prohibitedHexes = null,
         PathFindingMode pathFindingMode = PathFindingMode.Shortest,
-        int? maxLevelChange = null);
+        int? maxLevelChange = null,
+        int approachWaypointOffset = 0);
 
     /// <summary>
     /// Gets all valid hexes that can be reached with given movement points, considering facing.
@@ -52,7 +58,9 @@ public interface IBattleMap
 
     /// <summary>
     /// Calculates the line of sight between two positions, taking each position's surface and
-    /// airborne level directly from the <see cref="HexPosition"/>.
+    /// airborne level directly from the <see cref="HexPosition"/>. A non-null airborne level is an
+    /// absolute base (a pending DFA attacker's approach position); the endpoint is then never
+    /// treated as submerged and its LOS level is the airborne base plus the supplied height.
     /// </summary>
     /// <param name="from">Source position, including its surface and airborne level.</param>
     /// <param name="to">Target position, including its surface and airborne level.</param>

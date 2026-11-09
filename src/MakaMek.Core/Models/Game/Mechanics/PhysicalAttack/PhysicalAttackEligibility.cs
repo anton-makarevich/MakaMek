@@ -359,6 +359,8 @@ public class PhysicalAttackEligibility : IPhysicalAttackEligibility
     /// The effective standing level and submersion of one unit (Total Warfare p.109: water counts
     /// as negative levels). A unit is in water when it stands on the ground surface of a hex with
     /// water deeper than shallow; a unit on a bridge is never in water.
+    /// Physical reach stays grounded for a pending DFA attacker: only line of sight uses its
+    /// airborne level (docs/rules/physical-attacks.md).
     /// </summary>
     private static UnitEndpoint? GetEndpoint(IUnit unit, IBattleMap map)
     {

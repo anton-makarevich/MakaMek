@@ -19,6 +19,7 @@ using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Internal;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Energy;
+using Sanet.MakaMek.Core.Models.Units.Components.Weapons.Missile;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Models.Units.Pilots;
 using Sanet.MakaMek.Core.Services.Cryptography;
@@ -951,6 +952,127 @@ public class WeaponsAttackStateTests
             .Highlights.First(h=>h is LosBlockingHighlight) as LosBlockingHighlight;
         blockingLosHighlight!.BlockingHex.ShouldBe(blockingHexCoords);
         blockingLosHighlight.Reason.ShouldBe(LineOfSightBlockReason.Elevation);
+    }
+
+    [Fact]
+    public void HighlightWeaponRanges_AirborneDfaBehindAHill_IsReachableWhileAGroundedUnitIsBlocked()
+    {
+        // Arrange - a level-5 hill sits between the attacker and the target hex
+        SetPhase(PhaseNames.WeaponsAttack);
+        SetActivePlayer();
+        var attackerPosition = new HexPosition(new HexCoordinates(2, 2), HexDirection.Bottom);
+        var targetPosition = new HexPosition(new HexCoordinates(2, 4), HexDirection.Bottom);
+        _game.BattleMap!.GetHex(new HexCoordinates(2, 3))!.WithLevel(5);
+
+        var attacker = _battleMapViewModel.Units.First(u => u.Owner!.Id == _player.Id);
+        attacker.Deploy(attackerPosition, null);
+        attacker.AssignPilot(_pilot);
+        attacker.Parts[PartLocation.RightArm].TryAddComponent(new MediumLaser(), [1]).ShouldBeTrue();
+
+        var target = _battleMapViewModel.Units.First(u => u.Owner!.Id != _player.Id);
+        var airborneTarget = _battleMapViewModel.Units
+            .Last(u => u.Owner!.Id != _player.Id);
+
+        // Act - the grounded unit is blocked
+        target.Deploy(targetPosition, null);
+        _sut.HandleUnitSelectionFromList(attacker);
+        var groundedHex = _game.BattleMap.GetHex(targetPosition.Coordinates)!;
+        groundedHex.HasHighlight<LosBlockingHighlight>().ShouldBeTrue(
+            "the grounded unit is below the hill");
+        _sut.GetWeaponsInRange(targetPosition.Coordinates).ShouldBeEmpty();
+
+        // Act - a co-located DFA attacker is airborne and therefore clears the hill
+        airborneTarget.Deploy(targetPosition with { AirborneLevel = 7 }, null);
+        _battleMapViewModel.ClearHighlights();
+        _sut.HandleUnitSelectionFromList(attacker);
+        groundedHex.HasHighlight<LosBlockingHighlight>().ShouldBeFalse(
+            "an airborne occupant makes the hex reachable");
+        _sut.GetWeaponsInRange(targetPosition.Coordinates).ShouldNotBeEmpty();
+    }
+
+    [Fact]
+    public void SelectedTarget_GatesWeaponsByThatUnitsOwnLos_WhenGroundedAndAirborneShareAHex()
+    {
+        // Arrange - two enemies share one hex; only one of them is an airborne DFA attacker
+        SetPhase(PhaseNames.WeaponsAttack);
+        SetActivePlayer();
+        var attackerPosition = new HexPosition(new HexCoordinates(2, 2), HexDirection.Bottom);
+        var targetPosition = new HexPosition(new HexCoordinates(2, 4), HexDirection.Bottom);
+        _game.BattleMap!.GetHex(new HexCoordinates(2, 3))!.WithLevel(5);
+
+        var attacker = _battleMapViewModel.Units.First(u => u.Owner!.Id == _player.Id);
+        attacker.Deploy(attackerPosition, null);
+        attacker.AssignPilot(_pilot);
+        attacker.Parts[PartLocation.RightArm].TryAddComponent(new MediumLaser(), [1]).ShouldBeTrue();
+
+        var enemies = _battleMapViewModel.Units
+            .Where(u => u.Owner!.Id != _player.Id)
+            .Take(2)
+            .ToList();
+        var airborne = enemies[0];
+        var grounded = enemies[1];
+        airborne.Deploy(targetPosition with { AirborneLevel = 7 }, null);
+        grounded.Deploy(targetPosition, null);
+
+        _sut.HandleUnitSelectionFromList(attacker);
+        _sut.GetAvailableActions().First(a => a.Label == "Select Target").OnExecute();
+
+        // Act - select the grounded unit first
+        _sut.HandleUnitSelectionFromList(grounded);
+
+        // Assert - the hex is highlighted (an occupant is visible), but the grounded unit's own
+        // LOS blocks every weapon
+        _sut.SelectedTarget.ShouldBe(grounded);
+        _sut.WeaponSelectionItems.Any(vm => vm.IsInRange).ShouldBeFalse(
+            "the grounded target is still below the hill");
+
+        // Act - select the airborne unit
+        _sut.HandleUnitSelectionFromList(airborne);
+
+        // Assert - the same hex is now reachable through the airborne unit's own LOS
+        _sut.SelectedTarget.ShouldBe(airborne);
+        _sut.WeaponSelectionItems.Any(vm => vm.IsInRange).ShouldBeTrue(
+            "the airborne target clears the hill");
+    }
+
+    [Fact]
+    public void ConfirmWeaponSelections_UsesTheSelectedCoLocatedTargetId()
+    {
+        // Arrange
+        SetPhase(PhaseNames.WeaponsAttack);
+        SetActivePlayer();
+        var attackerPosition = new HexPosition(new HexCoordinates(2, 2), HexDirection.Bottom);
+        var targetPosition = new HexPosition(new HexCoordinates(2, 4), HexDirection.Bottom);
+        _game.BattleMap!.GetHex(new HexCoordinates(2, 3))!.WithLevel(5);
+
+        var attacker = _battleMapViewModel.Units.First(u => u.Owner!.Id == _player.Id);
+        attacker.Deploy(attackerPosition, null);
+        attacker.AssignPilot(_pilot);
+        attacker.Parts[PartLocation.RightArm].TryAddComponent(new MediumLaser(), [1]).ShouldBeTrue();
+
+        var enemies = _battleMapViewModel.Units
+            .Where(u => u.Owner!.Id != _player.Id)
+            .Take(2)
+            .ToList();
+        enemies[0].Deploy(targetPosition with { AirborneLevel = 7 }, null);
+        enemies[1].Deploy(targetPosition, null);
+
+        _sut.HandleUnitSelectionFromList(attacker);
+        _sut.GetAvailableActions().First(a => a.Label == "Select Target").OnExecute();
+        _sut.HandleUnitSelectionFromList(enemies[0]);
+
+        var weapon = attacker.Parts.Values
+            .SelectMany(p => p.GetComponents<Weapon>())
+            .First(w => _sut.WeaponSelectionItems.Any(vm => vm.Weapon == w && vm.IsInRange));
+        _sut.WeaponSelectionItems.First(vm => vm.Weapon == weapon).IsSelected = true;
+
+        // Act
+        _sut.ConfirmWeaponSelections();
+
+        // Assert
+        _commandPublisher.Received(1).PublishCommand(Arg.Is<WeaponAttackDeclarationCommand>(cmd =>
+            cmd.WeaponTargets.Count == 1
+            && cmd.WeaponTargets[0].TargetId == enemies[0].Id));
     }
 
     [Fact]
@@ -2525,5 +2647,77 @@ public class WeaponsAttackStateTests
         weaponVm.AimedShotTarget.ShouldBe(PartLocation.Head);
         _battleMapViewModel.IsUnitPartSelectorVisible.ShouldBeFalse();
         _battleMapViewModel.UnitPartSelector.ShouldBeNull();
+    }
+
+    [Fact]
+    public void UpdateWeaponViewModels_UsesEachWeaponsOwnRange_WhenTargetIsOnlyReachableBySomeWeapons()
+    {
+        // Arrange - a long-range LRM can hit the target, while the medium laser cannot reach it
+        SetPhase(PhaseNames.WeaponsAttack);
+        SetActivePlayer();
+
+        var attackerPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
+        var targetPosition = new HexPosition(new HexCoordinates(1, 11), HexDirection.Bottom);
+
+        var attacker = _battleMapViewModel.Units.First(u => u.Owner!.Id == _player.Id);
+        attacker.Deploy(attackerPosition, null);
+        attacker.AssignPilot(_pilot);
+        attacker.Parts[PartLocation.LeftTorso].TryAddComponent(new Lrm5(), [1]).ShouldBeTrue();
+        attacker.Parts[PartLocation.RightTorso].TryAddComponent(new MediumLaser(), [1]).ShouldBeTrue();
+
+        var target = _battleMapViewModel.Units.First(u => u.Owner!.Id != _player.Id);
+        target.Deploy(targetPosition, null);
+
+        _sut.HandleUnitSelectionFromList(attacker);
+        _sut.GetAvailableActions().First(a => a.Label == "Select Target").OnExecute();
+
+        // Act - the hex is highlighted because the LRM reaches it
+        _sut.HandleHexSelection(new Hex(targetPosition.Coordinates));
+
+        // Assert - range is evaluated per weapon, not per hex
+        _sut.SelectedTarget.ShouldBe(target);
+        var lrmVm = _sut.WeaponSelectionItems.First(vm => vm.Weapon is Lrm5);
+        var laserVm = _sut.WeaponSelectionItems.First(vm => vm.Weapon is MediumLaser);
+        lrmVm.IsInRange.ShouldBeTrue("the LRM-5 reaches the distant target");
+        laserVm.IsInRange.ShouldBeFalse("the medium laser's long range is shorter than the distance");
+    }
+
+    [Fact]
+    public void HandleWeaponSelection_AfterTargetSelectionIsCancelled_DoesNotAssignAWeaponTarget()
+    {
+        // Arrange - select a target and arm a weapon so its view model stays enabled
+        SetPhase(PhaseNames.WeaponsAttack);
+        SetActivePlayer();
+
+        var attackerPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
+        var targetPosition = new HexPosition(new HexCoordinates(1, 2), HexDirection.Bottom);
+
+        var attacker = _battleMapViewModel.Units.First(u => u.Owner!.Id == _player.Id);
+        attacker.Deploy(attackerPosition, null);
+        attacker.AssignPilot(_pilot);
+        attacker.Parts[PartLocation.LeftTorso].TryAddComponent(new MediumLaser(), [1]).ShouldBeTrue();
+
+        var target = _battleMapViewModel.Units.First(u => u.Owner!.Id != _player.Id);
+        target.Deploy(targetPosition, null);
+
+        _sut.HandleUnitSelectionFromList(attacker);
+        _sut.GetAvailableActions().First(a => a.Label == "Select Target").OnExecute();
+        _sut.HandleHexSelection(new Hex(targetPosition.Coordinates));
+
+        var weaponVm = _sut.WeaponSelectionItems.First(vm => vm.Weapon is MediumLaser);
+        weaponVm.IsSelected = true;
+        attacker.WeaponAttackState.WeaponTargets.ShouldNotBeEmpty();
+
+        // Cancel target selection by clicking a hex outside the weapon range
+        _sut.HandleHexSelection(new Hex(new HexCoordinates(10, 10)));
+        _sut.SelectedTarget.ShouldBeNull();
+        attacker.WeaponAttackState.WeaponTargets.ShouldBeEmpty();
+
+        // Act - a stale view model must not resurrect the cancelled target
+        weaponVm.IsSelected = false;
+
+        // Assert
+        _sut.SelectedTarget.ShouldBeNull();
+        attacker.WeaponAttackState.WeaponTargets.ShouldBeEmpty();
     }
 }

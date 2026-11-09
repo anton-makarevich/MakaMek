@@ -2667,6 +2667,29 @@ public class UnitTests
         sut.Position!.AirborneLevel.ShouldBeNull("a destroyed unit is not still airborne");
     }
 
+    [Fact]
+    public void IsAirborneDfaAttacker_ShouldBeTrueOnlyForAPendingDfaWithAnAirbornePosition()
+    {
+        // Arrange
+        var sut = CreateTestUnit();
+        var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom);
+        sut.Deploy(start, null);
+        sut.Move(MovementPath.CreateSingleSegmentPath(start, MovementType.Jump), null,
+            isCompleted: true, stopAt: start with { AirborneLevel = 4 });
+        sut.DeclarePhysicalAttack(new PhysicalAttackDeclarationData
+        {
+            AttackType = PhysicalAttackType.DFA,
+            AttackerLimbs = [],
+            TargetId = Guid.NewGuid()
+        });
+
+        // Act & Assert
+        sut.IsAirborneDfaAttacker.ShouldBeTrue();
+
+        sut.ResetTurnState();
+        sut.IsAirborneDfaAttacker.ShouldBeFalse("the declaration and airborne level are cleared");
+    }
+
     [Theory]
     [InlineData(PhysicalAttackType.Charge, true)]
     [InlineData(PhysicalAttackType.DFA, true)]

@@ -221,6 +221,8 @@ public class TotalWarfareRulesProvider : IRulesProvider
         };
     }
 
+    public int GetDfaAirborneBaseOffset() => 2;
+
     /// <summary>
     /// Gets the per-type base modifier for a physical attack. Punch, Kick and Push are supported;
     /// other types throw. Later milestones extend the table: Charge and DFA +0 (M3), physical

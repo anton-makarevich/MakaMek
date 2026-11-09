@@ -9,6 +9,7 @@ using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
+using Sanet.MakaMek.Core.Data.Game.Mechanics.PhysicalAttacks;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
@@ -215,6 +216,18 @@ public abstract class BaseGame : IGame
         var wasCompleted = unit.HasMoved;
         var path = new MovementPath(moveCommand.MovementPath, moveCommand.MovementType);
         var stopAt = path.GetStopPosition(moveCommand.Declaration);
+        if (stopAt != null)
+        {
+            // The airborne base is derived from the map, not trusted from the submitted waypoint:
+            // a legacy payload has no level and a client can forge one. Both server and client run
+            // this handler, so they compute the same value without a new wire field. Only a pending
+            // DFA is airborne; a Charge stop position stays grounded.
+            var airborneLevel = moveCommand.Declaration.IsDfa()
+                ? BattleMap?.GetDfaAirborneBaseLevel(stopAt, path.Destination,
+                    RulesProvider.GetDfaAirborneBaseOffset())
+                : null;
+            stopAt = stopAt with { AirborneLevel = airborneLevel };
+        }
         var hex = BattleMap?.GetHex((stopAt ?? path.Destination).Coordinates);
         unit.Move(path, hex, moveCommand.IsCompleted, stopAt);
 

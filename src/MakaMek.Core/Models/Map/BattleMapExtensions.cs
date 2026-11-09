@@ -106,6 +106,8 @@ public static class BattleMapExtensions
         /// <param name="prohibitedHexes">Hexes that cannot be entered or passed through</param>
         /// <param name="pathFindingMode">The pathfinding strategy to use (the shortest or longest path)</param>
         /// <param name="targetSurface">The surface to use for the destination hex (defaults to Ground)</param>
+        /// <param name="approachWaypointOffset">Extra levels added to the jump approach waypoint.
+        /// The rules layer supplies the value. When 0, the map builds the raw profile.</param>
         /// <returns>Dictionary mapping each valid facing direction to the path that reaches that facing</returns>
         public Dictionary<HexDirection, MovementPath> GetPathsToHexWithAllFacings(
             HexPosition startPosition,
@@ -118,7 +120,8 @@ public static class BattleMapExtensions
             int maxLevelChangeBackward,
             IReadOnlySet<HexCoordinates>? prohibitedHexes = null,
             PathFindingMode pathFindingMode = PathFindingMode.Shortest,
-            HexSurface? targetSurface = null)
+            HexSurface? targetSurface = null,
+            int approachWaypointOffset = 0)
         {
             var possibleDirections = new Dictionary<HexDirection, MovementPath>();
             var isForwardReachable = reachableArea.IsForwardReachable(targetHex);
@@ -132,7 +135,7 @@ public static class BattleMapExtensions
                 // Try forward movement (or Jump, which ignores reachability)
                 if (movementType == MovementType.Jump || isForwardReachable)
                 {
-                    path = map.FindPath(startPosition, targetPos, movementType, movementPoints, unitHeight, prohibitedHexes, pathFindingMode, maxLevelChange: maxLevelChangeForward);
+                    path = map.FindPath(startPosition, targetPos, movementType, movementPoints, unitHeight, prohibitedHexes, pathFindingMode, maxLevelChange: maxLevelChangeForward, approachWaypointOffset: approachWaypointOffset);
                 }
 
                 // Try backward movement for Walk only
@@ -141,7 +144,7 @@ public static class BattleMapExtensions
                     var oppositeStartPos = startPosition.GetOppositeDirectionPosition();
                     var oppositeTargetPos = targetPos.GetOppositeDirectionPosition();
 
-                    path = map.FindPath(oppositeStartPos, oppositeTargetPos, movementType, movementPoints, unitHeight, prohibitedHexes, pathFindingMode, maxLevelChange: maxLevelChangeBackward)
+                    path = map.FindPath(oppositeStartPos, oppositeTargetPos, movementType, movementPoints, unitHeight, prohibitedHexes, pathFindingMode, maxLevelChange: maxLevelChangeBackward, approachWaypointOffset: approachWaypointOffset)
                         ?.ReverseFacing();
                 }
 
@@ -216,6 +219,28 @@ public static class BattleMapExtensions
                 .ToList();
 
             return new ReachableArea(forwardReachableHexes, backwardReachableHexes);
+        }
+
+        /// <summary>
+        /// The absolute base level of a pending Death From Above attacker's feet while it waits in
+        /// its approach hex: the supplied airborne offset above the higher of the reference levels of
+        /// the declared target hex and the approach hex (Total Warfare p. 150; BattleMech Manual
+        /// p. 37 errata clarification). Line of sight adds the unit's height to this value.
+        /// Returns <c>null</c> when either hex is missing from the map.
+        /// </summary>
+        /// <param name="approachPosition">The approach hex where the attacker waits.</param>
+        /// <param name="declaredTargetPosition">The declared DFA target hex from the movement path.</param>
+        /// <param name="airborneBaseOffset">The rules-provided DFA airborne base offset.</param>
+        public int? GetDfaAirborneBaseLevel(HexPosition approachPosition,
+            HexPosition declaredTargetPosition,
+            int airborneBaseOffset)
+        {
+            var approachHex = map.GetHex(approachPosition.Coordinates);
+            var targetHex = map.GetHex(declaredTargetPosition.Coordinates);
+            if (approachHex == null || targetHex == null) return null;
+
+            return Math.Max(approachHex.GetReferenceLevel(), targetHex.GetReferenceLevel())
+                   + airborneBaseOffset;
         }
     }
 }

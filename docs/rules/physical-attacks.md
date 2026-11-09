@@ -58,6 +58,100 @@ A 'Mech punching with one or two arms resolves each arm separately, so the arm-a
 
 ---
 
+### **3.1. Death From Above — Line of Sight During the Weapon Attack Phase**
+
+A DFA attacker does not enter the target hex while the weapon attacks are declared. It waits in
+the approach hex (the last hex of the jump path, adjacent to the target) and is considered
+**airborne** for line of sight until the attack resolves (Total Warfare p. 150; BattleMech Manual
+6th printing p. 37; official rules answers, forum topics 82519 and 81876).
+
+**Formula:**
+
+```text
+airborne base (feet) = max(reference level of the declared target hex,
+                           reference level of the approach hex) + 2
+effective LOS level  = airborne base + unit.Height
+                     = max(...) + 2 + unit.Height
+```
+
+* The `+2` is the attacker's **mid-air elevation**: the rule says the attacker is "in the air above
+  the hex, standing two levels higher than either the target hex or the level of the hex the
+  attacker occupies". Its feet are planted two levels above the higher hex. It is **not** the
+  standing height — the normal LOS calculation adds `unit.Height` on top. A standing 'Mech
+  therefore has an LOS level of `max(...) + 4`.
+* Official errata clarification (forum 82519): "The attacking mech would be at Level 3 (the
+  target's level of 1, +2 because the attacker is in mid-air)… For those firing at the attacking
+  mech, they would be dealing with an LOS level of 5… because the DFA'ing mech's feet are
+  'planted' in mid-air at Level 3, but it's also two levels tall like any other standing mech."
+  The BattleMech Manual example says the same: base level 3, LOS level 5.
+* The earlier July-2023 answer in forum 81876 ("LOS level of 5, its own two plus 3") conflates the
+  attacker's level with its LOS level; it contradicts the BMM example and the later clarification.
+  The corrected errata reading above governs. The AGoAC 1st-printing wording ("standing two levels
+  higher") is consistent with the corrected base reading.
+* The declared target hex is `MovementTaken.Destination` (coordinates and surface), not the target
+  unit's current position: the target can be displaced or destroyed before the DFA resolves.
+* The airborne base is stored on `Unit.Position.AirborneLevel`; every LOS consumer adds the unit or
+  mount height, exactly as for a grounded unit's standing level. This makes the level independent
+  of which unit is shooting and works in both directions of `GetLineOfSight`.
+* Example: target hex at Level 3, approach hex at Level 0, standing 'Mech → base
+  `max(3, 0) + 2 = 5`, LOS level `5 + 2 = 7`.
+
+**Reference level of a hex:** the bridge deck when the hex has a bridge, otherwise the raw
+`Hex.Level`. Water therefore contributes its **surface**, never the riverbed (`GetStandingLevel`
+would return the bottom and is deliberately not used). Building levels are not supported: the map
+has no building terrain, so a building reference level is deferred to the change that adds
+buildings.
+
+**Authoritative recomputation:** `BaseGame.OnMoveUnit` computes the approach position's
+`AirborneLevel` from the map for every completed DFA move, on both the server and the clients.
+`MovementTaken.Destination` supplies the declared target hex. The map's jump profile stores the
+same `max(...) + 2` base on the approach waypoint (the rules provider supplies the offset to the
+map jump-profile calculation through `IRulesProvider.GetDfaAirborneBaseOffset()`), so the
+path and the derived level agree. The submitted waypoint level is not trusted: legacy payloads
+have none and a client can forge one. The submitted path segments, `MovementTaken`, MP and
+`HexesTraveled` are left unchanged, so TMM and attack modifiers are unchanged. No new wire field
+is added.
+
+**Decisions and edge cases:**
+
+* **Prone attacker:** a failed jump-landing PSR (or another weapon-phase fall) sets
+  `UnitStatus.Prone` but does not cancel the pending DFA; it resolves as a miss in the Physical
+  Attack Phase and the attacker then falls. `Mech.Height` therefore keeps the **standing** height
+  while `Position.AirborneLevel` is non-null, so the LOS level does not silently drop by one level.
+* **Damaged / immobile status:** does not change the formula. The DFA attacker is already limited
+  by the declaration validator (jump jets, MP, submerged attacker, target reservation).
+* **Cover:** an airborne unit can never claim partial cover (`Mech.CanHavePartialCover`); a target
+  that is airborne is not partially concealed by the terrain it hovers over.
+* **Physical reach:** stays grounded. The airborne level is applied only to LOS; reach, arcs and
+  water eligibility continue to use `PhysicalAttackEligibility.GetEndpoint`, which reuses the
+  grounded effective standing level.
+* **Water eligibility:** unchanged. Whether a DFA may be declared at all (including the
+  submerged-attacker rejection) is decided before the move, when the attacker is grounded.
+* **Lifecycle:** the airborne value ends deterministically when the pending movement attack ends —
+  on attacker destruction and on the turn reset (`ResetTurnState`). Displacement also grounds the
+  position. The DFA resolution slice must clear the declaration and the airborne level when the
+  attack resolves, and apply the deferred weapon-phase fall.
+* **Serialization / reconstruction:** `Unit.ToData` exports the airborne position through the
+  optional `HexPositionData.AirborneLevel`; the declaration itself is not exported. `MechFactory`
+  and `CloneUnit` do not restore the position, so a reconstructed unit is undeployed and never
+  airborne.
+
+**Known gaps (tracked as follow-ups):**
+
+* The **target-jump +1** to-hit modifier is not implemented: `GetTargetMovementModifier` takes only
+  the hexes moved, so a jumping target (including an airborne DFA attacker) misses the cumulative
+  +1.
+* **Approach-hex choice** on a divided jump path: the movement model stores a single stop hex (the
+  `From` of the last translation). The rule lets the attacker choose between two eligible approach
+  hexes.
+* **Facing** toward the target: the stop position keeps the facing of the last translation rather
+  than being turned toward the declared target hex.
+* **Resolution clearing and deferred fall** for the DFA, linked to #1510.
+* `MoveUnitCommand.GetPayloadHash` omits the surface and `AirborneLevel`; the value is derived, so
+  hashing it is not required for correctness today.
+
+---
+
 ### **4. Push Attack — Full Requirements & Resolution**
 
 **Target & elevation prerequisites:**

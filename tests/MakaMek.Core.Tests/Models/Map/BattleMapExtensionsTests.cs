@@ -1,4 +1,5 @@
 using NSubstitute;
+using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Map.Data;
@@ -13,6 +14,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Map;
 
 public class BattleMapExtensionsTests
 {
+    private static readonly IRulesProvider RulesProvider = new TotalWarfareRulesProvider();
     [Theory]
     [InlineData(3, 3, 8)]   // 3x3 map has 8 edge hexes (perimeter)
     [InlineData(5, 5, 16)]  // 5x5 map has 16 edge hexes
@@ -343,6 +345,36 @@ public class BattleMapExtensionsTests
             paths.ShouldContainKey(direction);
             paths[direction].Destination.Coordinates.ShouldBe(targetHex);
             paths[direction].Destination.Facing.ShouldBe(direction);
+        }
+    }
+
+    [Fact]
+    public void GetPathsToHexWithAllFacings_PassesTheRulesAirborneOffsetToTheJumpProfile()
+    {
+        // Arrange
+        var map = new BattleMapFactory()
+            .GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
+        var startPosition = new HexPosition(new HexCoordinates(5, 5), HexDirection.Top);
+        var targetHex = new HexCoordinates(5, 7); // 2 hexes away
+        var reachabilityData = new ReachableArea([new HexReachabilityData(targetHex, HexSurface.Ground, 0)], []);
+
+        // Act
+        var paths = map.GetPathsToHexWithAllFacings(
+            startPosition,
+            targetHex,
+            MovementType.Jump,
+            movementPoints: 3,
+            reachabilityData,
+            2,
+            2,
+            0,
+            approachWaypointOffset: RulesProvider.GetDfaAirborneBaseOffset());
+
+        // Assert - the approach waypoint carries the rules-provided DFA airborne base
+        foreach (var path in paths.Values)
+        {
+            path.Segments[^1].From.AirborneLevel.ShouldBe(2,
+                "the rules provider adds two levels to the higher reference level");
         }
     }
 
@@ -933,5 +965,92 @@ public class BattleMapExtensionsTests
             .Any(c => c is TerrainMovementCost { TerrainId: MakaMekTerrains.Bridge, Value: 0 })
             .ShouldBeTrue();
         bridgeEntrySegment.Cost.ShouldBe(1, "Bridge entry should cost only the base hex entry MP");
+    }
+
+    [Fact]
+    public void GetDfaAirborneBaseLevel_UsesTheHigherOfTheTwoReferenceLevels()
+    {
+        // Arrange - the target hex is higher than the approach hex
+        var map = CreateFlatMap(5, 5);
+        map.GetHex(new HexCoordinates(3, 4))!.WithLevel(2);
+        var approach = new HexPosition(new HexCoordinates(3, 3), HexDirection.Top);
+        var target = new HexPosition(new HexCoordinates(3, 4), HexDirection.Top);
+
+        // Act & Assert
+        map.GetDfaAirborneBaseLevel(approach, target, RulesProvider.GetDfaAirborneBaseOffset()).ShouldBe(4);
+        map.GetDfaAirborneBaseLevel(target, approach, RulesProvider.GetDfaAirborneBaseOffset()).ShouldBe(4,
+            "the formula is symmetric: the higher hex wins");
+    }
+
+    [Fact]
+    public void GetDfaAirborneBaseLevel_ApproachHigherThanTarget()
+    {
+        // Arrange
+        var map = CreateFlatMap(5, 5);
+        map.GetHex(new HexCoordinates(3, 3))!.WithLevel(3);
+        var approach = new HexPosition(new HexCoordinates(3, 3), HexDirection.Top);
+        var target = new HexPosition(new HexCoordinates(3, 4), HexDirection.Top);
+
+        // Act & Assert
+        map.GetDfaAirborneBaseLevel(approach, target, RulesProvider.GetDfaAirborneBaseOffset()).ShouldBe(5);
+    }
+
+    [Fact]
+    public void GetDfaAirborneBaseLevel_UsesTheBridgeDeckReferenceLevel()
+    {
+        // Arrange - the target hex has a bridge over deep water; the deck is the reference
+        var map = CreateFlatMap(5, 5);
+        var targetHex = map.GetHex(new HexCoordinates(3, 4))!;
+        targetHex.AddTerrain(new WaterTerrain(-2));
+        targetHex.AddTerrain(new BridgeTerrain(2, 0));
+        var approach = new HexPosition(new HexCoordinates(3, 3), HexDirection.Top);
+        var target = new HexPosition(new HexCoordinates(3, 4), HexDirection.Top,
+            HexSurface.Bridge);
+
+        // Act & Assert
+        map.GetDfaAirborneBaseLevel(approach, target, RulesProvider.GetDfaAirborneBaseOffset()).ShouldBe(4,
+            "a bridge deck is the reference level, not the riverbed or the raw water surface");
+    }
+
+    [Fact]
+    public void GetDfaAirborneBaseLevel_UsesTheWaterSurfaceFromTheApproachHex()
+    {
+        // Arrange - the approach hex is water; its surface (level) is the reference, not the bed
+        var map = CreateFlatMap(5, 5);
+        var approachHex = map.GetHex(new HexCoordinates(3, 3))!;
+        approachHex.AddTerrain(new WaterTerrain(-2));
+        var approach = new HexPosition(new HexCoordinates(3, 3), HexDirection.Top);
+        var target = new HexPosition(new HexCoordinates(3, 4), HexDirection.Top);
+
+        // Act & Assert
+        map.GetDfaAirborneBaseLevel(approach, target, RulesProvider.GetDfaAirborneBaseOffset()).ShouldBe(2,
+            "water contributes its surface level, never the riverbed (which would be -2)");
+    }
+
+    [Fact]
+    public void GetDfaAirborneBaseLevel_ReturnsNull_WhenAHexIsMissing()
+    {
+        // Arrange
+        var map = CreateFlatMap(5, 5);
+        var approach = new HexPosition(new HexCoordinates(3, 3), HexDirection.Top);
+        var offMapTarget = new HexPosition(new HexCoordinates(9, 9), HexDirection.Top);
+
+        // Act & Assert
+        map.GetDfaAirborneBaseLevel(approach, offMapTarget, RulesProvider.GetDfaAirborneBaseOffset()).ShouldBeNull();
+        map.GetDfaAirborneBaseLevel(offMapTarget, approach, RulesProvider.GetDfaAirborneBaseOffset()).ShouldBeNull();
+    }
+
+    private static BattleMap CreateFlatMap(int width, int height)
+    {
+        var map = new BattleMap(width, height);
+        for (var q = 1; q <= width; q++)
+        {
+            for (var r = 1; r <= height; r++)
+            {
+                map.AddHex(new Hex(new HexCoordinates(q, r)));
+            }
+        }
+
+        return map;
     }
 }
