@@ -12,6 +12,7 @@ Architectural designs for core game modules, network protocol, AI bot subsystems
 | [Components.md](Components.md) | Unit part/component system, slot management, and critical hit allocation |
 | [UiStates.md](UiStates.md) | UI state machine, phase-driven screen transitions, and input handling |
 | [Movement-Phase-Interrupt-Pattern.md](Movement-Phase-Interrupt-Pattern.md) | Chain-of-handlers + game-action pattern for movement hazards (bridge collapse, skid, water, jump landing) |
+| [Physical-Attack-Level-And-Water-Rules.md](Physical-Attack-Level-And-Water-Rules.md) | Shared endpoint facts and attack-specific level/water rules for Punch, Kick, Push, Charge and DFA (decision for #1685) |
 | [Weapon-Attack-Resolution-Pattern.md](Weapon-Attack-Resolution-Pattern.md) | Three-layer pattern: phase-as-orchestrator, mandatory resolver pipeline, optional pre-attack gates — flattens recursive iteration with BuildAttackQueue() |
 
 ## Systems
