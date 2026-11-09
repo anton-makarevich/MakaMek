@@ -170,7 +170,7 @@ jobs:
           persist-credentials: false
 
       - name: Install mise tools
-        uses: jdx/mise-action@v4
+        uses: jdx/mise-action@v5
 
       - name: Install OpenCode CLI
         run: mise run install-opencode

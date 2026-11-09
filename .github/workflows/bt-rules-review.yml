@@ -116,7 +116,7 @@ jobs:
           fi
 
       - name: Install mise tools (base revision only)
-        uses: jdx/mise-action@v4
+        uses: jdx/mise-action@v5
 
       - name: Install OpenCode CLI
         run: |
