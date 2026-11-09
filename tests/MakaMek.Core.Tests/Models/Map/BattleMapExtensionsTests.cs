@@ -368,7 +368,7 @@ public class BattleMapExtensionsTests
             2,
             2,
             0,
-            rulesProvider: RulesProvider);
+            approachWaypointOffset: RulesProvider.GetDfaAirborneBaseOffset());
 
         // Assert - the approach waypoint carries the rules-provided DFA airborne base
         foreach (var path in paths.Values)
@@ -977,8 +977,8 @@ public class BattleMapExtensionsTests
         var target = new HexPosition(new HexCoordinates(3, 4), HexDirection.Top);
 
         // Act & Assert
-        map.GetDfaAirborneBaseLevel(RulesProvider, approach, target).ShouldBe(4);
-        map.GetDfaAirborneBaseLevel(RulesProvider, target, approach).ShouldBe(4,
+        map.GetDfaAirborneBaseLevel(approach, target, RulesProvider.GetDfaAirborneBaseOffset()).ShouldBe(4);
+        map.GetDfaAirborneBaseLevel(target, approach, RulesProvider.GetDfaAirborneBaseOffset()).ShouldBe(4,
             "the formula is symmetric: the higher hex wins");
     }
 
@@ -992,7 +992,7 @@ public class BattleMapExtensionsTests
         var target = new HexPosition(new HexCoordinates(3, 4), HexDirection.Top);
 
         // Act & Assert
-        map.GetDfaAirborneBaseLevel(RulesProvider, approach, target).ShouldBe(5);
+        map.GetDfaAirborneBaseLevel(approach, target, RulesProvider.GetDfaAirborneBaseOffset()).ShouldBe(5);
     }
 
     [Fact]
@@ -1008,7 +1008,7 @@ public class BattleMapExtensionsTests
             HexSurface.Bridge);
 
         // Act & Assert
-        map.GetDfaAirborneBaseLevel(RulesProvider, approach, target).ShouldBe(4,
+        map.GetDfaAirborneBaseLevel(approach, target, RulesProvider.GetDfaAirborneBaseOffset()).ShouldBe(4,
             "a bridge deck is the reference level, not the riverbed or the raw water surface");
     }
 
@@ -1023,7 +1023,7 @@ public class BattleMapExtensionsTests
         var target = new HexPosition(new HexCoordinates(3, 4), HexDirection.Top);
 
         // Act & Assert
-        map.GetDfaAirborneBaseLevel(RulesProvider, approach, target).ShouldBe(2,
+        map.GetDfaAirborneBaseLevel(approach, target, RulesProvider.GetDfaAirborneBaseOffset()).ShouldBe(2,
             "water contributes its surface level, never the riverbed (which would be -2)");
     }
 
@@ -1036,8 +1036,8 @@ public class BattleMapExtensionsTests
         var offMapTarget = new HexPosition(new HexCoordinates(9, 9), HexDirection.Top);
 
         // Act & Assert
-        map.GetDfaAirborneBaseLevel(RulesProvider, approach, offMapTarget).ShouldBeNull();
-        map.GetDfaAirborneBaseLevel(RulesProvider, offMapTarget, approach).ShouldBeNull();
+        map.GetDfaAirborneBaseLevel(approach, offMapTarget, RulesProvider.GetDfaAirborneBaseOffset()).ShouldBeNull();
+        map.GetDfaAirborneBaseLevel(offMapTarget, approach, RulesProvider.GetDfaAirborneBaseOffset()).ShouldBeNull();
     }
 
     private static BattleMap CreateFlatMap(int width, int height)

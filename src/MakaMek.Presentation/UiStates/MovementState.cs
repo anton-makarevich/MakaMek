@@ -284,7 +284,7 @@ public class MovementState : IUiState
             _selectedUnit.MaxLevelChangeBackward,
             _prohibitedHexes,
             targetSurface: surface,
-            rulesProvider: Game!.RulesProvider) ?? [];
+            approachWaypointOffset: Game!.RulesProvider.GetDfaAirborneBaseOffset()) ?? [];
 
         TransitionTo(new SelectingDirectionStep(this, hex.Coordinates));
     }
@@ -307,7 +307,7 @@ public class MovementState : IUiState
             _selectedUnit.MaxLevelChangeBackward,
             _prohibitedHexes,
             targetSurface: surface,
-            rulesProvider: Game!.RulesProvider) ?? [];
+            approachWaypointOffset: Game!.RulesProvider.GetDfaAirborneBaseOffset()) ?? [];
 
         TransitionTo(new SelectingDirectionStep(this, targetHex));
     }

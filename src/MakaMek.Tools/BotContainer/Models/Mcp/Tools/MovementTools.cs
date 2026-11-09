@@ -83,7 +83,7 @@ public class MovementTools
                     unit.MaxLevelChangeForward,
                     unit.MaxLevelChangeBackward,
                     occupiedHexes,
-                    rulesProvider: game.RulesProvider);
+                    approachWaypointOffset: game.RulesProvider.GetDfaAirborneBaseOffset());
 
                 // Evaluate each valid path (each facing)
                 foreach (var path in paths.Values)
@@ -185,7 +185,7 @@ public class MovementTools
                     unit.MaxLevelChangeForward,
                     unit.MaxLevelChangeBackward,
                     occupiedHexes,
-                    rulesProvider: game.RulesProvider);
+                    approachWaypointOffset: game.RulesProvider.GetDfaAirborneBaseOffset());
 
         // Find the path that ends with the requested facing
         var matchingPath = paths.Values.FirstOrDefault(p => p.Destination.Facing == targetFacing);
