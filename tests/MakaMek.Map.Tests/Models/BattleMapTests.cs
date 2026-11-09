@@ -1954,10 +1954,11 @@ public class BattleMapTests
         path.ShouldNotBeNull();
         path.Start.AirborneLevel.ShouldBeNull("the jump start is grounded");
         path.Destination.AirborneLevel.ShouldBeNull("the jump destination is grounded");
-        path.Segments[0].To.AirborneLevel.ShouldBe(2, "interpolated between level 0 and the approach waypoint 4");
-        path.Segments[1].From.AirborneLevel.ShouldBe(2, "shared endpoints keep the same level");
-        path.Segments[1].To.AirborneLevel.ShouldBe(4, "the approach hex is a hard waypoint");
-        path.Segments[2].From.AirborneLevel.ShouldBe(4, "shared endpoints keep the same level");
+        path.Segments[0].To.AirborneLevel.ShouldBe(3, "interpolated between level 0 and the approach base 6");
+        path.Segments[1].From.AirborneLevel.ShouldBe(3, "shared endpoints keep the same level");
+        path.Segments[1].To.AirborneLevel.ShouldBe(6,
+            "the approach waypoint is the level-4 reference plus the 2-level DFA airborne base");
+        path.Segments[2].From.AirborneLevel.ShouldBe(6, "shared endpoints keep the same level");
         path.Segments[^1].To.AirborneLevel.ShouldBeNull("the jump destination is grounded");
     }
 
@@ -1975,8 +1976,8 @@ public class BattleMapTests
         // Assert
         path.ShouldNotBeNull();
         path.Segments.ShouldHaveSingleItem();
-        path.Segments[0].From.AirborneLevel.ShouldBe(3,
-            "an adjacent jump has no intermediate position, so the start carries the approach waypoint");
+        path.Segments[0].From.AirborneLevel.ShouldBe(5,
+            "an adjacent jump has no intermediate position, so the start carries the approach base");
         path.Segments[0].To.AirborneLevel.ShouldBeNull("the destination stays grounded");
     }
 
@@ -2071,7 +2072,7 @@ public class BattleMapTests
 
         // Assert
         path.ShouldNotBeNull("trees do not count toward the jump-height ceiling");
-        path.Segments[0].To.AirborneLevel.ShouldBe(0);
+        path.Segments[0].To.AirborneLevel.ShouldBe(1);
     }
 
     [Fact]
@@ -2141,9 +2142,9 @@ public class BattleMapTests
         path.ShouldNotBeNull();
         path.Start.AirborneLevel.ShouldBeNull("the jump start is grounded");
         path.Destination.AirborneLevel.ShouldBeNull("the jump destination is grounded");
-        path.Segments[0].To.AirborneLevel.ShouldBe(2,
-            "the descending profile drops halfway from level 4 to the approach waypoint at level 0");
-        path.Segments[1].To.AirborneLevel.ShouldBe(0, "the approach hex is the lowest waypoint");
+        path.Segments[0].To.AirborneLevel.ShouldBe(3,
+            "the descending profile drops halfway from level 4 to the approach base 2");
+        path.Segments[1].To.AirborneLevel.ShouldBe(2, "the approach hex is the lowest waypoint");
     }
 
     [Fact]

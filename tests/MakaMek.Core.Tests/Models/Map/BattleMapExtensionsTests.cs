@@ -945,8 +945,8 @@ public class BattleMapExtensionsTests
         var target = new HexPosition(new HexCoordinates(3, 4), HexDirection.Top);
 
         // Act & Assert
-        map.GetDfaAirborneBaseLevel(approach, target).ShouldBe(2);
-        map.GetDfaAirborneBaseLevel(target, approach).ShouldBe(2,
+        map.GetDfaAirborneBaseLevel(approach, target).ShouldBe(4);
+        map.GetDfaAirborneBaseLevel(target, approach).ShouldBe(4,
             "the formula is symmetric: the higher hex wins");
     }
 
@@ -960,7 +960,7 @@ public class BattleMapExtensionsTests
         var target = new HexPosition(new HexCoordinates(3, 4), HexDirection.Top);
 
         // Act & Assert
-        map.GetDfaAirborneBaseLevel(approach, target).ShouldBe(3);
+        map.GetDfaAirborneBaseLevel(approach, target).ShouldBe(5);
     }
 
     [Fact]
@@ -976,7 +976,7 @@ public class BattleMapExtensionsTests
             HexSurface.Bridge);
 
         // Act & Assert
-        map.GetDfaAirborneBaseLevel(approach, target).ShouldBe(2,
+        map.GetDfaAirborneBaseLevel(approach, target).ShouldBe(4,
             "a bridge deck is the reference level, not the riverbed or the raw water surface");
     }
 
@@ -991,7 +991,7 @@ public class BattleMapExtensionsTests
         var target = new HexPosition(new HexCoordinates(3, 4), HexDirection.Top);
 
         // Act & Assert
-        map.GetDfaAirborneBaseLevel(approach, target).ShouldBe(0,
+        map.GetDfaAirborneBaseLevel(approach, target).ShouldBe(2,
             "water contributes its surface level, never the riverbed (which would be -2)");
     }
 

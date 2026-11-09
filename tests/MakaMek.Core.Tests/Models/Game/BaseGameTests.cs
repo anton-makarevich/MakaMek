@@ -933,7 +933,7 @@ public sealed class BaseGameTests : BaseGame
         // Assert
         mech.Position!.Coordinates.ShouldBe(approach.Coordinates,
             "the DFA attacker waits in the approach hex");
-        mech.Position.AirborneLevel.ShouldBe(2,
+        mech.Position.AirborneLevel.ShouldBe(4,
             "the airborne base is derived from the map, not taken from the submitted waypoint");
         mech.MovementTaken!.Segments[0].To.AirborneLevel.ShouldBe(3,
             "the serialized jump path is left exactly as submitted");
@@ -958,7 +958,7 @@ public sealed class BaseGameTests : BaseGame
         var player = Players.First();
         var mech = player.Units.First();
         mech.AssignPilot(new MechWarrior("John", "Doe"));
-        // The submitted start waypoint is forged (4); the target hex is level 2, so max(0, 2) = 2.
+        // The submitted start waypoint is forged (4); the target hex is level 2, so max(0, 2) + 2 = 4.
         var start = new HexPosition(new HexCoordinates(3, 3), HexDirection.BottomLeft,
             AirborneLevel: 4);
         BattleMap!.GetHex(new HexCoordinates(3, 4))!.WithLevel(2);
@@ -990,7 +990,7 @@ public sealed class BaseGameTests : BaseGame
 
         // Assert
         mech.Position!.Coordinates.ShouldBe(start.Coordinates);
-        mech.Position.AirborneLevel.ShouldBe(2,
+        mech.Position.AirborneLevel.ShouldBe(4,
             "an adjacent DFA uses max(approach reference level, target reference level)");
     }
 
@@ -1015,7 +1015,7 @@ public sealed class BaseGameTests : BaseGame
         mech.Deploy(start, null);
         TurnPhase = PhaseNames.Movement;
 
-        // Legacy payload: no airborne level anywhere and a level-1 target hex.
+        // Legacy payload: no airborne level anywhere and a level-1 target hex (max(0, 1) + 2 = 3).
         BattleMap!.GetHex(new HexCoordinates(3, 4))!.WithLevel(1);
         var approach = new HexPosition(new HexCoordinates(3, 4), HexDirection.BottomLeft);
         var target = new HexPosition(new HexCoordinates(3, 5), HexDirection.BottomLeft);
@@ -1043,7 +1043,7 @@ public sealed class BaseGameTests : BaseGame
         OnMoveUnit(moveCommand);
 
         // Assert
-        mech.Position!.AirborneLevel.ShouldBe(1);
+        mech.Position!.AirborneLevel.ShouldBe(3);
     }
 
     [Fact]

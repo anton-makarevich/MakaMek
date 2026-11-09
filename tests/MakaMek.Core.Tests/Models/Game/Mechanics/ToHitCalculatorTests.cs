@@ -188,7 +188,7 @@ public class ToHitCalculatorTests
         map.GetHex(new HexCoordinates(1, 2))!.WithLevel(3);
 
         var approach = new HexPosition(new HexCoordinates(1, 3), HexDirection.Top,
-            AirborneLevel: 3); // max(reference(1,2)=3, reference(1,3)=0)
+            AirborneLevel: 5); // max(reference(1,2)=3, reference(1,3)=0) + 2 mid-air
         var grounded = new HexPosition(new HexCoordinates(1, 3), HexDirection.Top);
         var shooter = new HexPosition(new HexCoordinates(1, 5), HexDirection.Top);
 
@@ -220,9 +220,9 @@ public class ToHitCalculatorTests
         map.GetLineOfSight(shooter, grounded, 2, 2).TargetLosLevel
             .ShouldBe(2, "grounded level 0 plus the mech height of 2");
         map.GetLineOfSight(shooter, approach, 2, 2).TargetLosLevel
-            .ShouldBe(5, "airborne base 3 plus the mech height 2, added exactly once");
+            .ShouldBe(7, "airborne base 5 plus the mech height 2");
         map.GetLineOfSight(approach, shooter, 2, 2).AttackerLosLevel
-            .ShouldBe(5, "the same level in the reversed direction");
+            .ShouldBe(7, "the same level in the reversed direction");
 
         // Range is still measured from the approach hex (1,3) to the declared target (1,2).
         var toDeclaredTarget = _sut.GetModifierBreakdown(

@@ -802,9 +802,11 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
         if (Math.Max(startSideLevel, referenceLevels[lastIndex]) > ceiling)
             return null;
 
-        // The stored waypoint still uses the reference level of the approach hex, which is the
-        // start hex for an adjacent jump, so an adjacent DFA can read its LOS level from it.
-        var approachLevel = Math.Max(referenceLevels[approachIndex], referenceLevels[lastIndex]);
+        // The stored waypoint is the airborne base of a DFA attacker's feet: two levels above the
+        // higher of the approach and target reference levels. It is also the start hex for an
+        // adjacent jump, so an adjacent DFA can read its base from it. LOS adds the unit height.
+        var approachLevel = Math.Max(referenceLevels[approachIndex], referenceLevels[lastIndex])
+                            + HexExtensions.DfaAirborneBaseOffset;
 
         if (lastIndex == 1)
         {

@@ -72,26 +72,32 @@ grounded position.
 
 For a jump path `p0 … pn`:
 
-- `p0` and `pn` are grounded (`null`).
+- `pn` is grounded (`null`). `p0` is grounded too, except for an adjacent jump, whose start
+  position carries the approach waypoint.
 - The last translation's `From` (`p(n-1)`, the *approach* position) is always a hard waypoint:
 
   ```text
   AirborneLevel(approach) = max(referenceLevel(approach), referenceLevel(destination))
+                            + HexExtensions.DfaAirborneBaseOffset  // 2
   ```
 
-  This is calculated for every jump, not only a DFA. An adjacent jump has no intermediate
-  position, so its start position carries the waypoint instead.
+  The extra two levels are the DFA attacker's mid-air base (its feet are two levels above the
+  higher hex); line of sight then adds the unit height. The value is calculated for every jump,
+  not only a DFA. A normal jump ends grounded, so for it this base only appears in the internal
+  profile; an adjacent jump has no intermediate position, so its start position carries the
+  waypoint instead.
 - Other intermediate levels interpolate linearly from the start level (the unit's standing level
   in `p0`) to the approach waypoint, round **up** (`Math.Ceiling`), and are clamped to
   `[referenceLevel(p_i), startLevel + availableJumpingMP]`.
-- A route whose approach waypoint exceeds the ceiling is rejected (defensive guard). The
-  exception is an adjacent jump: it has no crossed hex before the destination, so only the
-  destination must clear `startLevel + availableJumpingMP`. A bridge deck above the unit, or the
-  water surface it stands below, therefore does not block a legal adjacent jump. The stored
-  waypoint on the start position still uses the reference levels, so adjacent DFA LOS is unchanged.
+- Path validity is checked against the hex **reference levels**, never against the `+2` airborne
+  base: a route whose destination/approach reference level exceeds the ceiling is rejected
+  (defensive guard). The exception is an adjacent jump: it has no crossed hex before the
+  destination, so only the destination must clear `startLevel + availableJumpingMP`. A bridge deck
+  above the unit, or the water surface it stands below, therefore does not block a legal adjacent
+  jump.
 
-The same profile is used for path validity (the ceiling) and DFA line of sight. Presentation does
-not derive a second jump curve.
+The same profile is used for path validity and DFA line of sight. Presentation does not derive a
+second jump curve.
 
 ## Death From Above (DFA)
 
@@ -105,15 +111,16 @@ During the Weapon Attack Phase the DFA attacker waits in the approach hex
 (`MovementPathExtensions.GetStopPosition`). Its LOS position is the stored profile value:
 
 ```text
+airborne base     = max(referenceLevel(target), referenceLevel(approach)) + 2
 effective LOS level = Position.AirborneLevel + unit.Height
 ```
 
-Because `Position.AirborneLevel` already equals
-`max(referenceLevel(target), referenceLevel(approach))`, the LOS level is two levels above the
-higher hex for a standing 'Mech, independent of which unit is shooting. LOS consumers pass
+`Position.AirborneLevel` already equals `max(...) + 2`, so the LOS level is `max(...) + 4` for a
+standing 'Mech, independent of which unit is shooting: the `+2` is the attacker's mid-air base
+(feet) and the LOS calculation adds the standing height on top. LOS consumers pass
 `Position.AirborneLevel` through the optional base-level parameters of `IBattleMap.GetLineOfSight`;
-they must not derive a second DFA level. The full rules decision, including the prone attacker,
-reference levels and the errata discrepancy, is in
+they must not derive a second DFA level. The full rules decision, including the official errata
+clarification, the prone attacker and reference levels, is in
 [`physical-attacks.md`](physical-attacks.md#31-death-from-above--line-of-sight-during-the-weapon-attack-phase).
 
 `BaseGame.OnMoveUnit` re-derives the approach `AirborneLevel` from the map for every completed

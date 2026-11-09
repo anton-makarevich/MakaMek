@@ -3716,7 +3716,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
     {
         // Arrange
         var (attacker, target, start, middle, end) = SetUpChargeOnTheMap();
-        // The approach hex is one level above the target hex, so the derived base level is 1.
+        // The approach hex is one level above the target hex, so the derived base is max(1, 0) + 2 = 3.
         Game.BattleMap!.GetHex(middle)!.WithLevel(1);
         var centerTorso = attacker.Parts[PartLocation.CenterTorso];
         centerTorso.TryAddComponent(new JumpJets()).ShouldBeTrue();
@@ -3731,7 +3731,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
 
         // Assert - the DFA lands when it resolves, not while the weapons are declared
         attacker.Position!.Coordinates.ShouldBe(middle);
-        attacker.Position.AirborneLevel.ShouldBe(1,
+        attacker.Position.AirborneLevel.ShouldBe(3,
             "the approach position is airborne at max(approach, target) reference level");
         attacker.DeclaredPhysicalAttack.ShouldNotBeNull().AttackType.ShouldBe(PhysicalAttackType.DFA);
         attacker.DeclaredPhysicalAttack!.HexesMoved.ShouldBe(1);
