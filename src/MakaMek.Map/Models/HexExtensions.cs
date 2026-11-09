@@ -4,14 +4,6 @@ namespace Sanet.MakaMek.Map.Models;
 
 public static class HexExtensions
 {
-    /// <summary>
-    /// The DFA attacker's feet hang two levels above the higher of the declared target hex and the
-    /// approach hex (Total Warfare p. 150; BattleMech Manual p. 37 errata clarification: the
-    /// attacker's "level" is two above the higher hex and its LOS level then adds its standing
-    /// height). Stored as the airborne base on the approach position; LOS adds the unit height.
-    /// </summary>
-    public const int DfaAirborneBaseOffset = 2;
-
     extension(Hex hex)
     {
         public Hex WithTerrain(Terrain terrain)

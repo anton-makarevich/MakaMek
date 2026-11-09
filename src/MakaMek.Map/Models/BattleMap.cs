@@ -49,11 +49,12 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
         int unitHeight,
         IReadOnlySet<HexCoordinates>? prohibitedHexes = null,
         PathFindingMode pathFindingMode = PathFindingMode.Shortest,
-        int? maxLevelChange = null)
+        int? maxLevelChange = null,
+        int approachWaypointOffset = 0)
     {
         if (movementType == MovementType.Jump)
         {
-            return FindJumpPath(start, target, maxMovementPoints);
+            return FindJumpPath(start, target, maxMovementPoints, approachWaypointOffset);
         }
 
         return FindPathCore(pathFindingMode, start, target, movementType, maxMovementPoints, prohibitedHexes, unitHeight, maxLevelChange);
@@ -684,7 +685,8 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
         };
     }
 
-    private MovementPath? FindJumpPath(HexPosition from, HexPosition to, int movementPoints)
+    private MovementPath? FindJumpPath(HexPosition from, HexPosition to, int movementPoints,
+        int approachWaypointOffset)
     {
         if (!IsOnMap(from.Coordinates) || !IsOnMap(to.Coordinates))
             return null;
@@ -694,7 +696,8 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
             to,
             true,
             unitHeight: 0,
-            jumpMovementPoints: movementPoints);
+            jumpMovementPoints: movementPoints,
+            approachWaypointOffset: approachWaypointOffset);
         if (cachedPath != null)
             return cachedPath;
 
@@ -712,7 +715,8 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
             var sameHexPath = new MovementPath(
                 [new PathSegment(from, to, [], ElevationChange: 0)],
                 MovementType.Jump);
-            _movementPathCache.Add(sameHexPath, 0, movementPoints, keyStart: from, keyDestination: to);
+            _movementPathCache.Add(sameHexPath, 0, movementPoints, keyStart: from, keyDestination: to,
+                approachWaypointOffset: approachWaypointOffset);
             return sameHexPath;
         }
 
@@ -726,12 +730,13 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
         if (route == null)
             return null;
 
-        var levels = BuildJumpLevels(route, startLevel, ceiling);
+        var levels = BuildJumpLevels(route, startLevel, ceiling, approachWaypointOffset);
         if (levels == null)
             return null;
 
         var result = BuildJumpPath(from, to, route, levels);
-        _movementPathCache.Add(result, 0, movementPoints, keyStart: from, keyDestination: to);
+        _movementPathCache.Add(result, 0, movementPoints, keyStart: from, keyDestination: to,
+            approachWaypointOffset: approachWaypointOffset);
         return result;
     }
 
@@ -782,7 +787,8 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
     /// destination)</c>, whether or not the jump is a DFA, so DFA LOS can read it directly. An
     /// adjacent jump has no intermediate position, so its start position carries that waypoint.
     /// </summary>
-    private int?[]? BuildJumpLevels(IReadOnlyList<HexCoordinates> route, int startLevel, int ceiling)
+    private int?[]? BuildJumpLevels(IReadOnlyList<HexCoordinates> route, int startLevel, int ceiling,
+        int approachWaypointOffset)
     {
         var lastIndex = route.Count - 1;
         var levels = new int?[route.Count];
@@ -802,11 +808,11 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
         if (Math.Max(startSideLevel, referenceLevels[lastIndex]) > ceiling)
             return null;
 
-        // The stored waypoint is the airborne base of a DFA attacker's feet: two levels above the
-        // higher of the approach and target reference levels. It is also the start hex for an
-        // adjacent jump, so an adjacent DFA can read its base from it. LOS adds the unit height.
+        // The stored waypoint is the airborne base the caller supplied for the approach position:
+        // the higher of the approach and target reference levels plus the caller's rule offset.
+        // It is also the start hex for an adjacent jump. LOS adds the unit height.
         var approachLevel = Math.Max(referenceLevels[approachIndex], referenceLevels[lastIndex])
-                            + HexExtensions.DfaAirborneBaseOffset;
+                            + approachWaypointOffset;
 
         if (lastIndex == 1)
         {

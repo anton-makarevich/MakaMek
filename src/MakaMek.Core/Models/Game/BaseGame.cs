@@ -223,7 +223,7 @@ public abstract class BaseGame : IGame
             // this handler, so they compute the same value without a new wire field. Only a pending
             // DFA is airborne; a Charge stop position stays grounded.
             var airborneLevel = moveCommand.Declaration.IsDfa()
-                ? BattleMap?.GetDfaAirborneBaseLevel(stopAt, path.Destination)
+                ? BattleMap?.GetDfaAirborneBaseLevel(RulesProvider, stopAt, path.Destination)
                 : null;
             stopAt = stopAt with { AirborneLevel = airborneLevel };
         }

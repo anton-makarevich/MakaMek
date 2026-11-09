@@ -283,7 +283,8 @@ public class MovementState : IUiState
             _selectedUnit.MaxLevelChangeForward,
             _selectedUnit.MaxLevelChangeBackward,
             _prohibitedHexes,
-            targetSurface: surface) ?? [];
+            targetSurface: surface,
+            rulesProvider: Game!.RulesProvider) ?? [];
 
         TransitionTo(new SelectingDirectionStep(this, hex.Coordinates));
     }
@@ -305,7 +306,8 @@ public class MovementState : IUiState
             _selectedUnit.MaxLevelChangeForward,
             _selectedUnit.MaxLevelChangeBackward,
             _prohibitedHexes,
-            targetSurface: surface) ?? [];
+            targetSurface: surface,
+            rulesProvider: Game!.RulesProvider) ?? [];
 
         TransitionTo(new SelectingDirectionStep(this, targetHex));
     }

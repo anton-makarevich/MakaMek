@@ -82,7 +82,8 @@ public class MovementTools
                     unit.Height,
                     unit.MaxLevelChangeForward,
                     unit.MaxLevelChangeBackward,
-                    occupiedHexes);
+                    occupiedHexes,
+                    rulesProvider: game.RulesProvider);
 
                 // Evaluate each valid path (each facing)
                 foreach (var path in paths.Values)
@@ -183,7 +184,8 @@ public class MovementTools
                     unit.Height,
                     unit.MaxLevelChangeForward,
                     unit.MaxLevelChangeBackward,
-                    occupiedHexes);
+                    occupiedHexes,
+                    rulesProvider: game.RulesProvider);
 
         // Find the path that ends with the requested facing
         var matchingPath = paths.Values.FirstOrDefault(p => p.Destination.Facing == targetFacing);

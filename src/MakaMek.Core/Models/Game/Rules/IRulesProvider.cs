@@ -22,6 +22,14 @@ public interface IRulesProvider
     int GetTargetMovementModifier(int hexesMoved);
 
     /// <summary>
+    /// Gets the number of levels a Death From Above attacker's feet are above the higher of the
+    /// declared target hex and its approach hex during the Weapon Attack Phase. The value is the
+    /// attacker's mid-air base, not its LOS top: line of sight then adds the unit's height
+    /// (Total Warfare p. 150; BattleMech Manual p. 37 errata clarification).
+    /// </summary>
+    int GetDfaAirborneBaseOffset();
+
+    /// <summary>
     /// Gets the per-type base modifier for a physical attack.
     /// Later milestones extend the table: Charge/DFA +0 (M3),
     /// physical weapons -1/-2 (M4), Club -1 (M5).

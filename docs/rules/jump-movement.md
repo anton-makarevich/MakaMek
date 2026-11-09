@@ -78,14 +78,16 @@ For a jump path `p0 … pn`:
 
   ```text
   AirborneLevel(approach) = max(referenceLevel(approach), referenceLevel(destination))
-                            + HexExtensions.DfaAirborneBaseOffset  // 2
+                            + dfaAirborneBaseOffset
   ```
 
-  The extra two levels are the DFA attacker's mid-air base (its feet are two levels above the
-  higher hex); line of sight then adds the unit height. The value is calculated for every jump,
-  not only a DFA. A normal jump ends grounded, so for it this base only appears in the internal
-  profile; an adjacent jump has no intermediate position, so its start position carries the
-  waypoint instead.
+  `dfaAirborneBaseOffset` is supplied by the rules layer
+  (`IRulesProvider.GetDfaAirborneBaseOffset()`, currently 2); the map itself defaults to 0 and
+  knows nothing about DFA. The extra two levels are the DFA attacker's mid-air base (its feet are
+  two levels above the higher hex); line of sight then adds the unit height. The value is calculated
+  for every jump, not only a DFA. A normal jump ends grounded, so for it this base only appears in
+  the internal profile; an adjacent jump has no intermediate position, so its start position
+  carries the waypoint instead.
 - Other intermediate levels interpolate linearly from the start level (the unit's standing level
   in `p0`) to the approach waypoint, round **up** (`Math.Ceiling`), and are clamped to
   `[referenceLevel(p_i), startLevel + availableJumpingMP]`.

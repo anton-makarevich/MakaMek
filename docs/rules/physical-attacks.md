@@ -105,7 +105,8 @@ buildings.
 **Authoritative recomputation:** `BaseGame.OnMoveUnit` computes the approach position's
 `AirborneLevel` from the map for every completed DFA move, on both the server and the clients.
 `MovementTaken.Destination` supplies the declared target hex. The map's jump profile stores the
-same `max(...) + 2` base on the approach waypoint (`HexExtensions.DfaAirborneBaseOffset`), so the
+same `max(...) + 2` base on the approach waypoint (the rules provider supplies the offset to the
+map jump-profile calculation through `IRulesProvider.GetDfaAirborneBaseOffset()`), so the
 path and the derived level agree. The submitted waypoint level is not trusted: legacy payloads
 have none and a client can forge one. The submitted path segments, `MovementTaken`, MP and
 `HexesTraveled` are left unchanged, so TMM and attack modifiers are unchanged. No new wire field
