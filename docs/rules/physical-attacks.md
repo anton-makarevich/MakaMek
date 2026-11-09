@@ -218,7 +218,7 @@ The water rules decide whether a physical attack may be **made at all** — they
 
 **Charge and DFA — movement-phase attacks.** These attacks are declared while the attacker moves, so the waterline rule is evaluated at declaration time:
 
-* **Charge:** the attack must be entirely underwater. A fully submerged 'Mech may charge another fully submerged unit. A submerged unit **cannot** charge a surface or Depth 1 unit, and a surface/Depth 1 unit **cannot** charge a submerged unit. A standing 'Mech in Depth 1 water may charge another standing unit because neither is fully submerged. In implementation terms, the attacker at the **approach position** and the target must be on the same side of the waterline.
+* **Charge:** when either the attacker at the approach position or the target is fully submerged, the attack must be entirely underwater. A fully submerged 'Mech may charge another fully submerged unit. A submerged unit **cannot** charge a surface or Depth 1 unit, and a surface/Depth 1 unit **cannot** charge a submerged unit. A standing 'Mech in Depth 1 water may charge another standing unit because neither is fully submerged. In implementation terms, the attacker at the **approach position** and the target must be on the same side of the waterline.
 
   | Approach position | Target | Charge |
   | :--- | :--- | :--- |

@@ -74,7 +74,7 @@ This counterexample applies to Punch/Kick/Push. It does not apply to Charge, bec
 - The Charge test `HandleCommand_WhenTheChargeTargetIsSubmerged_ShouldRejectTheCharge` is **confounded**. Its target hex has raw level 1 with Depth 2 water, so the target's effective standing level is −1 against an approach level of 1 — a two-level difference. The level check alone rejects it, so the test does not isolate the water rule.
 - The endpoint helpers ignore `AirborneLevel`. Physical reach deliberately stays grounded for a pending DFA attacker; the airborne contract of `GetLosEndpointInfo` belongs to line of sight and is not reused here.
 - The DFA clearance formula (`Jump MP >= targetStandingLevel + target.Height`) does not subtract the start standing level. This is recorded as an open question, not as a defect.
-- `Unit.IsSubmerged` and the map-based endpoint can disagree after a map hex is replaced, because `Unit.IsSubmerged` reads the stored `Unit.Hex`. This matters only to the jump-jet guard; it is recorded as an open question.
+- `Unit.IsSubmerged` / `UnitPart.IsSubmerged` and the map-based endpoint can disagree after a map hex is replaced, because they read the stored `Unit.Hex`; they can also disagree for a unit on a bridge over water, because `UnitPart.IsSubmerged` ignores the occupied surface. This matters to the jump-jet guard and is recorded as an open question.
 
 ## Decisions
 
@@ -226,7 +226,7 @@ These rules are recorded for completeness but are **not** implemented or changed
 | Item | Status |
 | :--- | :--- |
 | DFA clearance formula does not subtract the start standing level | **Open question.** Compare with the jump ceiling in `BattleMap`; track in Issue C. |
-| `Unit.IsSubmerged` (stored `Unit.Hex`) and the map endpoint can disagree after a hex replacement | **Open question.** Affects the jump-jet guard only; track in Issue C. |
+| `Unit.IsSubmerged` / `UnitPart.IsSubmerged` (stored `Unit.Hex`, surface-unaware) and the map endpoint can disagree after a hex replacement **or for a unit on a bridge over water** | **Open question.** Affects the jump-jet guard only: a bridge over Depth 2 water can make torso `JumpJets` report `IsSubmerged` even though the map endpoint is not submerged. Track in Issue C. |
 | `AirborneLevel` handling for attack endpoints | **Open question, not a defect.** Physical reach deliberately stays grounded; LOS is the only consumer of `AirborneLevel`. |
 | Charge/DFA resolution, underwater half damage, hull breach on charge | **Not implemented.** #1503 and the Charge/DFA resolution milestones. |
 
@@ -234,7 +234,7 @@ These rules are recorded for completeness but are **not** implemented or changed
 
 These are recorded here for the maintainer to file as separate, reviewable GitHub issues. None is implemented in this change.
 
-### Issue A — Extract the shared endpoint primitive (behaviour-preserving)
+### Issue A — Extract the shared endpoint primitive (behaviour-preserving) — [#1697](https://github.com/anton-makarevich/MakaMek/issues/1697)
 
 - Add `PhysicalAttackEndpoint` and `PhysicalAttackEndpointExtensions` in `src/MakaMek.Core/Models/Game/Mechanics/PhysicalAttack/`.
 - Replace the private `UnitEndpoint`/`GetEndpoint` in `PhysicalAttackEligibility.cs` and in `MovementAttackDeclarationValidator.cs` with the shared record and extension.
@@ -261,7 +261,7 @@ These are recorded here for the maintainer to file as separate, reviewable GitHu
 - Keep the explicit rejection of a submerged DFA target and comment it with a reference to this document.
 - Rename or comment the attacker-submersion guard as a jump-jet capability check.
 - Investigate whether the DFA clearance formula must subtract the start standing level; compare with the jump ceiling calculation in `BattleMap`.
-- Investigate whether `Unit.Hex` jet availability and the map-based endpoint can disagree after a hex replacement.
+- Investigate whether `Unit.Hex` jet availability and the map-based endpoint can disagree after a hex replacement **or for a unit on a bridge over water**. `UnitPart.IsSubmerged` reads `Unit.Hex.GetWaterDepth()` without the occupied surface, so a bridge over Depth 2 water can mark torso jump jets as submerged and prevent a legal jump even when the hex has not been replaced. Keep the map-replacement case.
 - Report findings before changing any behaviour.
 
 ### Issue D — Make the movement validator replaceable (optional)
