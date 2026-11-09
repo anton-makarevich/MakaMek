@@ -217,5 +217,22 @@ public static class BattleMapExtensions
 
             return new ReachableArea(forwardReachableHexes, backwardReachableHexes);
         }
+
+        /// <summary>
+        /// The absolute base level of a pending Death From Above attacker while it waits in its
+        /// approach hex: the higher of the reference levels of the declared target hex and the
+        /// approach hex (Total Warfare p. 150). Line of sight adds the unit's height to this value.
+        /// Returns <c>null</c> when either hex is missing from the map.
+        /// </summary>
+        /// <param name="approachPosition">The approach hex where the attacker waits.</param>
+        /// <param name="declaredTargetPosition">The declared DFA target hex from the movement path.</param>
+        public int? GetDfaAirborneBaseLevel(HexPosition approachPosition, HexPosition declaredTargetPosition)
+        {
+            var approachHex = map.GetHex(approachPosition.Coordinates);
+            var targetHex = map.GetHex(declaredTargetPosition.Coordinates);
+            if (approachHex == null || targetHex == null) return null;
+
+            return Math.Max(approachHex.GetReferenceLevel(), targetHex.GetReferenceLevel());
+        }
     }
 }

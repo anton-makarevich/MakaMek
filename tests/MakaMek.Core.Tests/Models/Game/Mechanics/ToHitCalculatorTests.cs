@@ -178,6 +178,65 @@ public class ToHitCalculatorTests
     }
 
     [Fact]
+    public void GetModifierBreakdown_AirborneDfaApproach_IsVisibleBehindAHillThatBlocksAGroundedUnit()
+    {
+        // Arrange - the shooter is at (1,5), the DFA waits at (1,3), its declared target hex is
+        // (1,2) at level 3, and a level-3 hill sits at (1,4) between the shooter and the approach.
+        var map = BattleMapFactory.GenerateMap(1, 5,
+            new SingleTerrainGenerator(1, 5, new ClearTerrain()));
+        map.GetHex(new HexCoordinates(1, 4))!.WithLevel(3);
+        map.GetHex(new HexCoordinates(1, 2))!.WithLevel(3);
+
+        var approach = new HexPosition(new HexCoordinates(1, 3), HexDirection.Top,
+            AirborneLevel: 3); // max(reference(1,2)=3, reference(1,3)=0)
+        var grounded = new HexPosition(new HexCoordinates(1, 3), HexDirection.Top);
+        var shooter = new HexPosition(new HexCoordinates(1, 5), HexDirection.Top);
+
+        AttackScenario Scenario(HexPosition attackerPosition, HexPosition targetPosition,
+            int targetHexesMoved = 0) =>
+            AttackScenario.FromHypothetical(
+                attackerGunnery: 4,
+                attackerPosition: attackerPosition,
+                attackerMovementType: MovementType.StandingStill,
+                targetPosition: targetPosition,
+                targetHexesMoved: targetHexesMoved,
+                attackerModifiers: [],
+                attackerHeight: 2,
+                targetHeight: 2);
+
+        // Act
+        _rules.GetTargetMovementModifier(3).Returns(1);
+        var groundedResult = _sut.GetModifierBreakdown(Scenario(shooter, grounded), _weapon, map);
+        var airborneResult = _sut.GetModifierBreakdown(Scenario(shooter, approach), _weapon, map);
+        var reversedResult = _sut.GetModifierBreakdown(
+            Scenario(approach, shooter, targetHexesMoved: 3), _weapon, map);
+
+        // Assert - the hill blocks the grounded unit but not the airborne attacker
+        groundedResult.HasLineOfSight.ShouldBeFalse("a grounded mech behind the hill is blocked");
+        airborneResult.HasLineOfSight.ShouldBeTrue("the airborne attacker clears the hill");
+        reversedResult.HasLineOfSight.ShouldBeTrue(
+            "the airborne level applies to the attacker endpoint as well");
+
+        map.GetLineOfSight(shooter, grounded, 2, 2).TargetLosLevel
+            .ShouldBe(2, "grounded level 0 plus the mech height of 2");
+        map.GetLineOfSight(shooter, approach, 2, 2).TargetLosLevel
+            .ShouldBe(5, "airborne base 3 plus the mech height 2, added exactly once");
+        map.GetLineOfSight(approach, shooter, 2, 2).AttackerLosLevel
+            .ShouldBe(5, "the same level in the reversed direction");
+
+        // Range is still measured from the approach hex (1,3) to the declared target (1,2).
+        var toDeclaredTarget = _sut.GetModifierBreakdown(
+            Scenario(approach, new HexPosition(new HexCoordinates(1, 2), HexDirection.Top)),
+            _weapon, map);
+        toDeclaredTarget.RangeModifier.Distance.ShouldBe(1);
+        toDeclaredTarget.RangeModifier.Range.ShouldBe(RangeBracket.Short);
+
+        // The distance-based target movement modifier is unchanged.
+        reversedResult.TargetMovement.Value.ShouldBe(1);
+        reversedResult.TargetMovement.HexesMoved.ShouldBe(3);
+    }
+
+    [Fact]
     public void GetToHitModifier_OutOfRange_ReturnsMaxValue()
     {
         // Arrange

@@ -6,9 +6,11 @@ namespace Sanet.MakaMek.Map.Models;
 /// Represents a position on the hex map, combining coordinates and facing direction
 /// </summary>
 /// <param name="AirborneLevel">
-/// The base/elevation level of the unit at this position while it is airborne, or <c>null</c>
-/// when the position is grounded. It is the unit's base level, not its LOS top: consumers add
-/// the unit or mount height. Jump pathfinding writes it on intermediate jump positions.
+/// The absolute base/elevation level of the unit at this position while it is airborne, or
+/// <c>null</c> when the position is grounded. It is the unit's base level, not its LOS top:
+/// consumers add the unit or mount height. Jump pathfinding writes it on the jump-profile positions.
+/// After a completed move the only stored non-null case is a pending Death From Above attacker's
+/// approach position; the server re-derives that value from the map when it applies the move.
 /// </param>
 public record HexPosition(
     HexCoordinates Coordinates,

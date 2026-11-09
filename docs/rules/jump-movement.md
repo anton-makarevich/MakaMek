@@ -112,7 +112,14 @@ Because `Position.AirborneLevel` already equals
 `max(referenceLevel(target), referenceLevel(approach))`, the LOS level is two levels above the
 higher hex for a standing 'Mech, independent of which unit is shooting. LOS consumers pass
 `Position.AirborneLevel` through the optional base-level parameters of `IBattleMap.GetLineOfSight`;
-they must not derive a second DFA level.
+they must not derive a second DFA level. The full rules decision, including the prone attacker,
+reference levels and the errata discrepancy, is in
+[`physical-attacks.md`](physical-attacks.md#31-death-from-above--line-of-sight-during-the-weapon-attack-phase).
+
+`BaseGame.OnMoveUnit` re-derives the approach `AirborneLevel` from the map for every completed
+DFA, on both the server and the clients, so a missing (legacy) or forged submitted waypoint does
+not reach `Unit.Position`. Only the stop position's airborne level is replaced; the submitted
+segments, `MovementTaken`, MP and `HexesTraveled` are unchanged.
 
 The airborne value is cleared when the pending movement attack ends: on `ResetTurnState` and when
 the attacker is destroyed. The DFA stop position itself is unchanged (issue #1681).
@@ -134,5 +141,8 @@ offset. The profile exists for path validity and LOS; movement playback stays pl
 
 - Building terrain and roof levels.
 - Non-jump airborne units (VTOL, WiGE, aerospace).
-- Server-side re-validation of submitted jump routes or profiles.
+- Full server-side re-validation of submitted jump routes (the DFA approach level is derived, not
+  trusted, but a forged route is otherwise accepted).
 - DFA physical attack resolution (tracked separately).
+- The target-jump +1 to-hit modifier, the approach-hex choice and facing toward the target; see
+  the follow-ups in `physical-attacks.md`.

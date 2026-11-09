@@ -52,7 +52,9 @@ public interface IBattleMap
 
     /// <summary>
     /// Calculates the line of sight between two positions, taking each position's surface and
-    /// airborne level directly from the <see cref="HexPosition"/>.
+    /// airborne level directly from the <see cref="HexPosition"/>. A non-null airborne level is an
+    /// absolute base (a pending DFA attacker's approach position); the endpoint is then never
+    /// treated as submerged and its LOS level is the airborne base plus the supplied height.
     /// </summary>
     /// <param name="from">Source position, including its surface and airborne level.</param>
     /// <param name="to">Target position, including its surface and airborne level.</param>

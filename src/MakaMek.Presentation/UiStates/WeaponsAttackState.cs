@@ -403,11 +403,18 @@ public class WeaponsAttackState : IUiState, ICombatSelectionRoles
             }
         }
 
-        // Pass 2: Deduplicate LOS checks by unique mount level
+        // Pass 2: Deduplicate LOS checks by unique mount level. A hex can hold more than one unit,
+        // and a pending DFA attacker is airborne while a co-located unit stays grounded, so a hex
+        // result must consider every occupant instead of the first one found.
         var losResults = new Dictionary<(HexCoordinates Hex, int Level), LineOfSightResult>();
 
         if (Game.BattleMap != null)
         {
+            var occupantsByHex = _viewModel.Units
+                .Where(u => u.Position != null && !ReferenceEquals(u, Attacker))
+                .GroupBy(u => u.Position!.Coordinates)
+                .ToDictionary(g => g.Key, g => g.ToList());
+
             // Gather the union of hexes per unique level
             var levelHexUnions = weaponCandidates
                 .GroupBy(wd => wd.MountLevel)
@@ -419,25 +426,10 @@ public class WeaponsAttackState : IUiState, ICombatSelectionRoles
             {
                 foreach (var hex in hexes)
                 {
-                    var key = (hex, level);
-                    
-                    // Excluded by reference: unit ids are not guaranteed to be unique in tests and a
-                    // co-located attacker must not be read as its own target.
-                    var targetUnit = _viewModel.Units
-                        .FirstOrDefault(u => u.Position?.Coordinates == hex
-                                             && !ReferenceEquals(u, Attacker));
-                    var targetHeight = targetUnit?.Height ?? 0;
-                    var toSurface = targetUnit?.Position?.Surface;
-
-                    losResults[key] = Game.BattleMap.GetLineOfSight(
-                        unitPosition.Coordinates,
-                        hex,
+                    losResults[(hex, level)] = GetLineOfSightToHex(
                         level,
-                        targetHeight,
-                        unitPosition.Surface,
-                        toSurface,
-                        unitPosition.AirborneLevel,
-                        targetUnit?.Position?.AirborneLevel);
+                        hex,
+                        occupantsByHex.GetValueOrDefault(hex));
                 }
             }
         }
@@ -611,8 +603,6 @@ public class WeaponsAttackState : IUiState, ICombatSelectionRoles
     {
         if (Attacker?.Position == null || SelectedTarget?.Position == null) return;
 
-        var targetCoords = SelectedTarget.Position.Coordinates;
-
         // Compute reversed LOS and partial cover for the attacker
         var reversedLosResult = Game.BattleMap?.GetLineOfSight(
             SelectedTarget.Position,
@@ -631,7 +621,7 @@ public class WeaponsAttackState : IUiState, ICombatSelectionRoles
                 vm.ModifiersBreakdown = null;
                 continue;
             }
-            var isInRange = IsWeaponInRange(weapon, targetCoords);
+            var isInRange = IsWeaponInRange(weapon, SelectedTarget);
             var target = Attacker?.WeaponAttackState.WeaponTargets.GetValueOrDefault(weapon);
             var isSelected = Attacker?.WeaponAttackState.IsWeaponAssigned(weapon, target) == true;
             vm.IsInRange = isInRange;
@@ -703,6 +693,62 @@ public class WeaponsAttackState : IUiState, ICombatSelectionRoles
     {
         return _weaponRanges.TryGetValue(weapon, out var range) && 
                range.Contains(targetCoords);
+    }
+
+    /// <summary>
+    /// Whether the weapon can fire at the selected unit. The hex highlight is an "any occupant"
+    /// result, so a co-located grounded unit must not inherit the airborne unit's line of sight:
+    /// once a target is selected, use that unit's own LOS result.
+    /// </summary>
+    private bool IsWeaponInRange(Weapon weapon, IUnit target)
+    {
+        if (target.Position == null || !IsWeaponInRange(weapon, target.Position.Coordinates))
+            return false;
+
+        if (Game.BattleMap == null || Attacker?.Position == null) return true;
+
+        return GetLineOfSightToUnit(weapon.FirstMountPart?.Level ?? 0, target).HasLineOfSight;
+    }
+
+    private LineOfSightResult GetLineOfSightToHex(
+        int mountLevel,
+        HexCoordinates hex,
+        IReadOnlyList<IUnit>? occupants)
+    {
+        if (occupants is { Count: > 0 })
+        {
+            LineOfSightResult? firstResult = null;
+            foreach (var occupant in occupants)
+            {
+                var occupantResult = GetLineOfSightToUnit(mountLevel, occupant);
+                if (occupantResult.HasLineOfSight) return occupantResult;
+                firstResult ??= occupantResult;
+            }
+
+            return firstResult!;
+        }
+
+        var attackerPosition = Attacker!.Position!;
+        return Game.BattleMap!.GetLineOfSight(
+            attackerPosition.Coordinates,
+            hex,
+            mountLevel,
+            0,
+            attackerPosition.Surface,
+            null,
+            attackerPosition.AirborneLevel,
+            null);
+    }
+
+    private LineOfSightResult GetLineOfSightToUnit(int mountLevel, IUnit target)
+    {
+        var attackerPosition = Attacker!.Position!;
+        var targetPosition = target.Position!;
+        return Game.BattleMap!.GetLineOfSight(
+            attackerPosition,
+            targetPosition,
+            mountLevel,
+            target.Height);
     }
 
     private void HandleWeaponSelection(Weapon weapon, bool selected)

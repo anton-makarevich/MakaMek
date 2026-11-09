@@ -934,4 +934,91 @@ public class BattleMapExtensionsTests
             .ShouldBeTrue();
         bridgeEntrySegment.Cost.ShouldBe(1, "Bridge entry should cost only the base hex entry MP");
     }
+
+    [Fact]
+    public void GetDfaAirborneBaseLevel_UsesTheHigherOfTheTwoReferenceLevels()
+    {
+        // Arrange - the target hex is higher than the approach hex
+        var map = CreateFlatMap(5, 5);
+        map.GetHex(new HexCoordinates(3, 4))!.WithLevel(2);
+        var approach = new HexPosition(new HexCoordinates(3, 3), HexDirection.Top);
+        var target = new HexPosition(new HexCoordinates(3, 4), HexDirection.Top);
+
+        // Act & Assert
+        map.GetDfaAirborneBaseLevel(approach, target).ShouldBe(2);
+        map.GetDfaAirborneBaseLevel(target, approach).ShouldBe(2,
+            "the formula is symmetric: the higher hex wins");
+    }
+
+    [Fact]
+    public void GetDfaAirborneBaseLevel_ApproachHigherThanTarget()
+    {
+        // Arrange
+        var map = CreateFlatMap(5, 5);
+        map.GetHex(new HexCoordinates(3, 3))!.WithLevel(3);
+        var approach = new HexPosition(new HexCoordinates(3, 3), HexDirection.Top);
+        var target = new HexPosition(new HexCoordinates(3, 4), HexDirection.Top);
+
+        // Act & Assert
+        map.GetDfaAirborneBaseLevel(approach, target).ShouldBe(3);
+    }
+
+    [Fact]
+    public void GetDfaAirborneBaseLevel_UsesTheBridgeDeckReferenceLevel()
+    {
+        // Arrange - the target hex has a bridge over deep water; the deck is the reference
+        var map = CreateFlatMap(5, 5);
+        var targetHex = map.GetHex(new HexCoordinates(3, 4))!;
+        targetHex.AddTerrain(new WaterTerrain(-2));
+        targetHex.AddTerrain(new BridgeTerrain(2, 0));
+        var approach = new HexPosition(new HexCoordinates(3, 3), HexDirection.Top);
+        var target = new HexPosition(new HexCoordinates(3, 4), HexDirection.Top,
+            HexSurface.Bridge);
+
+        // Act & Assert
+        map.GetDfaAirborneBaseLevel(approach, target).ShouldBe(2,
+            "a bridge deck is the reference level, not the riverbed or the raw water surface");
+    }
+
+    [Fact]
+    public void GetDfaAirborneBaseLevel_UsesTheWaterSurfaceFromTheApproachHex()
+    {
+        // Arrange - the approach hex is water; its surface (level) is the reference, not the bed
+        var map = CreateFlatMap(5, 5);
+        var approachHex = map.GetHex(new HexCoordinates(3, 3))!;
+        approachHex.AddTerrain(new WaterTerrain(-2));
+        var approach = new HexPosition(new HexCoordinates(3, 3), HexDirection.Top);
+        var target = new HexPosition(new HexCoordinates(3, 4), HexDirection.Top);
+
+        // Act & Assert
+        map.GetDfaAirborneBaseLevel(approach, target).ShouldBe(0,
+            "water contributes its surface level, never the riverbed (which would be -2)");
+    }
+
+    [Fact]
+    public void GetDfaAirborneBaseLevel_ReturnsNull_WhenAHexIsMissing()
+    {
+        // Arrange
+        var map = CreateFlatMap(5, 5);
+        var approach = new HexPosition(new HexCoordinates(3, 3), HexDirection.Top);
+        var offMapTarget = new HexPosition(new HexCoordinates(9, 9), HexDirection.Top);
+
+        // Act & Assert
+        map.GetDfaAirborneBaseLevel(approach, offMapTarget).ShouldBeNull();
+        map.GetDfaAirborneBaseLevel(offMapTarget, approach).ShouldBeNull();
+    }
+
+    private static BattleMap CreateFlatMap(int width, int height)
+    {
+        var map = new BattleMap(width, height);
+        for (var q = 1; q <= width; q++)
+        {
+            for (var r = 1; r <= height; r++)
+            {
+                map.AddHex(new Hex(new HexCoordinates(q, r)));
+            }
+        }
+
+        return map;
+    }
 }

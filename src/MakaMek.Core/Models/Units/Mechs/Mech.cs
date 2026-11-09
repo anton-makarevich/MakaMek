@@ -687,9 +687,12 @@ public class Mech : Unit
 
     /// <summary>
     /// Gets the mech's height in levels. Standing mechs are height 2, prone mechs are height 1.
-    /// Used for line of sight calculations.
+    /// Used for line of sight calculations. A pending DFA attacker stays airborne until the
+    /// attack resolves, so it keeps the standing height even if a weapon-phase fall made it
+    /// prone: the rule's "two levels" is the standing 'Mech height and a fall does not cancel
+    /// the DFA (see docs/rules/physical-attacks.md).
     /// </summary>
-    public override int Height => IsProne ? 1 : 2;
+    public override int Height => IsProne && Position?.AirborneLevel is null ? 1 : 2;
 
     /// <summary>
     /// BattleMechs can change elevation by up to 2 levels per hex when moving forward.
