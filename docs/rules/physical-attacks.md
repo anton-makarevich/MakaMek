@@ -202,23 +202,35 @@ is added.
 
 ### **6. Water — Physical Attack Eligibility (Total Warfare p. 109, p. 151; issue #1600)**
 
-The water rules decide whether a physical attack may be **made at all** — they are *eligibility* rules, not to-hit modifiers. The only to-hit effect of water on a physical attack is the **partial cover +1** a target in Depth 1 water receives (see §2), and the **damage halving** for attacks applied to an underwater location is a resolution rule (tracked in #1503), not an eligibility rule.
+The water rules decide whether a physical attack may be **made at all** — they are *eligibility* rules, not to-hit modifiers. The only to-hit effect of water on a physical attack is the **partial cover +1** a target in Depth 1 water receives (see §2), and the **damage halving** for attacks applied to an underwater location is a resolution rule (tracked in #1503), not an eligibility rule. The full decision is recorded in [`docs/architecture/Physical-Attack-Level-And-Water-Rules.md`](../architecture/Physical-Attack-Level-And-Water-Rules.md).
 
 **Effective standing levels (p. 109):** water counts as negative levels. A unit in a water hex stands at the bottom of that hex, so its effective standing level is `hex level − water depth`. A unit on a bridge over water stands at the bridge level and is never considered to be in water.
 
-**Restriction against submerged targets (p. 151):** a physical attack cannot be made against a unit that is **fully submerged** (water depth ≥ the unit's height — for a 'Mech: standing in Depth 2+ water, or prone in Depth 1 water) unless the attack **begins underwater as well**:
+**Punch, Kick and Push — target-side rule (p. 151):** an attack cannot be made against a unit that is **fully submerged** (water depth ≥ the unit's height — for a 'Mech: standing in Depth 2+ water, or prone in Depth 1 water) unless the attack **begins underwater as well**:
 
 | Attacker's position | Attacks allowed against a submerged target |
 | :--- | :--- |
 | **Not in water** (on land or on a bridge) | **None** — no part of the attack is underwater |
-| **Standing in Depth 1 water** (half-submerged: torso and arms above the surface) | **Kick only** — the only attack that occurs entirely underwater. Punches, charges, DFA and other attacks that would partly take place above the surface are illegal |
-| **Fully submerged** (Depth 2+ water, or prone in Depth 1 water) | **Any** supported attack — the whole attack takes place underwater |
+| **Standing in Depth 1 water** (half-submerged: torso and arms above the surface) | **Kick only** — the only melee attack that occurs entirely underwater. A punch or push would partly take place above the surface |
+| **Fully submerged** (Depth 2+ water, or prone in Depth 1 water) | **Any** supported melee attack — the whole attack takes place underwater |
 
-**No attacker-side restriction toward surface targets:** the Depth 2+ paragraph grants a fully submerged 'Mech permission to make any of the listed physical attacks without restricting the target's state. An underwater attacker may therefore attack a surface target subject to the normal requirements — adjacency, arcs, and the **Different Levels Table** acting on the effective standing levels of both units. (In practice the level difference usually blocks such attacks geometrically.)
+**No attacker-side restriction toward surface targets (Punch, Kick, Push):** the Depth 2+ paragraph grants a fully submerged 'Mech permission to make any of the listed physical attacks without restricting the target's state. An underwater attacker may therefore punch or push a surface target subject to the normal requirements — adjacency, arcs, and the **Different Levels Table** acting on the effective standing levels of both units. A **Depth 1 attacker** is also explicitly unrestricted against a surface target: it "may make any physical attack, provided the unit meets the normal requirements for each type of attack".
 
-**Depth 1 attacker against a surface target:** explicitly unrestricted — a 'Mech standing in Depth 1 water "may make any physical attack, provided the unit meets the normal requirements for each type of attack".
+**Charge and DFA — movement-phase attacks.** These attacks are declared while the attacker moves, so the waterline rule is evaluated at declaration time:
 
-**Implementation:** `PhysicalAttackEligibility` applies these rules (and the effective-standing-level comparison) to punch/kick declarations; the same rules are re-checked at resolution time via `CanResolve` and `PhysicalAttackTargetValidityGate`, so a declaration that has become illegal by resolution is skipped automatically.
+* **Charge:** when either the attacker at the approach position or the target is fully submerged, the attack must be entirely underwater. A fully submerged 'Mech may charge another fully submerged unit. A submerged unit **cannot** charge a surface or Depth 1 unit, and a surface/Depth 1 unit **cannot** charge a submerged unit. A standing 'Mech in Depth 1 water may charge another standing unit because neither is fully submerged. In implementation terms, the attacker at the **approach position** and the target must be on the same side of the waterline.
+
+  | Approach position | Target | Charge |
+  | :--- | :--- | :--- |
+  | Surface or Depth 1 (not fully submerged) | Surface or Depth 1 (not fully submerged) | Legal |
+  | Surface or Depth 1 (not fully submerged) | Fully submerged | Illegal |
+  | Fully submerged | Surface or Depth 1 (not fully submerged) | Illegal |
+  | Fully submerged | Fully submerged | Legal |
+
+* **DFA:** the attack is **never** entirely underwater. A fully submerged target is rejected by an explicit check because DFA has no level comparison to fall back on. A fully submerged attacker is also rejected, but under the **jump-jet rule** ("jump jets cannot be fired while submerged"), not under the physical-attack water rule. A 'Mech in Depth 1 water can still jump with its torso-mounted jets.
+* **DFA against a target standing in Depth 1 water:** legal. A standing 'Mech is waist-deep, so its torso and head remain above the surface and it is **not** submerged; the target-side rule only protects a fully submerged unit. The attacker needs enough Jumping MP to clear the target hex's standing level plus the target's height (for a Depth 1 hex at level 0 the waterbed is −1 and a standing 'Mech reaches +1). If the DFA lands in the water hex, the attacker makes a landing PSR; on success it stands on the waterbed, on failure it falls onto the waterbed.
+
+**Implementation scope:** `PhysicalAttackEligibility` applies the Punch/Kick/Push rules (and the effective-standing-level comparison) to physical-phase declarations; the same rules are re-checked at resolution time via `CanResolve` and `PhysicalAttackTargetValidityGate`, so a declaration that has become illegal by resolution is skipped automatically. `MovementAttackDeclarationValidator` applies the Charge/DFA declaration rules. **Charge/DFA resolution is not implemented yet**, so the resolution-time water rules (half damage, hull breach on a charge) are tracked separately (#1503 and the Charge/DFA milestones).
 
 ---
 
@@ -232,3 +244,4 @@ A decision is recorded here about where physical-attack knowledge lives:
 * **`PhysicalAttackDefinitions` holds structural metadata only** — which attack types exist, their candidate limbs and the maximum limbs per declaration. Dynamic policy (arcs, actuator prerequisites, fired-weapon restrictions, level differences, target checks) stays in the eligibility service.
 * **`GetRestriction` explains every supported type.** Punch, Kick and Push derive the restriction and the reaching limbs from the same private evaluation, so a null restriction always means the attack has at least one reaching limb apart from the one-attack-per-turn rule. The first failure wins; the melee order is generic validity, water, level difference, arc, then limbs.
 * **`GetDeclarationRestriction` adds the declaration-only budget check.** It returns the intrinsic `GetRestriction` first and then reports `TargetAlreadyDisplaced` only for a displacement attack whose target is already reserved this turn. `CanResolve` and `HasAnyOption` are unchanged and never apply the budget, so a declaration that reserved the target can still resolve.
+* **Qualified by the physical-attack level and water decision ([#1685](https://github.com/anton-makarevich/MakaMek/issues/1685)).** A shared Core endpoint record (effective standing level, submersion, in-water) and a small attack-type water predicate are planned, but the Different-Levels table stays local to this policy and no new eligibility interface is introduced. Charge/DFA remain in `MovementAttackDeclarationValidator`. See [`Physical-Attack-Level-And-Water-Rules.md`](../architecture/Physical-Attack-Level-And-Water-Rules.md).
