@@ -336,6 +336,69 @@ public class ChargeDisplacementResolverTests
     }
 
     [Fact]
+    public void ResolveHit_WhenTheCommittedMovementHasOnlyTurns_ReturnsNull()
+    {
+        // Arrange: a path without a translation cannot define a charge direction.
+        var map = CreateMap();
+        var attacker = CreateMech(new HexPosition(AttackerCoordinates, ChargeDirection));
+        var target = CreateMech(new HexPosition(TargetCoordinates, HexDirection.Bottom));
+        var turnOnlyPath = new MovementPath(
+            [new PathSegment(
+                attacker.Position!,
+                attacker.Position! with { Facing = ChargeDirection.Rotate(1) },
+                [])],
+            MovementType.Walk);
+        attacker.Move(turnOnlyPath, null, true, attacker.Position);
+
+        // Act
+        var result = _sut.ResolveHit(attacker, target, map, [attacker, target]);
+
+        // Assert
+        result.ShouldBeNull();
+    }
+
+    [Fact]
+    public void ResolveHit_WhenTheLastTranslationIsNotOneHex_ReturnsNull()
+    {
+        // Arrange: the committed movement must approach the target from an adjacent hex.
+        var map = CreateMap();
+        var attacker = CreateMech(new HexPosition(AttackerCoordinates, ChargeDirection));
+        var target = CreateMech(new HexPosition(TargetCoordinates, HexDirection.Bottom));
+        var farCoordinates = AttackerCoordinates
+            .GetNeighbour(ChargeDirection)
+            .GetNeighbour(ChargeDirection);
+        var nonAdjacentPath = new MovementPath(
+            [new PathSegment(
+                attacker.Position!,
+                new HexPosition(farCoordinates, ChargeDirection),
+                [])],
+            MovementType.Walk);
+        attacker.Move(nonAdjacentPath, null, true, attacker.Position);
+
+        // Act
+        var result = _sut.ResolveHit(attacker, target, map, [attacker, target]);
+
+        // Assert
+        result.ShouldBeNull();
+    }
+
+    [Fact]
+    public void ResolveHit_WhenTheTargetHasNoPosition_ReturnsNull()
+    {
+        // Arrange: an undeployed target has no hex to be displaced from.
+        var map = CreateMap();
+        var attacker = CreateMech(new HexPosition(AttackerCoordinates, ChargeDirection));
+        var target = CreateMechWithoutDeployment();
+        MoveToChargeApproach(attacker, new HexPosition(TargetCoordinates, ChargeDirection));
+
+        // Act
+        var result = _sut.ResolveHit(attacker, target, map, [attacker, target]);
+
+        // Assert
+        result.ShouldBeNull();
+    }
+
+    [Fact]
     public void ResolveAdvance_WithoutACommittedMovement_ReturnsNull()
     {
         // Arrange
