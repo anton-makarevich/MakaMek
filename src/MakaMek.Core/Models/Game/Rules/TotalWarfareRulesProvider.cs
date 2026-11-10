@@ -277,7 +277,8 @@ public class TotalWarfareRulesProvider : IRulesProvider
         if (hexesMoved < 0)
             throw new ArgumentOutOfRangeException(nameof(hexesMoved), "Hexes moved cannot be negative.");
 
-        return (attackerTonnage + 9) / 10 * hexesMoved;
+        // Multiplication precedes rounding: (tonnage / 10) × hexes, rounded up.
+        return (attackerTonnage * hexesMoved + 9) / 10;
     }
 
     /// <inheritdoc />

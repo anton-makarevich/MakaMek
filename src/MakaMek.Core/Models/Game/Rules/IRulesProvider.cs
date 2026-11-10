@@ -56,8 +56,8 @@ public interface IRulesProvider
 
     /// <summary>
     /// Gets the damage a successful charge deals to its target: one point per ten tons of the
-    /// attacker's tonnage (rounded up) multiplied by the number of hexes moved before entering the
-    /// target hex (Total Warfare, p. 148).
+    /// attacker's tonnage multiplied by the number of hexes moved before entering the target
+    /// hex, with the result rounded up (Total Warfare, p. 148).
     /// </summary>
     /// <param name="attackerTonnage">The charging unit's tonnage.</param>
     /// <param name="hexesMoved">The hexes the attacker moved before entering the target hex.</param>

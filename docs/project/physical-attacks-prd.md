@@ -36,7 +36,7 @@ The authoritative rules source for this feature is [`docs/rules/physical-attacks
 | Club | −1 | ⌈Tonnage/5⌉ | Standard table; improvised object (severed limb, tree, girder); both arms with undamaged shoulders **and hands**, no arm weapons fired from either arm |
 | Push | −1 | 0 | Displacement + target PSR (see §4 of rules doc) |
 | Physical weapon (hatchet/sword) | −1 / −2 | ⌈Tonnage/5⌉ / ⌈Tonnage/10⌉ + 1 | Standard table; weapon arm only; optional punch/kick table with +4 |
-| Charge | +0 | ⌈Tonnage/10⌉ × hexes moved (5-pt clusters); attacker takes ⌈target tonnage/10⌉ | Displaces target; both PSR (+2) on hit |
+| Charge | +0 | ⌈(Tonnage / 10) × hexes moved⌉ (5-pt clusters); attacker takes ⌈target tonnage/10⌉ | Displaces target; both PSR (+2) on hit |
 | DFA | +0 | ⌈Attacker tonnage/10⌉ × 3 to target (punch table); attacker takes ⌈tonnage/5⌉ to legs on hit | Attacker PSR +4, target PSR +2 on hit; attacker auto-falls on miss |
 
 5. **Weapon-firing restrictions** — a limb with weapons fired during the Weapon Attack Phase cannot punch/kick; a kicking leg's weapons cannot fire that turn; push requires both arms with no arm weapons fired. **Club** requires undamaged shoulder **and hand** actuators in both arms and no arm weapons fired from either arm (carrying a club occupies both hands). **Physical weapons** (hatchet/sword) restrict only the single weapon arm.
@@ -314,7 +314,7 @@ Physical-attack eligibility stays a **policy service**, not a rules-provider tab
 
 6.2. **To-hit:** Piloting base + relative piloting skill modifier (attacker piloting − target piloting) + jump modifier (DFA); standard movement and terrain modifiers apply to the charge impact roll.
 
-6.3. **Damage:** in 5-point clusters (`⌈Tonnage/10⌉ × hexesMoved` for charge target; DFA target uses punch table with ⌈tonnage/10⌉ × 3). Cluster application reuses existing 5-pt grouping logic (see `FallingDamageCalculator` for the cluster pattern).
+6.3. **Damage:** in 5-point clusters (`⌈(Tonnage / 10) × hexesMoved⌉` for the charge target — the tonnage fraction is multiplied first and the product rounded up; DFA target uses punch table with ⌈tonnage/10⌉ × 3). Cluster application reuses existing 5-pt grouping logic (see `FallingDamageCalculator` for the cluster pattern).
 
 6.4. **Outcomes:**
     - Charge hit: target displaced to an adjacent valid hex (existing displacement rules), attacker occupies target hex; target PSR (+2), attacker PSR (+2).

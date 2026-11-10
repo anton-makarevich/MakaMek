@@ -840,7 +840,7 @@ public class PhysicalAttackResolverTests
     [Fact]
     public void ResolveCharge_OnHit_SplitsTargetDamageIntoFivePointClusters()
     {
-        // Arrange: 55 tons × 3 hexes = ceil(55/10)=6 × 3 = 18, split 5/5/5/3.
+        // Arrange: 55 tons × 3 hexes = 16.5, rounded up = 17, split 5/5/5/2.
         var attacker = CreateUnit(55, AttackerPositionInArc(FiringArc.Front));
         var target = CreateUnit(20, TargetPosition());
         QueueRoll2D6(6, 6); // to hit
@@ -856,12 +856,12 @@ public class PhysicalAttackResolverTests
 
         // Assert
         result.AttackResolution.IsHit.ShouldBeTrue();
-        result.Damage.ShouldBe(18);
-        result.AttackResolution.HitLocationsData!.TotalDamage.ShouldBe(18);
+        result.Damage.ShouldBe(17);
+        result.AttackResolution.HitLocationsData!.TotalDamage.ShouldBe(17);
         result.AttackResolution.HitLocationsData.HitLocations
             .SelectMany(location => location.Damage)
             .Select(damage => damage.ArmorDamage)
-            .ShouldBe([5, 5, 5, 3]);
+            .ShouldBe([5, 5, 5, 2]);
         result.Charge!.Outcome.ShouldBe(ChargeOutcome.Hit);
         result.Charge.AttackerCollision.ShouldNotBeNull().TotalDamage.ShouldBe(2);
     }

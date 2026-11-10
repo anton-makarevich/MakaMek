@@ -126,16 +126,32 @@ public class TotalWarfareRulesProviderTests
     }
 
     [Theory]
-    [InlineData(55, 3, 18)] // ceil(55/10) = 6, × 3 hexes
+    [InlineData(55, 3, 17)] // 55 / 10 × 3 = 16.5 → 17
     [InlineData(20, 1, 2)]
-    [InlineData(21, 2, 6)] // ceil(21/10) = 3, × 2 hexes
+    [InlineData(21, 2, 5)] // 21 / 10 × 2 = 4.2 → 5
     [InlineData(100, 0, 0)]
-    public void GetChargeDamage_ShouldRoundTonnageBeforeMultiplying(
+    public void GetChargeDamage_ShouldMultiplyBeforeRoundingUp(
         int attackerTonnage,
         int hexesMoved,
         int expectedDamage)
     {
         _sut.GetChargeDamage(attackerTonnage, hexesMoved).ShouldBe(expectedDamage);
+    }
+
+    [Fact]
+    public void GetChargeDamage_MatchesTheTotalWarfareJagerMechExample()
+    {
+        // Total Warfare, p. 148: a 65-ton JagerMech that moved 5 hexes deals 33 damage, because
+        // (65 / 10) × 5 = 32.5 is rounded up only after multiplying. Rounding the tonnage factor
+        // first would deal 35 (⌈65 / 10⌉ × 5), so this pins the order of operations.
+        const int attackerTonnage = 65;
+        const int hexesMoved = 5;
+        const int preRoundedDamage = (attackerTonnage + 9) / 10 * hexesMoved;
+
+        var damage = _sut.GetChargeDamage(attackerTonnage, hexesMoved);
+
+        damage.ShouldBe(33);
+        damage.ShouldNotBe(preRoundedDamage);
     }
 
     [Theory]
