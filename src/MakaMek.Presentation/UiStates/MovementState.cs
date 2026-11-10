@@ -2,8 +2,10 @@ using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client.Builders;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
+using Sanet.MakaMek.Core.Data.Game.Mechanics.PhysicalAttacks;
 using Sanet.MakaMek.Core.Data.Game.Mechanics.PilotingSkillRollContexts;
 using Sanet.MakaMek.Core.Models.Game;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.Movement;
 using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
@@ -16,8 +18,10 @@ using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 
 namespace Sanet.MakaMek.Presentation.UiStates;
 
-public class MovementState : IUiState
+public class MovementState : IUiState, IPhysicalAttackDeclarationState
 {
+    private static readonly IReadOnlyList<PhysicalAttackOptionViewModel> NoAttackOptions = [];
+
     private readonly BattleMapViewModel _viewModel;
     private readonly MoveUnitCommandBuilder _builder;
     private IUnit? _selectedUnit;
@@ -30,6 +34,18 @@ public class MovementState : IUiState
     private bool _isPostStandupMovement;
     private MovementPath? _selectedPath;
     private Guid? _deferredMovementUnitId;
+
+    /// <summary>
+    /// Legal movement-attack targets for the current path state, each with its cheapest validated
+    /// path. Recomputed whenever reachability is recomputed; replaced as a whole, never mutated.
+    /// </summary>
+    private IReadOnlyDictionary<IUnit, MovementAttackCandidate> _movementAttackCandidates =
+        new Dictionary<IUnit, MovementAttackCandidate>();
+
+    private IUnit? _pendingAttackTarget;
+    private MovementPath? _pendingAttackPath;
+    private PhysicalAttackDeclarationData? _pendingAttackDeclaration;
+    private IReadOnlyList<PhysicalAttackOptionViewModel> _pendingAttackOptions = NoAttackOptions;
 
     private IMovementStep _step;
 
@@ -81,6 +97,21 @@ public class MovementState : IUiState
         if (_reachabilityData != null)
             _viewModel.RemoveHighlight<MovementReachableHighlight>(_reachabilityData.Value.AllReachableCoordinates);
         _reachabilityData = null;
+        ClearMovementAttackHighlights();
+    }
+
+    private void ClearMovementAttackHighlights()
+    {
+        if (_movementAttackCandidates.Count > 0)
+        {
+            var coordinates = _movementAttackCandidates.Keys
+                .Where(unit => unit.Position != null)
+                .Select(unit => unit.Position!.Coordinates)
+                .ToHashSet();
+            _viewModel.RemoveHighlight<AttackReachableHighlight>(coordinates);
+        }
+
+        _movementAttackCandidates = new Dictionary<IUnit, MovementAttackCandidate>();
     }
 
     private void HighlightReachableHexes()
@@ -109,10 +140,126 @@ public class MovementState : IUiState
                 _selectedUnit.MaxLevelChangeBackward);
 
             _viewModel.HighlightCoordinates(_reachabilityData.Value.AllReachableCoordinates, new MovementReachableHighlight(movementType));
+
+            UpdateMovementAttackCandidates(movementType, remainingMp);
         }
 
         _viewModel.NotifyStateChanged();
     }
+
+    /// <summary>
+    /// Finds every enemy Mech the selected unit can legally charge or DFA from the current path
+    /// state, keeping the cheapest validated path per target, and highlights their hexes with the
+    /// same attack highlight the weapon phase uses.
+    /// </summary>
+    private void UpdateMovementAttackCandidates(MovementType movementType, int remainingMp)
+    {
+        _movementAttackCandidates = FindMovementAttackCandidates(movementType, remainingMp);
+        if (_movementAttackCandidates.Count == 0) return;
+
+        var attackType = movementType.GetMovementAttackType();
+        if (attackType is null) return;
+
+        var coordinates = _movementAttackCandidates.Keys
+            .Where(unit => unit.Position != null)
+            .Select(unit => unit.Position!.Coordinates)
+            .ToHashSet();
+        if (coordinates.Count == 0) return;
+
+        var label = GetString($"PhysicalAttackType_{attackType}");
+        _viewModel.HighlightCoordinates(coordinates, new AttackReachableHighlight([label]));
+    }
+
+    private IReadOnlyDictionary<IUnit, MovementAttackCandidate> FindMovementAttackCandidates(
+        MovementType movementType,
+        int remainingMp)
+    {
+        var candidates = new Dictionary<IUnit, MovementAttackCandidate>();
+        if (_selectedUnit == null
+            || _selectedPath == null
+            || Game?.BattleMap is not { } map
+            || Game.PhaseStepState?.ActivePlayer is not { } activePlayer
+            || movementType.GetMovementAttackType() is not { } attackType)
+            return candidates;
+
+        var allUnits = GetAllUnits();
+        var potentialTargets = allUnits.Where(unit =>
+                unit is Mech { IsDestroyed: false, Position: not null }
+                && unit.Owner?.Id != activePlayer.Id
+                && unit is { HasPendingMovementAttack: false }
+                && (unit.HasMoved || unit.IsShutdown || unit.Pilot is { IsConscious: false }))
+            .ToList();
+        if (potentialTargets.Count == 0) return candidates;
+
+        var startPosition = _selectedPath.Destination;
+        var canMoveBackward = _selectedUnit.CanMoveBackward(movementType);
+
+        foreach (var target in potentialTargets)
+        {
+            var targetCoordinates = target.Position!.Coordinates;
+            var prohibited = _prohibitedHexes
+                .Where(coordinates => coordinates != targetCoordinates)
+                .ToHashSet();
+
+            var reachability = map.GetReachableHexesForPosition(
+                startPosition,
+                remainingMp,
+                canMoveBackward,
+                movementType,
+                prohibited,
+                _friendlyUnitsCoordinates,
+                _selectedUnit.Height,
+                _selectedUnit.MaxLevelChangeForward,
+                _selectedUnit.MaxLevelChangeBackward);
+
+            var paths = map.GetPathsToHexWithAllFacings(
+                startPosition,
+                targetCoordinates,
+                movementType,
+                remainingMp,
+                reachability,
+                _selectedUnit.Height,
+                _selectedUnit.MaxLevelChangeForward,
+                _selectedUnit.MaxLevelChangeBackward,
+                prohibited,
+                targetSurface: target.Position.Surface,
+                approachWaypointOffset: Game.RulesProvider.GetDfaAirborneBaseOffset());
+            if (paths.Count == 0) continue;
+
+            MovementAttackCandidate? cheapest = null;
+            foreach (var path in paths.Values)
+            {
+                var fullPath = _selectedPath.Append(path);
+                var declaration = new PhysicalAttackDeclarationData
+                {
+                    AttackType = attackType,
+                    AttackerLimbs = [],
+                    TargetId = target.Id
+                };
+
+                var validation = Game.MovementAttackDeclarationValidator.Validate(
+                    _selectedUnit,
+                    fullPath.ToData(),
+                    movementType,
+                    declaration,
+                    allUnits,
+                    map);
+                if (!validation.IsValid || validation.Declaration is not { } validated) continue;
+
+                if (cheapest == null || path.TotalCost < cheapest.Path.TotalCost)
+                    cheapest = new MovementAttackCandidate(target, path, validated);
+            }
+
+            if (cheapest != null) candidates[target] = cheapest;
+        }
+
+        return candidates;
+    }
+
+    private List<IUnit> GetAllUnits() =>
+        Game?.Players.SelectMany(player => player.Units).ToList() ?? [];
+
+    private string GetString(string key) => _viewModel.LocalizationService.GetString(key);
 
     private int GetRemainingMovementPoints()
     {
@@ -128,6 +275,8 @@ public class MovementState : IUiState
             lock (_stateLock)
             {
                 if (!this.CanHumanPlayerAct()) return;
+                // A pending Charge/DFA declaration owns the unit until it is confirmed or cancelled.
+                if (_pendingAttackTarget != null) return;
                 if (value == null)
                 {
                     ResetUnitSelection();
@@ -168,6 +317,15 @@ public class MovementState : IUiState
 
     public void HandleHexSelection(Hex hex)
     {
+        if (_pendingAttackTarget != null)
+        {
+            lock (_stateLock)
+            {
+                HandlePendingMovementAttackHexSelection(hex);
+            }
+            return;
+        }
+
         if (HandleUnitSelectionFromHex(hex)) return;
         lock (_stateLock)
         {
@@ -227,6 +385,7 @@ public class MovementState : IUiState
             if (_selectedUnit == null) return;
             _selectedUnit = null;
             _builder.Reset();
+            ClearPendingMovementAttack();
             _viewModel.HideMovementPath();
             _viewModel.HideDirectionSelector();
             _viewModel.HideSurfaceSelector();
@@ -242,6 +401,10 @@ public class MovementState : IUiState
             || _selectedPath?.MovementType == null
             || Game == null
             || _reachabilityData == null) return;
+
+        // An enemy hex is never reachable. If it can be legally charged or DFA'd it opens the
+        // declaration; an ineligible enemy is ignored instead of cancelling the move.
+        if (TryHandleEnemyHex(hex)) return;
 
         // Reset selection if clicked outside reachable hexes during target hex selection
         // BUT NOT if the unit is in post-standup movement state (must complete declared movement)
@@ -317,7 +480,8 @@ public class MovementState : IUiState
         lock (_stateLock)
         {
             _deferredMovementUnitId = null;
-            
+            ClearPendingMovementAttack();
+
             ClearHighlighting();
             _selectedUnit = null;
             _viewModel.HideMovementPath();
@@ -336,16 +500,247 @@ public class MovementState : IUiState
         }
     }
 
+    /// <summary>
+    /// Handles an enemy hex click during normal target selection. Returns true when the hex holds an
+    /// enemy unit, whether or not it is a legal movement-attack target: an ineligible enemy is
+    /// ignored so the current movement selection stays intact.
+    /// </summary>
+    private bool TryHandleEnemyHex(Hex hex)
+    {
+        if (Game?.PhaseStepState?.ActivePlayer is not { } activePlayer) return false;
+
+        var enemies = _viewModel.Units
+            .Where(unit =>
+                unit.Position?.Coordinates == hex.Coordinates
+                && unit.Owner?.Id != activePlayer.Id)
+            .ToList();
+        if (enemies.Count == 0) return false;
+
+        // Several enemies can share a hex; prefer the first one that is a legal target.
+        foreach (var enemy in enemies)
+        {
+            if (!_movementAttackCandidates.TryGetValue(enemy, out var candidate)) continue;
+            OpenMovementAttackDeclaration(candidate);
+            break;
+        }
+
+        return true;
+    }
+
+    private void HandlePendingMovementAttackHexSelection(Hex hex)
+    {
+        if (_pendingAttackTarget == null) return;
+
+        var otherUnit = _viewModel.Units.FirstOrDefault(unit =>
+            unit.Position?.Coordinates == hex.Coordinates
+            && unit.Id != _pendingAttackTarget.Id);
+        if (otherUnit == null) return;
+
+        if (_movementAttackCandidates.TryGetValue(otherUnit, out var candidate))
+            OpenMovementAttackDeclaration(candidate);
+    }
+
+    /// <summary>
+    /// Opens the shared declaration panel for a legal Charge or DFA without showing the direction
+    /// selector: the chosen path already fixes the approach hex and facing.
+    /// </summary>
+    private void OpenMovementAttackDeclaration(MovementAttackCandidate candidate)
+    {
+        if (_selectedUnit == null
+            || _selectedUnit.Pilot is null
+            || _selectedPath == null
+            || _selectedPath.Destination.Coordinates != candidate.Path.Start.Coordinates
+            || Game?.BattleMap is not { } map) return;
+
+        var path = _selectedPath.Append(candidate.Path);
+        var declaration = candidate.Declaration;
+        var stopPosition = path.GetStopPosition(declaration) ?? path.Destination;
+        if (declaration.AttackType == PhysicalAttackType.DFA)
+        {
+            // Mirror BaseGame.OnMoveUnit: the attacker waits airborne above the approach hex.
+            stopPosition = stopPosition with
+            {
+                AirborneLevel = map.GetDfaAirborneBaseLevel(
+                    stopPosition,
+                    path.Destination,
+                    Game.RulesProvider.GetDfaAirborneBaseOffset())
+            };
+        }
+
+        var scenario = PhysicalAttackScenario.ForPreview(
+            _selectedUnit,
+            candidate.Target,
+            declaration.AttackType,
+            stopPosition,
+            path.MovementType,
+            candidate.Target.MovementTaken?.HexesTraveled ?? 0);
+        var breakdown = Game.PhysicalAttackCalculator.GetMovementAttackModifierBreakdown(scenario, map);
+        var descriptionLines = BuildMovementAttackDescription(candidate.Target, declaration);
+        var option = new PhysicalAttackOptionViewModel(
+            declaration.AttackType,
+            [],
+            true,
+            null,
+            breakdown.Total,
+            breakdown,
+            (_, _) => { },
+            _viewModel.LocalizationService,
+            descriptionLines);
+
+        _pendingAttackTarget = candidate.Target;
+        _pendingAttackPath = path;
+        _pendingAttackDeclaration = declaration;
+        _pendingAttackOptions = [option];
+
+        _viewModel.HideDirectionSelector();
+        _viewModel.HideSurfaceSelector();
+        _viewModel.ShowMovementPath(path);
+        TransitionTo(new ConfirmMovementAttackStep(this));
+    }
+
+    private IReadOnlyList<string> BuildMovementAttackDescription(
+        IUnit target,
+        PhysicalAttackDeclarationData declaration)
+    {
+        var lines = new List<string>();
+        if (_selectedUnit == null || Game == null) return lines;
+
+        var hexesMoved = declaration.HexesMoved ?? 0;
+        lines.Add(string.Format(GetString("PhysicalAttackDeclaration_MovementHexesMoved"), hexesMoved));
+
+        var rules = Game.RulesProvider;
+        if (declaration.AttackType == PhysicalAttackType.Charge)
+        {
+            lines.Add(string.Format(
+                GetString("PhysicalAttackDeclaration_MovementDamage_Target"),
+                rules.GetChargeDamage(_selectedUnit.Tonnage, hexesMoved)));
+            lines.Add(string.Format(
+                GetString("PhysicalAttackDeclaration_MovementDamage_Attacker"),
+                rules.GetChargeCollisionDamage(target.Tonnage)));
+            lines.Add(GetString("PhysicalAttackDeclaration_ChargePsr"));
+            lines.Add(GetString("PhysicalAttackDeclaration_ChargeMiss"));
+        }
+        else
+        {
+            lines.Add(string.Format(
+                GetString("PhysicalAttackDeclaration_MovementDamage_Target"),
+                rules.GetDfaDamage(_selectedUnit.Tonnage)));
+            lines.Add(string.Format(
+                GetString("PhysicalAttackDeclaration_MovementDamage_Attacker"),
+                rules.GetDfaAttackerDamage(_selectedUnit.Tonnage)));
+            lines.Add(GetString("PhysicalAttackDeclaration_DfaPsr"));
+            lines.Add(GetString("PhysicalAttackDeclaration_DfaMiss"));
+        }
+
+        lines.Add(GetString("PhysicalAttackDeclaration_MovementFacing"));
+        lines.Add(GetString("PhysicalAttackDeclaration_NoWeaponOrPhysicalAttacks"));
+        return lines;
+    }
+
+    private void ClearPendingMovementAttack()
+    {
+        _pendingAttackTarget = null;
+        _pendingAttackPath = null;
+        _pendingAttackDeclaration = null;
+        _pendingAttackOptions = NoAttackOptions;
+    }
+
+    /// <summary>
+    /// Revalidates the pending declaration before submitting it: the target may have moved or been
+    /// destroyed between the preview and the confirmation. A stale declaration leaves the unit
+    /// unmoved and returns to target selection.
+    /// </summary>
+    private void ConfirmMovementAttack()
+    {
+        if (!this.CanHumanPlayerAct()) return;
+
+        var target = _pendingAttackTarget;
+        var path = _pendingAttackPath;
+        var declaration = _pendingAttackDeclaration;
+        if (_selectedUnit == null
+            || target == null
+            || path == null
+            || declaration == null
+            || Game?.BattleMap is not { } map)
+        {
+            CancelPendingMovementAttack();
+            return;
+        }
+
+        var validation = Game.MovementAttackDeclarationValidator.Validate(
+            _selectedUnit,
+            path.ToData(),
+            path.MovementType,
+            declaration,
+            GetAllUnits(),
+            map);
+        if (!validation.IsValid)
+        {
+            CancelPendingMovementAttack();
+            return;
+        }
+
+        _builder.SetMovementPath(path);
+        _builder.SetMovementAttackTarget(target);
+        CompleteMovement();
+    }
+
+    private void CancelPendingMovementAttack()
+    {
+        ClearPendingMovementAttack();
+        _viewModel.HideMovementPath();
+        TransitionTo(new SelectingTargetHexStep(this));
+        HighlightReachableHexes();
+    }
+
+    /// <inheritdoc />
+    public bool IsDeclarationOpen => CurrentMovementStep == MovementStep.ConfirmMovementAttack;
+
+    /// <inheritdoc />
+    public IUnit? DeclarationAttacker => IsDeclarationOpen ? _selectedUnit : null;
+
+    /// <inheritdoc />
+    public IUnit? DeclarationTarget => _pendingAttackTarget;
+
+    /// <inheritdoc />
+    public IReadOnlyList<PhysicalAttackOptionViewModel> DeclarationOptions => _pendingAttackOptions;
+
+    /// <inheritdoc />
+    public void CloseDeclaration()
+    {
+        lock (_stateLock)
+        {
+            if (CurrentMovementStep != MovementStep.ConfirmMovementAttack) return;
+            CancelPendingMovementAttack();
+        }
+    }
+
     public string ActionLabel => !IsActionRequired ? string.Empty : _step.ActionLabel;
 
     public bool IsActionRequired =>
         this.CanHumanPlayerAct() &&
         CurrentMovementStep != MovementStep.Completed;
     
-    public bool CanExecutePlayerAction => CurrentMovementStep == MovementStep.ConfirmMovement;
-    
-    public string PlayerActionLabel => CurrentMovementStep == MovementStep.ConfirmMovement ? 
-        _viewModel.LocalizationService.GetString("Action_MoveUnit") : string.Empty;
+    public bool CanExecutePlayerAction => CurrentMovementStep is MovementStep.ConfirmMovement
+        or MovementStep.ConfirmMovementAttack;
+
+    public string PlayerActionLabel => CurrentMovementStep switch
+    {
+        MovementStep.ConfirmMovement => _viewModel.LocalizationService.GetString("Action_MoveUnit"),
+        MovementStep.ConfirmMovementAttack => GetMovementAttackActionLabel(),
+        _ => string.Empty
+    };
+
+    private string GetMovementAttackActionLabel()
+    {
+        var attackType = _pendingAttackDeclaration?.AttackType;
+        return attackType switch
+        {
+            PhysicalAttackType.Charge => _viewModel.LocalizationService.GetString("Action_DeclareCharge"),
+            PhysicalAttackType.DFA => _viewModel.LocalizationService.GetString("Action_DeclareDfa"),
+            _ => _viewModel.LocalizationService.GetString("Action_ConfirmMovementAttack")
+        };
+    }
     
     public MovementStep CurrentMovementStep => _step.Step;
 
@@ -399,6 +794,14 @@ public class MovementState : IUiState
     {
         lock (_stateLock)
         {
+            if (CurrentMovementStep == MovementStep.ConfirmMovementAttack)
+            {
+                return
+                [
+                    new StateAction(GetMovementAttackActionLabel(), true, ExecutePlayerAction)
+                ];
+            }
+
             if (CurrentMovementStep != MovementStep.SelectingMovementType || _selectedUnit == null)
                 return [];
 
@@ -827,7 +1230,7 @@ public class MovementState : IUiState
     {
         public SelectingTargetHexStep(MovementState state) : base(state) { }
         public override MovementStep Step => MovementStep.SelectingTargetHex;
-        public override string ActionLabel => State._viewModel.LocalizationService.GetString("Action_SelectTargetHex");
+        public override string ActionLabel => State._viewModel.LocalizationService.GetString("Action_SelectTargetHexOrEnemy");
 
         public override void HandleHexSelection(Hex hex)
         {
@@ -924,6 +1327,9 @@ public class MovementState : IUiState
 
         public override void HandleHexSelection(Hex hex)
         {
+            // An enemy hex can open a Charge/DFA declaration even in the confirmation step.
+            if (State.TryHandleEnemyHex(hex)) return;
+
             // Reset selection if clicked outside reachable hexes during the confirmation step
             // This matches the behavior in HandleTargetHexSelection and SelectingDirectionStep
             if (State._reachabilityData != null && !State._reachabilityData.Value.IsHexReachable(hex.Coordinates))
@@ -948,6 +1354,24 @@ public class MovementState : IUiState
         }
     }
 
+    private sealed class ConfirmMovementAttackStep : MovementStepBase
+    {
+        public ConfirmMovementAttackStep(MovementState state) : base(state) { }
+        public override MovementStep Step => MovementStep.ConfirmMovementAttack;
+        public override string ActionLabel =>
+            State._viewModel.LocalizationService.GetString("Action_ConfirmMovementAttack");
+
+        public override void HandleHexSelection(Hex hex)
+        {
+            State.HandlePendingMovementAttackHexSelection(hex);
+        }
+
+        public override void ExecutePlayerAction()
+        {
+            State.ConfirmMovementAttack();
+        }
+    }
+
     private sealed class SelectingStandingUpDirectionStep : MovementStepBase
     {
         public SelectingStandingUpDirectionStep(MovementState state) : base(state) { }
@@ -966,4 +1390,14 @@ public class MovementState : IUiState
         public override MovementStep Step => MovementStep.Completed;
         public override string ActionLabel => string.Empty;
     }
+
+    /// <summary>
+    /// One legal target with the cheapest continuation path from the current path state that
+    /// reaches its hex and passes the shared declaration validator, plus the server-computed
+    /// declaration for that path.
+    /// </summary>
+    private sealed record MovementAttackCandidate(
+        IUnit Target,
+        MovementPath Path,
+        PhysicalAttackDeclarationData Declaration);
 }

@@ -371,6 +371,15 @@ Physical-attack eligibility stays a **policy service**, not a rules-provider tab
 
 9.4. All user-facing strings localized in `MakaMek.Localization` (command render strings, modifier names, UI labels) following existing `Command_WeaponAttack*` conventions.
 
+9.5. **Charge/DFA declaration UI (issue #1703).** `MovementState` implements
+`IPhysicalAttackDeclarationState` and reuses the existing `PhysicalAttackDeclarationPanel.axaml`:
+movement-attack targets are highlighted with `AttackReachableHighlight`, clicking one opens the
+panel without a direction selector, and the cheapest path that passes the shared
+`IMovementAttackDeclarationValidator` becomes the movement preview. The generic player action
+confirms the declaration in one `MoveUnitCommand`. `BattleMapViewModel`'s declaration properties are
+sourced from the interface, so the panel is not coupled to `PhysicalAttackState`. The full flow is
+documented in [`docs/rules/physical-attacks.md`](../rules/physical-attacks.md#32-movement-phase-declaration-ui-issue-1703).
+
 ### R10 — Network & Serialization (M1)
 
 10.1. All new/extended commands implement `IGameCommand` serialization used by the transport layer; `PhysicalAttackCommand` idempotency key semantics match other client commands.
@@ -393,7 +402,7 @@ Physical-attack eligibility stays a **policy service**, not a rules-provider tab
 | `PhysicalAttackDisplacementCandidatesCommand` + `SelectPhysicalAttackDisplacementCommand` | commands (new, M3) | DFA-miss target-displacement selection (R6.4): server broadcasts candidate hexes, client highlights and confirms; auto-resolve when a single candidate exists |
 | `ClubItem` (source type, carried-by state, hex presence) | record/service (new, Core) | improvised club pickup / carry-across-turns / drop lifecycle; reusable vs single-use by source type (Background item 12) |
 | `PhysicalAttackScenario` / `PhysicalAttackContext` | records (new, Mechanics) | to-hit + resolution inputs |
-| `PhysicalAttackBaseModifier`, `ChargePilotingDifferenceModifier`, `DfaJumpModifier`, `PushDamagedShoulderModifier` | RollModifiers (new) | source-generated registry |
+| `PhysicalAttackBaseModifier`, `RelativePilotingModifier`, `JumpedTargetModifier`, `DamagedShoulderModifier` | RollModifiers (new) | source-generated registry |
 | `PilotingSkillRollType.*` | enum + context records (new) | kick/push/charge/DFA PSRs |
 | `IRulesProvider.GetPunchHitLocation / GetKickHitLocation` | interface (extend) | TotalWarfareRulesProvider implementation |
 | `Weapon.HasFiredThisTurn` | component flag (new) | per-weapon turn-scoped fired marker, set in `FireWeapon`, cleared in `ResetTurnState()` (R1.2) |

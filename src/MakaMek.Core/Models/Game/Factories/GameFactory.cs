@@ -31,6 +31,7 @@ public class GameFactory : IGameFactory
     private readonly IHeatEffectsCalculator _heatEffectsCalculator;
     private readonly IPhysicalAttackEligibility _physicalAttackEligibility;
     private readonly IPhysicalAttackCalculator _physicalAttackCalculator;
+    private readonly IMovementAttackDeclarationValidator _movementAttackDeclarationValidator;
     private readonly IFallProcessor _fallProcessor;
     private readonly IBattleMapFactory _battleMapFactory;
     private readonly IHashService _hashService;
@@ -50,6 +51,7 @@ public class GameFactory : IGameFactory
         IHeatEffectsCalculator heatEffectsCalculator,
         IPhysicalAttackEligibility physicalAttackEligibility,
         IPhysicalAttackCalculator physicalAttackCalculator,
+        IMovementAttackDeclarationValidator movementAttackDeclarationValidator,
         IFallProcessor fallProcessor,
         IBattleMapFactory battleMapFactory,
         IHashService hashService)
@@ -68,6 +70,7 @@ public class GameFactory : IGameFactory
         _heatEffectsCalculator = heatEffectsCalculator;
         _physicalAttackEligibility = physicalAttackEligibility;
         _physicalAttackCalculator = physicalAttackCalculator;
+        _movementAttackDeclarationValidator = movementAttackDeclarationValidator;
         _fallProcessor = fallProcessor;
         _battleMapFactory = battleMapFactory;
         _hashService = hashService;
@@ -92,6 +95,7 @@ public class GameFactory : IGameFactory
             _heatEffectsCalculator,
             _physicalAttackEligibility,
             _physicalAttackCalculator,
+            _movementAttackDeclarationValidator,
             _fallProcessor,
             _weaponAttackResolver,
             _physicalAttackResolver,
@@ -111,6 +115,7 @@ public class GameFactory : IGameFactory
             _heatEffectsCalculator,
             _physicalAttackEligibility,
             _physicalAttackCalculator,
+            _movementAttackDeclarationValidator,
             _battleMapFactory,
             _hashService,
             logger,

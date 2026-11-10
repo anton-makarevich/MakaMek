@@ -84,6 +84,7 @@ public class ClientGameTests
             Substitute.For<IHeatEffectsCalculator>(),
             new PhysicalAttackEligibility(),
             Substitute.For<IPhysicalAttackCalculator>(),
+            Substitute.For<IMovementAttackDeclarationValidator>(),
             _mapFactory,
             _hashService,
             _logger, null, CommandAckTimeout);
@@ -2109,6 +2110,7 @@ public class ClientGameTests
             Substitute.For<IHeatEffectsCalculator>(),
             new PhysicalAttackEligibility(),
             Substitute.For<IPhysicalAttackCalculator>(),
+            Substitute.For<IMovementAttackDeclarationValidator>(),
             _mapFactory,
             _hashService, Substitute.For<ILogger<ClientGame>>());
         var unitData = MechFactoryTests.CreateDummyMechData();
@@ -2211,6 +2213,7 @@ public class ClientGameTests
             Substitute.For<IHeatEffectsCalculator>(),
             new PhysicalAttackEligibility(),
             Substitute.For<IPhysicalAttackCalculator>(),
+            Substitute.For<IMovementAttackDeclarationValidator>(),
             _mapFactory,
             _hashService, Substitute.For<ILogger<ClientGame>>());
         sut.JoinGameWithUnits(localPlayer1,[player1Unit],[]);
@@ -4053,6 +4056,7 @@ public class ClientGameTests
             Substitute.For<IHeatEffectsCalculator>(),
             new PhysicalAttackEligibility(),
             Substitute.For<IPhysicalAttackCalculator>(),
+            Substitute.For<IMovementAttackDeclarationValidator>(),
             _mapFactory,
             _hashService,
             _logger,

@@ -65,16 +65,10 @@ public class TotalWarfareRulesProviderTests
     [InlineData(PhysicalAttackType.Kick, -2)]
     [InlineData(PhysicalAttackType.Push, -1)]
     [InlineData(PhysicalAttackType.Charge, 0)]
+    [InlineData(PhysicalAttackType.DFA, 0)]
     public void GetPhysicalAttackBaseModifier_ShouldReturnExpectedValues(PhysicalAttackType attackType, int expectedModifier)
     {
         _sut.GetPhysicalAttackBaseModifier(attackType).ShouldBe(expectedModifier);
-    }
-
-    [Theory]
-    [InlineData(PhysicalAttackType.DFA)]
-    public void GetPhysicalAttackBaseModifier_UnsupportedAttackType_ThrowsNotSupportedException(PhysicalAttackType attackType)
-    {
-        Should.Throw<NotSupportedException>(() => _sut.GetPhysicalAttackBaseModifier(attackType));
     }
 
     [Fact]
@@ -189,6 +183,45 @@ public class TotalWarfareRulesProviderTests
     }
 
     [Theory]
+    [InlineData(20, 6)]
+    [InlineData(21, 9)]
+    [InlineData(55, 18)]
+    [InlineData(100, 30)]
+    public void GetDfaDamage_ShouldRoundTheTonnageUpThenTripleIt(
+        int attackerTonnage,
+        int expectedDamage)
+    {
+        _sut.GetDfaDamage(attackerTonnage).ShouldBe(expectedDamage);
+    }
+
+    [Fact]
+    public void GetDfaDamage_WithNegativeTonnage_ThrowsArgumentOutOfRangeException()
+    {
+        var exception = Should.Throw<ArgumentOutOfRangeException>(() => _sut.GetDfaDamage(-1));
+
+        exception.ParamName.ShouldBe("attackerTonnage");
+    }
+
+    [Theory]
+    [InlineData(20, 4)]
+    [InlineData(21, 5)]
+    [InlineData(100, 20)]
+    public void GetDfaAttackerDamage_ShouldRoundUpOnePointPerFiveTons(
+        int attackerTonnage,
+        int expectedDamage)
+    {
+        _sut.GetDfaAttackerDamage(attackerTonnage).ShouldBe(expectedDamage);
+    }
+
+    [Fact]
+    public void GetDfaAttackerDamage_WithNegativeTonnage_ThrowsArgumentOutOfRangeException()
+    {
+        var exception = Should.Throw<ArgumentOutOfRangeException>(() => _sut.GetDfaAttackerDamage(-1));
+
+        exception.ParamName.ShouldBe("attackerTonnage");
+    }
+
+    [Theory]
     [InlineData(HitDirection.Front)]
     [InlineData(HitDirection.Rear)]
     [InlineData(HitDirection.Left)]
@@ -255,11 +288,25 @@ public class TotalWarfareRulesProviderTests
 
     [Theory]
     [InlineData(PhysicalAttackType.DFA)]
-    public void GetPhysicalAttackPsrRequirements_UnsupportedAttackType_ThrowsNotSupportedException(
+    public void GetPhysicalAttackPsrRequirements_WhenADfaHits_RequiresTargetAtTwoAndAttackerAtFour(
         PhysicalAttackType attackType)
     {
-        Should.Throw<NotSupportedException>(() =>
-            _sut.GetPhysicalAttackPsrRequirements(attackType, isHit: true));
+        var requirements = _sut.GetPhysicalAttackPsrRequirements(attackType, isHit: true);
+
+        requirements.ShouldBe([
+            new PhysicalAttackPsrRequirement(PhysicalAttackParticipant.Target, PilotingSkillRollType.DfaTargetImpact),
+            new PhysicalAttackPsrRequirement(PhysicalAttackParticipant.Attacker, PilotingSkillRollType.DfaAttackerImpact)
+        ]);
+        _sut.GetPilotingSkillRollModifier(PilotingSkillRollType.DfaTargetImpact).ShouldBe(2);
+        _sut.GetPilotingSkillRollModifier(PilotingSkillRollType.DfaAttackerImpact).ShouldBe(4);
+    }
+
+    [Theory]
+    [InlineData(PhysicalAttackType.DFA)]
+    public void GetPhysicalAttackPsrRequirements_WhenADfaMisses_ReturnsNoRequirements(
+        PhysicalAttackType attackType)
+    {
+        _sut.GetPhysicalAttackPsrRequirements(attackType, isHit: false).ShouldBeEmpty();
     }
 
     [Fact]

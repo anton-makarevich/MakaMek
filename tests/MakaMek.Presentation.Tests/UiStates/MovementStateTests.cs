@@ -11,6 +11,7 @@ using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.PhysicalAttack;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Mechs.Falling;
 using Sanet.MakaMek.Core.Models.Game.Phases;
 using Sanet.MakaMek.Core.Models.Game.Players;
@@ -23,6 +24,7 @@ using Sanet.MakaMek.Core.Models.Units.Pilots;
 using Sanet.MakaMek.Core.Tests.Utils;
 using Sanet.MakaMek.Core.Utils;
 using Sanet.Localization;
+using Sanet.MakaMek.Map.Data;
 using Sanet.MakaMek.Map.Factories;
 using Sanet.MakaMek.Map.Generators;
 using Sanet.MakaMek.Map.Models;
@@ -67,6 +69,22 @@ public class MovementStateTests
         _localizationService.GetString("Action_SelectUnitToMove").Returns("Select unit to move");
         _localizationService.GetString("Action_SelectMovementType").Returns("Select movement type");
         _localizationService.GetString("Action_SelectTargetHex").Returns("Select target hex");
+        _localizationService.GetString("Action_SelectTargetHexOrEnemy").Returns("Select target hex or enemy");
+        _localizationService.GetString("Action_ConfirmMovementAttack").Returns("Confirm or cancel the attack declaration");
+        _localizationService.GetString("Action_DeclareCharge").Returns("Declare Charge");
+        _localizationService.GetString("Action_DeclareDfa").Returns("Declare Death From Above");
+        _localizationService.GetString("PhysicalAttackDeclaration_MovementHexesMoved")
+            .Returns("Hexes moved before entering the target hex: {0}");
+        _localizationService.GetString("PhysicalAttackDeclaration_MovementDamage_Target")
+            .Returns("Damage to target: {0}");
+        _localizationService.GetString("PhysicalAttackDeclaration_MovementDamage_Attacker")
+            .Returns("Damage to attacker: {0}");
+        _localizationService.GetString("PhysicalAttackDeclaration_ChargePsr").Returns("Charge PSR");
+        _localizationService.GetString("PhysicalAttackDeclaration_DfaPsr").Returns("DFA PSR");
+        _localizationService.GetString("PhysicalAttackDeclaration_ChargeMiss").Returns("Charge miss");
+        _localizationService.GetString("PhysicalAttackDeclaration_DfaMiss").Returns("DFA miss");
+        _localizationService.GetString("PhysicalAttackDeclaration_MovementFacing").Returns("Target facing");
+        _localizationService.GetString("PhysicalAttackDeclaration_NoWeaponOrPhysicalAttacks").Returns("No attacks");
         _localizationService.GetString("Action_SelectFacingDirection").Returns("Select facing direction");
         _localizationService.GetString("Action_MoveUnit").Returns("Move Unit");
         _localizationService.GetString("Action_ConfirmMovement").Returns("Confirm movement");
@@ -120,13 +138,16 @@ public class MovementStateTests
                     }
                 };
         var unitData = MechFactoryTests.CreateDummyMechData(equipment,true);
+        unitData.Id = Guid.NewGuid();
 
         var mechFactory = new MechFactory(
             _rulesProvider,
             _componentProvider,
             _localizationService);
         _unit1 = mechFactory.Create(unitData);
-        _unit2 = mechFactory.Create(unitData);
+        var targetUnitData = MechFactoryTests.CreateDummyMechData(equipment, true);
+        targetUnitData.Id = Guid.NewGuid();
+        _unit2 = mechFactory.Create(targetUnitData);
         _unit1.AssignPilot(_pilot);
 
         // Create two adjacent hexes
@@ -152,6 +173,7 @@ public class MovementStateTests
         _game.PilotingSkillCalculator.Returns(_pilotingSkillCalculator);
         _game.ToHitCalculator.Returns(_toHitCalculator);
         _game.RulesProvider.Returns(_rulesProvider);
+        _game.MovementAttackDeclarationValidator.Returns(new MovementAttackDeclarationValidator());
         _game.TurnPhase.Returns(PhaseNames.Movement);
         _game.PhaseStepState.Returns(new PhaseStepState(PhaseNames.Movement, _player, 1));
         _game.CanActivePlayerAct.Returns(true);
@@ -234,7 +256,7 @@ public class MovementStateTests
         _sut.HandleMovementTypeSelection(MovementType.Walk);
 
         // Assert
-        _sut.ActionLabel.ShouldBe("Select target hex");
+        _sut.ActionLabel.ShouldBe("Select target hex or enemy");
     }
 
     [Fact]
@@ -2800,6 +2822,223 @@ public class MovementStateTests
 
         Should.NotThrow(() => _sut.ResumeMovementAfterFall(mech.Id));
         _sut.CurrentMovementStep.ShouldBe(MovementStep.Completed);
+    }
+
+    // --- Charge and DFA declarations ---
+
+    private HexPosition DeployChargePair()
+    {
+        SetPhase(PhaseNames.Movement);
+        SetActivePlayer();
+
+        var attackerPosition = new HexPosition(new HexCoordinates(1, 2), HexDirection.Bottom);
+        var targetPosition = new HexPosition(new HexCoordinates(1, 4), HexDirection.Top);
+        _unit1.Deploy(attackerPosition, null);
+        _unit2.Deploy(targetPosition, null);
+
+        // A legal Charge/DFA target must already have completed its movement.
+        _unit2.Move(MovementPath.CreateSingleSegmentPath(targetPosition), null);
+
+        return targetPosition;
+    }
+
+    private void SelectAttackerAndMovementType(MovementType movementType)
+    {
+        _sut.HandleUnitSelectionFromList(_unit1);
+        _sut.HandleMovementTypeSelection(movementType);
+    }
+
+    [Fact]
+    public void HandleHexSelection_OpeningCharge_ShowsMovementAttackDeclaration()
+    {
+        // Arrange
+        var targetPosition = DeployChargePair();
+        _game.PhysicalAttackCalculator.Returns(new PhysicalAttackCalculator(_rulesProvider));
+        SelectAttackerAndMovementType(MovementType.Walk);
+
+        // Act
+        _sut.HandleHexSelection(new Hex(targetPosition.Coordinates));
+
+        // Assert
+        _game.BattleMap!.GetHex(targetPosition.Coordinates)!.HasHighlight<AttackReachableHighlight>()
+            .ShouldBeTrue();
+        _sut.CurrentMovementStep.ShouldBe(MovementStep.ConfirmMovementAttack);
+        _sut.IsDeclarationOpen.ShouldBeTrue();
+        _sut.DeclarationAttacker.ShouldBe(_unit1);
+        _sut.DeclarationTarget.ShouldBe(_unit2);
+        var option = _sut.DeclarationOptions.ShouldHaveSingleItem();
+        option.AttackType.ShouldBe(PhysicalAttackType.Charge);
+        option.LimbOptions.ShouldBeEmpty();
+        option.IsEnabled.ShouldBeTrue();
+        option.TargetNumber.ShouldNotBeNull();
+        option.AttackPossibilityDescription.ShouldContain("Hexes moved before entering the target hex");
+        _battleMapViewModel.IsPhysicalAttackDeclarationVisible.ShouldBeTrue();
+        _battleMapViewModel.PhysicalAttackTarget.ShouldBe(_unit2);
+        _battleMapViewModel.PhysicalAttackOptions.ShouldHaveSingleItem();
+        _battleMapViewModel.Attacker.ShouldBe(_unit1);
+    }
+    [Fact]
+    public void ExecutePlayerAction_ConfirmingCharge_SendsMoveUnitWithChargeDeclaration()
+    {
+        // Arrange
+        var targetPosition = DeployChargePair();
+        _game.PhysicalAttackCalculator.Returns(new PhysicalAttackCalculator(_rulesProvider));
+        MoveUnitCommand? sent = null;
+        _game.MoveUnit(Arg.Do<MoveUnitCommand>(command => sent = command));
+        SelectAttackerAndMovementType(MovementType.Walk);
+        _sut.HandleHexSelection(new Hex(targetPosition.Coordinates));
+        _sut.CanExecutePlayerAction.ShouldBeTrue();
+        _sut.PlayerActionLabel.ShouldBe("Declare Charge");
+
+        // Act
+        _sut.ExecutePlayerAction();
+
+        // Assert
+        sent.ShouldNotBeNull();
+        var move = sent.Value;
+        move.UnitId.ShouldBe(_unit1.Id);
+        move.MovementType.ShouldBe(MovementType.Walk);
+        move.MovementPath[^1].To.Coordinates.ShouldBe(new HexCoordinateData(targetPosition.Coordinates.Q,
+            targetPosition.Coordinates.R));
+        move.Declaration.ShouldNotBeNull();
+        var declaration = move.Declaration!;
+        declaration.AttackType.ShouldBe(PhysicalAttackType.Charge);
+        declaration.TargetId.ShouldBe(_unit2.Id);
+        declaration.AttackerLimbs.ShouldBeEmpty();
+
+        _sut.CurrentMovementStep.ShouldBe(MovementStep.Completed);
+        _sut.CanExecutePlayerAction.ShouldBeFalse();
+        _sut.IsDeclarationOpen.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void ExecutePlayerAction_ConfirmingDfa_SendsMoveUnitWithDfaDeclaration()
+    {
+        // Arrange
+        var targetPosition = DeployChargePair();
+        _game.PhysicalAttackCalculator.Returns(new PhysicalAttackCalculator(_rulesProvider));
+        MoveUnitCommand? sent = null;
+        _game.MoveUnit(Arg.Do<MoveUnitCommand>(command => sent = command));
+        SelectAttackerAndMovementType(MovementType.Jump);
+        _sut.HandleHexSelection(new Hex(targetPosition.Coordinates));
+        _sut.PlayerActionLabel.ShouldBe("Declare Death From Above");
+
+        // Act
+        _sut.ExecutePlayerAction();
+
+        // Assert
+        sent.ShouldNotBeNull();
+        var move = sent.Value;
+        move.MovementType.ShouldBe(MovementType.Jump);
+        move.Declaration.ShouldNotBeNull();
+        move.Declaration!.AttackType.ShouldBe(PhysicalAttackType.DFA);
+        move.Declaration.TargetId.ShouldBe(_unit2.Id);
+    }
+
+    [Fact]
+    public void HandleHexSelection_WhileDeclarationIsPending_DoesNotContinueMovement()
+    {
+        // Arrange
+        var targetPosition = DeployChargePair();
+        _game.PhysicalAttackCalculator.Returns(new PhysicalAttackCalculator(_rulesProvider));
+        SelectAttackerAndMovementType(MovementType.Walk);
+        _sut.HandleHexSelection(new Hex(targetPosition.Coordinates));
+        _sut.CurrentMovementStep.ShouldBe(MovementStep.ConfirmMovementAttack);
+
+        // Act: an ordinary reachable hex must not advance the move while the attack is pending.
+        _sut.HandleHexSelection(new Hex(new HexCoordinates(2, 2)));
+
+        // Assert
+        _sut.CurrentMovementStep.ShouldBe(MovementStep.ConfirmMovementAttack);
+        _sut.DeclarationTarget.ShouldBe(_unit2);
+        _battleMapViewModel.SelectedUnit.ShouldBe(_unit1);
+    }
+
+    [Fact]
+    public void CloseDeclaration_AfterMovementAttack_RestoresTargetSelection()
+    {
+        // Arrange
+        var targetPosition = DeployChargePair();
+        _game.PhysicalAttackCalculator.Returns(new PhysicalAttackCalculator(_rulesProvider));
+        SelectAttackerAndMovementType(MovementType.Walk);
+        _sut.HandleHexSelection(new Hex(targetPosition.Coordinates));
+        _sut.IsDeclarationOpen.ShouldBeTrue();
+
+        // Act
+        _sut.CloseDeclaration();
+
+        // Assert
+        _sut.CurrentMovementStep.ShouldBe(MovementStep.SelectingTargetHex);
+        _sut.IsDeclarationOpen.ShouldBeFalse();
+        _sut.DeclarationTarget.ShouldBeNull();
+        _sut.DeclarationOptions.ShouldBeEmpty();
+        _battleMapViewModel.IsPhysicalAttackDeclarationVisible.ShouldBeFalse();
+        _battleMapViewModel.SelectedUnit.ShouldBe(_unit1);
+        _sut.CanExecutePlayerAction.ShouldBeFalse();
+        _game.BattleMap!.GetHex(targetPosition.Coordinates)!.HasHighlight<AttackReachableHighlight>()
+            .ShouldBeTrue();
+    }
+
+    [Fact]
+    public void HandleHexSelection_ClickingIneligibleEnemy_DoesNotResetTheMovement()
+    {
+        // Arrange: the target has not moved yet, so it cannot be charged.
+        SetPhase(PhaseNames.Movement);
+        SetActivePlayer();
+        _unit1.Deploy(new HexPosition(new HexCoordinates(1, 2), HexDirection.Bottom), null);
+        var targetPosition = new HexPosition(new HexCoordinates(1, 3), HexDirection.Top);
+        _unit2.Deploy(targetPosition, null);
+        _game.PhysicalAttackCalculator.Returns(new PhysicalAttackCalculator(_rulesProvider));
+        SelectAttackerAndMovementType(MovementType.Walk);
+
+        // Act
+        _sut.HandleHexSelection(new Hex(targetPosition.Coordinates));
+
+        // Assert
+        _sut.CurrentMovementStep.ShouldBe(MovementStep.SelectingTargetHex);
+        _battleMapViewModel.SelectedUnit.ShouldBe(_unit1);
+        _sut.IsDeclarationOpen.ShouldBeFalse();
+        _game.BattleMap!.GetHex(targetPosition.Coordinates)!.HasHighlight<AttackReachableHighlight>()
+            .ShouldBeFalse();
+    }
+
+    [Fact]
+    public void HandleHexSelection_ClickingAnUnreachableEmptyHex_StillResetsTheMovement()
+    {
+        // Arrange
+        DeployChargePair();
+        _game.PhysicalAttackCalculator.Returns(new PhysicalAttackCalculator(_rulesProvider));
+        SelectAttackerAndMovementType(MovementType.Walk);
+
+        // Act: a hex far outside the reachable area and with no enemy on it.
+        _sut.HandleHexSelection(new Hex(new HexCoordinates(9, 9)));
+
+        // Assert
+        _sut.CurrentMovementStep.ShouldBe(MovementStep.SelectingUnit);
+        _battleMapViewModel.SelectedUnit.ShouldBeNull();
+    }
+
+    [Fact]
+    public void ConfirmMovementAttack_RevalidatesAndCancels_WhenTheTargetIsNoLongerLegal()
+    {
+        // Arrange
+        var targetPosition = DeployChargePair();
+        _game.PhysicalAttackCalculator.Returns(new PhysicalAttackCalculator(_rulesProvider));
+        MoveUnitCommand? sent = null;
+        _game.MoveUnit(Arg.Do<MoveUnitCommand>(command => sent = command));
+        SelectAttackerAndMovementType(MovementType.Walk);
+        _sut.HandleHexSelection(new Hex(targetPosition.Coordinates));
+
+        // The target has not completed its movement any more before the player confirms.
+        _unit2.ResetTurnState();
+
+        // Act
+        _sut.ExecutePlayerAction();
+
+        // Assert
+        sent.ShouldBeNull();
+        _sut.CurrentMovementStep.ShouldBe(MovementStep.SelectingTargetHex);
+        _sut.IsDeclarationOpen.ShouldBeFalse();
     }
 }
 

@@ -63,6 +63,7 @@ public class EndGameViewModelTests
             heatEffectsCalculator,
             new PhysicalAttackEligibility(),
             Substitute.For<IPhysicalAttackCalculator>(),
+            Substitute.For<IMovementAttackDeclarationValidator>(),
             mapFactory,
             hashService,
             Substitute.For<ILogger<ClientGame>>());

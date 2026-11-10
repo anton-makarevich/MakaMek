@@ -415,6 +415,27 @@ public class PhysicalAttackCalculatorTests
     }
 
     [Fact]
+    public void GetModifierBreakdown_TargetThatJumped_IncludesCumulativeJumpedTargetModifier()
+    {
+        // Arrange
+        var targetPosition = new HexPosition(2, 3, HexDirection.Bottom);
+        var (attacker, target) = CreateUnits(
+            new HexPosition(2, 2, HexDirection.Bottom),
+            targetPosition,
+            targetMovement: MovementPath.CreateSingleSegmentPath(targetPosition, MovementType.Jump));
+        _rules.GetTargetMovementModifier(Arg.Any<int>()).Returns(0);
+        var map = CreateMap();
+
+        // Act
+        var result = _sut.GetModifierBreakdown(attacker, target, PhysicalAttackType.Punch, map);
+
+        // Assert
+        var jumped = result.OtherModifiers.OfType<JumpedTargetModifier>().ShouldHaveSingleItem();
+        jumped.Value.ShouldBe(1);
+        result.Total.ShouldBe(6); // piloting (5) + punch base (0) + jumped target (1)
+    }
+
+    [Fact]
     public void GetModifierBreakdown_ProneTarget_IncludesProneTargetModifier()
     {
         // Arrange — physical attackers are always adjacent to their target
@@ -563,19 +584,30 @@ public class PhysicalAttackCalculatorTests
         scenarioBreakdown.AllModifiers.Count.ShouldBe(unitBreakdown.AllModifiers.Count);
     }
 
-    [Theory]
-    [InlineData(PhysicalAttackType.DFA)]
-    public void GetToHitNumber_UnsupportedAttackType_ThrowsNotSupportedException(PhysicalAttackType attackType)
+    [Fact]
+    public void GetMovementAttackModifierBreakdown_ForDfa_AddsRelativePiloting()
     {
         // Arrange
-        var sut = new PhysicalAttackCalculator(new TotalWarfareRulesProvider());
         var (attacker, target) = CreateUnits(
             new HexPosition(2, 2, HexDirection.Bottom),
-            new HexPosition(2, 3, HexDirection.Bottom));
+            new HexPosition(2, 3, HexDirection.Bottom),
+            pilot: new MechWarrior("John", "Doe", gunnery: 4, piloting: 3));
         var map = CreateMap();
+        var scenario = PhysicalAttackScenario.ForPreview(
+            attacker,
+            target,
+            PhysicalAttackType.DFA,
+            attacker.Position!,
+            MovementType.Jump,
+            targetHexesMoved: 3);
 
-        // Act & Assert
-        Should.Throw<NotSupportedException>(() => sut.GetToHitNumber(attacker, target, attackType, map));
+        // Act
+        var breakdown = _sut.GetMovementAttackModifierBreakdown(scenario, map);
+
+        // Assert
+        breakdown.AttackTypeModifier.Value.ShouldBe(0);
+        breakdown.OtherModifiers.OfType<RelativePilotingModifier>()
+            .ShouldHaveSingleItem().Value.ShouldBe(-2);
     }
 
     [Fact]

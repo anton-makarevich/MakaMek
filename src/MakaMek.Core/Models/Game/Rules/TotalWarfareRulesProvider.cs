@@ -224,9 +224,9 @@ public class TotalWarfareRulesProvider : IRulesProvider
     public int GetDfaAirborneBaseOffset() => 2;
 
     /// <summary>
-    /// Gets the per-type base modifier for a physical attack. Punch, Kick, Push and Charge are
-    /// supported; other types throw. Later milestones extend the table: DFA +0 (M3), physical
-    /// weapons -1 or -2 (M4), Club -1 (M5).
+    /// Gets the per-type base modifier for a physical attack. Punch, Kick, Push, Charge and DFA are
+    /// supported; other types throw. Later milestones extend the table: physical weapons -1 or -2
+    /// (M4), Club -1 (M5).
     /// </summary>
     public int GetPhysicalAttackBaseModifier(PhysicalAttackType attackType)
     {
@@ -236,6 +236,7 @@ public class TotalWarfareRulesProvider : IRulesProvider
             PhysicalAttackType.Kick => -2,
             PhysicalAttackType.Push => -1,
             PhysicalAttackType.Charge => 0,
+            PhysicalAttackType.DFA => 0,
             _ => throw new NotSupportedException(
                 $"Physical attack base modifier is not supported for attack type: {attackType}")
         };
@@ -290,6 +291,25 @@ public class TotalWarfareRulesProvider : IRulesProvider
         return (targetTonnage + 9) / 10;
     }
 
+    /// <inheritdoc />
+    public int GetDfaDamage(int attackerTonnage)
+    {
+        if (attackerTonnage < 0)
+            throw new ArgumentOutOfRangeException(nameof(attackerTonnage), "Tonnage cannot be negative.");
+
+        // One point per ten tons, rounded up, then tripled.
+        return 3 * ((attackerTonnage + 9) / 10);
+    }
+
+    /// <inheritdoc />
+    public int GetDfaAttackerDamage(int attackerTonnage)
+    {
+        if (attackerTonnage < 0)
+            throw new ArgumentOutOfRangeException(nameof(attackerTonnage), "Tonnage cannot be negative.");
+
+        return (attackerTonnage + 4) / 5;
+    }
+
     /// <summary>
     /// A kick forces the target to make a piloting skill roll when it hits and the attacker to
     /// make one when it misses (Total Warfare, p. 146). A push forces the target to roll when it
@@ -316,6 +336,14 @@ public class TotalWarfareRulesProvider : IRulesProvider
                 new PhysicalAttackPsrRequirement(PhysicalAttackParticipant.Target, PilotingSkillRollType.ChargeImpact)
             ],
             PhysicalAttackType.Charge => [],
+            // A successful DFA makes the target roll at +2 and the attacker at +4. A miss makes
+            // the attacker fall automatically, so it rolls no PSR of its own (Total Warfare, p. 150).
+            PhysicalAttackType.DFA when isHit =>
+            [
+                new PhysicalAttackPsrRequirement(PhysicalAttackParticipant.Target, PilotingSkillRollType.DfaTargetImpact),
+                new PhysicalAttackPsrRequirement(PhysicalAttackParticipant.Attacker, PilotingSkillRollType.DfaAttackerImpact)
+            ],
+            PhysicalAttackType.DFA => [],
             _ => throw new NotSupportedException(
                 $"Physical attack piloting skill roll requirements are not supported for attack type: {attackType}")
         };
@@ -641,6 +669,10 @@ public class TotalWarfareRulesProvider : IRulesProvider
             PilotingSkillRollType.PushHit => 0,
             // A successful charge makes both units roll at +2 (Total Warfare, p. 148).
             PilotingSkillRollType.ChargeImpact => 2,
+            // A successful DFA makes the target roll at +2 and the attacker at +4 (Total Warfare,
+            // p. 150).
+            PilotingSkillRollType.DfaTargetImpact => 2,
+            PilotingSkillRollType.DfaAttackerImpact => 4,
             // A domino effect adds no modifier of its own; the ordinary PSR modifiers apply
             // (Total Warfare, p. 151-153).
             PilotingSkillRollType.DominoEffect => 0,

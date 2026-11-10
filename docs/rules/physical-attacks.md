@@ -138,9 +138,6 @@ is added.
 
 **Known gaps (tracked as follow-ups):**
 
-* The **target-jump +1** to-hit modifier is not implemented: `GetTargetMovementModifier` takes only
-  the hexes moved, so a jumping target (including an airborne DFA attacker) misses the cumulative
-  +1.
 * **Approach-hex choice** on a divided jump path: the movement model stores a single stop hex (the
   `From` of the last translation). The rule lets the attacker choose between two eligible approach
   hexes.
@@ -149,6 +146,43 @@ is added.
 * **Resolution clearing and deferred fall** for the DFA, linked to #1510.
 * `MoveUnitCommand.GetPayloadHash` omits the surface and `AirborneLevel`; the value is derived, so
   hashing it is not required for correctness today.
+
+---
+
+### **3.2. Movement-Phase Declaration UI (issue #1703)**
+
+Charge and DFA are declared while the unit moves, so the Movement Phase owns the declaration and
+`MovementState` drives it. It uses the same `MovementAttackDeclarationValidator` instance as the
+server (`IGame.MovementAttackDeclarationValidator`), so a highlighted target is exactly one the
+server accepts.
+
+1. The player selects a unit and a movement type (Walk/Run for Charge, Jump for DFA).
+2. Reachable hexes are highlighted as usual. In addition, every enemy 'Mech that has completed its
+   movement and can legally be the target is highlighted with `AttackReachableHighlight` and the
+   attack-type label. A target is only highlighted when at least one path into its hex passes the
+   shared validator.
+3. Clicking a highlighted enemy opens the existing physical attack declaration panel, built from
+   `IPhysicalAttackDeclarationState`. The UI computes all paths into the target hex, keeps the
+   cheapest legal one, and shows it as the movement preview. Clicking an ineligible enemy is ignored
+   so the current movement selection survives.
+4. No direction selector is shown: the chosen path already fixes the approach hex and facing. A
+   Charge always faces the target through its entering segment; a DFA does not depend on facing.
+5. The preview lists the to-hit number, hit probability, modifier breakdown, the hexes moved before
+   entering the target hex, target and attacker damage, PSR modifiers and the miss outcome, plus the
+   reminder that the unit cannot make weapon or physical-phase attacks this turn. The DFA preview
+   uses the airborne approach level, exactly as `BaseGame.OnMoveUnit` re-derives it after the move.
+6. The generic player action button confirms (`Declare Charge` / `Declare Death From Above`); the
+   panel's close button cancels and returns to target selection. Confirmation revalidates the
+   declaration before publishing one `MoveUnitCommand` with the declaration.
+
+The panel is the existing `PhysicalAttackDeclarationPanel.axaml`; a movement attack row has no limb
+options, so the panel hides the limb area and shows the attack row, hit probability and info flyout.
+The panel's properties on `BattleMapViewModel` are sourced from `IPhysicalAttackDeclarationState`,
+which both `PhysicalAttackState` and `MovementState` implement.
+
+**Target-jump modifier:** a target that jumped this turn, including a pending DFA attacker waiting
+airborne in its approach hex, now adds the cumulative +1 to physical attacks
+(`JumpedTargetModifier`). This closes the gap recorded in the previous section.
 
 ---
 

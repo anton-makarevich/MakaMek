@@ -27,5 +27,6 @@ public interface IGame
     IToHitCalculator ToHitCalculator { get; }
     IPhysicalAttackEligibility PhysicalAttackEligibility { get; }
     IPhysicalAttackCalculator PhysicalAttackCalculator { get; }
+    IMovementAttackDeclarationValidator MovementAttackDeclarationValidator { get; }
     IRulesProvider RulesProvider { get; }
 }

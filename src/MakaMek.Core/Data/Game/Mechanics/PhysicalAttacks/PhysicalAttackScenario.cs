@@ -115,4 +115,46 @@ public record PhysicalAttackScenario
             AttackerUnit = attacker
         };
     }
+
+    /// <summary>
+    /// Creates a scenario for a hypothetical (preview) attack from an explicit attacker position,
+    /// which is what a movement-origin attack needs: the attacker has not moved yet, so its live
+    /// position is still the movement origin rather than the approach hex. The movement type and
+    /// the target's hexes moved are supplied by the caller instead of being read from the units.
+    /// </summary>
+    /// <param name="attacker">The attacking unit, read live for attacker-side modifiers.</param>
+    /// <param name="target">The target unit, read live for target-side modifiers.</param>
+    /// <param name="attackType">The type of the physical attack.</param>
+    /// <param name="attackerPosition">The position the attacker would attack from.</param>
+    /// <param name="attackerMovementType">The movement type the attack would use.</param>
+    /// <param name="targetHexesMoved">The hexes the target has already moved.</param>
+    /// <returns>A scenario representing the intended attack.</returns>
+    /// <exception cref="InvalidOperationException">Thrown if the attacker has no pilot or the target has no position.</exception>
+    public static PhysicalAttackScenario ForPreview(
+        IUnit attacker,
+        IUnit target,
+        PhysicalAttackType attackType,
+        HexPosition attackerPosition,
+        MovementType attackerMovementType,
+        int targetHexesMoved)
+    {
+        if (attacker.Pilot is null)
+            throw new InvalidOperationException("Attacker pilot is not assigned");
+        if (target.Position is null)
+            throw new InvalidOperationException("Target position is not set");
+
+        return new PhysicalAttackScenario
+        {
+            AttackerPiloting = attacker.Pilot.Piloting,
+            AttackType = attackType,
+            AttackerPosition = attackerPosition,
+            TargetPosition = target.Position,
+            AttackerMovementType = attackerMovementType,
+            TargetHexesMoved = targetHexesMoved,
+            AttackerHeight = attacker.Height,
+            TargetHeight = target.Height,
+            TargetUnit = target,
+            AttackerUnit = attacker
+        };
+    }
 }

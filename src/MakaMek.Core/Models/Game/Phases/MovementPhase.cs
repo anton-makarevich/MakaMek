@@ -21,7 +21,7 @@ public class MovementPhase(
     : MainGamePhase(game)
 {
     private readonly IMovementAttackDeclarationValidator _declarationValidator =
-        declarationValidator ?? new MovementAttackDeclarationValidator();
+        declarationValidator ?? game.MovementAttackDeclarationValidator;
     private Guid? _deferredMovementUnitId;
     private bool _requestDeferStepConsumption;
 

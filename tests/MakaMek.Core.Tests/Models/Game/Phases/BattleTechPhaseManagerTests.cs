@@ -40,6 +40,7 @@ public class BattleTechPhaseManagerTests
             Substitute.For<IHeatEffectsCalculator>(),
             new PhysicalAttackEligibility(),
             Substitute.For<IPhysicalAttackCalculator>(),
+            Substitute.For<IMovementAttackDeclarationValidator>(),
             Substitute.For<IFallProcessor>(),
             Substitute.For<IWeaponAttackResolver>(),
             Substitute.For<IPhysicalAttackResolver>(),

@@ -29,6 +29,8 @@ public class GameFactoryTests
     private readonly IHeatEffectsCalculator _heatEffectsCalculator= Substitute.For<IHeatEffectsCalculator>();
     private readonly IPhysicalAttackEligibility _physicalAttackEligibility = Substitute.For<IPhysicalAttackEligibility>();
     private readonly IPhysicalAttackCalculator _physicalAttackCalculator = Substitute.For<IPhysicalAttackCalculator>();
+    private readonly IMovementAttackDeclarationValidator _movementAttackDeclarationValidator =
+        Substitute.For<IMovementAttackDeclarationValidator>();
     private readonly IBattleMapFactory _mapFactory= Substitute.For<IBattleMapFactory>();
     private readonly IMechFactory _mechFactory= Substitute.For<IMechFactory>();
     private readonly IHashService _hashService= Substitute.For<IHashService>();
@@ -57,6 +59,7 @@ public class GameFactoryTests
             _heatEffectsCalculator,
             _physicalAttackEligibility,
             _physicalAttackCalculator,
+            _movementAttackDeclarationValidator,
             _fallProcessor,
             _mapFactory,
             _hashService);
@@ -99,5 +102,17 @@ public class GameFactoryTests
         // Assert
         serverGame.PhysicalAttackCalculator.ShouldBe(_physicalAttackCalculator);
         clientGame.PhysicalAttackCalculator.ShouldBe(_physicalAttackCalculator);
+    }
+
+    [Fact]
+    public void CreatedGames_ExposeTheInjectedMovementAttackDeclarationValidator()
+    {
+        // Act
+        var serverGame = _sut.CreateServerGame(_commandPublisher);
+        var clientGame = _sut.CreateClientGame(_commandPublisher);
+
+        // Assert
+        serverGame.MovementAttackDeclarationValidator.ShouldBe(_movementAttackDeclarationValidator);
+        clientGame.MovementAttackDeclarationValidator.ShouldBe(_movementAttackDeclarationValidator);
     }
 }

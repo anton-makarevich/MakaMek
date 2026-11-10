@@ -85,6 +85,7 @@ public class GameManagerTests : IDisposable
             heatEffectsCalculator,
             new PhysicalAttackEligibility(),
             Substitute.For<IPhysicalAttackCalculator>(),
+            Substitute.For<IMovementAttackDeclarationValidator>(),
             fallProcessor,
             Substitute.For<IWeaponAttackResolver>(),
             Substitute.For<IPhysicalAttackResolver>(),
@@ -1845,7 +1846,7 @@ public class GameManagerTests : IDisposable
             .Returns(RoomOperationResult.Succeeded());
         var relayPublisher = Substitute.For<ITransportPublisher>();
         relayPublisherFactory.Create(RelayOptions(roomCode), Arg.Any<CancellationToken>())
-            .Returns(Task.FromResult<ITransportPublisher>(relayPublisher));
+            .Returns(Task.FromResult(relayPublisher));
         var sut = CreateSutWithRelay(relayRoomClient, relayPublisherFactory);
 
         // The manager's status stream is the forwarder's stream; status flows through it
@@ -1883,7 +1884,7 @@ public class GameManagerTests : IDisposable
             .Returns(RoomOperationResult.Succeeded());
         var relayPublisher = Substitute.For<ITransportPublisher>();
         relayPublisherFactory.Create(RelayOptions(roomCode), Arg.Any<CancellationToken>())
-            .Returns(Task.FromResult<ITransportPublisher>(relayPublisher));
+            .Returns(Task.FromResult(relayPublisher));
         var sut = CreateSutWithRelay(relayRoomClient, relayPublisherFactory);
 
         await sut.InitializeLobbyOnline();
