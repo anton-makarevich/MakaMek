@@ -75,12 +75,6 @@ public record PhysicalAttackScenario
     public IUnit? AttackerUnit { get; private init; }
 
     /// <summary>
-    /// The target's Piloting Skill Rating at the time the scenario was built. Optional: a target
-    /// without a pilot omits the charge's relative-piloting modifier.
-    /// </summary>
-    public int? TargetPiloting { get; private init; }
-
-    /// <summary>
     /// Creates a PhysicalAttackScenario from actual units in their current state.
     /// Used for real combat calculations and to-hit previews.
     /// </summary>
@@ -118,8 +112,7 @@ public record PhysicalAttackScenario
             AttackerHeight = attacker.Height,
             TargetHeight = target.Height,
             TargetUnit = target,
-            AttackerUnit = attacker,
-            TargetPiloting = target.Pilot?.Piloting
+            AttackerUnit = attacker
         };
     }
 }

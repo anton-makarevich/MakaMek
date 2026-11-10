@@ -115,14 +115,15 @@ public class PhysicalAttackCalculator : IPhysicalAttackCalculator
         var otherModifiers = breakdown.OtherModifiers.ToList();
 
         // Total Warfare p. 148: add the difference when the target has the lower (better) Piloting
-        // Skill Rating, subtract it when the attacker has the lower one.
-        if (scenario.TargetPiloting is { } targetPiloting)
+        // Skill Rating, subtract it when the attacker has the lower one. Piloting skill is static
+        // for a whole game, so reading it from the live target unit is safe.
+        if (scenario.TargetUnit?.Pilot is { } targetPilot)
         {
             otherModifiers.Add(new RelativePilotingModifier
             {
-                Value = scenario.AttackerPiloting - targetPiloting,
+                Value = scenario.AttackerPiloting - targetPilot.Piloting,
                 AttackerPiloting = scenario.AttackerPiloting,
-                TargetPiloting = targetPiloting
+                TargetPiloting = targetPilot.Piloting
             });
         }
 
