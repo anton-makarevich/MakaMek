@@ -188,12 +188,12 @@ public class MovementAttackDeclarationValidator : IMovementAttackDeclarationVali
                 != targetPosition.Coordinates)
             return false;
 
-        var approachEndpoint = GetEndpoint(attacker, enteringSegment.From, map);
-        var targetEndpoint = GetEndpoint(target, targetPosition, map);
+        var approachEndpoint = map.GetPhysicalAttackEndpoint(enteringSegment.From, attacker.Height);
+        var targetEndpoint = map.GetPhysicalAttackEndpoint(targetPosition, target.Height);
         if (approachEndpoint is not { } approach || targetEndpoint is not { } targetState) return false;
 
         return approach.IsSubmerged == targetState.IsSubmerged
-               && Math.Abs(targetState.StandingLevel - approach.StandingLevel) <= 1;
+               && Math.Abs(approach.LevelDifferenceTo(targetState)) <= 1;
     }
 
     /// <summary>
@@ -212,26 +212,11 @@ public class MovementAttackDeclarationValidator : IMovementAttackDeclarationVali
     private static bool IsDfaAllowed(IUnit attacker, IUnit target, HexPosition targetPosition,
         IBattleMap map)
     {
-        var attackerEndpoint = GetEndpoint(attacker, attacker.Position!, map);
-        var targetEndpoint = GetEndpoint(target, targetPosition, map);
+        var attackerEndpoint = map.GetPhysicalAttackEndpoint(attacker.Position!, attacker.Height);
+        var targetEndpoint = map.GetPhysicalAttackEndpoint(targetPosition, target.Height);
         return attackerEndpoint is { IsSubmerged: false }
                && targetEndpoint is { IsSubmerged: false }
                && CanClearDfaHeight(attacker, target, targetPosition, map);
-    }
-
-    /// <summary>
-    /// Where a unit stands relative to the water line, resolved from the map surface it occupies
-    /// rather than the stored unit hex, which replacing a map hex does not update.
-    /// </summary>
-    private sealed record UnitEndpoint(int StandingLevel, bool IsSubmerged);
-
-    private static UnitEndpoint? GetEndpoint(IUnit unit, HexPosition position, IBattleMap map)
-    {
-        var hex = map.GetHex(position.Coordinates);
-        if (hex is null) return null;
-
-        var (standingLevel, isSubmerged) = hex.GetLosEndpointInfo(position.Surface, unit.Height);
-        return new UnitEndpoint(standingLevel, isSubmerged);
     }
 
     /// <summary>

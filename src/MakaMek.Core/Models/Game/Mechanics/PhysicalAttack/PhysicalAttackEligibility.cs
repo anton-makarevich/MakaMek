@@ -142,8 +142,8 @@ public class PhysicalAttackEligibility : IPhysicalAttackEligibility
         IBattleMap map, IReadOnlyList<PartLocation> candidates)
     {
         if (attacker is not Mech mech || !CanMakePhysicalAttack(mech) || !IsValidTarget(mech, target)
-            || GetEndpoint(mech, map) is not { } attackerEndpoint
-            || GetEndpoint(target, map) is not { } targetEndpoint)
+            || map.GetPhysicalAttackEndpoint(mech.Position!, mech.Height) is not { } attackerEndpoint
+            || map.GetPhysicalAttackEndpoint(target.Position!, target.Height) is not { } targetEndpoint)
             return Evaluation.Fail(PhysicalAttackRestriction.TargetOutOfReach, candidates);
 
         if (IsBlockedByWater(attackerEndpoint, targetEndpoint, attackType))
@@ -278,8 +278,8 @@ public class PhysicalAttackEligibility : IPhysicalAttackEligibility
             || !IsInFeetFrontHex(mech, target))
             return Evaluation.Fail(PhysicalAttackRestriction.NoTargetInFront, candidates);
 
-        if (GetEndpoint(mech, map) is not { } attackerEndpoint
-            || GetEndpoint(target, map) is not { } targetEndpoint)
+        if (map.GetPhysicalAttackEndpoint(mech.Position!, mech.Height) is not { } attackerEndpoint
+            || map.GetPhysicalAttackEndpoint(target.Position!, target.Height) is not { } targetEndpoint)
             return Evaluation.Fail(PhysicalAttackRestriction.NoTargetInFront, candidates);
 
         // The same water rule that removes the limbs has to report a reason here, otherwise the
@@ -305,8 +305,8 @@ public class PhysicalAttackEligibility : IPhysicalAttackEligibility
     /// and any supported attack qualifies (issue #1600). Push also uses the arms, so it needs
     /// the same Depth 1 restriction as a punch.
     /// </summary>
-    private static bool IsBlockedByWater(UnitEndpoint attackerEndpoint, UnitEndpoint targetEndpoint,
-        PhysicalAttackType attackType) =>
+    private static bool IsBlockedByWater(PhysicalAttackEndpoint attackerEndpoint,
+        PhysicalAttackEndpoint targetEndpoint, PhysicalAttackType attackType) =>
         targetEndpoint.IsSubmerged
         && (!attackerEndpoint.IsInWater
             || (!attackerEndpoint.IsSubmerged
@@ -319,7 +319,8 @@ public class PhysicalAttackEligibility : IPhysicalAttackEligibility
     /// p. 148). A damaged shoulder actuator is not a blocker.
     /// </summary>
     private static PhysicalAttackRestriction? GetPushRestriction(
-        Mech attacker, IUnit target, UnitEndpoint attackerEndpoint, UnitEndpoint targetEndpoint)
+        Mech attacker, IUnit target, PhysicalAttackEndpoint attackerEndpoint,
+        PhysicalAttackEndpoint targetEndpoint)
     {
         if (!IsInFeetFrontHex(attacker, target))
             return PhysicalAttackRestriction.NoTargetInFront;
@@ -350,32 +351,6 @@ public class PhysicalAttackEligibility : IPhysicalAttackEligibility
             == attacker.Position!.Coordinates.GetNeighbour(attacker.Position.Facing);
 
     /// <summary>
-    /// Where a unit stands relative to the water line, resolved from the current map. The stored
-    /// Unit.Hex is deliberately not used because replacing a map hex does not update it.
-    /// </summary>
-    private sealed record UnitEndpoint(int EffectiveStandingLevel, bool IsSubmerged, bool IsInWater);
-
-    /// <summary>
-    /// The effective standing level and submersion of one unit (Total Warfare p.109: water counts
-    /// as negative levels). A unit is in water when it stands on the ground surface of a hex with
-    /// water deeper than shallow; a unit on a bridge is never in water.
-    /// Physical reach stays grounded for a pending DFA attacker: only line of sight uses its
-    /// airborne level (docs/rules/physical-attacks.md).
-    /// </summary>
-    private static UnitEndpoint? GetEndpoint(IUnit unit, IBattleMap map)
-    {
-        var hex = map.GetHex(unit.Position!.Coordinates);
-        if (hex == null) return null;
-
-        var surface = unit.Position.Surface;
-        var (effectiveStandingLevel, isSubmerged) = hex.GetLosEndpointInfo(surface, unit.Height);
-        return new UnitEndpoint(
-            effectiveStandingLevel,
-            isSubmerged,
-            surface == HexSurface.Ground && hex.GetWaterDepth() is > 0);
-    }
-
-    /// <summary>
     /// A standing Mech that is still in the game. A skidding Mech may still attack; it takes a
     /// to-hit penalty instead.
     /// </summary>
@@ -398,10 +373,9 @@ public class PhysicalAttackEligibility : IPhysicalAttackEligibility
     /// Standing target: 0 allows a punch and a kick, +1 a punch, -1 a kick.
     /// Prone target: +1 allows a punch, 0 a kick, anything else nothing.
     /// </summary>
-    private static int GetEffectiveLevelDifference(UnitEndpoint attackerEndpoint, UnitEndpoint targetEndpoint,
-        int attackerHeight, int targetHeight) =>
-        targetEndpoint.EffectiveStandingLevel - attackerEndpoint.EffectiveStandingLevel
-        - (targetHeight - attackerHeight);
+    private static int GetEffectiveLevelDifference(PhysicalAttackEndpoint attackerEndpoint,
+        PhysicalAttackEndpoint targetEndpoint, int attackerHeight, int targetHeight) =>
+        attackerEndpoint.LevelDifferenceTo(targetEndpoint) - (targetHeight - attackerHeight);
 
     private static bool IsPartIntact(Mech mech, PartLocation location) =>
         mech.Parts.TryGetValue(location, out var part) && !part.IsDestroyed;
