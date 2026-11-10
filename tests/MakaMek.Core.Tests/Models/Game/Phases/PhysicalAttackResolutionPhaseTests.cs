@@ -1141,9 +1141,9 @@ public class PhysicalAttackResolutionPhaseTests : GamePhaseTestsBase
     [Fact]
     public void Enter_BlockedPushDestination_KeepsBothUnitsButStillRollsTheTargetPsr()
     {
-        // Arrange: the destination hex is higher than the target's standing level
+        // Arrange: the destination hex is three levels above the target's standing level
         SetMap();
-        Game.BattleMap!.AddHex(new Hex(DestinationHex, 1));
+        Game.BattleMap!.AddHex(new Hex(DestinationHex, 3));
         Declare(_player1Mech, _player2Mech, PhysicalAttackType.Push, PartLocation.LeftArm, PartLocation.RightArm);
         MockPhysicalAttackResolver.ResolveAttack(Arg.Any<PhysicalAttackContext>())
             .Returns(PushHit());
@@ -1159,6 +1159,41 @@ public class PhysicalAttackResolutionPhaseTests : GamePhaseTestsBase
             _player2Mech, Game, Arg.Any<List<ComponentHitData>>(), Arg.Any<List<PartLocation>?>(),
             Arg.Is<IReadOnlyList<PilotingSkillRollContext>?>(contexts =>
                 contexts != null && contexts.Single().RollType == PilotingSkillRollType.PushHit));
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    public void Enter_PushIntoAHigherDestinationWithinTheLimit_MovesBothUnitsWithoutAFall(int ascent)
+    {
+        // Arrange: a Mech can be displaced up to two levels in one hex
+        SetMap();
+        Game.BattleMap!.AddHex(new Hex(DestinationHex, ascent));
+        Declare(_player1Mech, _player2Mech, PhysicalAttackType.Push, PartLocation.LeftArm, PartLocation.RightArm);
+        MockPhysicalAttackResolver.ResolveAttack(Arg.Any<PhysicalAttackContext>())
+            .Returns(PushHit());
+
+        // Act
+        _sut.Enter();
+
+        // Assert: the target moves, then the attacker advances, and the push PSR is still recorded
+        var displacements = PublishedCommands().OfType<DisplaceUnitCommand>().ToList();
+        displacements.Count.ShouldBe(2);
+        displacements[0].UnitId.ShouldBe(_player2Mech.Id);
+        displacements[0].ToCoordinates.ShouldBe(DestinationHex.ToData());
+        displacements[0].DisplacementReason.ShouldBe(DisplacementReason.Push);
+        displacements[1].UnitId.ShouldBe(_player1Mech.Id);
+        displacements[1].ToCoordinates.ShouldBe(TargetHex.ToData());
+        displacements[1].DisplacementReason.ShouldBe(DisplacementReason.PushAdvance);
+        _player2Mech.Position!.Coordinates.ShouldBe(DestinationHex);
+        _player1Mech.Position!.Coordinates.ShouldBe(TargetHex);
+        MockFallProcessor.Received(1).ProcessPotentialFall(
+            _player2Mech, Game, Arg.Any<List<ComponentHitData>>(), Arg.Any<List<PartLocation>?>(),
+            Arg.Is<IReadOnlyList<PilotingSkillRollContext>?>(contexts =>
+                contexts != null && contexts.Single().RollType == PilotingSkillRollType.PushHit));
+        MockFallProcessor.DidNotReceive().ProcessMovementAttempt(
+            Arg.Any<Mech>(), Arg.Any<PilotingSkillRollContext>(), Arg.Any<IGame>(),
+            Arg.Any<MovementType>(), Arg.Any<HexPosition?>());
     }
 
     [Fact]

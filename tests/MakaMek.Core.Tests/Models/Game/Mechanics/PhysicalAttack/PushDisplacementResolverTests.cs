@@ -113,12 +113,37 @@ public class PushDisplacementResolverTests
         result.DominoEffect.PsrCandidates.ShouldBe([target, firstOccupant, secondOccupant]);
     }
 
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    public void Resolve_AscentWithinTheUnitsLimit_IsAllowedWithoutAFall(int ascent)
+    {
+        // Arrange: a Mech may be displaced up to two levels in one hex
+        var map = CreateFlatMap();
+        AddHex(map, new Hex(DestinationHex, ascent));
+        var attacker = UnitAt(AttackerHex, HexDirection.Top);
+        var target = UnitAt(TargetHex, HexDirection.Bottom);
+
+        // Act
+        var result = _sut.Resolve(attacker, target, map, [attacker, target]);
+
+        // Assert
+        result.ShouldNotBeNull();
+        result.TargetDestination.Coordinates.ShouldBe(DestinationHex);
+        result.TargetDestination.Surface.ShouldBe(HexSurface.Ground);
+        result.LevelsFallen.ShouldBe(0);
+        result.TriggersAutomaticFall.ShouldBeFalse();
+        result.AttackerDestination.Coordinates.ShouldBe(TargetHex);
+        result.AttackerDestination.Surface.ShouldBe(HexSurface.Ground);
+    }
+
     [Fact]
-    public void Resolve_DestinationHigherThanTheTarget_IsBlocked()
+    public void Resolve_AscentOfThreeLevels_IsBlocked()
     {
         // Arrange
         var map = CreateFlatMap();
-        AddHex(map, new Hex(DestinationHex, 1));
+        AddHex(map, new Hex(DestinationHex, 3));
         var attacker = UnitAt(AttackerHex, HexDirection.Top);
         var target = UnitAt(TargetHex, HexDirection.Bottom);
 
@@ -149,12 +174,15 @@ public class PushDisplacementResolverTests
         result.TriggersAutomaticFall.ShouldBeFalse();
     }
 
-    [Fact]
-    public void Resolve_DropOfMoreThanTwoLevels_TriggersAnAutomaticFall()
+    [Theory]
+    [InlineData(3)]
+    [InlineData(5)]
+    public void Resolve_DropOfMoreThanTwoLevels_TriggersAnAutomaticFall(int drop)
     {
-        // Arrange
+        // Arrange: downward displacement is unrestricted; both units start at the same level
         var map = CreateFlatMap();
-        AddHex(map, new Hex(TargetHex, 3));
+        AddHex(map, new Hex(AttackerHex, drop));
+        AddHex(map, new Hex(TargetHex, drop));
         var attacker = UnitAt(AttackerHex, HexDirection.Top);
         var target = UnitAt(TargetHex, HexDirection.Bottom);
 
@@ -163,7 +191,7 @@ public class PushDisplacementResolverTests
 
         // Assert
         result.ShouldNotBeNull();
-        result.LevelsFallen.ShouldBe(3);
+        result.LevelsFallen.ShouldBe(drop);
         result.TriggersAutomaticFall.ShouldBeTrue();
     }
 
@@ -204,6 +232,149 @@ public class PushDisplacementResolverTests
         result.ShouldNotBeNull();
         result.TargetDestination.Surface.ShouldBe(HexSurface.Ground);
         result.LevelsFallen.ShouldBe(0);
+    }
+
+    [Fact]
+    public void Resolve_DestinationBridgeDeckCloserThanTheGround_SelectsTheBridgeSurface()
+    {
+        // Arrange: the target is on a level-2 deck; the destination ground is at 0 and its deck at 3
+        var map = CreateFlatMap();
+        AddHex(map, CreateBridgeHex(TargetHex, level: 0, bridgeHeight: 2));
+        AddHex(map, CreateBridgeHex(DestinationHex, level: 0, bridgeHeight: 3));
+        var attacker = UnitAt(AttackerHex, HexDirection.Top);
+        var target = UnitAt(TargetHex, HexDirection.Bottom, HexSurface.Bridge);
+
+        // Act
+        var result = _sut.Resolve(attacker, target, map, [attacker, target]);
+
+        // Assert
+        result.ShouldNotBeNull();
+        result.TargetDestination.Surface.ShouldBe(HexSurface.Bridge);
+        result.LevelsFallen.ShouldBe(0);
+    }
+
+    [Fact]
+    public void Resolve_BridgeDeckAboveTheLimitWithUnusableGround_IsBlocked()
+    {
+        // Arrange: the destination deck is three levels above the target and the unit does not fit
+        // under the bridge, so no surface is legal
+        var map = CreateFlatMap();
+        AddHex(map, CreateBridgeHex(DestinationHex, level: 0, bridgeHeight: 3));
+        var attacker = UnitAt(AttackerHex, HexDirection.Top);
+        var target = UnitAt(TargetHex, HexDirection.Bottom, height: 4);
+
+        // Act
+        var result = _sut.Resolve(attacker, target, map, [attacker, target]);
+
+        // Assert
+        result.ShouldBeNull();
+    }
+
+    [Fact]
+    public void Resolve_AscentWithinACustomUnitsLimit_IsAllowed()
+    {
+        // Arrange: a unit with a single-hex climb limit of one
+        var map = CreateFlatMap();
+        AddHex(map, new Hex(DestinationHex, 1));
+        var attacker = UnitAt(AttackerHex, HexDirection.Top);
+        var target = UnitAt(TargetHex, HexDirection.Bottom, maxLevelChangeForward: 1);
+
+        // Act
+        var result = _sut.Resolve(attacker, target, map, [attacker, target]);
+
+        // Assert
+        result.ShouldNotBeNull();
+        result.TargetDestination.Coordinates.ShouldBe(DestinationHex);
+        result.LevelsFallen.ShouldBe(0);
+    }
+
+    [Fact]
+    public void Resolve_AscentAboveACustomUnitsLimit_IsBlocked()
+    {
+        // Arrange: a unit with a single-hex climb limit of one cannot be forced up two levels
+        var map = CreateFlatMap();
+        AddHex(map, new Hex(DestinationHex, 2));
+        var attacker = UnitAt(AttackerHex, HexDirection.Top);
+        var target = UnitAt(TargetHex, HexDirection.Bottom, maxLevelChangeForward: 1);
+
+        // Act
+        var result = _sut.Resolve(attacker, target, map, [attacker, target]);
+
+        // Assert
+        result.ShouldBeNull();
+    }
+
+    [Fact]
+    public void Resolve_AttackerAdvance_UsesTheVacatedSurface()
+    {
+        // Arrange: both units stand on bridge decks at level 2
+        var map = CreateFlatMap();
+        AddHex(map, CreateBridgeHex(AttackerHex, level: 0, bridgeHeight: 2));
+        AddHex(map, CreateBridgeHex(TargetHex, level: 0, bridgeHeight: 2));
+        AddHex(map, CreateBridgeHex(DestinationHex, level: 0, bridgeHeight: 2));
+        var attacker = UnitAt(AttackerHex, HexDirection.Top, HexSurface.Bridge);
+        var target = UnitAt(TargetHex, HexDirection.Bottom, HexSurface.Bridge);
+
+        // Act
+        var result = _sut.Resolve(attacker, target, map, [attacker, target]);
+
+        // Assert
+        result.ShouldNotBeNull();
+        result.AttackerDestination.Coordinates.ShouldBe(TargetHex);
+        result.AttackerDestination.Surface.ShouldBe(HexSurface.Bridge);
+    }
+
+    [Fact]
+    public void Resolve_AttackerAdvanceAboveTheAttackersLimit_BlocksTheWholePush()
+    {
+        // Arrange: the target can be pushed up two levels, but the attacker can only climb one
+        var map = CreateFlatMap();
+        AddHex(map, new Hex(TargetHex, 2));
+        AddHex(map, new Hex(DestinationHex, 2));
+        var attacker = UnitAt(AttackerHex, HexDirection.Top, maxLevelChangeForward: 1);
+        var target = UnitAt(TargetHex, HexDirection.Bottom);
+
+        // Act
+        var result = _sut.Resolve(attacker, target, map, [attacker, target]);
+
+        // Assert
+        result.ShouldBeNull();
+    }
+
+    [Fact]
+    public void Resolve_AttackerDropAboveTheFallThreshold_BlocksTheWholePush()
+    {
+        // Arrange: the attacker stands three levels above the target and the vacated hex
+        var map = CreateFlatMap();
+        AddHex(map, new Hex(AttackerHex, 3));
+        var attacker = UnitAt(AttackerHex, HexDirection.Top);
+        var target = UnitAt(TargetHex, HexDirection.Bottom);
+
+        // Act
+        var result = _sut.Resolve(attacker, target, map, [attacker, target]);
+
+        // Assert
+        result.ShouldBeNull();
+    }
+
+    [Fact]
+    public void Resolve_BlockedAttackerAdvanceInTheDominoBranch_BlocksTheWholePush()
+    {
+        // Arrange: the domino chain resolves, but the attacker can only climb one level into the
+        // vacated hex two levels above it
+        var map = CreateFlatMap();
+        AddHex(map, new Hex(TargetHex, 2));
+        AddHex(map, new Hex(DestinationHex, 2));
+        AddHex(map, new Hex(DestinationHex.GetNeighbour(HexDirection.Top), 2));
+        var attacker = UnitAt(AttackerHex, HexDirection.Top, maxLevelChangeForward: 1);
+        var target = UnitAt(TargetHex, HexDirection.Bottom);
+        var occupant = UnitAt(DestinationHex, HexDirection.Top);
+
+        // Act
+        var result = _sut.Resolve(attacker, target, map, [attacker, target, occupant]);
+
+        // Assert
+        result.ShouldBeNull();
     }
 
     [Fact]
@@ -315,7 +486,8 @@ public class PushDisplacementResolverTests
     }
 
     private static IUnit UnitAt(HexCoordinates coordinates, HexDirection facing,
-        HexSurface surface = HexSurface.Ground, bool isDestroyed = false, bool isDeployed = true)
+        HexSurface surface = HexSurface.Ground, bool isDestroyed = false, bool isDeployed = true,
+        int height = 0, int maxLevelChangeForward = 2)
     {
         var unit = Substitute.For<IUnit>();
         unit.Id.Returns(Guid.NewGuid());
@@ -325,7 +497,8 @@ public class PushDisplacementResolverTests
             unit.Position.Returns((HexPosition?)null);
         unit.IsDeployed.Returns(isDeployed);
         unit.IsDestroyed.Returns(isDestroyed);
-        unit.MaxLevelChangeForward.Returns(2);
+        unit.Height.Returns(height);
+        unit.MaxLevelChangeForward.Returns(maxLevelChangeForward);
         return unit;
     }
 
