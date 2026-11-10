@@ -186,7 +186,7 @@ public class PhysicalAttackResolutionCommandTests
     [Fact]
     public void Render_AttackWithoutASupportedDefinition_StillNamesTheLimb()
     {
-        // Arrange: Charge has no physical attack definition yet, so it keeps the limb suffix
+        // Arrange: DFA has no physical attack definition yet, so it keeps the limb suffix
         var sut = new PhysicalAttackResolutionCommand
         {
             ResolutionId = Guid.NewGuid(),
@@ -195,7 +195,7 @@ public class PhysicalAttackResolutionCommandTests
             AttackerId = _attacker.Id,
             TargetId = _target.Id,
             ResolutionData = new PhysicalAttackResolutionData(
-                PhysicalAttackType.Charge,
+                PhysicalAttackType.DFA,
                 PartLocation.RightLeg,
                 0,
                 new AttackResolutionData(9, [new DiceResult(2), new DiceResult(3)], false, HitDirection.Front, 0),
@@ -206,7 +206,106 @@ public class PhysicalAttackResolutionCommandTests
         var result = sut.Render(_localizationService, _game);
 
         // Assert
-        result.ShouldContain("with Charge (Right Leg)");
+        result.ShouldContain("with Death From Above (Right Leg)");
+    }
+
+    [Fact]
+    public void Render_ChargeHit_ShowsTheOutcomeAndBothUnitsDamage()
+    {
+        // Arrange
+        var attackerCollision = new AttackHitLocationsData(
+            [new LocationHitData([new LocationDamageData(PartLocation.CenterTorso, 2, 0, false)], [], [3, 4],
+                PartLocation.CenterTorso)],
+            2, [], 1);
+        var sut = new PhysicalAttackResolutionCommand
+        {
+            ResolutionId = Guid.NewGuid(),
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = _player1.Id,
+            AttackerId = _attacker.Id,
+            TargetId = _target.Id,
+            ResolutionData = new PhysicalAttackResolutionData(
+                PhysicalAttackType.Charge,
+                null,
+                18,
+                new AttackResolutionData(
+                    7,
+                    [new DiceResult(4), new DiceResult(4)],
+                    true,
+                    HitDirection.Front,
+                    0,
+                    new AttackHitLocationsData(
+                        [new LocationHitData([new LocationDamageData(PartLocation.CenterTorso, 5, 0, false)], [], [3, 4],
+                            PartLocation.CenterTorso)],
+                        5, [], 0)),
+                [],
+                new ChargeResolutionData(ChargeOutcome.Hit, 3, false, _target.Id, attackerCollision))
+        };
+
+        // Act
+        var result = sut.Render(_localizationService, _game);
+
+        // Assert
+        result.ShouldContain("with Charge");
+        result.ShouldNotContain("(Right Leg)");
+        result.ShouldContain("Charge: Hit (3 hexes moved)");
+        result.ShouldContain("collision damage");
+    }
+
+    [Fact]
+    public void Render_ChargeMiss_ShowsTheMissOutcomeWithoutALimb()
+    {
+        // Arrange
+        var sut = new PhysicalAttackResolutionCommand
+        {
+            ResolutionId = Guid.NewGuid(),
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = _player1.Id,
+            AttackerId = _attacker.Id,
+            TargetId = _target.Id,
+            ResolutionData = new PhysicalAttackResolutionData(
+                PhysicalAttackType.Charge,
+                null,
+                0,
+                new AttackResolutionData(7, [new DiceResult(2), new DiceResult(3)], false, HitDirection.Front, 0),
+                [],
+                new ChargeResolutionData(ChargeOutcome.Miss, 3, false, _target.Id))
+        };
+
+        // Act
+        var result = sut.Render(_localizationService, _game);
+
+        // Assert
+        result.ShouldContain("with Charge");
+        result.ShouldContain("Charge: Miss (3 hexes moved)");
+    }
+
+    [Fact]
+    public void Render_ChargeAutoFail_ExplainsThatNoRollHappened()
+    {
+        // Arrange
+        var sut = new PhysicalAttackResolutionCommand
+        {
+            ResolutionId = Guid.NewGuid(),
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = _player1.Id,
+            AttackerId = _attacker.Id,
+            TargetId = _target.Id,
+            ResolutionData = new PhysicalAttackResolutionData(
+                PhysicalAttackType.Charge,
+                null,
+                0,
+                new AttackResolutionData(0, [], false, HitDirection.Front, 0),
+                [],
+                new ChargeResolutionData(ChargeOutcome.AutoFail, 3, false, _target.Id))
+        };
+
+        // Act
+        var result = sut.Render(_localizationService, _game);
+
+        // Assert
+        result.ShouldContain("automatically fails");
+        result.ShouldNotContain("Charge: Auto-fail");
     }
 
     [Fact]
@@ -228,6 +327,113 @@ public class PhysicalAttackResolutionCommandTests
         result.ShouldContain("Total Damage: 0");
         result.ShouldNotContain("Hit Locations:");
     }
+
+    [Fact]
+    public void Render_ChargeReplacement_NamesTheOriginalTarget()
+    {
+        // Arrange
+        var attackerCollision = new AttackHitLocationsData(
+            [new LocationHitData([new LocationDamageData(PartLocation.CenterTorso, 2, 0, false)], [], [3, 4],
+                PartLocation.CenterTorso)],
+            2, [], 1);
+        var sut = new PhysicalAttackResolutionCommand
+        {
+            ResolutionId = Guid.NewGuid(),
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = _player1.Id,
+            AttackerId = _attacker.Id,
+            TargetId = _target.Id,
+            ResolutionData = new PhysicalAttackResolutionData(
+                PhysicalAttackType.Charge,
+                null,
+                5,
+                ChargeHitResolution(),
+                [],
+                new ChargeResolutionData(ChargeOutcome.Hit, 3, true, _target.Id, attackerCollision))
+        };
+
+        // Act
+        var result = sut.Render(_localizationService, _game);
+
+        // Assert
+        result.ShouldContain($"Struck a replacement for {_target.Model}");
+    }
+
+    [Fact]
+    public void Render_ChargeReplacement_WhenTheOriginalTargetLeftTheGame_ShowsItsId()
+    {
+        // Arrange
+        var originalTargetId = Guid.NewGuid();
+        var sut = new PhysicalAttackResolutionCommand
+        {
+            ResolutionId = Guid.NewGuid(),
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = _player1.Id,
+            AttackerId = _attacker.Id,
+            TargetId = _target.Id,
+            ResolutionData = new PhysicalAttackResolutionData(
+                PhysicalAttackType.Charge,
+                null,
+                5,
+                ChargeHitResolution(),
+                [],
+                new ChargeResolutionData(ChargeOutcome.Hit, 3, true, originalTargetId))
+        };
+
+        // Act
+        var result = sut.Render(_localizationService, _game);
+
+        // Assert
+        result.ShouldContain($"Struck a replacement for {originalTargetId}");
+    }
+
+    [Fact]
+    public void Render_ChargeAttackerDestroyedByTheCollision_ShowsThePartsAndTheDestruction()
+    {
+        // Arrange: the collision did no location damage of its own, but it destroyed the attacker
+        var sut = new PhysicalAttackResolutionCommand
+        {
+            ResolutionId = Guid.NewGuid(),
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = _player1.Id,
+            AttackerId = _attacker.Id,
+            TargetId = _target.Id,
+            ResolutionData = new PhysicalAttackResolutionData(
+                PhysicalAttackType.Charge,
+                null,
+                5,
+                ChargeHitResolution(),
+                [],
+                new ChargeResolutionData(
+                    ChargeOutcome.Hit,
+                    3,
+                    false,
+                    _target.Id,
+                    new AttackHitLocationsData([], 2, [], 0),
+                    [PartLocation.Head],
+                    true))
+        };
+
+        // Act
+        var result = sut.Render(_localizationService, _game);
+
+        // Assert
+        result.ShouldContain($"{_attacker.Model} takes 2 collision damage");
+        result.ShouldContain("Destroyed parts:");
+        result.ShouldContain("- Head destroyed");
+        result.ShouldContain($"{_attacker.Model} has been destroyed!");
+    }
+
+    private static AttackResolutionData ChargeHitResolution() =>
+        new(7,
+            [new DiceResult(4), new DiceResult(4)],
+            true,
+            HitDirection.Front,
+            0,
+            new AttackHitLocationsData(
+                [new LocationHitData([new LocationDamageData(PartLocation.CenterTorso, 5, 0, false)], [], [3, 4],
+                    PartLocation.CenterTorso)],
+                5, [], 0));
 
     private PhysicalAttackResolutionCommand CreateCommand(AttackResolutionData resolution) => new()
     {

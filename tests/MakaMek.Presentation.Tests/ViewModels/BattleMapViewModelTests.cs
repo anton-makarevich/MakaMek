@@ -3231,6 +3231,25 @@ public class BattleMapViewModelTests
     }
 
     [Fact]
+    public void PhysicalAttackResolution_OfAChargeAgainstAReplacementTarget_RemovesTheDeclaredBadge()
+    {
+        // Arrange - the badge tracks the target the charge was declared against, while the
+        // resolution names the unit that replaced it in the target hex
+        var (attacker, target) = DeployPhysicalAttackers();
+        var replacementPlayer = JoinPlayerWithUnit("Replacement", "#0000FF");
+        var replacement = _sut.Units.First(unit => unit.Owner!.Id == replacementPlayer.Id);
+        replacement.Deploy(new HexPosition(new HexCoordinates(2, 0), HexDirection.Top), null);
+        SendChargeMove(attacker, target);
+        _sut.PhysicalAttackIndicators.ShouldHaveSingleItem().TargetId.ShouldBe(target.Id);
+
+        // Act
+        ResolvePhysicalCharge(attacker, replacement, target.Id);
+
+        // Assert
+        _sut.PhysicalAttackIndicators.ShouldBeEmpty();
+    }
+
+    [Fact]
     public void PhysicalAttackResolution_OfAMiss_RemovesTheIndicator()
     {
         // Arrange
@@ -3465,6 +3484,32 @@ public class BattleMapViewModelTests
                     AttackDirection: HitDirection.Front,
                     ExternalHeat: 0),
                 [])
+        });
+
+    private void ResolvePhysicalCharge(IUnit attacker, IUnit resolvedTarget, Guid declaredTargetId)
+        => _game.HandleCommand(new PhysicalAttackResolutionCommand
+        {
+            ResolutionId = Guid.NewGuid(),
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = attacker.Owner!.Id,
+            AttackerId = attacker.Id,
+            TargetId = resolvedTarget.Id,
+            ResolutionData = new PhysicalAttackResolutionData(
+                PhysicalAttackType.Charge,
+                null,
+                10,
+                new AttackResolutionData(
+                    ToHitNumber: 7,
+                    AttackRoll: [new DiceResult(3), new DiceResult(4)],
+                    IsHit: true,
+                    AttackDirection: HitDirection.Front,
+                    ExternalHeat: 0),
+                [],
+                new ChargeResolutionData(
+                    ChargeOutcome.Hit,
+                    HexesMoved: 1,
+                    IsReplacementTarget: declaredTargetId != resolvedTarget.Id,
+                    OriginalTargetId: declaredTargetId))
         });
 
     [Fact]

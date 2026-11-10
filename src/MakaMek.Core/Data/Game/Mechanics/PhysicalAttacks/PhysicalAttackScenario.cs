@@ -96,7 +96,9 @@ public record PhysicalAttackScenario
             throw new InvalidOperationException("Target position is not set");
         if (attacker.MovementTaken is null)
             throw new InvalidOperationException("Attacker's Movement Type is undefined");
-        if (target.MovementTaken is null)
+        // A charge can target a unit that has not moved at all this turn, including one that began
+        // the turn shut down or with an unconscious pilot. Treat it as stationary.
+        if (target.MovementTaken is null && attackType != PhysicalAttackType.Charge)
             throw new InvalidOperationException("Target's Movement Type is undefined");
 
         return new PhysicalAttackScenario
@@ -106,7 +108,7 @@ public record PhysicalAttackScenario
             AttackerPosition = attacker.Position,
             TargetPosition = target.Position,
             AttackerMovementType = attacker.MovementTaken.MovementType,
-            TargetHexesMoved = target.MovementTaken.HexesTraveled,
+            TargetHexesMoved = target.MovementTaken?.HexesTraveled ?? 0,
             AttackerHeight = attacker.Height,
             TargetHeight = target.Height,
             TargetUnit = target,

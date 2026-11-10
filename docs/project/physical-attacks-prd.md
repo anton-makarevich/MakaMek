@@ -36,7 +36,7 @@ The authoritative rules source for this feature is [`docs/rules/physical-attacks
 | Club | −1 | ⌈Tonnage/5⌉ | Standard table; improvised object (severed limb, tree, girder); both arms with undamaged shoulders **and hands**, no arm weapons fired from either arm |
 | Push | −1 | 0 | Displacement + target PSR (see §4 of rules doc) |
 | Physical weapon (hatchet/sword) | −1 / −2 | ⌈Tonnage/5⌉ / ⌈Tonnage/10⌉ + 1 | Standard table; weapon arm only; optional punch/kick table with +4 |
-| Charge | +0 | ⌈Tonnage/10⌉ × hexes moved (5-pt clusters); attacker takes ⌈target tonnage/10⌉ | Displaces target; both PSR (+2) on hit |
+| Charge | +0 | ⌈(Tonnage / 10) × hexes moved⌉ (5-pt clusters); attacker takes ⌈target tonnage/10⌉ | Displaces target; both PSR (+2) on hit |
 | DFA | +0 | ⌈Attacker tonnage/10⌉ × 3 to target (punch table); attacker takes ⌈tonnage/5⌉ to legs on hit | Attacker PSR +4, target PSR +2 on hit; attacker auto-falls on miss |
 
 5. **Weapon-firing restrictions** — a limb with weapons fired during the Weapon Attack Phase cannot punch/kick; a kicking leg's weapons cannot fire that turn; push requires both arms with no arm weapons fired. **Club** requires undamaged shoulder **and hand** actuators in both arms and no arm weapons fired from either arm (carrying a club occupies both hands). **Physical weapons** (hatchet/sword) restrict only the single weapon arm.
@@ -260,13 +260,13 @@ Physical-attack eligibility stays a **policy service**, not a rules-provider tab
 
 4.1. `PhysicalAttackResolutionPhase : GamePhase` with `Enter()` orchestration:
 
-    - Build queue from all units with `HasDeclaredPhysicalAttack`, in initiative order, one queue item per declared attack (punch arms enqueue separately).
+    - Build the resolution queue from all units with `HasDeclaredPhysicalAttack`, from the lower Initiative to the higher (the lower Initiative resolves first — Total Warfare p. 144), one queue item per declared attack (punch arms enqueue separately). A charge occupies its attacker's slot; it is not always resolved last.
     - Pre-attack gates (new `IAttackResolutionGate` implementations in `Mechanics/PhysicalAttack/`):
       - `PhysicalAttackTargetValidityGate` — re-validates target alive and attack-specific constraints at resolution time (adjacency, arc — including the punch side-arm restriction and torso-twist-rotated arcs, Background item 10 —, elevation; a standing target for Push).
       - `AttackerProneGate` — attacker that became prone during weapon attack resolution cannot perform the physical attack.
       - `AttackerDestroyedGate`.
     - Resolve each queued attack via `IPhysicalAttackResolver`; publish `PhysicalAttackResolutionCommand` per attack (mirrors `WeaponAttackResolutionCommand` fields: player, attacker, target, attack type, limb, resolution data).
-    - **Simultaneous damage principle:** all declared attacks are resolved in queue order and their results accumulated; damage is applied to all affected units simultaneously at the end of the phase (as the rules doc requires — a declared attack is never skipped because an earlier one destroyed its target), and all resulting PSRs are rolled at end of phase, reusing the `_accumulatedDamageData` pattern from `WeaponAttackResolutionPhase`.
+    - **Immediate damage and displacement:** attacks resolve in queue order and each attack's damage and displacement are applied before the next attack resolves (Total Warfare p. 148, 151). The queue and its gates are snapshotted at phase entry, so a declared attack is never skipped because an earlier one destroyed its attacker or target. Reciprocal push pairs are the one exception: both rolls are collected before either unit moves, because if both hit neither unit moves (p. 148). Attack-specific PSRs are still rolled at end of phase, reusing the `_accumulatedDamageData` pattern from `WeaponAttackResolutionPhase`.
 
 4.2. **End-of-phase PSR collection** (reuse and generalize the accumulated-damage approach):
     - Track per-target component hits and destroyed parts (for damage-caused fall PSRs) exactly like `WeaponAttackResolutionPhase.CalculateEndOfPhasePsrs`.
@@ -314,11 +314,11 @@ Physical-attack eligibility stays a **policy service**, not a rules-provider tab
 
 6.2. **To-hit:** Piloting base + relative piloting skill modifier (attacker piloting − target piloting) + jump modifier (DFA); standard movement and terrain modifiers apply to the charge impact roll.
 
-6.3. **Damage:** in 5-point clusters (`⌈Tonnage/10⌉ × hexesMoved` for charge target; DFA target uses punch table with ⌈tonnage/10⌉ × 3). Cluster application reuses existing 5-pt grouping logic (see `FallingDamageCalculator` for the cluster pattern).
+6.3. **Damage:** in 5-point clusters (`⌈(Tonnage / 10) × hexesMoved⌉` for the charge target — the tonnage fraction is multiplied first and the product rounded up; DFA target uses punch table with ⌈tonnage/10⌉ × 3). Cluster application reuses existing 5-pt grouping logic (see `FallingDamageCalculator` for the cluster pattern).
 
 6.4. **Outcomes:**
-    - Charge hit: target displaced to an adjacent valid hex (existing displacement rules), attacker occupies target hex; target PSR (+2), attacker PSR (+2).
-    - Charge miss: attacker occupies hex left/right of its forward arc (alternating/nearest-first selection), no damage, no PSRs.
+    - Charge hit: target displaced one hex in the charge direction (occupied destination → domino effect), attacker advances into the vacated hex; target PSR (+2), attacker PSR (+2). If the destination is prohibited terrain, off the map, or its occupant cannot be dislodged, **neither unit moves** while the damage and both PSRs still occur (Total Warfare p. 148).
+    - Charge miss: attacker is placed in the hex to the right or left of its forward arc (right first; a rear-side hex is never used), no damage, no PSRs.
     - **Charge auto-fail:** the target is no longer in the destination hex at resolution (fallen prone, destroyed, displaced) → no to-hit roll, no damage, no PSRs; the attacker completes its committed movement into the target hex (MP was already spent at declaration), and only enters it during resolution. If a different valid unit now occupies the hex, the attacker may attack it at **+1 to-hit** instead (Background item 11).
     - DFA hit: attacker lands in target hex, target displaced; target PSR (+2), attacker PSR (+4); attacker takes ⌈own tonnage/5⌉ to legs.
     - DFA miss: attacker automatically falls (2-level fall, rear-direction damage, standard fall damage pipeline). The target's displacement is **player-selected, not auto-chosen**: the server computes the adjacent passable hexes and broadcasts them (`PhysicalAttackDisplacementCandidatesCommand`); the client highlights the candidates in the UI and returns a selection-confirmation command (`SelectPhysicalAttackDisplacementCommand`). The server auto-resolves only when **exactly one** candidate hex exists (all others blocked/unpassable).

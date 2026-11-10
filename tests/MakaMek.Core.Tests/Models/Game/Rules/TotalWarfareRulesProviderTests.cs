@@ -64,13 +64,13 @@ public class TotalWarfareRulesProviderTests
     [InlineData(PhysicalAttackType.Punch, 0)]
     [InlineData(PhysicalAttackType.Kick, -2)]
     [InlineData(PhysicalAttackType.Push, -1)]
+    [InlineData(PhysicalAttackType.Charge, 0)]
     public void GetPhysicalAttackBaseModifier_ShouldReturnExpectedValues(PhysicalAttackType attackType, int expectedModifier)
     {
         _sut.GetPhysicalAttackBaseModifier(attackType).ShouldBe(expectedModifier);
     }
 
     [Theory]
-    [InlineData(PhysicalAttackType.Charge)]
     [InlineData(PhysicalAttackType.DFA)]
     public void GetPhysicalAttackBaseModifier_UnsupportedAttackType_ThrowsNotSupportedException(PhysicalAttackType attackType)
     {
@@ -125,6 +125,83 @@ public class TotalWarfareRulesProviderTests
         Should.Throw<NotSupportedException>(() => _sut.GetPhysicalAttackDamage(50, attackType, 0));
     }
 
+    [Theory]
+    [InlineData(55, 3, 17)] // 55 / 10 × 3 = 16.5 → 17
+    [InlineData(20, 1, 2)]
+    [InlineData(21, 2, 5)] // 21 / 10 × 2 = 4.2 → 5
+    [InlineData(100, 0, 0)]
+    public void GetChargeDamage_ShouldMultiplyBeforeRoundingUp(
+        int attackerTonnage,
+        int hexesMoved,
+        int expectedDamage)
+    {
+        _sut.GetChargeDamage(attackerTonnage, hexesMoved).ShouldBe(expectedDamage);
+    }
+
+    [Fact]
+    public void GetChargeDamage_MatchesTheTotalWarfareJagerMechExample()
+    {
+        // Total Warfare, p. 148: a 65-ton JagerMech that moved 5 hexes deals 33 damage, because
+        // (65 / 10) × 5 = 32.5 is rounded up only after multiplying. Rounding the tonnage factor
+        // first would deal 35 (⌈65 / 10⌉ × 5), so this pins the order of operations.
+        const int attackerTonnage = 65;
+        const int hexesMoved = 5;
+        const int preRoundedDamage = (attackerTonnage + 9) / 10 * hexesMoved;
+
+        var damage = _sut.GetChargeDamage(attackerTonnage, hexesMoved);
+
+        damage.ShouldBe(33);
+        damage.ShouldNotBe(preRoundedDamage);
+    }
+
+    [Theory]
+    [InlineData(-1, 3, "attackerTonnage")]
+    [InlineData(55, -1, "hexesMoved")]
+    public void GetChargeDamage_WithNegativeValues_ThrowsArgumentOutOfRangeException(
+        int attackerTonnage,
+        int hexesMoved,
+        string expectedParamName)
+    {
+        var exception = Should.Throw<ArgumentOutOfRangeException>(
+            () => _sut.GetChargeDamage(attackerTonnage, hexesMoved));
+
+        exception.ParamName.ShouldBe(expectedParamName);
+    }
+
+    [Theory]
+    [InlineData(20, 2)]
+    [InlineData(21, 3)]
+    [InlineData(100, 10)]
+    public void GetChargeCollisionDamage_ShouldRoundUpTheTargetTonnage(
+        int targetTonnage,
+        int expectedDamage)
+    {
+        _sut.GetChargeCollisionDamage(targetTonnage).ShouldBe(expectedDamage);
+    }
+
+    [Fact]
+    public void GetChargeCollisionDamage_WithNegativeTonnage_ThrowsArgumentOutOfRangeException()
+    {
+        var exception = Should.Throw<ArgumentOutOfRangeException>(
+            () => _sut.GetChargeCollisionDamage(-1));
+
+        exception.ParamName.ShouldBe("targetTonnage");
+    }
+
+    [Theory]
+    [InlineData(HitDirection.Front)]
+    [InlineData(HitDirection.Rear)]
+    [InlineData(HitDirection.Left)]
+    [InlineData(HitDirection.Right)]
+    public void GetPhysicalAttackHitLocation_ForACharge_UsesTheStandardTable(HitDirection direction)
+    {
+        for (var roll = 2; roll <= 12; roll++)
+        {
+            _sut.GetPhysicalAttackHitLocation(PhysicalAttackType.Charge, roll, direction)
+                .ShouldBe(_sut.GetHitLocation(roll, direction));
+        }
+    }
+
     #endregion
 
     #region Physical Attack Piloting Skill Roll Requirement Tests
@@ -177,13 +254,30 @@ public class TotalWarfareRulesProviderTests
     }
 
     [Theory]
-    [InlineData(PhysicalAttackType.Charge)]
     [InlineData(PhysicalAttackType.DFA)]
     public void GetPhysicalAttackPsrRequirements_UnsupportedAttackType_ThrowsNotSupportedException(
         PhysicalAttackType attackType)
     {
         Should.Throw<NotSupportedException>(() =>
             _sut.GetPhysicalAttackPsrRequirements(attackType, isHit: true));
+    }
+
+    [Fact]
+    public void GetPhysicalAttackPsrRequirements_WhenAChargeHits_RequiresBothUnitsToRoll()
+    {
+        var requirements = _sut.GetPhysicalAttackPsrRequirements(PhysicalAttackType.Charge, isHit: true);
+
+        requirements.ShouldBe([
+            new PhysicalAttackPsrRequirement(PhysicalAttackParticipant.Attacker, PilotingSkillRollType.ChargeImpact),
+            new PhysicalAttackPsrRequirement(PhysicalAttackParticipant.Target, PilotingSkillRollType.ChargeImpact)
+        ]);
+        _sut.GetPilotingSkillRollModifier(PilotingSkillRollType.ChargeImpact).ShouldBe(2);
+    }
+
+    [Fact]
+    public void GetPhysicalAttackPsrRequirements_WhenAChargeMisses_ReturnsNoRequirements()
+    {
+        _sut.GetPhysicalAttackPsrRequirements(PhysicalAttackType.Charge, isHit: false).ShouldBeEmpty();
     }
 
     #endregion
@@ -368,7 +462,6 @@ public class TotalWarfareRulesProviderTests
 
     [Theory]
     [InlineData(PhysicalAttackType.Push)]
-    [InlineData(PhysicalAttackType.Charge)]
     [InlineData(PhysicalAttackType.DFA)]
     public void GetPhysicalAttackHitLocation_UnsupportedAttackType_ThrowsNotSupportedException(
         PhysicalAttackType attackType)

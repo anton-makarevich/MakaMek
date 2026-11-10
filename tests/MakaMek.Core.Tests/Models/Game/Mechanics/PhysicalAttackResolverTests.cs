@@ -24,6 +24,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics;
 public class PhysicalAttackResolverTests
 {
     private readonly IDiceRoller _diceRoller = Substitute.For<IDiceRoller>();
+    private readonly Queue<List<DiceResult>> _roll2D6 = new();
     private readonly IPhysicalAttackCalculator _toHitCalculator = Substitute.For<IPhysicalAttackCalculator>();
     private readonly IDamageTransferCalculator _damageTransferCalculator = Substitute.For<IDamageTransferCalculator>();
     private readonly IRulesProvider _rulesProvider = new TotalWarfareRulesProvider();
@@ -34,6 +35,10 @@ public class PhysicalAttackResolverTests
     {
         _toHitCalculator
             .GetToHitNumber(Arg.Any<IUnit>(), Arg.Any<IUnit>(), Arg.Any<PhysicalAttackType>(), Arg.Any<IBattleMap>())
+            .Returns(7);
+
+        _toHitCalculator
+            .GetChargeToHitNumber(Arg.Any<IUnit>(), Arg.Any<IUnit>(), Arg.Any<IBattleMap>(), Arg.Any<bool>())
             .Returns(7);
 
         _damageTransferCalculator
@@ -102,6 +107,30 @@ public class PhysicalAttackResolverTests
         AttackerLimb = limb,
         Map = map ?? _map
     };
+
+    private ChargeAttackContext CreateChargeContext(
+        IUnit attacker,
+        IUnit target,
+        int hexesMoved = 3,
+        bool isReplacementTarget = false,
+        Guid? originalTargetId = null) => new()
+    {
+        Attacker = attacker,
+        Target = target,
+        Map = _map,
+        HexesMoved = hexesMoved,
+        IsReplacementTarget = isReplacementTarget,
+        OriginalTargetId = originalTargetId ?? target.Id
+    };
+
+    private void QueueRoll2D6(params int[] results) =>
+        _roll2D6.Enqueue(results.Select(result => new DiceResult(result)).ToList());
+
+    private void UseQueuedRoll2D6() =>
+        _diceRoller.Roll2D6().Returns(_ =>
+            _roll2D6.Count > 0
+                ? _roll2D6.Dequeue()
+                : [new DiceResult(3), new DiceResult(4)]);
 
     private void SetHitRoll(params int[] results) =>
         _diceRoller.Roll2D6().Returns(results.Select(result => new DiceResult(result)).ToList());
@@ -808,8 +837,186 @@ public class PhysicalAttackResolverTests
         Should.Throw<ArgumentNullException>(() => _sut.ResolveAttack(context));
     }
 
+    [Fact]
+    public void ResolveCharge_OnHit_SplitsTargetDamageIntoFivePointClusters()
+    {
+        // Arrange: 55 tons × 3 hexes = 16.5, rounded up = 17, split 5/5/5/2.
+        var attacker = CreateUnit(55, AttackerPositionInArc(FiringArc.Front));
+        var target = CreateUnit(20, TargetPosition());
+        QueueRoll2D6(6, 6); // to hit
+        QueueRoll2D6(3, 4);
+        QueueRoll2D6(3, 4);
+        QueueRoll2D6(3, 4);
+        QueueRoll2D6(3, 4);
+        QueueRoll2D6(3, 4); // attacker collision
+        UseQueuedRoll2D6();
+
+        // Act
+        var result = _sut.ResolveCharge(CreateChargeContext(attacker, target, hexesMoved: 3));
+
+        // Assert
+        result.AttackResolution.IsHit.ShouldBeTrue();
+        result.Damage.ShouldBe(17);
+        result.AttackResolution.HitLocationsData!.TotalDamage.ShouldBe(17);
+        result.AttackResolution.HitLocationsData.HitLocations
+            .SelectMany(location => location.Damage)
+            .Select(damage => damage.ArmorDamage)
+            .ShouldBe([5, 5, 5, 2]);
+        result.Charge!.Outcome.ShouldBe(ChargeOutcome.Hit);
+        result.Charge.AttackerCollision.ShouldNotBeNull().TotalDamage.ShouldBe(2);
+    }
+
+    [Fact]
+    public void ResolveCharge_OnHit_PassesEarlierClustersToTheDamageTransfer()
+    {
+        // Arrange
+        var attacker = CreateUnit(55, AttackerPositionInArc(FiringArc.Front));
+        var target = CreateUnit(20, TargetPosition());
+        QueueRoll2D6(6, 6);
+        QueueRoll2D6(3, 4);
+        QueueRoll2D6(3, 4);
+        QueueRoll2D6(3, 4);
+        QueueRoll2D6(3, 4);
+        QueueRoll2D6(3, 4);
+        UseQueuedRoll2D6();
+
+        var targetAccumulatedCounts = new List<int>();
+        _damageTransferCalculator
+            .CalculateStructureDamage(
+                Arg.Any<IUnit>(), Arg.Any<PartLocation>(), Arg.Any<int>(), Arg.Any<HitDirection>(),
+                Arg.Any<IReadOnlyList<LocationHitData>?>())
+            .Returns(call =>
+            {
+                if (ReferenceEquals(call.Arg<IUnit>(), target))
+                    targetAccumulatedCounts.Add(call.Arg<IReadOnlyList<LocationHitData>?>()?.Count ?? -1);
+
+                return [new LocationDamageData(
+                    call.Arg<PartLocation>(), call.Arg<int>(), 0, false)];
+            });
+
+        // Act
+        _sut.ResolveCharge(CreateChargeContext(attacker, target, hexesMoved: 3));
+
+        // Assert
+        targetAccumulatedCounts.ShouldBe([0, 1, 2, 3]);
+    }
+
+    [Fact]
+    public void ResolveCharge_OnHit_ClustersTheAttackerCollisionDamageOnTheFront()
+    {
+        // Arrange: a 40-ton target deals ceil(40/10)=4 collision damage to the attacker.
+        var attacker = CreateUnit(55, AttackerPositionInArc(FiringArc.Front));
+        var target = CreateUnit(40, TargetPosition());
+        QueueRoll2D6(6, 6);
+        QueueRoll2D6(3, 4);
+        QueueRoll2D6(3, 4);
+        QueueRoll2D6(3, 4);
+        QueueRoll2D6(3, 4);
+        QueueRoll2D6(3, 4);
+        UseQueuedRoll2D6();
+
+        // Act
+        var result = _sut.ResolveCharge(CreateChargeContext(attacker, target, hexesMoved: 3));
+
+        // Assert
+        _damageTransferCalculator.Received(1).CalculateStructureDamage(
+            attacker, Arg.Any<PartLocation>(), 4, HitDirection.Front,
+            Arg.Any<IReadOnlyList<LocationHitData>?>());
+        result.Charge!.AttackerCollision!.TotalDamage.ShouldBe(4);
+    }
+
+    [Fact]
+    public void ResolveCharge_OnHit_RequiresBothUnitsToMakeTheChargeImpactRoll()
+    {
+        // Arrange
+        var attacker = CreateUnit(55, AttackerPositionInArc(FiringArc.Front));
+        var target = CreateUnit(20, TargetPosition());
+        QueueRoll2D6(6, 6);
+        QueueRoll2D6(3, 4);
+        QueueRoll2D6(3, 4);
+        QueueRoll2D6(3, 4);
+        QueueRoll2D6(3, 4);
+        QueueRoll2D6(3, 4);
+        UseQueuedRoll2D6();
+
+        // Act
+        var result = _sut.ResolveCharge(CreateChargeContext(attacker, target));
+
+        // Assert
+        result.PsrRequirements.ShouldBe([
+            new PhysicalAttackPsrRequirement(PhysicalAttackParticipant.Attacker, PilotingSkillRollType.ChargeImpact),
+            new PhysicalAttackPsrRequirement(PhysicalAttackParticipant.Target, PilotingSkillRollType.ChargeImpact)
+        ]);
+    }
+
+    [Fact]
+    public void ResolveCharge_WhenItMisses_ReturnsNoDamageAndNoPsr()
+    {
+        // Arrange
+        var attacker = CreateUnit(55, AttackerPositionInArc(FiringArc.Front));
+        var target = CreateUnit(20, TargetPosition());
+        QueueRoll2D6(1, 1);
+        UseQueuedRoll2D6();
+
+        // Act
+        var result = _sut.ResolveCharge(CreateChargeContext(attacker, target));
+
+        // Assert
+        result.AttackResolution.IsHit.ShouldBeFalse();
+        result.Damage.ShouldBe(0);
+        result.AttackResolution.HitLocationsData.ShouldBeNull();
+        result.PsrRequirements.ShouldBeEmpty();
+        result.Charge!.Outcome.ShouldBe(ChargeOutcome.Miss);
+        result.Charge.AttackerCollision.ShouldBeNull();
+    }
+
+    [Fact]
+    public void ResolveCharge_WithZeroHexesMoved_DealsNoTargetDamageButStillCollides()
+    {
+        // Arrange
+        var attacker = CreateUnit(55, AttackerPositionInArc(FiringArc.Front));
+        var target = CreateUnit(20, TargetPosition());
+        QueueRoll2D6(6, 6);
+        QueueRoll2D6(3, 4);
+        UseQueuedRoll2D6();
+
+        // Act
+        var result = _sut.ResolveCharge(CreateChargeContext(attacker, target, hexesMoved: 0));
+
+        // Assert
+        result.Damage.ShouldBe(0);
+        result.AttackResolution.HitLocationsData.ShouldBeNull();
+        result.Charge!.AttackerCollision.ShouldNotBeNull().TotalDamage.ShouldBe(2);
+    }
+
+    [Fact]
+    public void ResolveCharge_AgainstAReplacementTarget_UsesTheReplacementModifier()
+    {
+        // Arrange
+        var attacker = CreateUnit(55, AttackerPositionInArc(FiringArc.Front));
+        var originalTarget = CreateUnit(20, TargetPosition());
+        var replacement = CreateUnit(30, TargetPosition());
+        QueueRoll2D6(6, 6);
+        QueueRoll2D6(3, 4);
+        QueueRoll2D6(3, 4);
+        QueueRoll2D6(3, 4);
+        QueueRoll2D6(3, 4);
+        QueueRoll2D6(3, 4);
+        UseQueuedRoll2D6();
+
+        // Act
+        var result = _sut.ResolveCharge(CreateChargeContext(
+            attacker, replacement, hexesMoved: 3, isReplacementTarget: true,
+            originalTargetId: originalTarget.Id));
+
+        // Assert
+        _toHitCalculator.Received(1).GetChargeToHitNumber(attacker, replacement, _map, true);
+        result.Charge!.IsReplacementTarget.ShouldBeTrue();
+        result.Charge.OriginalTargetId.ShouldBe(originalTarget.Id);
+        result.Charge.AttackerCollision!.TotalDamage.ShouldBe(3);
+    }
+
     [Theory]
-    [InlineData(PhysicalAttackType.Charge)]
     [InlineData(PhysicalAttackType.DFA)]
     public void ResolveAttack_WithAnUnsupportedAttackType_ShouldThrow(PhysicalAttackType attackType)
     {
@@ -886,6 +1093,26 @@ public class PhysicalAttackResolverTests
 
         Should.Throw<InvalidOperationException>(() => _sut.ResolveAttack(
             CreateContext(attacker, target, PhysicalAttackType.Punch, PartLocation.LeftArm)));
+    }
+
+    [Fact]
+    public void ResolveCharge_WithoutAnAttackerPosition_ShouldThrow()
+    {
+        var attacker = CreateUnit(55, null!);
+        var target = CreateUnit(20, TargetPosition());
+
+        Should.Throw<InvalidOperationException>(() =>
+            _sut.ResolveCharge(CreateChargeContext(attacker, target)));
+    }
+
+    [Fact]
+    public void ResolveCharge_WithoutATargetPosition_ShouldThrow()
+    {
+        var attacker = CreateUnit(55, AttackerPositionInArc(FiringArc.Front));
+        var target = CreateUnit(20, null!);
+
+        Should.Throw<InvalidOperationException>(() =>
+            _sut.ResolveCharge(CreateChargeContext(attacker, target)));
     }
 
     #endregion

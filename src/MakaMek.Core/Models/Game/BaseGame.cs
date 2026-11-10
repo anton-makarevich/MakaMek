@@ -304,14 +304,28 @@ public abstract class BaseGame : IGame
     {
         if (!_appliedAttackResolutions.TryAdd(resolutionCommand.ResolutionId, 0)) return;
 
-        var res = resolutionCommand.ResolutionData.AttackResolution;
-        if (res is not { IsHit: true, HitLocationsData: not null }) return;
+        var data = resolutionCommand.ResolutionData;
+        var res = data.AttackResolution;
 
-        var targetUnit = _players
-            .SelectMany(p => p.Units)
-            .FirstOrDefault(u => u.Id == resolutionCommand.TargetId);
+        if (res is { IsHit: true, HitLocationsData: not null })
+        {
+            var targetUnit = _players
+                .SelectMany(p => p.Units)
+                .FirstOrDefault(u => u.Id == resolutionCommand.TargetId);
 
-        targetUnit?.ApplyDamage(res.HitLocationsData.HitLocations, res.AttackDirection);
+            targetUnit?.ApplyDamage(res.HitLocationsData.HitLocations, res.AttackDirection);
+        }
+
+        // A successful charge also damages the attacker. Apply it from the same resolution so the
+        // server and every client compute the same state, and only once per resolution ID.
+        if (data.Charge?.AttackerCollision is { } attackerCollision)
+        {
+            var attackerUnit = _players
+                .SelectMany(p => p.Units)
+                .FirstOrDefault(u => u.Id == resolutionCommand.AttackerId);
+
+            attackerUnit?.ApplyDamage(attackerCollision.HitLocations, HitDirection.Front);
+        }
     }
 
     internal void OnMechFalling(MechFallCommand fallCommand)

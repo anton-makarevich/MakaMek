@@ -863,17 +863,20 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
     {
         if (PhysicalAttackIndicators is not { Count: > 0 }) return;
 
+        // A charge declared against one unit can resolve against another unit that replaced it in
+        // the target hex. The badge belongs to the declared target, so match that instead.
+        var indicatorTargetId = command.ResolutionData.Charge?.OriginalTargetId ?? command.TargetId;
+
         var index = PhysicalAttackIndicators.FindIndex(indicator =>
             indicator.AttackerId == command.AttackerId
-            && indicator.TargetId == command.TargetId
+            && indicator.TargetId == indicatorTargetId
             && indicator.AttackType == command.ResolutionData.AttackType);
         if (index < 0) return;
 
         var indicator = PhysicalAttackIndicators[index];
 
         // A movement-origin attack resolves once for the whole declaration and has no limb
-        // remainder. The resolution mechanics land in a later slice, so the badge also simply
-        // goes away when such a resolution is reported.
+        // remainder, so the badge simply goes away when its resolution is reported.
         if (PhysicalAttackDefinitions.IsMovementAttack(command.ResolutionData.AttackType))
         {
             PhysicalAttackIndicators.RemoveAt(index);

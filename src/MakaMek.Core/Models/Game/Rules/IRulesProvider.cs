@@ -31,7 +31,7 @@ public interface IRulesProvider
 
     /// <summary>
     /// Gets the per-type base modifier for a physical attack.
-    /// Later milestones extend the table: Charge/DFA +0 (M3),
+    /// Later milestones extend the table: DFA +0 (M3),
     /// physical weapons -1/-2 (M4), Club -1 (M5).
     /// </summary>
     int GetPhysicalAttackBaseModifier(PhysicalAttackType attackType);
@@ -53,6 +53,22 @@ public interface IRulesProvider
     /// <param name="attackType">The kind of physical attack.</param>
     /// <param name="reducingActuators">The number of damaged or missing actuators reducing the damage.</param>
     int GetPhysicalAttackDamage(int tonnage, PhysicalAttackType attackType, int reducingActuators);
+
+    /// <summary>
+    /// Gets the damage a successful charge deals to its target: one point per ten tons of the
+    /// attacker's tonnage multiplied by the number of hexes moved before entering the target
+    /// hex, with the result rounded up (Total Warfare, p. 148).
+    /// </summary>
+    /// <param name="attackerTonnage">The charging unit's tonnage.</param>
+    /// <param name="hexesMoved">The hexes the attacker moved before entering the target hex.</param>
+    int GetChargeDamage(int attackerTonnage, int hexesMoved);
+
+    /// <summary>
+    /// Gets the collision damage a successful charge deals to the attacker: one point per ten tons
+    /// of the target's tonnage, rounded up (Total Warfare, p. 148).
+    /// </summary>
+    /// <param name="targetTonnage">The charged unit's tonnage.</param>
+    int GetChargeCollisionDamage(int targetTonnage);
 
     /// <summary>
     /// Gets the piloting skill roll requirements a physical attack creates.

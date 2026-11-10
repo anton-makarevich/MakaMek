@@ -128,6 +128,125 @@ public class PhysicalAttackResolver : IPhysicalAttackResolver
             psrRequirements);
     }
 
+    /// <inheritdoc />
+    public PhysicalAttackResolutionData ResolveCharge(ChargeAttackContext context)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+        ArgumentNullException.ThrowIfNull(context.Map);
+
+        if (context.Attacker.Position is null)
+            throw new InvalidOperationException("Attacker position is not set");
+        if (context.Target.Position is null)
+            throw new InvalidOperationException("Target position is not set");
+
+        var toHitNumber = _toHitCalculator.GetChargeToHitNumber(
+            context.Attacker,
+            context.Target,
+            context.Map,
+            context.IsReplacementTarget);
+
+        var attackRoll = _diceRoller.Roll2D6();
+        var isHit = attackRoll.Sum(d => d.Result) >= toHitNumber;
+        var psrRequirements = _rulesProvider.GetPhysicalAttackPsrRequirements(
+            PhysicalAttackType.Charge,
+            isHit);
+
+        var charge = new ChargeResolutionData(
+            isHit ? ChargeOutcome.Hit : ChargeOutcome.Miss,
+            context.HexesMoved,
+            context.IsReplacementTarget,
+            context.OriginalTargetId);
+
+        if (!isHit)
+        {
+            return new PhysicalAttackResolutionData(
+                PhysicalAttackType.Charge,
+                null,
+                0,
+                CreateAttackResolution(toHitNumber, attackRoll, isHit: false, HitDirection.Front, null),
+                psrRequirements,
+                charge);
+        }
+
+        var targetDamage = _rulesProvider.GetChargeDamage(
+            context.Attacker.Tonnage,
+            context.HexesMoved);
+        var targetDirection = context.Target.GetAttackDirection(context.Attacker);
+        var targetHitLocations = ResolveClusterDamage(
+            context.Target,
+            targetDamage,
+            targetDirection);
+
+        // The attacker always takes its collision damage on the front (Total Warfare, p. 148).
+        var attackerCollisionDamage = _rulesProvider.GetChargeCollisionDamage(context.Target.Tonnage);
+        var attackerCollision = ResolveClusterDamage(
+            context.Attacker,
+            attackerCollisionDamage,
+            HitDirection.Front);
+
+        charge = charge with { AttackerCollision = attackerCollision };
+
+        return new PhysicalAttackResolutionData(
+            PhysicalAttackType.Charge,
+            null,
+            targetDamage,
+            CreateAttackResolution(toHitNumber, attackRoll, isHit: true, targetDirection, targetHitLocations),
+            psrRequirements,
+            charge);
+    }
+
+    /// <summary>
+    /// Splits damage into 5-point groups plus a remainder and rolls the standard 2D6 hit location
+    /// table once per group. Each group is transferred with the hits already accumulated, so
+    /// damage that reaches a destroyed location flows inward.
+    /// </summary>
+    private AttackHitLocationsData? ResolveClusterDamage(
+        IUnit unit,
+        int damage,
+        HitDirection direction)
+    {
+        if (damage <= 0) return null;
+
+        var hitLocations = new List<LocationHitData>();
+        var totalDamage = 0;
+
+        foreach (var groupDamage in SplitIntoFivePointGroups(damage))
+        {
+            var locationRoll = _diceRoller.Roll2D6();
+            var rolledLocation = _rulesProvider.GetHitLocation(
+                locationRoll.Sum(d => d.Result),
+                direction);
+            var hitLocation = ResolveTransferLocation(unit, rolledLocation);
+
+            var damageData = _damageTransferCalculator.CalculateStructureDamage(
+                unit,
+                hitLocation,
+                groupDamage,
+                direction,
+                hitLocations);
+
+            hitLocations.Add(new LocationHitData(
+                damageData,
+                [],
+                locationRoll.Select(d => d.Result).ToArray(),
+                rolledLocation));
+            totalDamage += groupDamage;
+        }
+
+        return new AttackHitLocationsData(hitLocations, totalDamage, [], 0);
+    }
+
+    private static IEnumerable<int> SplitIntoFivePointGroups(int damage)
+    {
+        while (damage > 5)
+        {
+            yield return 5;
+            damage -= 5;
+        }
+
+        if (damage > 0) yield return damage;
+    }
+
     /// <summary>
     /// Builds the weapon-shaped payload that the standard damage pipeline consumes. A physical
     /// attack generates no heat, has no cluster roll or missiles, and a miss is always reported as
