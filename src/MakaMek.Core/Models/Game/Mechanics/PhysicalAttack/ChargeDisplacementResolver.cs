@@ -1,5 +1,4 @@
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
-using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Displacement;
 using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Models.Units;
@@ -47,10 +46,10 @@ public record ChargeDisplacementResult(
 /// its committed movement into that hex unless another non-destroyed unit occupies it.
 /// </para>
 /// </summary>
-public class ChargeDisplacementResolver(IRulesProvider rulesProvider, IDiceRoller diceRoller)
+public class ChargeDisplacementResolver(
+    IRulesProvider rulesProvider,
+    DominoEffectResolver dominoEffectResolver)
 {
-    private readonly DominoEffectResolver _dominoEffectResolver = new(diceRoller);
-
     /// <summary>
     /// The displacement of a successful charge against <paramref name="target"/>, or null when
     /// nothing can move.
@@ -186,7 +185,7 @@ public class ChargeDisplacementResolver(IRulesProvider rulesProvider, IDiceRolle
         IReadOnlyList<IUnit> allUnits,
         IBattleMap map,
         Guid gameOriginId) =>
-        _dominoEffectResolver.Resolve(
+        dominoEffectResolver.Resolve(
             new DominoEffectRequest
             {
                 EnteringUnit = target,

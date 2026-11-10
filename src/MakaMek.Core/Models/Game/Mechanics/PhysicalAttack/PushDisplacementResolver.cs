@@ -1,5 +1,4 @@
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
-using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Displacement;
 using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Models.Units;
@@ -14,7 +13,9 @@ namespace Sanet.MakaMek.Core.Models.Game.Mechanics.PhysicalAttack;
 /// </summary>
 /// <param name="TargetDestination">The hex the pushed target moves to.</param>
 /// <param name="AttackerDestination">The hex the attacker advances into.</param>
-/// <param name="LevelsFallen">How many standing levels the target drops.</param>
+/// <param name="LevelsFallen">
+/// How many standing levels the target drops. Zero for a level move and for an upward displacement.
+/// </param>
 /// <param name="TriggersAutomaticFall">
 /// Whether the drop exceeds the deepest displacement drop that does not force a fall, as
 /// determined by the rules provider (Total Warfare, p. 148, 151).
@@ -34,9 +35,15 @@ public record PushDisplacementResult(
 /// <summary>
 /// Applies the explicit Push destination policy from docs/rules/physical-attacks.md section 4.
 /// The displaced target moves one hex directly away from the attacker and the attacker advances
-/// into the vacated hex. The destination is blocked when it is off the map or stands higher than
-/// the target's current standing level. A drop of one or two levels is a normal push; a deeper drop
-/// is allowed and ends in an automatic fall.
+/// into the vacated hex. Both legs use the shared <see cref="ForcedEntryCheck"/> policy: an ascent
+/// is allowed up to the displaced unit's single-hex level-change limit (two levels for a 'Mech),
+/// and a destination above that limit is prohibited terrain. Downward displacement is unrestricted; a drop
+/// of one or two levels is a normal push and a deeper drop ends in an automatic fall.
+/// <para>
+/// The attacker advance must also be legal, and the attacker must not drop more than the
+/// automatic-fall threshold. When either condition fails the whole push is blocked, so neither
+/// unit moves, by analogy with Total Warfare p. 151's "neither unit moves" rule.
+/// </para>
 /// <para>
 /// When the destination is occupied, the target triggers the shared domino effect: the occupant is
 /// dislodged in the push direction and the chain continues from there. A first link that cannot be
@@ -49,10 +56,10 @@ public record PushDisplacementResult(
 /// an earlier push in the same phase can have moved either unit.
 /// </para>
 /// </summary>
-public class PushDisplacementResolver(IRulesProvider rulesProvider, IDiceRoller diceRoller)
+public class PushDisplacementResolver(
+    IRulesProvider rulesProvider,
+    DominoEffectResolver dominoEffectResolver)
 {
-    private readonly DominoEffectResolver _dominoEffectResolver = new(diceRoller);
-
     /// <summary>
     /// The displacement of <paramref name="target"/>, or null when it cannot be displaced.
     /// </summary>
@@ -90,30 +97,29 @@ public class PushDisplacementResolver(IRulesProvider rulesProvider, IDiceRoller 
 
         if (occupants.Count != 0)
             return ResolveDomino(
-                target, targetPosition, attackerPosition, pushDirection,
+                attacker, target, targetPosition, attackerPosition, pushDirection,
                 destinationCoordinates, targetStandingLevel, occupants, allUnits, map, gameOriginId);
 
-        // Stay on the bridge only when its deck is exactly where the target already stands;
-        // otherwise the target lands on the ground under (or above) the deck.
-        var destinationSurface = destinationHex.GetBridgeHeight() != null
-                                 && destinationHex.GetStandingLevel(HexSurface.Bridge) == targetStandingLevel
-            ? HexSurface.Bridge
-            : HexSurface.Ground;
-        var destinationStandingLevel = destinationHex.GetStandingLevel(destinationSurface);
+        // The empty destination uses the same forced-entry policy as the domino path: it selects
+        // the surface (ground or bridge deck) and enforces the unit's single-hex climb limit.
+        var entry = ForcedEntryCheck.Check(
+            target, map, targetPosition.Coordinates, targetPosition.Surface, destinationCoordinates);
+        if (!entry.IsLegal) return null;
 
-        // The repo rules treat any higher destination as blocked, even though Total Warfare
-        // allows a small upward step.
-        if (destinationStandingLevel > targetStandingLevel) return null;
+        var attackerAdvance = CheckAttackerAdvance(attacker, attackerPosition, targetPosition.Coordinates, map);
+        if (attackerAdvance is null) return null;
 
-        var levelsFallen = targetStandingLevel - destinationStandingLevel;
+        var destinationStandingLevel = destinationHex.GetStandingLevel(entry.Surface);
+        var levelsFallen = Math.Max(0, targetStandingLevel - destinationStandingLevel);
         return new PushDisplacementResult(
-            new HexPosition(destinationCoordinates, targetPosition.Facing, destinationSurface),
-            new HexPosition(targetPosition.Coordinates, attackerPosition.Facing, targetPosition.Surface),
+            new HexPosition(destinationCoordinates, targetPosition.Facing, entry.Surface),
+            new HexPosition(targetPosition.Coordinates, attackerPosition.Facing, attackerAdvance.Surface),
             levelsFallen,
             levelsFallen > rulesProvider.GetMaxDisplacementDropWithoutAutomaticFall());
     }
 
     private PushDisplacementResult? ResolveDomino(
+        IUnit attacker,
         IUnit target,
         HexPosition targetPosition,
         HexPosition attackerPosition,
@@ -125,7 +131,7 @@ public class PushDisplacementResolver(IRulesProvider rulesProvider, IDiceRoller 
         IBattleMap map,
         Guid gameOriginId)
     {
-        var domino = _dominoEffectResolver.Resolve(
+        var domino = dominoEffectResolver.Resolve(
             new DominoEffectRequest
             {
                 EnteringUnit = target,
@@ -144,15 +150,42 @@ public class PushDisplacementResolver(IRulesProvider rulesProvider, IDiceRoller 
         // the displacements already resolved, and the target still enters the vacated hex.
         if (!domino.HasDisplacements) return null;
 
+        // The attacker must still be able to take the vacated hex. If it cannot, the resolved chain
+        // is discarded and the whole push is blocked, so no domino command is applied.
+        var attackerAdvance = CheckAttackerAdvance(attacker, attackerPosition, targetPosition.Coordinates, map);
+        if (attackerAdvance is null) return null;
+
         var destinationStandingLevel = map.GetHex(destinationCoordinates)!.GetStandingLevel(domino.EnteringSurface);
-        var levelsFallen = targetStandingLevel - destinationStandingLevel;
+        var levelsFallen = Math.Max(0, targetStandingLevel - destinationStandingLevel);
 
         return new PushDisplacementResult(
             new HexPosition(destinationCoordinates, targetPosition.Facing, domino.EnteringSurface),
-            new HexPosition(targetPosition.Coordinates, attackerPosition.Facing, targetPosition.Surface),
+            new HexPosition(targetPosition.Coordinates, attackerPosition.Facing, attackerAdvance.Surface),
             levelsFallen,
             levelsFallen > rulesProvider.GetMaxDisplacementDropWithoutAutomaticFall(),
             domino);
+    }
+
+    /// <summary>
+    /// The forced entry for the attacker into the target's vacated hex, or null when the advance is
+    /// illegal or drops the attacker more than the automatic-fall threshold.
+    /// </summary>
+    private ForcedEntryCheckResult? CheckAttackerAdvance(
+        IUnit attacker,
+        HexPosition attackerPosition,
+        HexCoordinates vacatedCoordinates,
+        IBattleMap map)
+    {
+        var entry = ForcedEntryCheck.Check(
+            attacker, map, attackerPosition.Coordinates, attackerPosition.Surface, vacatedCoordinates);
+        if (!entry.IsLegal) return null;
+
+        var attackerStandingLevel = map.GetHex(attackerPosition.Coordinates)!
+            .GetStandingLevel(attackerPosition.Surface);
+        var destinationStandingLevel = map.GetHex(vacatedCoordinates)!.GetStandingLevel(entry.Surface);
+        var drop = attackerStandingLevel - destinationStandingLevel;
+
+        return drop > rulesProvider.GetMaxDisplacementDropWithoutAutomaticFall() ? null : entry;
     }
 
     private static bool IsInFrontOfTheAttacker(

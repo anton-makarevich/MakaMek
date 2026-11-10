@@ -4,6 +4,7 @@ using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
 using Sanet.MakaMek.Core.Data.Game.Mechanics.PilotingSkillRollContexts;
 using Sanet.MakaMek.Core.Models.Game.Dice;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.Displacement;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Movement.Actions;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Movement.Interrupters;
 using Sanet.MakaMek.Core.Models.Units;
@@ -17,7 +18,7 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics.Movement.Interrupters;
 
 public class BridgeCollapseInterruptHandlerTests : GamePhaseTestsBase
 {
-    private readonly BridgeCollapseInterruptHandler _sut = new();
+    private BridgeCollapseInterruptHandler _sut = null!;
     private Guid _unitId;
     private Mech _enteringMech = null!;
     private Mech _occupantMech = null!;
@@ -25,6 +26,7 @@ public class BridgeCollapseInterruptHandlerTests : GamePhaseTestsBase
 
     protected override void SetupSut()
     {
+        _sut = new BridgeCollapseInterruptHandler(new DominoEffectResolver(Game.DiceRoller));
         var playerId = Guid.NewGuid();
         Game.HandleCommand(CreateJoinCommand(playerId, "Player 1", unitsCount: 3));
         _unitId = Game.Players[0].Units[0].Id;

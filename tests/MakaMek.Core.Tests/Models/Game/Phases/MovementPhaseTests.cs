@@ -9,6 +9,7 @@ using Sanet.MakaMek.Core.Data.Game.Mechanics.PilotingSkillRollContexts;
 using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Dice;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.Displacement;
 using Sanet.MakaMek.Core.Models.Game.Phases;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Units;
@@ -38,7 +39,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
         _mockNextPhase = Substitute.For<IGamePhase>();
         MockPhaseManager.GetNextPhase(PhaseNames.Movement, Game).Returns(_mockNextPhase);
         
-        _sut = new MovementPhase(Game);
+        _sut = new MovementPhase(Game, new DominoEffectResolver(Game.DiceRoller));
 
         // Add two players with units
         Game.HandleCommand(CreateJoinCommand(_player1Id, "Player 1",2));

@@ -293,7 +293,7 @@ Physical-attack eligibility stays a **policy service**, not a rules-provider tab
 
 5.2. On hit (damage 0):
     - Target displaced 1 hex directly away (`DisplaceUnitAction`), attacker moves into the vacated hex at 0 MP cost (server-side position update via existing displacement/position command path).
-    - Blocked/prohibited destination (prohibited terrain, or blocked by elevation) → **neither unit moves**, but the target PSR still occurs. Being pushed more than 2 levels down is allowed and results in an automatic fall.
+    - Blocked/prohibited destination (prohibited terrain, or an ascent above the unit’s single-hex level-change limit) → **neither unit moves**, but the target PSR still occurs. The attacker must also be able to legally enter the vacated hex and must not drop more than the automatic-fall threshold; otherwise the whole push is blocked. Being pushed more than 2 levels down is allowed and results in an automatic fall.
     - Target PSR via `PhysicalAttackPush` roll context; fall handled by `IFallProcessor`.
 
 5.3. Mutual pushes: if both sides declared pushes against each other and both hit — neither moves, both PSR. If only one hits — standard push. If both miss — nothing. Implement as a post-resolution interaction check in the phase orchestrator (the attack queue detects reciprocal push pairs before displacement application).

@@ -28,6 +28,18 @@ Assembly/root namespaces are prefixed `Sanet.` (e.g. `MakaMek.Core` → `Sanet.M
 
 Tests use **xUnit** + **Shouldly** (assertions) + **NSubstitute** (mocking). UI (Avalonia) is intentionally excluded from coverage; presentation logic lives in `MakaMek.Presentation` (ViewModels/UiStates) specifically so it *can* be unit-tested without the UI. Prefer adding logic there over the Avalonia layer.
 
+## Dependency injection
+
+- Do not instantiate shared services, resolvers, calculators, or other collaborators inside a
+  class. Inject them through the constructor so the dependency graph is explicit, testable, and
+  replaceable.
+- Composition roots and factories and the DI registrations
+  are the only places that wire the object graph. A service that needs another service must
+  receive it, not create it.
+- Collections, locks, value objects, and stateless internal policy objects may still be created
+  inline. If an internal handler needs a service, inject that service into the handler and pass it
+  from the composition root.
+
 ## Code style: extensions over static helpers
 
 - Do not add free-standing static helper classes whose methods take a domain type as their first
