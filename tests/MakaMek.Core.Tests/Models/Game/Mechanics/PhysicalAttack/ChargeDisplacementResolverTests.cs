@@ -91,9 +91,9 @@ public class ChargeDisplacementResolverTests
     }
 
     [Fact]
-    public void ResolveHit_WhenThePrimaryHexIsBlocked_UsesTheAlternatingFallbackOrder()
+    public void ResolveHit_WhenThePrimaryHexIsProhibitedTerrain_LeavesBothUnitsInPlace()
     {
-        // Arrange: the primary hex is too high to enter, so the first side hex (rotate +1) wins.
+        // Arrange: the hex behind the target is too high to enter, so the target cannot be pushed.
         var map = CreateMap();
         var attacker = CreateMech(new HexPosition(AttackerCoordinates, ChargeDirection));
         var target = CreateMech(new HexPosition(TargetCoordinates, HexDirection.Bottom));
@@ -104,14 +104,12 @@ public class ChargeDisplacementResolverTests
         // Act
         var result = _sut.ResolveHit(attacker, target, map, [attacker, target], Guid.NewGuid());
 
-        // Assert
-        result.ShouldNotBeNull();
-        result.TargetDestination!.Coordinates.ShouldBe(
-            TargetCoordinates.GetNeighbour(ChargeDirection.Rotate(1)));
+        // Assert: neither unit moves; damage and PSRs are resolved by the caller regardless.
+        result.ShouldBeNull();
     }
 
     [Fact]
-    public void ResolveHit_WhenThePrimaryHexIsOffTheMap_UsesAnAlternatingFallback()
+    public void ResolveHit_WhenThePrimaryHexIsOffTheMap_LeavesBothUnitsInPlace()
     {
         // Arrange: the target stands on the far edge, so one hex beyond it is off the map.
         var map = CreateMap();
@@ -123,39 +121,6 @@ public class ChargeDisplacementResolverTests
 
         // Act
         var result = _sut.ResolveHit(attacker, target, map, [attacker, target], Guid.NewGuid());
-
-        // Assert
-        result.ShouldNotBeNull();
-        result.TargetDestination.ShouldNotBeNull();
-        map.IsOnMap(result.TargetDestination.Coordinates).ShouldBeTrue();
-        result.TargetDestination.Coordinates
-            .DistanceTo(targetCoordinates).ShouldBe(1);
-        result.TargetDestination.Coordinates
-            .ShouldNotBe(targetCoordinates.GetNeighbour(ChargeDirection));
-        result.AttackerDestination!.Coordinates.ShouldBe(targetCoordinates);
-    }
-
-    [Fact]
-    public void ResolveHit_WhenEveryFallbackIsBlocked_LeavesBothUnitsInPlace()
-    {
-        // Arrange: one legal direction is off the map and every side hex is occupied.
-        var map = CreateMap();
-        var attackerCoordinates = new HexCoordinates(5, 2);
-        var targetCoordinates = new HexCoordinates(5, 1);
-        var attacker = CreateMech(new HexPosition(attackerCoordinates, HexDirection.Top));
-        var target = CreateMech(new HexPosition(targetCoordinates, HexDirection.Bottom));
-        MoveToChargeApproach(attacker, target.Position!);
-
-        var units = new List<IUnit> { attacker, target };
-        foreach (var side in GetSideDirections(ChargeDirection))
-        {
-            var coordinates = targetCoordinates.GetNeighbour(side);
-            if (!map.IsOnMap(coordinates)) continue;
-            units.Add(CreateMech(new HexPosition(coordinates, HexDirection.Bottom)));
-        }
-
-        // Act
-        var result = _sut.ResolveHit(attacker, target, map, units, Guid.NewGuid());
 
         // Assert
         result.ShouldBeNull();
@@ -209,11 +174,12 @@ public class ChargeDisplacementResolverTests
         // Act
         var result = _sut.ResolveMiss(attacker, map, [attacker]);
 
-        // Assert
+        // Assert: the right-of-arc hex is one of the two hexes flanking the target hex.
         result.ShouldNotBeNull();
         result.TargetDestination.ShouldBeNull();
         result.AttackerDestination!.Coordinates.ShouldBe(
             AttackerCoordinates.GetNeighbour(ChargeDirection.Rotate(1)));
+        result.AttackerDestination.Coordinates.DistanceTo(TargetCoordinates).ShouldBe(1);
     }
 
     [Fact]
@@ -235,7 +201,7 @@ public class ChargeDisplacementResolverTests
     }
 
     [Fact]
-    public void ResolveMiss_WhenBothNearSideHexesAreOccupied_UsesTheSecondRing()
+    public void ResolveMiss_WhenBothSideHexesOfTheForwardArcAreOccupied_ReturnsNull()
     {
         // Arrange
         var map = CreateMap();
@@ -248,10 +214,8 @@ public class ChargeDisplacementResolverTests
         // Act
         var result = _sut.ResolveMiss(attacker, map, [attacker, right, left]);
 
-        // Assert
-        result.ShouldNotBeNull();
-        result.AttackerDestination!.Coordinates.ShouldBe(
-            AttackerCoordinates.GetNeighbour(ChargeDirection.Rotate(2)));
+        // Assert: a missed charge never falls back to a rear-side hex.
+        result.ShouldBeNull();
     }
 
     [Fact]
@@ -289,25 +253,6 @@ public class ChargeDisplacementResolverTests
         result.ShouldNotBeNull();
         result.AttackerDestination!.Coordinates.ShouldBe(
             AttackerCoordinates.GetNeighbour(ChargeDirection.Rotate(-1)));
-    }
-
-    [Fact]
-    public void ResolveMiss_WhenNoSideHexIsValid_ReturnsNull()
-    {
-        // Arrange
-        var map = CreateMap();
-        var attacker = CreateMech(new HexPosition(AttackerCoordinates, ChargeDirection));
-        var blockers = GetSideDirections(ChargeDirection)
-            .Select(side => new HexPosition(AttackerCoordinates.GetNeighbour(side), HexDirection.Bottom))
-            .Where(position => map.IsOnMap(position.Coordinates))
-            .Select(CreateMech)
-            .ToList();
-
-        // Act
-        var result = _sut.ResolveMiss(attacker, map, [attacker, ..blockers]);
-
-        // Assert
-        result.ShouldBeNull();
     }
 
     [Fact]
@@ -357,7 +302,7 @@ public class ChargeDisplacementResolverTests
     }
 
     [Fact]
-    public void ResolveHit_WhenTheOccupiedHexCannotBeDislodged_UsesAFallbackHex()
+    public void ResolveHit_WhenTheOccupiedHexCannotBeDislodged_LeavesBothUnitsInPlace()
     {
         // Arrange: the occupant's own destination is too high, so the domino chain is blocked
         var map = CreateMap();
@@ -371,12 +316,8 @@ public class ChargeDisplacementResolverTests
         // Act
         var result = _sut.ResolveHit(attacker, target, map, [attacker, target, occupant], Guid.NewGuid());
 
-        // Assert
-        result.ShouldNotBeNull();
-        result.DominoEffect.ShouldBeNull();
-        result.TargetDestination!.Coordinates.ShouldBe(
-            TargetCoordinates.GetNeighbour(ChargeDirection.Rotate(1)));
-        result.AttackerDestination!.Coordinates.ShouldBe(TargetCoordinates);
+        // Assert: the target stays put and the attacker does not advance.
+        result.ShouldBeNull();
     }
 
     [Fact]
@@ -419,14 +360,6 @@ public class ChargeDisplacementResolverTests
 
         // Assert
         result.ShouldBeNull();
-    }
-
-    private static IEnumerable<HexDirection> GetSideDirections(HexDirection direction)
-    {
-        yield return direction.Rotate(1);
-        yield return direction.Rotate(-1);
-        yield return direction.Rotate(2);
-        yield return direction.Rotate(-2);
     }
 
     private static void MoveToChargeApproach(IUnit attacker, HexPosition destination)

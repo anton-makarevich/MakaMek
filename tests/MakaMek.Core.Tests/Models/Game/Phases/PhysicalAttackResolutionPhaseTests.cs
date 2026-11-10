@@ -140,6 +140,43 @@ public class PhysicalAttackResolutionPhaseTests : GamePhaseTestsBase
     }
 
     [Fact]
+    public void Enter_ChargeHitIntoProhibitedTerrain_KeepsBothUnitsInPlaceButStillDealsDamageAndRollsPsr()
+    {
+        // Arrange: the hex behind the target is too high to be pushed into
+        SetMap();
+        Game.BattleMap!.AddHex(new Hex(DestinationHex, 3));
+        SetUpCharge(_player1Mech, _player2Mech);
+        MockPhysicalAttackResolver.ResolveCharge(Arg.Any<ChargeAttackContext>())
+            .Returns(ChargeHit(_player2Mech.Id));
+        var targetArmorBefore = _player2Mech.TotalCurrentArmor;
+        var attackerArmorBefore = _player1Mech.TotalCurrentArmor;
+
+        // Act
+        _sut.Enter();
+
+        // Assert: neither unit moves...
+        PublishedCommands().OfType<DisplaceUnitCommand>().ShouldBeEmpty();
+        _player1Mech.Position!.Coordinates.ShouldBe(AttackerHex);
+        _player2Mech.Position!.Coordinates.ShouldBe(TargetHex);
+
+        // ...the charge still hits and damages both units...
+        PublishedCommands().OfType<PhysicalAttackResolutionCommand>().ShouldHaveSingleItem()
+            .ResolutionData.Charge!.Outcome.ShouldBe(ChargeOutcome.Hit);
+        _player1Mech.TotalCurrentArmor.ShouldBeLessThan(attackerArmorBefore);
+        _player2Mech.TotalCurrentArmor.ShouldBeLessThan(targetArmorBefore);
+
+        // ...and both units still make their +2 charge impact rolls.
+        MockFallProcessor.Received(1).ProcessPotentialFall(
+            _player2Mech, Game, Arg.Any<List<ComponentHitData>>(), Arg.Any<List<PartLocation>?>(),
+            Arg.Is<IReadOnlyList<PilotingSkillRollContext>?>(contexts =>
+                contexts != null && contexts.Any(context => context.RollType == PilotingSkillRollType.ChargeImpact)));
+        MockFallProcessor.Received(1).ProcessPotentialFall(
+            _player1Mech, Game, Arg.Any<List<ComponentHitData>>(), Arg.Any<List<PartLocation>?>(),
+            Arg.Is<IReadOnlyList<PilotingSkillRollContext>?>(contexts =>
+                contexts != null && contexts.Any(context => context.RollType == PilotingSkillRollType.ChargeImpact)));
+    }
+
+    [Fact]
     public void Enter_ChargeMiss_PlacesTheAttackerInASideHexWithoutDamage()
     {
         // Arrange
@@ -1420,7 +1457,7 @@ public class PhysicalAttackResolutionPhaseTests : GamePhaseTestsBase
             Substitute.For<ILocalizationService>());
         var data = MechFactoryTests.CreateDummyMechData();
         data.Id = Guid.NewGuid();
-        var mech = (Mech)factory.Create(data);
+        var mech = factory.Create(data);
         mech.AssignPilot(new MechWarrior("Test", "Pilot", gunnery: 4, piloting: 5));
         return mech;
     }

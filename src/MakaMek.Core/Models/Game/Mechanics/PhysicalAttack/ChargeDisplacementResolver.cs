@@ -33,14 +33,13 @@ public record ChargeDisplacementResult(
 /// <para>
 /// On a hit the target is pushed one hex in the direction of the charge. An occupied primary hex
 /// triggers the shared domino effect. If the primary hex is off the map, blocked by elevation or
-/// otherwise impossible, the resolver tries the adjacent hexes in the alternating nearest-first
-/// order relative to the charge direction (+1, −1, +2, −2), excluding the attacker's approach hex.
-/// If no candidate is valid both units stay put; the charge still deals damage and creates its
-/// +2 piloting skill rolls.
+/// otherwise impossible — or an occupant cannot be dislodged — nothing moves: the target stays in
+/// its hex and the attacker does not advance. The charge still deals damage and creates its
+/// +2 piloting skill rolls (Total Warfare, p. 148).
 /// </para>
 /// <para>
-/// On a miss the attacker lands in the first valid side hex of its forward arc, using the same
-/// order. A side hex is valid when it is on the map, empty, and passes <see cref="ForcedEntryCheck"/>
+/// On a miss the attacker lands in the hex to the right or left of its forward arc (right first).
+/// A side hex is valid when it is on the map, empty, and passes <see cref="ForcedEntryCheck"/>
 /// without a deep drop.
 /// </para>
 /// <para>
@@ -94,24 +93,22 @@ public class ChargeDisplacementResolver(IRulesProvider rulesProvider, IDiceRolle
         {
             var domino = ResolveDomino(
                 target, primaryCoordinates, direction, occupants, allUnits, map, gameOriginId);
-            if (domino is { HasDisplacements: true })
-                return CreateResult(
-                    target, map, primaryCoordinates, domino.EnteringSurface, attackerDestination, domino);
-
-            return ResolveFallback(target, allUnits, map, direction, approachCoordinates, targetPosition,
-                attackerDestination);
+            return domino is { HasDisplacements: true }
+                ? CreateResult(
+                    target, map, primaryCoordinates, domino.EnteringSurface, attackerDestination, domino)
+                : null;
         }
 
         var entry = ForcedEntryCheck.Check(
             target, map, targetPosition.Coordinates, targetPosition.Surface, primaryCoordinates);
         return entry.IsLegal
             ? CreateResult(target, map, primaryCoordinates, entry.Surface, attackerDestination)
-            : ResolveFallback(target, allUnits, map, direction, approachCoordinates, targetPosition,
-                attackerDestination);
+            : null;
     }
 
     /// <summary>
-    /// The attacker's side-hex landing after a miss, or null when no valid side hex exists.
+    /// The attacker's landing hex after a miss: the hex to the right or left of its forward arc
+    /// (right first), or null when neither is available (Total Warfare, p. 148).
     /// </summary>
     public ChargeDisplacementResult? ResolveMiss(
         IUnit attacker,
@@ -124,7 +121,9 @@ public class ChargeDisplacementResolver(IRulesProvider rulesProvider, IDiceRolle
         var allUnits = units.ToList();
         var facing = attackerPosition.Facing;
 
-        foreach (var sideDirection in GetAlternatingDirections(facing))
+        // Only the two hexes flanking the forward arc qualify; a missed charge never ends in a
+        // rear-side hex, so there is no second ring to fall back to.
+        foreach (var sideDirection in new[] { facing.Rotate(1), facing.Rotate(-1) })
         {
             var coordinates = attackerPosition.Coordinates.GetNeighbour(sideDirection);
             if (!map.IsOnMap(coordinates)) continue;
@@ -152,32 +151,6 @@ public class ChargeDisplacementResolver(IRulesProvider rulesProvider, IDiceRolle
         if (attacker.IsDestroyed) return null;
         if (attacker.MovementTaken is not { } movement) return null;
         return new ChargeDisplacementResult(null, movement.Destination, 0, false);
-    }
-
-    private ChargeDisplacementResult? ResolveFallback(
-        IUnit target,
-        IReadOnlyList<IUnit> allUnits,
-        IBattleMap map,
-        HexDirection direction,
-        HexCoordinates approachCoordinates,
-        HexPosition targetPosition,
-        HexPosition? attackerDestination)
-    {
-        foreach (var fallbackDirection in GetAlternatingDirections(direction))
-        {
-            var coordinates = targetPosition.Coordinates.GetNeighbour(fallbackDirection);
-            if (coordinates == approachCoordinates) continue;
-            if (!map.IsOnMap(coordinates)) continue;
-            if (HasOccupant(allUnits, coordinates, target)) continue;
-
-            var entry = ForcedEntryCheck.Check(
-                target, map, targetPosition.Coordinates, targetPosition.Surface, coordinates);
-            if (!entry.IsLegal) continue;
-
-            return CreateResult(target, map, coordinates, entry.Surface, attackerDestination);
-        }
-
-        return null;
     }
 
     private ChargeDisplacementResult CreateResult(
@@ -237,12 +210,6 @@ public class ChargeDisplacementResolver(IRulesProvider rulesProvider, IDiceRolle
                            && unit.Position.Coordinates == coordinates)
             .ToList();
 
-    private static bool HasOccupant(
-        IReadOnlyList<IUnit> units,
-        HexCoordinates coordinates,
-        IUnit displacedUnit) =>
-        GetOccupants(units, coordinates, displacedUnit).Count != 0;
-
     private static bool HasNonDestroyedOccupant(
         IReadOnlyList<IUnit> units,
         HexCoordinates coordinates,
@@ -250,12 +217,4 @@ public class ChargeDisplacementResolver(IRulesProvider rulesProvider, IDiceRolle
         units.Any(unit => !ReferenceEquals(unit, attacker)
                           && unit is { IsDeployed: true, IsDestroyed: false, Position: not null }
                           && unit.Position.Coordinates == coordinates);
-
-    private static IEnumerable<HexDirection> GetAlternatingDirections(HexDirection direction)
-    {
-        yield return direction.Rotate(1);
-        yield return direction.Rotate(-1);
-        yield return direction.Rotate(2);
-        yield return direction.Rotate(-2);
-    }
 }
