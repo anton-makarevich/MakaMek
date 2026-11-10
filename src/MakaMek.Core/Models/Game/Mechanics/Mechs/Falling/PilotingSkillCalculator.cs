@@ -223,44 +223,43 @@ public class PilotingSkillCalculator : IPilotingSkillCalculator
     private IEnumerable<RollModifier> GetModifiersForContext(PilotingSkillRollContext context)
     {
         var modifiers = new List<RollModifier>();
-        if (context is ChargeImpactRollContext)
+        switch (context)
         {
-            modifiers.Add(new ChargeImpactModifier
+            case ChargeImpactRollContext:
+                modifiers.Add(new ChargeImpactModifier
+                {
+                    Value = _rules.GetPilotingSkillRollModifier(PilotingSkillRollType.ChargeImpact)
+                });
+                break;
+            case PilotDamageFromFallRollContext pilotDamageCtx:
             {
-                Value = _rules.GetPilotingSkillRollModifier(PilotingSkillRollType.ChargeImpact)
-            });
-        }
-        else if (context is PilotDamageFromFallRollContext pilotDamageCtx)
-        {
-            var levelsFallen = pilotDamageCtx.LevelsFallen;
-            modifiers.Add(new FallingLevelsModifier
-            {
-                Value = Math.Max(0, levelsFallen - 1), // TODO move to rules provider
-                LevelsFallen = levelsFallen
-            }); 
-        }
-        else if (context is EnteringDeepWaterRollContext { WaterDepth: > 0 } waterCtx)
-        {
-            AddWaterDepthModifier(waterCtx.WaterDepth, modifiers);
-        }
-        else if (context is PushHitRollContext { WaterDepth: > 0 } pushWaterCtx)
-        {
-            // A push into water is not a separate roll: the water-entry modifier applies to the
-            // push's own PSR.
-            AddWaterDepthModifier(pushWaterCtx.WaterDepth, modifiers);
-        }
-        else if (context is DominoEffectRollContext { WaterDepth: > 0 } dominoWaterCtx)
-        {
-            // The same rule applies to a domino displacement into water (Total Warfare p. 151-153).
-            AddWaterDepthModifier(dominoWaterCtx.WaterDepth, modifiers);
-        }
-        else if (context is SkidCheckRollContext skidCtx)
-        {
-            modifiers.Add(new SkiddingModifier
-            {
-                Value = _rules.GetSkidModifier(skidCtx.HexesMoved),
-                HexesMoved = skidCtx.HexesMoved
-            });
+                var levelsFallen = pilotDamageCtx.LevelsFallen;
+                modifiers.Add(new FallingLevelsModifier
+                {
+                    Value = Math.Max(0, levelsFallen - 1), // TODO move to rules provider
+                    LevelsFallen = levelsFallen
+                });
+                break;
+            }
+            case EnteringDeepWaterRollContext { WaterDepth: > 0 } waterCtx:
+                AddWaterDepthModifier(waterCtx.WaterDepth, modifiers);
+                break;
+            case PushHitRollContext { WaterDepth: > 0 } pushWaterCtx:
+                // A push into water is not a separate roll: the water-entry modifier applies to the
+                // push's own PSR.
+                AddWaterDepthModifier(pushWaterCtx.WaterDepth, modifiers);
+                break;
+            case DominoEffectRollContext { WaterDepth: > 0 } dominoWaterCtx:
+                // The same rule applies to a domino displacement into water (Total Warfare p. 151-153).
+                AddWaterDepthModifier(dominoWaterCtx.WaterDepth, modifiers);
+                break;
+            case SkidCheckRollContext skidCtx:
+                modifiers.Add(new SkiddingModifier
+                {
+                    Value = _rules.GetSkidModifier(skidCtx.HexesMoved),
+                    HexesMoved = skidCtx.HexesMoved
+                });
+                break;
         }
         return modifiers;
     }
