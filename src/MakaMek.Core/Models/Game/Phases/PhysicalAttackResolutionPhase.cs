@@ -209,9 +209,9 @@ public class PhysicalAttackResolutionPhase(ServerGame game) : GamePhase(game)
         var attacker = item.Context.Attacker;
         var resolution = Game.PhysicalAttackResolver.ResolveAttack(item.Context);
 
-        var targetDestroyedPartsBefore = DestroyedParts(target);
+        var targetDestroyedPartsBefore = GetDestroyedParts(target);
         var targetWasDestroyedBefore = target.IsDestroyed;
-        var attackerDestroyedPartsBefore = DestroyedParts(attacker);
+        var attackerDestroyedPartsBefore = GetDestroyedParts(attacker);
         var attackerWasDestroyedBefore = attacker.IsDestroyed;
 
         var command = new PhysicalAttackResolutionCommand
@@ -268,9 +268,9 @@ public class PhysicalAttackResolutionPhase(ServerGame game) : GamePhase(game)
             OriginalTargetId = item.DeclaredTargetId
         });
 
-        var targetDestroyedPartsBefore = DestroyedParts(target);
+        var targetDestroyedPartsBefore = GetDestroyedParts(target);
         var targetWasDestroyedBefore = target.IsDestroyed;
-        var attackerDestroyedPartsBefore = DestroyedParts(attacker);
+        var attackerDestroyedPartsBefore = GetDestroyedParts(attacker);
         var attackerWasDestroyedBefore = attacker.IsDestroyed;
 
         var command = new PhysicalAttackResolutionCommand
@@ -503,7 +503,7 @@ public class PhysicalAttackResolutionPhase(ServerGame game) : GamePhase(game)
         IReadOnlyList<PartLocation> attackerDestroyedPartsBefore,
         bool attackerWasDestroyedBefore)
     {
-        var newlyDestroyedTargetParts = DestroyedParts(target)
+        var newlyDestroyedTargetParts = GetDestroyedParts(target)
             .Except(targetDestroyedPartsBefore).ToList();
         resolution = resolution with
         {
@@ -516,7 +516,7 @@ public class PhysicalAttackResolutionPhase(ServerGame game) : GamePhase(game)
 
         if (resolution.Charge is not { } charge) return resolution;
 
-        var newlyDestroyedAttackerParts = DestroyedParts(attacker)
+        var newlyDestroyedAttackerParts = GetDestroyedParts(attacker)
             .Except(attackerDestroyedPartsBefore).ToList();
         return resolution with
         {
@@ -530,7 +530,7 @@ public class PhysicalAttackResolutionPhase(ServerGame game) : GamePhase(game)
         };
     }
 
-    private static List<PartLocation> DestroyedParts(IUnit unit) =>
+    private static List<PartLocation> GetDestroyedParts(IUnit unit) =>
         unit.Parts.Values.Where(part => part.IsDestroyed).Select(part => part.Location).ToList();
 
     private static PilotingSkillRollContext GetRollContext(PilotingSkillRollType rollType) => rollType switch
