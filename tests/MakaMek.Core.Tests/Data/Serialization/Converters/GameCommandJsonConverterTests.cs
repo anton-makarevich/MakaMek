@@ -512,6 +512,70 @@ public class GameCommandJsonConverterTests
     }
 
     [Fact]
+    public void RoundTrip_ChargePhysicalAttackResolutionCommand_WorksCorrectly()
+    {
+        // Arrange
+        var originalTargetId = Guid.NewGuid();
+        var originalCommand = new PhysicalAttackResolutionCommand
+        {
+            ResolutionId = Guid.NewGuid(),
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = Guid.NewGuid(),
+            AttackerId = Guid.NewGuid(),
+            TargetId = Guid.NewGuid(),
+            Timestamp = DateTime.UtcNow,
+            ResolutionData = new PhysicalAttackResolutionData(
+                PhysicalAttackType.Charge,
+                null,
+                18,
+                new AttackResolutionData(
+                    7,
+                    [new DiceResult(4), new DiceResult(5)],
+                    true,
+                    HitDirection.Front,
+                    0,
+                    new AttackHitLocationsData(
+                        [new LocationHitData([new LocationDamageData(PartLocation.CenterTorso, 18, 0, false)], [], [3, 4],
+                            PartLocation.CenterTorso)],
+                        18, [], 0)),
+                [
+                    new PhysicalAttackPsrRequirement(PhysicalAttackParticipant.Attacker,
+                        PilotingSkillRollType.ChargeImpact),
+                    new PhysicalAttackPsrRequirement(PhysicalAttackParticipant.Target,
+                        PilotingSkillRollType.ChargeImpact)
+                ],
+                new ChargeResolutionData(
+                    ChargeOutcome.Hit,
+                    3,
+                    true,
+                    originalTargetId,
+                    new AttackHitLocationsData(
+                        [new LocationHitData([new LocationDamageData(PartLocation.LeftLeg, 2, 0, false)], [], [3, 4],
+                            PartLocation.LeftLeg)],
+                        2, [], 0),
+                    [PartLocation.LeftLeg],
+                    false))
+        };
+
+        // Act
+        var json = JsonSerializer.Serialize(originalCommand, _options);
+        var deserializedCommand = JsonSerializer.Deserialize<IGameCommand>(json, _options);
+
+        // Assert
+        var resolutionCommand = deserializedCommand.ShouldBeOfType<PhysicalAttackResolutionCommand>();
+        resolutionCommand.ResolutionData.AttackerLimb.ShouldBeNull();
+        var charge = resolutionCommand.ResolutionData.Charge.ShouldNotBeNull();
+        charge.Outcome.ShouldBe(ChargeOutcome.Hit);
+        charge.HexesMoved.ShouldBe(3);
+        charge.IsReplacementTarget.ShouldBeTrue();
+        charge.OriginalTargetId.ShouldBe(originalTargetId);
+        charge.AttackerCollision.ShouldNotBeNull().HitLocations[0].Damage[0].ArmorDamage.ShouldBe(2);
+        charge.AttackerDestroyedParts.ShouldBe([PartLocation.LeftLeg]);
+        resolutionCommand.ResolutionData.PsrRequirements
+            .ShouldBe(originalCommand.ResolutionData.PsrRequirements);
+    }
+
+    [Fact]
     public void RoundTrip_WeaponAttackResolutionCommand_WorksCorrectly()
     {
         // Arrange

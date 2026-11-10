@@ -10,10 +10,15 @@ using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Phases;
 using Sanet.MakaMek.Core.Models.Game.Players;
+using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Models.Units.Components.Internal.Actuators;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
+using Sanet.MakaMek.Core.Models.Units.Pilots;
+using Sanet.MakaMek.Core.Tests.Utils;
+using Sanet.MakaMek.Core.Utils;
+using Sanet.Localization;
 using Sanet.MakaMek.Map.Models;
 using Sanet.MakaMek.Map.Models.MovementCosts;
 using Sanet.MakaMek.Map.Models.Terrains;
@@ -82,21 +87,229 @@ public class PhysicalAttackResolutionPhaseTests : GamePhaseTestsBase
     }
 
     [Fact]
-    public void Enter_PendingChargeIsSkipped_AndOtherAttacksStillResolve()
+    public void Enter_ChargeHit_AppliesDamageToBothUnitsAndMovesBoth()
     {
-        // Arrange: Charge resolution lands in a later slice, so the queue must skip it instead of
-        // throwing with no definition for the attack type.
+        // Arrange
         SetMap();
-        Declare(_player1Mech, _player2Mech, PhysicalAttackType.Charge);
-        Declare(_player2Mech, _player1Mech, PhysicalAttackType.Punch, PartLocation.LeftArm);
-        ResolverReturnsMiss();
+        SetUpCharge(_player1Mech, _player2Mech);
+        MockPhysicalAttackResolver.ResolveCharge(Arg.Any<ChargeAttackContext>())
+            .Returns(ChargeHit(_player2Mech.Id));
+        var targetArmorBefore = _player2Mech.TotalCurrentArmor;
+        var attackerArmorBefore = _player1Mech.TotalCurrentArmor;
 
         // Act
-        Should.NotThrow(() => _sut.Enter());
+        _sut.Enter();
 
         // Assert
-        var resolutions = PublishedCommands().OfType<PhysicalAttackResolutionCommand>().ToList();
-        resolutions.ShouldHaveSingleItem().AttackerId.ShouldBe(_player2Mech.Id);
+        var resolution = PublishedCommands().OfType<PhysicalAttackResolutionCommand>()
+            .ShouldHaveSingleItem();
+        resolution.AttackerId.ShouldBe(_player1Mech.Id);
+        resolution.TargetId.ShouldBe(_player2Mech.Id);
+        resolution.ResolutionData.Charge!.Outcome.ShouldBe(ChargeOutcome.Hit);
+
+        _player1Mech.Position!.Coordinates.ShouldBe(TargetHex);
+        _player2Mech.Position!.Coordinates.ShouldBe(DestinationHex);
+        _player1Mech.TotalCurrentArmor.ShouldBeLessThan(attackerArmorBefore);
+        _player2Mech.TotalCurrentArmor.ShouldBeLessThan(targetArmorBefore);
+        PublishedCommands().OfType<DisplaceUnitCommand>()
+            .Select(command => command.DisplacementReason)
+            .ShouldBe([DisplacementReason.Charge, DisplacementReason.ChargeAdvance]);
+    }
+
+    [Fact]
+    public void Enter_ChargeHit_MakesBothUnitsRollChargeImpactAtEndOfPhase()
+    {
+        // Arrange
+        SetMap();
+        SetUpCharge(_player1Mech, _player2Mech);
+        MockPhysicalAttackResolver.ResolveCharge(Arg.Any<ChargeAttackContext>())
+            .Returns(ChargeHit(_player2Mech.Id));
+
+        // Act
+        _sut.Enter();
+
+        // Assert: the target resolves before the attacker (player 2 has initiative).
+        MockFallProcessor.Received(1).ProcessPotentialFall(
+            _player2Mech, Game, Arg.Any<List<ComponentHitData>>(), Arg.Any<List<PartLocation>?>(),
+            Arg.Is<IReadOnlyList<PilotingSkillRollContext>?>(contexts =>
+                contexts != null && contexts.Any(context => context.RollType == PilotingSkillRollType.ChargeImpact)));
+        MockFallProcessor.Received(1).ProcessPotentialFall(
+            _player1Mech, Game, Arg.Any<List<ComponentHitData>>(), Arg.Any<List<PartLocation>?>(),
+            Arg.Is<IReadOnlyList<PilotingSkillRollContext>?>(contexts =>
+                contexts != null && contexts.Any(context => context.RollType == PilotingSkillRollType.ChargeImpact)));
+    }
+
+    [Fact]
+    public void Enter_ChargeMiss_PlacesTheAttackerInASideHexWithoutDamage()
+    {
+        // Arrange
+        SetMap();
+        SetUpCharge(_player1Mech, _player2Mech);
+        MockPhysicalAttackResolver.ResolveCharge(Arg.Any<ChargeAttackContext>())
+            .Returns(ChargeMiss(_player2Mech.Id));
+        var targetArmorBefore = _player2Mech.TotalCurrentArmor;
+
+        // Act
+        _sut.Enter();
+
+        // Assert
+        var resolution = PublishedCommands().OfType<PhysicalAttackResolutionCommand>()
+            .ShouldHaveSingleItem();
+        resolution.ResolutionData.Charge!.Outcome.ShouldBe(ChargeOutcome.Miss);
+        _player2Mech.Position!.Coordinates.ShouldBe(TargetHex);
+        _player1Mech.Position!.Coordinates.ShouldNotBe(AttackerHex);
+        _player1Mech.Position.Coordinates.ShouldNotBe(TargetHex);
+        _player2Mech.TotalCurrentArmor.ShouldBe(targetArmorBefore);
+        PublishedCommands().OfType<DisplaceUnitCommand>().ShouldHaveSingleItem()
+            .DisplacementReason.ShouldBe(DisplacementReason.ChargeMiss);
+        MockFallProcessor.DidNotReceive().ProcessPotentialFall(
+            Arg.Any<Mech>(), Arg.Any<IGame>(), Arg.Any<List<ComponentHitData>>(),
+            Arg.Any<List<PartLocation>?>(),
+            Arg.Is<IReadOnlyList<PilotingSkillRollContext>?>(contexts =>
+                contexts != null && contexts.Any(context =>
+                    context.RollType == PilotingSkillRollType.ChargeImpact)));
+    }
+
+    [Theory]
+    [InlineData("prone")]
+    [InlineData("destroyed")]
+    [InlineData("displaced")]
+    public void Enter_ChargeAutoFails_WhenTheTargetLeftTheDestinationHex(string targetState)
+    {
+        // Arrange
+        SetMap();
+        SetUpCharge(_player1Mech, _player2Mech);
+        switch (targetState)
+        {
+            case "prone":
+                _player2Mech.SetProne();
+                break;
+            case "destroyed":
+                _player2Mech.ApplyDamage(
+                    [new LocationHitData(
+                        [new LocationDamageData(PartLocation.Head, 0, 50, true)], [], [3, 4], PartLocation.Head)],
+                    HitDirection.Front);
+                break;
+            case "displaced":
+                _player2Mech.Move(
+                    new MovementPath([new PathSegment(
+                        _player2Mech.Position!, new HexPosition(new HexCoordinates(2, 2), HexDirection.Bottom),
+                        [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])], MovementType.Walk),
+                    null);
+                break;
+        }
+        CommandPublisher.ClearReceivedCalls();
+
+        // Act
+        _sut.Enter();
+
+        // Assert
+        var resolution = PublishedCommands().OfType<PhysicalAttackResolutionCommand>()
+            .ShouldHaveSingleItem();
+        resolution.ResolutionData.Charge!.Outcome.ShouldBe(ChargeOutcome.AutoFail);
+        resolution.ResolutionData.AttackResolution.IsHit.ShouldBeFalse();
+        resolution.ResolutionData.PsrRequirements.ShouldBeEmpty();
+        MockPhysicalAttackResolver.DidNotReceiveWithAnyArgs().ResolveCharge(null!);
+        _player1Mech.Position!.Coordinates.ShouldBe(TargetHex);
+        PublishedCommands().OfType<MechFallCommand>().ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void Enter_ChargeAutoFails_WhenTheAttackerIsProne_AndKeepsItInPlace()
+    {
+        // Arrange
+        SetMap();
+        SetUpCharge(_player1Mech, _player2Mech);
+        _player1Mech.SetProne();
+        CommandPublisher.ClearReceivedCalls();
+
+        // Act
+        _sut.Enter();
+
+        // Assert
+        var resolution = PublishedCommands().OfType<PhysicalAttackResolutionCommand>()
+            .ShouldHaveSingleItem();
+        resolution.ResolutionData.Charge!.Outcome.ShouldBe(ChargeOutcome.AutoFail);
+        MockPhysicalAttackResolver.DidNotReceiveWithAnyArgs().ResolveCharge(null!);
+        _player1Mech.Position!.Coordinates.ShouldBe(AttackerHex);
+        PublishedCommands().OfType<DisplaceUnitCommand>().ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void Enter_ChargeAgainstAReplacementTarget_PassesTheReplacementFlag()
+    {
+        // Arrange: the declared target leaves the hex and another enemy Mech occupies it.
+        SetMap();
+        SetUpCharge(_player1Mech, _player2Mech);
+        _player2Mech.Move(
+            new MovementPath([new PathSegment(
+                _player2Mech.Position!, new HexPosition(new HexCoordinates(2, 2), HexDirection.Bottom),
+                [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])], MovementType.Walk),
+            null);
+        var replacement = CreateMech();
+        ((Player)Game.Players[1]).AddUnit(replacement);
+        replacement.Deploy(new HexPosition(TargetHex, HexDirection.Bottom), null);
+
+        MockPhysicalAttackResolver.ResolveCharge(Arg.Any<ChargeAttackContext>())
+            .Returns(call => ChargeHit(call.Arg<ChargeAttackContext>().Target.Id));
+
+        // Act
+        _sut.Enter();
+
+        // Assert
+        MockPhysicalAttackResolver.Received(1).ResolveCharge(Arg.Is<ChargeAttackContext>(context =>
+            context.Target == replacement
+            && context.IsReplacementTarget
+            && context.OriginalTargetId == _player2Mech.Id));
+        PublishedCommands().OfType<PhysicalAttackResolutionCommand>()
+            .ShouldHaveSingleItem().TargetId.ShouldBe(replacement.Id);
+    }
+
+    [Fact]
+    public void Enter_ChargeResolvesAfterAPunchDestroysItsAttacker()
+    {
+        // Arrange: player 2's punch destroys player 1's Mech, which declared a charge.
+        SetMap();
+        SetUpCharge(_player1Mech, _player2Mech);
+        Declare(_player2Mech, _player1Mech, PhysicalAttackType.Punch, PartLocation.RightArm);
+        MockPhysicalAttackResolver.ResolveAttack(Arg.Is<PhysicalAttackContext>(context =>
+                context.Attacker == _player2Mech))
+            .Returns(Hit(PhysicalAttackType.Punch, PartLocation.RightArm, PartLocation.Head,
+                armorDamage: 50, structureDamage: 50));
+        MockPhysicalAttackResolver.ResolveCharge(Arg.Any<ChargeAttackContext>())
+            .Returns(ChargeHit(_player2Mech.Id));
+
+        // Act
+        _sut.Enter();
+
+        // Assert
+        _player1Mech.IsDestroyed.ShouldBeTrue();
+        MockPhysicalAttackResolver.Received(1).ResolveCharge(Arg.Is<ChargeAttackContext>(context =>
+            context.Attacker == _player1Mech));
+        PublishedCommands().OfType<PhysicalAttackResolutionCommand>()
+            .Select(command => command.AttackerId)
+            .ShouldBe([_player2Mech.Id, _player1Mech.Id]);
+    }
+
+    [Theory]
+    [InlineData(PhysicalAttackType.Punch)]
+    public void Enter_OtherAttacksStillResolveAlongsideACharge(PhysicalAttackType otherAttack)
+    {
+        // Arrange
+        SetMap();
+        SetUpCharge(_player1Mech, _player2Mech);
+        Declare(_player2Mech, _player1Mech, otherAttack, PartLocation.LeftArm);
+        ResolverReturnsMiss();
+        MockPhysicalAttackResolver.ResolveCharge(Arg.Any<ChargeAttackContext>())
+            .Returns(ChargeMiss(_player2Mech.Id));
+
+        // Act
+        _sut.Enter();
+
+        // Assert
+        PublishedCommands().OfType<PhysicalAttackResolutionCommand>()
+            .Select(command => command.AttackerId)
+            .ShouldContain(_player2Mech.Id);
     }
 
     [Fact]
@@ -1070,6 +1283,69 @@ public class PhysicalAttackResolutionPhaseTests : GamePhaseTestsBase
 
     private static readonly IReadOnlyList<PhysicalAttackPsrRequirement> KickHitRequirement =
         [new PhysicalAttackPsrRequirement(PhysicalAttackParticipant.Target, PilotingSkillRollType.KickHit)];
+
+    private static readonly IReadOnlyList<PhysicalAttackPsrRequirement> ChargeImpactRequirements =
+    [
+        new PhysicalAttackPsrRequirement(PhysicalAttackParticipant.Attacker, PilotingSkillRollType.ChargeImpact),
+        new PhysicalAttackPsrRequirement(PhysicalAttackParticipant.Target, PilotingSkillRollType.ChargeImpact)
+    ];
+
+    private static PhysicalAttackResolutionData ChargeHit(Guid originalTargetId) =>
+        new(PhysicalAttackType.Charge, null, 5,
+            new AttackResolutionData(7, [new DiceResult(6), new DiceResult(6)], true, HitDirection.Front, 0,
+                new AttackHitLocationsData(
+                    [new LocationHitData(
+                        [new LocationDamageData(PartLocation.CenterTorso, 5, 0, false)],
+                        [], [3, 4], PartLocation.CenterTorso)],
+                    5, [], 0)),
+            ChargeImpactRequirements,
+            new ChargeResolutionData(
+                ChargeOutcome.Hit,
+                3,
+                false,
+                originalTargetId,
+                new AttackHitLocationsData(
+                    [new LocationHitData(
+                        [new LocationDamageData(PartLocation.CenterTorso, 2, 0, false)],
+                        [], [3, 4], PartLocation.CenterTorso)],
+                    2, [], 0)));
+
+    private static PhysicalAttackResolutionData ChargeMiss(Guid originalTargetId) =>
+        new(PhysicalAttackType.Charge, null, 0,
+            new AttackResolutionData(7, [new DiceResult(2), new DiceResult(3)], false, HitDirection.Front, 0),
+            [],
+            new ChargeResolutionData(ChargeOutcome.Miss, 3, false, originalTargetId));
+
+    private static void SetUpCharge(IUnit attacker, IUnit target, int hexesMoved = 3)
+    {
+        var path = new MovementPath(
+            [new PathSegment(
+                attacker.Position!, target.Position!,
+                [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])],
+            MovementType.Walk);
+
+        attacker.Move(path, null, true, attacker.Position);
+        attacker.DeclarePhysicalAttack(new PhysicalAttackDeclarationData
+        {
+            AttackType = PhysicalAttackType.Charge,
+            AttackerLimbs = [],
+            TargetId = target.Id,
+            HexesMoved = hexesMoved
+        });
+    }
+
+    private static Mech CreateMech()
+    {
+        var factory = new MechFactory(
+            new TotalWarfareRulesProvider(),
+            new ClassicBattletechComponentProvider(),
+            Substitute.For<ILocalizationService>());
+        var data = MechFactoryTests.CreateDummyMechData();
+        data.Id = Guid.NewGuid();
+        var mech = (Mech)factory.Create(data);
+        mech.AssignPilot(new MechWarrior("Test", "Pilot", gunnery: 4, piloting: 5));
+        return mech;
+    }
 
     private static readonly IReadOnlyList<PhysicalAttackPsrRequirement> PushHitRequirement =
         [new PhysicalAttackPsrRequirement(PhysicalAttackParticipant.Target, PilotingSkillRollType.PushHit)];

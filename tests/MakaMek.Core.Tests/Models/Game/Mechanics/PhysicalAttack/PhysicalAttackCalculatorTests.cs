@@ -564,7 +564,6 @@ public class PhysicalAttackCalculatorTests
     }
 
     [Theory]
-    [InlineData(PhysicalAttackType.Charge)]
     [InlineData(PhysicalAttackType.DFA)]
     public void GetToHitNumber_UnsupportedAttackType_ThrowsNotSupportedException(PhysicalAttackType attackType)
     {
@@ -706,6 +705,84 @@ public class PhysicalAttackCalculatorTests
 
         // Assert
         damage.ShouldBe(0);
+    }
+
+    [Fact]
+    public void GetChargeModifierBreakdown_IncludesTheRelativePilotingDifference()
+    {
+        // Arrange: attacker piloting 3 vs target piloting 5 is a -2 modifier.
+        var (attacker, target) = CreateUnits(
+            new HexPosition(2, 2, HexDirection.Bottom),
+            new HexPosition(2, 3, HexDirection.Bottom),
+            pilot: new MechWarrior("John", "Doe", gunnery: 4, piloting: 3));
+        var map = CreateMap();
+
+        // Act
+        var result = _sut.GetChargeModifierBreakdown(attacker, target, map, isReplacementTarget: false);
+
+        // Assert
+        var relative = result.OtherModifiers.OfType<RelativePilotingModifier>().ShouldHaveSingleItem();
+        relative.Value.ShouldBe(-2);
+        relative.AttackerPiloting.ShouldBe(3);
+        relative.TargetPiloting.ShouldBe(5);
+        result.AttackTypeModifier.AttackType.ShouldBe(PhysicalAttackType.Charge);
+        result.AttackTypeModifier.Value.ShouldBe(0);
+        result.Total.ShouldBe(1); // piloting (3) + charge (0) + relative (-2), both units stationary
+    }
+
+    [Fact]
+    public void GetChargeModifierBreakdown_AddsOneForAReplacementTarget()
+    {
+        // Arrange
+        var (attacker, target) = CreateUnits(
+            new HexPosition(2, 2, HexDirection.Bottom),
+            new HexPosition(2, 3, HexDirection.Bottom));
+        var map = CreateMap();
+
+        // Act
+        var original = _sut.GetChargeToHitNumber(attacker, target, map, isReplacementTarget: false);
+        var replacement = _sut.GetChargeToHitNumber(attacker, target, map, isReplacementTarget: true);
+        var result = _sut.GetChargeModifierBreakdown(attacker, target, map, isReplacementTarget: true);
+
+        // Assert
+        replacement.ShouldBe(original + 1);
+        result.OtherModifiers.OfType<ChargeReplacementTargetModifier>().ShouldHaveSingleItem()
+            .Value.ShouldBe(1);
+    }
+
+    [Fact]
+    public void GetChargeModifierBreakdown_WithoutATargetPilot_OmitsTheRelativeModifier()
+    {
+        // Arrange
+        var (attacker, target) = CreateUnits(
+            new HexPosition(2, 2, HexDirection.Bottom),
+            new HexPosition(2, 3, HexDirection.Bottom));
+        target.Pilot.Returns((IPilot?)null);
+        var map = CreateMap();
+
+        // Act
+        var result = _sut.GetChargeModifierBreakdown(attacker, target, map, isReplacementTarget: false);
+
+        // Assert
+        result.OtherModifiers.OfType<RelativePilotingModifier>().ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void GetChargeModifierBreakdown_WithATargetThatHasNotMoved_TreatsItAsStationary()
+    {
+        // Arrange
+        var (attacker, target) = CreateUnits(
+            new HexPosition(2, 2, HexDirection.Bottom),
+            new HexPosition(2, 3, HexDirection.Bottom));
+        target.MovementTaken.Returns((MovementPath?)null);
+        var map = CreateMap();
+
+        // Act
+        var result = _sut.GetChargeModifierBreakdown(attacker, target, map, isReplacementTarget: false);
+
+        // Assert
+        result.TargetMovement.HexesMoved.ShouldBe(0);
+        result.TargetMovement.Value.ShouldBe(0);
     }
 
     private static Mech CreateRealMechWithActuators(HexPosition position)

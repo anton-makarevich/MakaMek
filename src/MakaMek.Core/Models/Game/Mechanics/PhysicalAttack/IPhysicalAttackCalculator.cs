@@ -49,4 +49,25 @@ public interface IPhysicalAttackCalculator
     /// Pure preview: mutates no unit, map or game state.
     /// </summary>
     PhysicalAttackBreakdown GetModifierBreakdown(PhysicalAttackScenario scenario, IBattleMap map);
+
+    /// <summary>
+    /// Gets a detailed breakdown of a charge's to-hit modifiers: the standard physical attack
+    /// modifiers plus the relative-piloting modifier and, for a replacement target, the +1
+    /// modifier. A charge has no attacking limb. Pure preview: mutates no unit, map or game state.
+    /// </summary>
+    /// <param name="attacker">The charging unit.</param>
+    /// <param name="target">The unit in the charged hex.</param>
+    /// <param name="map">The battle map.</param>
+    /// <param name="isReplacementTarget">Whether the target replaced the originally declared one.</param>
+    PhysicalAttackBreakdown GetChargeModifierBreakdown(
+        IUnit attacker,
+        IUnit target,
+        IBattleMap map,
+        bool isReplacementTarget);
+
+    /// <summary>
+    /// Gets the total charge to-hit number from the current unit state.
+    /// Pure preview: mutates no unit, map or game state.
+    /// </summary>
+    int GetChargeToHitNumber(IUnit attacker, IUnit target, IBattleMap map, bool isReplacementTarget);
 }

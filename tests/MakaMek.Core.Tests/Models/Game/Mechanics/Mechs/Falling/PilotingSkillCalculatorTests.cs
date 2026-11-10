@@ -960,5 +960,22 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics.Mechs.Falling
             result.Modifiers.ShouldContain(m => m is SkiddingModifier);
             result.ModifiedPilotingSkill.ShouldBe(mech.Pilot!.Piloting + 3 + 1);
         }
+        [Fact]
+        public void GetPsrBreakdown_ChargeImpact_AddsTheRulesProviderModifier()
+        {
+            // Arrange
+            var torso = new CenterTorso("Test Torso", 10, 3, 5);
+            var mech = new Mech("Test", "TST-1A", 50, [torso]);
+            mech.AssignPilot(new MechWarrior("John", "Doe"));
+            _mockRulesProvider.GetPilotingSkillRollModifier(PilotingSkillRollType.ChargeImpact).Returns(2);
+
+            // Act
+            var result = _sut.GetPsrBreakdown(mech, new ChargeImpactRollContext());
+
+            // Assert
+            var modifier = result.Modifiers.OfType<ChargeImpactModifier>().ShouldHaveSingleItem();
+            modifier.Value.ShouldBe(2);
+            result.ModifiedPilotingSkill.ShouldBe(mech.Pilot!.Piloting + 2);
+        }
     }
 }

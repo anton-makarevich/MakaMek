@@ -223,7 +223,14 @@ public class PilotingSkillCalculator : IPilotingSkillCalculator
     private IEnumerable<RollModifier> GetModifiersForContext(PilotingSkillRollContext context)
     {
         var modifiers = new List<RollModifier>();
-        if (context is PilotDamageFromFallRollContext pilotDamageCtx)
+        if (context is ChargeImpactRollContext)
+        {
+            modifiers.Add(new ChargeImpactModifier
+            {
+                Value = _rules.GetPilotingSkillRollModifier(PilotingSkillRollType.ChargeImpact)
+            });
+        }
+        else if (context is PilotDamageFromFallRollContext pilotDamageCtx)
         {
             var levelsFallen = pilotDamageCtx.LevelsFallen;
             modifiers.Add(new FallingLevelsModifier

@@ -186,6 +186,7 @@
   <data name="PilotingSkillRollType_KickHit" xml:space="preserve"><value>Hit by Kick</value></data>
   <data name="PilotingSkillRollType_KickMiss" xml:space="preserve"><value>Missed Kick</value></data>
   <data name="PilotingSkillRollType_PushHit" xml:space="preserve"><value>Hit by Push</value></data>
+  <data name="PilotingSkillRollType_ChargeImpact" xml:space="preserve"><value>Charge Impact</value></data>
   <data name="PilotingSkillRollType_DominoEffect" xml:space="preserve"><value>Displaced by Domino Effect</value></data>
   <data name="PilotingSkillRollType_BridgeCollapse" xml:space="preserve"><value>Bridge Collapse</value></data>
   <data name="PilotingSkillRollType_SkidCheck_WithHexes" xml:space="preserve"><value>{0} ({1} hexes)</value></data>
@@ -199,6 +200,13 @@
   <data name="PhysicalAttackType_Kick" xml:space="preserve"><value>Kick</value></data>
   <data name="PhysicalAttackType_Push" xml:space="preserve"><value>Push</value></data>
   <data name="PhysicalAttackType_Charge" xml:space="preserve"><value>Charge</value></data>
+  <data name="ChargeOutcome_Hit" xml:space="preserve"><value>Hit</value></data>
+  <data name="ChargeOutcome_Miss" xml:space="preserve"><value>Miss</value></data>
+  <data name="ChargeOutcome_AutoFail" xml:space="preserve"><value>Auto-fail</value></data>
+  <data name="Command_ChargeResolution_AutoFail" xml:space="preserve"><value>{0}'s {1} charge against {2} automatically fails (no damage, no to-hit roll, {3} hexes moved)</value></data>
+  <data name="Command_ChargeResolution_Outcome" xml:space="preserve"><value>Charge: {0} ({1} hexes moved)</value></data>
+  <data name="Command_ChargeResolution_Replacement" xml:space="preserve"><value>Struck a replacement for {0}</value></data>
+  <data name="Command_ChargeResolution_AttackerCollision" xml:space="preserve"><value>{0} takes {1} collision damage</value></data>
   <data name="PhysicalAttackType_DFA" xml:space="preserve"><value>Death From Above</value></data>
   <data name="PhysicalAttack_BothArms" xml:space="preserve"><value>Both Arms</value></data>
   <data name="PhysicalAttack_NoOptions" xml:space="preserve"><value>This unit has no physical attack options</value></data>
@@ -256,6 +264,9 @@
   <data name="Modifier_WaterDepth" xml:space="preserve"><value>Water Depth ({0}): {1}</value></data>
   <data name="Modifier_SkidDistance" xml:space="preserve"><value>Skid ({0} hexes moved): {1}</value></data>
   <data name="Modifier_DamagedShoulder" xml:space="preserve"><value>Damaged Shoulder ({0}): +{1}</value></data>
+  <data name="Modifier_ChargeImpact" xml:space="preserve"><value>Charge Impact: +{0}</value></data>
+  <data name="Modifier_RelativePiloting" xml:space="preserve"><value>Relative Piloting ({0} vs {1}): {2:+#;-#;0}</value></data>
+  <data name="Modifier_ChargeReplacementTarget" xml:space="preserve"><value>Replacement Target: +{0}</value></data>
   <data name="WeaponRestriction_NotAvailable" xml:space="preserve"><value>Weapon not available</value></data>
   <data name="WeaponRestriction_Underwater" xml:space="preserve"><value>Cannot fire underwater</value></data>
   <data name="WeaponRestriction_PartialCoverLegs" xml:space="preserve"><value>Cannot fire leg weapons while in partial cover</value></data>

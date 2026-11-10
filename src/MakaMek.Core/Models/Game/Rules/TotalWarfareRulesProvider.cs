@@ -224,8 +224,8 @@ public class TotalWarfareRulesProvider : IRulesProvider
     public int GetDfaAirborneBaseOffset() => 2;
 
     /// <summary>
-    /// Gets the per-type base modifier for a physical attack. Punch, Kick and Push are supported;
-    /// other types throw. Later milestones extend the table: Charge and DFA +0 (M3), physical
+    /// Gets the per-type base modifier for a physical attack. Punch, Kick, Push and Charge are
+    /// supported; other types throw. Later milestones extend the table: DFA +0 (M3), physical
     /// weapons -1 or -2 (M4), Club -1 (M5).
     /// </summary>
     public int GetPhysicalAttackBaseModifier(PhysicalAttackType attackType)
@@ -235,6 +235,7 @@ public class TotalWarfareRulesProvider : IRulesProvider
             PhysicalAttackType.Punch => 0,
             PhysicalAttackType.Kick => -2,
             PhysicalAttackType.Push => -1,
+            PhysicalAttackType.Charge => 0,
             _ => throw new NotSupportedException(
                 $"Physical attack base modifier is not supported for attack type: {attackType}")
         };
@@ -268,6 +269,26 @@ public class TotalWarfareRulesProvider : IRulesProvider
         return damage;
     }
 
+    /// <inheritdoc />
+    public int GetChargeDamage(int attackerTonnage, int hexesMoved)
+    {
+        if (attackerTonnage < 0)
+            throw new ArgumentOutOfRangeException(nameof(attackerTonnage), "Tonnage cannot be negative.");
+        if (hexesMoved < 0)
+            throw new ArgumentOutOfRangeException(nameof(hexesMoved), "Hexes moved cannot be negative.");
+
+        return (attackerTonnage + 9) / 10 * hexesMoved;
+    }
+
+    /// <inheritdoc />
+    public int GetChargeCollisionDamage(int targetTonnage)
+    {
+        if (targetTonnage < 0)
+            throw new ArgumentOutOfRangeException(nameof(targetTonnage), "Tonnage cannot be negative.");
+
+        return (targetTonnage + 9) / 10;
+    }
+
     /// <summary>
     /// A kick forces the target to make a piloting skill roll when it hits and the attacker to
     /// make one when it misses (Total Warfare, p. 146). A push forces the target to roll when it
@@ -288,6 +309,12 @@ public class TotalWarfareRulesProvider : IRulesProvider
                 [new PhysicalAttackPsrRequirement(PhysicalAttackParticipant.Target, PilotingSkillRollType.KickHit)],
             PhysicalAttackType.Kick =>
                 [new PhysicalAttackPsrRequirement(PhysicalAttackParticipant.Attacker, PilotingSkillRollType.KickMiss)],
+            PhysicalAttackType.Charge when isHit =>
+            [
+                new PhysicalAttackPsrRequirement(PhysicalAttackParticipant.Attacker, PilotingSkillRollType.ChargeImpact),
+                new PhysicalAttackPsrRequirement(PhysicalAttackParticipant.Target, PilotingSkillRollType.ChargeImpact)
+            ],
+            PhysicalAttackType.Charge => [],
             _ => throw new NotSupportedException(
                 $"Physical attack piloting skill roll requirements are not supported for attack type: {attackType}")
         };
@@ -345,6 +372,8 @@ public class TotalWarfareRulesProvider : IRulesProvider
         {
             PhysicalAttackType.Punch => GetPunchHitLocation(roll, direction),
             PhysicalAttackType.Kick => GetKickHitLocation(roll, direction),
+            // A charge uses the standard 2D6 hit location table, so the roll is already a 2D6 total.
+            PhysicalAttackType.Charge => GetHitLocation(roll, direction),
             _ => throw new NotSupportedException(
                 $"Physical attack hit location is not supported for attack type: {attackType}")
         };
@@ -609,6 +638,8 @@ public class TotalWarfareRulesProvider : IRulesProvider
             // A successful push gives the defender no extra modifier (unlike Charge/DFA, which
             // are +2): Total Warfare p. 148 asks for a plain Piloting Skill Roll.
             PilotingSkillRollType.PushHit => 0,
+            // A successful charge makes both units roll at +2 (Total Warfare, p. 148).
+            PilotingSkillRollType.ChargeImpact => 2,
             // A domino effect adds no modifier of its own; the ordinary PSR modifiers apply
             // (Total Warfare, p. 151-153).
             PilotingSkillRollType.DominoEffect => 0,

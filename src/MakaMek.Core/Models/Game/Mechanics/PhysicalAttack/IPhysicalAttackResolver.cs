@@ -23,4 +23,12 @@ public interface IPhysicalAttackResolver
     /// performs its own rolls, so a two-arm punch resolves as two independent calls.
     /// </remarks>
     PhysicalAttackResolutionData ResolveAttack(PhysicalAttackContext context);
+
+    /// <summary>
+    /// Resolves a charge against the unit in the committed destination hex. On a hit it calculates
+    /// the target damage and the attacker's collision damage, both in 5-point clusters, and returns
+    /// the piloting skill rolls the impact requires. On a miss it returns no damage and no rolls.
+    /// </summary>
+    /// <param name="context">The attacker, the selected target and the charge's committed data.</param>
+    PhysicalAttackResolutionData ResolveCharge(ChargeAttackContext context);
 }

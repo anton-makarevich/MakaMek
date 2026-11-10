@@ -75,6 +75,12 @@ public record PhysicalAttackScenario
     public IUnit? AttackerUnit { get; private init; }
 
     /// <summary>
+    /// The target's Piloting Skill Rating at the time the scenario was built. Optional: a target
+    /// without a pilot omits the charge's relative-piloting modifier.
+    /// </summary>
+    public int? TargetPiloting { get; private init; }
+
+    /// <summary>
     /// Creates a PhysicalAttackScenario from actual units in their current state.
     /// Used for real combat calculations and to-hit previews.
     /// </summary>
@@ -96,7 +102,9 @@ public record PhysicalAttackScenario
             throw new InvalidOperationException("Target position is not set");
         if (attacker.MovementTaken is null)
             throw new InvalidOperationException("Attacker's Movement Type is undefined");
-        if (target.MovementTaken is null)
+        // A charge can target a unit that has not moved at all this turn, including one that began
+        // the turn shut down or with an unconscious pilot. Treat it as stationary.
+        if (target.MovementTaken is null && attackType != PhysicalAttackType.Charge)
             throw new InvalidOperationException("Target's Movement Type is undefined");
 
         return new PhysicalAttackScenario
@@ -106,11 +114,12 @@ public record PhysicalAttackScenario
             AttackerPosition = attacker.Position,
             TargetPosition = target.Position,
             AttackerMovementType = attacker.MovementTaken.MovementType,
-            TargetHexesMoved = target.MovementTaken.HexesTraveled,
+            TargetHexesMoved = target.MovementTaken?.HexesTraveled ?? 0,
             AttackerHeight = attacker.Height,
             TargetHeight = target.Height,
             TargetUnit = target,
-            AttackerUnit = attacker
+            AttackerUnit = attacker,
+            TargetPiloting = target.Pilot?.Piloting
         };
     }
 }

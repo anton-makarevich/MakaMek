@@ -1443,6 +1443,77 @@ public class ClientGameTests
         rightLeg.CurrentArmor.ShouldBe(initialArmor - 8);
     }
 
+    [Fact]
+    public void HandleCommand_ChargeResolution_AppliesTheAttackerCollisionDamage()
+    {
+        // Arrange
+        var targetMech = JoinPhysicalAttackTarget();
+        var attackerMech = JoinPhysicalAttackAttacker();
+        var attackerLeg = attackerMech.Parts[PartLocation.LeftLeg];
+        var initialAttackerArmor = attackerLeg.CurrentArmor;
+
+        // Act
+        _sut.HandleCommand(CreateChargePhysicalAttackResolution(
+            attackerMech.Id, targetMech.Id, Guid.NewGuid()));
+
+        // Assert
+        attackerLeg.CurrentArmor.ShouldBe(initialAttackerArmor - 2);
+    }
+
+    [Fact]
+    public void HandleCommand_ChargeResolutionDeliveredTwice_AppliesBothDamagesOnce()
+    {
+        // Arrange
+        var targetMech = JoinPhysicalAttackTarget();
+        var attackerMech = JoinPhysicalAttackAttacker();
+        var targetLeg = targetMech.Parts[PartLocation.RightLeg];
+        var attackerLeg = attackerMech.Parts[PartLocation.LeftLeg];
+        var initialTargetArmor = targetLeg.CurrentArmor;
+        var initialAttackerArmor = attackerLeg.CurrentArmor;
+        var command = CreateChargePhysicalAttackResolution(
+            attackerMech.Id, targetMech.Id, Guid.NewGuid());
+
+        // Act
+        _sut.HandleCommand(command);
+        _sut.HandleCommand(command);
+
+        // Assert
+        targetLeg.CurrentArmor.ShouldBe(initialTargetArmor - 4);
+        attackerLeg.CurrentArmor.ShouldBe(initialAttackerArmor - 2);
+    }
+
+    private PhysicalAttackResolutionCommand CreateChargePhysicalAttackResolution(
+        Guid attackerId,
+        Guid targetId,
+        Guid resolutionId) => new()
+    {
+        ResolutionId = resolutionId,
+        GameOriginId = Guid.NewGuid(),
+        PlayerId = Guid.NewGuid(),
+        AttackerId = attackerId,
+        TargetId = targetId,
+        ResolutionData = new PhysicalAttackResolutionData(
+            PhysicalAttackType.Charge,
+            null,
+            4,
+            new AttackResolutionData(
+                7,
+                [new DiceResult(4), new DiceResult(4)],
+                true,
+                HitDirection.Front,
+                0,
+                new AttackHitLocationsData(
+                    [CreateHitDataForLocation(PartLocation.RightLeg, 4, [], [])], 4, [], 0)),
+            [],
+            new ChargeResolutionData(
+                ChargeOutcome.Hit,
+                2,
+                false,
+                targetId,
+                new AttackHitLocationsData(
+                    [CreateHitDataForLocation(PartLocation.LeftLeg, 2, [], [])], 2, [], 0)))
+    };
+
     private Mech JoinPhysicalAttackTarget()
     {
         var targetPlayerId = Guid.NewGuid();
@@ -1460,6 +1531,25 @@ public class ClientGameTests
         var targetMech = (Mech)_sut.Players.First(p => p.Id == targetPlayerId).Units.First();
         targetMech.Deploy(new HexPosition(new HexCoordinates(1, 2), HexDirection.Top), null);
         return targetMech;
+    }
+
+    private Mech JoinPhysicalAttackAttacker()
+    {
+        var attackerPlayerId = Guid.NewGuid();
+        var attackerUnitData = MechFactoryTests.CreateDummyMechData();
+        attackerUnitData.Id = Guid.NewGuid();
+        _sut.HandleCommand(new JoinGameCommand
+        {
+            PlayerId = attackerPlayerId,
+            PlayerName = "Attacker",
+            GameOriginId = Guid.NewGuid(),
+            Units = [attackerUnitData],
+            Tint = "#0000FF",
+            PilotAssignments = []
+        });
+        var attackerMech = (Mech)_sut.Players.First(p => p.Id == attackerPlayerId).Units.First();
+        attackerMech.Deploy(new HexPosition(new HexCoordinates(1, 3), HexDirection.Top), null);
+        return attackerMech;
     }
 
     private PhysicalAttackResolutionCommand CreatePhysicalAttackResolution(Guid targetId, Guid resolutionId,

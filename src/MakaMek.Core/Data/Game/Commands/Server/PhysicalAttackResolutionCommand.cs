@@ -39,16 +39,32 @@ public record struct PhysicalAttackResolutionCommand : IGameCommand
             .FirstOrDefault(u => u.Id == command.TargetId);
         var targetPlayer = target?.Owner;
 
-        if (player == null || attacker == null || target == null || targetPlayer == null)
+        if (player == null || attacker == null)
+            return string.Empty;
+
+        if (ResolutionData.Charge is { Outcome: ChargeOutcome.AutoFail } autoFail)
+        {
+            return string.Format(
+                localizationService.GetString("Command_ChargeResolution_AutoFail"),
+                player.Name,
+                attacker.Model,
+                target?.Model ?? autoFail.OriginalTargetId.ToString(),
+                autoFail.HexesMoved);
+        }
+
+        if (target == null || targetPlayer == null)
             return string.Empty;
 
         // The weapon attack templates read "hits X with {2}", so the attack and limb fill that slot.
-        // A paired-arm attack such as Push has one outcome and no meaningful single limb.
+        // A paired-arm attack such as Push has one outcome and no meaningful single limb, and a
+        // charge has no limb at all.
         var attackTypeName = localizationService.GetString($"PhysicalAttackType_{ResolutionData.AttackType}");
-        var attackName = PhysicalAttackDefinitions.TryGet(ResolutionData.AttackType, out var definition)
-                         && definition.ResolvesAsSingleAttack
-            ? attackTypeName
-            : $"{attackTypeName} ({localizationService.GetString($"MechPart_{ResolutionData.AttackerLimb}")})";
+        var usesLimb = ResolutionData.AttackerLimb is not null
+                       && !(PhysicalAttackDefinitions.TryGet(ResolutionData.AttackType, out var definition)
+                            && definition.ResolvesAsSingleAttack);
+        var attackName = usesLimb
+            ? $"{attackTypeName} ({localizationService.GetString($"MechPart_{ResolutionData.AttackerLimb}")})"
+            : attackTypeName;
         var resolution = ResolutionData.AttackResolution;
         var rollTotal = resolution.AttackRoll.Sum(d => d.Result);
         var stringBuilder = new StringBuilder();
@@ -64,6 +80,24 @@ public record struct PhysicalAttackResolutionCommand : IGameCommand
             target.Model,
             resolution.ToHitNumber,
             rollTotal).AppendLine();
+
+        if (ResolutionData.Charge is { } charge)
+        {
+            stringBuilder.AppendFormat(
+                localizationService.GetString("Command_ChargeResolution_Outcome"),
+                localizationService.GetString($"ChargeOutcome_{charge.Outcome}"),
+                charge.HexesMoved).AppendLine();
+
+            if (charge.IsReplacementTarget)
+            {
+                var originalTarget = game.Players
+                    .SelectMany(p => p.Units)
+                    .FirstOrDefault(u => u.Id == charge.OriginalTargetId);
+                stringBuilder.AppendFormat(
+                    localizationService.GetString("Command_ChargeResolution_Replacement"),
+                    originalTarget?.Model ?? charge.OriginalTargetId.ToString()).AppendLine();
+            }
+        }
 
         if (!resolution.IsHit || resolution.HitLocationsData == null)
             return stringBuilder.ToString().TrimEnd();
@@ -98,6 +132,39 @@ public record struct PhysicalAttackResolutionCommand : IGameCommand
             stringBuilder.AppendFormat(
                 localizationService.GetString("Command_WeaponAttackResolution_UnitDestroyed"),
                 target.Model).AppendLine();
+        }
+
+        if (ResolutionData.Charge?.AttackerCollision is { } collision)
+        {
+            stringBuilder.AppendFormat(
+                localizationService.GetString("Command_ChargeResolution_AttackerCollision"),
+                attacker.Model,
+                collision.TotalDamage).AppendLine();
+
+            if (collision.HitLocations.Count > 0)
+            {
+                stringBuilder.AppendLine(localizationService.GetString("Command_WeaponAttackResolution_HitLocations"));
+                foreach (var hitLocation in collision.HitLocations)
+                    stringBuilder.Append(hitLocation.Render(localizationService));
+            }
+
+            if (ResolutionData.Charge.AttackerDestroyedParts is { Count: > 0 } attackerParts)
+            {
+                stringBuilder.AppendLine(localizationService.GetString("Command_WeaponAttackResolution_DestroyedParts"));
+                foreach (var location in attackerParts)
+                {
+                    stringBuilder.AppendFormat(
+                        localizationService.GetString("Command_WeaponAttackResolution_DestroyedPart"),
+                        localizationService.GetString($"MechPart_{location}")).AppendLine();
+                }
+            }
+
+            if (ResolutionData.Charge.AttackerUnitDestroyed)
+            {
+                stringBuilder.AppendFormat(
+                    localizationService.GetString("Command_WeaponAttackResolution_UnitDestroyed"),
+                    attacker.Model).AppendLine();
+            }
         }
 
         return stringBuilder.ToString().TrimEnd();

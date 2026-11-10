@@ -86,6 +86,11 @@ public enum PilotingSkillRollType
     PushHit,
 
     /// <summary>
+    /// PSR required of both 'Mechs after a successful charge (Total Warfare, p. 148).
+    /// </summary>
+    ChargeImpact,
+
+    /// <summary>
     /// PSR required of a 'Mech displaced by a domino effect (Total Warfare, p. 151-153).
     /// </summary>
     DominoEffect

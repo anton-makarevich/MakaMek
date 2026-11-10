@@ -872,8 +872,7 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         var indicator = PhysicalAttackIndicators[index];
 
         // A movement-origin attack resolves once for the whole declaration and has no limb
-        // remainder. The resolution mechanics land in a later slice, so the badge also simply
-        // goes away when such a resolution is reported.
+        // remainder, so the badge simply goes away when its resolution is reported.
         if (PhysicalAttackDefinitions.IsMovementAttack(command.ResolutionData.AttackType))
         {
             PhysicalAttackIndicators.RemoveAt(index);

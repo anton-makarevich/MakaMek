@@ -103,6 +103,44 @@ public class PhysicalAttackCalculator : IPhysicalAttackCalculator
         };
     }
 
+    /// <inheritdoc />
+    public PhysicalAttackBreakdown GetChargeModifierBreakdown(
+        IUnit attacker,
+        IUnit target,
+        IBattleMap map,
+        bool isReplacementTarget)
+    {
+        var scenario = PhysicalAttackScenario.FromUnits(attacker, target, PhysicalAttackType.Charge);
+        var breakdown = GetModifierBreakdown(scenario, map);
+        var otherModifiers = breakdown.OtherModifiers.ToList();
+
+        // Total Warfare p. 148: add the difference when the target has the lower (better) Piloting
+        // Skill Rating, subtract it when the attacker has the lower one.
+        if (scenario.TargetPiloting is { } targetPiloting)
+        {
+            otherModifiers.Add(new RelativePilotingModifier
+            {
+                Value = scenario.AttackerPiloting - targetPiloting,
+                AttackerPiloting = scenario.AttackerPiloting,
+                TargetPiloting = targetPiloting
+            });
+        }
+
+        if (isReplacementTarget)
+        {
+            otherModifiers.Add(new ChargeReplacementTargetModifier
+            {
+                Value = ChargeReplacementTargetModifier.DefaultValue
+            });
+        }
+
+        return breakdown with { OtherModifiers = otherModifiers };
+    }
+
+    /// <inheritdoc />
+    public int GetChargeToHitNumber(IUnit attacker, IUnit target, IBattleMap map, bool isReplacementTarget) =>
+        GetChargeModifierBreakdown(attacker, target, map, isReplacementTarget).Total;
+
     /// <summary>
     /// A push adds +2 for each damaged shoulder actuator across the attacker's arms. It is not a
     /// blocker: a Mech with a destroyed shoulder can still push (Total Warfare, p. 148).
