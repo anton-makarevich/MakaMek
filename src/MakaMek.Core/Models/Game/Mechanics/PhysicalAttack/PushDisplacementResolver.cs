@@ -1,5 +1,4 @@
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
-using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Displacement;
 using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Models.Units;
@@ -57,10 +56,10 @@ public record PushDisplacementResult(
 /// an earlier push in the same phase can have moved either unit.
 /// </para>
 /// </summary>
-public class PushDisplacementResolver(IRulesProvider rulesProvider, IDiceRoller diceRoller)
+public class PushDisplacementResolver(
+    IRulesProvider rulesProvider,
+    DominoEffectResolver dominoEffectResolver)
 {
-    private readonly DominoEffectResolver _dominoEffectResolver = new(diceRoller);
-
     /// <summary>
     /// The displacement of <paramref name="target"/>, or null when it cannot be displaced.
     /// </summary>
@@ -132,7 +131,7 @@ public class PushDisplacementResolver(IRulesProvider rulesProvider, IDiceRoller 
         IBattleMap map,
         Guid gameOriginId)
     {
-        var domino = _dominoEffectResolver.Resolve(
+        var domino = dominoEffectResolver.Resolve(
             new DominoEffectRequest
             {
                 EnteringUnit = target,

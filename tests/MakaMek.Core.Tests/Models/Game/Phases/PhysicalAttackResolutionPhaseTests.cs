@@ -8,6 +8,8 @@ using Sanet.MakaMek.Core.Data.Game.Mechanics.PhysicalAttacks;
 using Sanet.MakaMek.Core.Data.Game.Mechanics.PilotingSkillRollContexts;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Dice;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.Displacement;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.PhysicalAttack;
 using Sanet.MakaMek.Core.Models.Game.Phases;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Game.Rules;
@@ -44,7 +46,11 @@ public class PhysicalAttackResolutionPhaseTests : GamePhaseTestsBase
         _mockNextPhase = Substitute.For<IGamePhase>();
         MockPhaseManager.GetNextPhase(PhaseNames.PhysicalAttackResolution, Game).Returns(_mockNextPhase);
 
-        _sut = new PhysicalAttackResolutionPhase(Game);
+        var dominoEffectResolver = new DominoEffectResolver(Game.DiceRoller);
+        _sut = new PhysicalAttackResolutionPhase(
+            Game,
+            new PushDisplacementResolver(Game.RulesProvider, dominoEffectResolver),
+            new ChargeDisplacementResolver(Game.RulesProvider, dominoEffectResolver));
 
         Game.HandleCommand(CreateJoinCommand(_player1Id, "Player 1"));
         Game.HandleCommand(CreateJoinCommand(_player2Id, "Player 2"));

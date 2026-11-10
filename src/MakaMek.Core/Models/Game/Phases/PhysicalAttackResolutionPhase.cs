@@ -32,7 +32,10 @@ namespace Sanet.MakaMek.Core.Models.Game.Phases;
 /// inward. Each attack's displacement follows immediately (Total Warfare p. 151); only a mutual
 /// push pair waits for both rolls, because if both hit neither unit moves (p. 148).
 /// </remarks>
-public class PhysicalAttackResolutionPhase(ServerGame game) : GamePhase(game)
+public class PhysicalAttackResolutionPhase(
+    ServerGame game,
+    PushDisplacementResolver pushDisplacementResolver,
+    ChargeDisplacementResolver chargeDisplacementResolver) : GamePhase(game)
 {
     private readonly IReadOnlyList<IPhysicalAttackResolutionGate> _gates =
     [
@@ -44,8 +47,8 @@ public class PhysicalAttackResolutionPhase(ServerGame game) : GamePhase(game)
     private readonly Dictionary<Guid, UnitPhaseAccumulatedDamage> _accumulatedDamage = new();
     private readonly Dictionary<Guid, (List<PilotingSkillRollContext> Contexts, PushHitRollContext Context)>
         _pushHitContexts = new();
-    private readonly PushDisplacementResolver _pushDisplacementResolver = new(game.RulesProvider, game.DiceRoller);
-    private readonly ChargeDisplacementResolver _chargeDisplacementResolver = new(game.RulesProvider, game.DiceRoller);
+    private readonly PushDisplacementResolver _pushDisplacementResolver = pushDisplacementResolver;
+    private readonly ChargeDisplacementResolver _chargeDisplacementResolver = chargeDisplacementResolver;
 
     private readonly record struct AttackQueueItem(IPlayer Player, PhysicalAttackContext Context);
 

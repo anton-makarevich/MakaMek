@@ -4,6 +4,7 @@ using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
 using Sanet.MakaMek.Core.Data.Game.Mechanics.PilotingSkillRollContexts;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.Displacement;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Movement.Actions;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Movement.Interrupters;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.PhysicalAttack;
@@ -13,7 +14,10 @@ using Sanet.MakaMek.Map.Models;
 
 namespace Sanet.MakaMek.Core.Models.Game.Phases;
 
-public class MovementPhase(ServerGame game, IMovementAttackDeclarationValidator? declarationValidator = null)
+public class MovementPhase(
+    ServerGame game,
+    DominoEffectResolver dominoEffectResolver,
+    IMovementAttackDeclarationValidator? declarationValidator = null)
     : MainGamePhase(game)
 {
     private readonly IMovementAttackDeclarationValidator _declarationValidator =
@@ -155,7 +159,7 @@ public class MovementPhase(ServerGame game, IMovementAttackDeclarationValidator?
 
     private readonly IReadOnlyList<IMovementInterruptHandler> _segmentInterruptHandlers =
     [
-        new BridgeCollapseInterruptHandler(),
+        new BridgeCollapseInterruptHandler(dominoEffectResolver),
         new SkidInterruptHandler(),
         new WaterEntryInterruptHandler(),
         new RubbleEntryInterruptHandler()
@@ -163,7 +167,7 @@ public class MovementPhase(ServerGame game, IMovementAttackDeclarationValidator?
 
     private readonly IReadOnlyList<IMovementInterruptHandler> _landingInterruptHandlers =
     [
-        new BridgeCollapseInterruptHandler(),
+        new BridgeCollapseInterruptHandler(dominoEffectResolver),
         new JumpDamageInterruptHandler(),
         new WaterEntryInterruptHandler(),
         new RubbleEntryInterruptHandler()

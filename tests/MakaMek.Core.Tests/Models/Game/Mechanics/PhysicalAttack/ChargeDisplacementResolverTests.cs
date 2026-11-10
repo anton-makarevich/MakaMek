@@ -1,6 +1,7 @@
 using NSubstitute;
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Dice;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.Displacement;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.PhysicalAttack;
 using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Models.Units;
@@ -26,7 +27,8 @@ public class ChargeDisplacementResolverTests
     private static readonly HexDirection ChargeDirection = HexDirection.Top;
 
     private readonly ChargeDisplacementResolver _sut =
-        new(new TotalWarfareRulesProvider(), Substitute.For<IDiceRoller>());
+        new(new TotalWarfareRulesProvider(),
+            new DominoEffectResolver(Substitute.For<IDiceRoller>()));
 
     [Fact]
     public void ResolveHit_DisplacesTheTargetInTheChargeDirectionAndAdvancesTheAttacker()

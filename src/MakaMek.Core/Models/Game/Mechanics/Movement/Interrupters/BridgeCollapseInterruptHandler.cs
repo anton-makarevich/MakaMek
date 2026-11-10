@@ -12,7 +12,7 @@ using Sanet.MakaMek.Map.Models.Terrains;
 
 namespace Sanet.MakaMek.Core.Models.Game.Mechanics.Movement.Interrupters;
 
-public class BridgeCollapseInterruptHandler : IMovementInterruptHandler
+public class BridgeCollapseInterruptHandler(DominoEffectResolver dominoEffectResolver) : IMovementInterruptHandler
 {
     public MovementInterruptResult? Check(MovementInterruptContext context)
     {
@@ -176,7 +176,7 @@ public class BridgeCollapseInterruptHandler : IMovementInterruptHandler
         return toCoords.GetDirectionToNeighbour(fromCoords);
     }
 
-    private static List<IGameAction> ResolveDisplacementChain(
+    private List<IGameAction> ResolveDisplacementChain(
         IUnit enteringUnit,
         HexCoordinates bridgeCoords,
         HexDirection displacementDirection,
@@ -186,8 +186,7 @@ public class BridgeCollapseInterruptHandler : IMovementInterruptHandler
         var actions = new List<IGameAction>();
         if (candidates.Count == 0) return actions;
 
-        var resolver = new DominoEffectResolver(game.DiceRoller);
-        var result = resolver.Resolve(
+        var result = dominoEffectResolver.Resolve(
             new DominoEffectRequest
             {
                 EnteringUnit = enteringUnit,

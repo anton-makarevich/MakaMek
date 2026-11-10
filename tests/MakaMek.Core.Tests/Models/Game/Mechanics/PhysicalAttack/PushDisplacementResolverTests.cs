@@ -21,7 +21,8 @@ public class PushDisplacementResolverTests
 
     public PushDisplacementResolverTests()
     {
-        _sut = new PushDisplacementResolver(new TotalWarfareRulesProvider(), _diceRoller);
+        _sut = new PushDisplacementResolver(
+            new TotalWarfareRulesProvider(), new DominoEffectResolver(_diceRoller));
     }
 
     [Fact]
