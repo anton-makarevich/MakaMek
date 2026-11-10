@@ -383,8 +383,10 @@ public class PhysicalAttackResolutionPhaseTests : GamePhaseTestsBase
     [Fact]
     public void Enter_ChargeResolvesAfterAPunchDestroysItsAttacker()
     {
-        // Arrange: player 2's punch destroys player 1's Mech, which declared a charge.
+        // Arrange: player 2 lost initiative, so its punch resolves before player 1's charge and
+        // destroys the charging Mech.
         SetMap();
+        Game.SetInitiativeOrder(new List<IPlayer> { Game.Players[0], Game.Players[1] });
         SetUpCharge(_player1Mech, _player2Mech);
         Declare(_player2Mech, _player1Mech, PhysicalAttackType.Punch, PartLocation.RightArm);
         MockPhysicalAttackResolver.ResolveAttack(Arg.Is<PhysicalAttackContext>(context =>
@@ -450,9 +452,9 @@ public class PhysicalAttackResolutionPhaseTests : GamePhaseTestsBase
     }
 
     [Fact]
-    public void Enter_ResolvesInInitiativeOrder()
+    public void Enter_ResolvesFromLowerInitiativeToHigher()
     {
-        // Arrange
+        // Arrange: player 2 won initiative, so player 1 resolves its attack first (Total Warfare p. 144).
         SetMap();
         Declare(_player1Mech, _player2Mech, PhysicalAttackType.Kick, PartLocation.LeftLeg);
         Declare(_player2Mech, _player1Mech, PhysicalAttackType.Kick, PartLocation.RightLeg);
@@ -464,29 +466,51 @@ public class PhysicalAttackResolutionPhaseTests : GamePhaseTestsBase
         // Assert
         PublishedCommands().OfType<PhysicalAttackResolutionCommand>()
             .Select(c => c.AttackerId)
-            .ShouldBe([_player2Mech.Id, _player1Mech.Id]);
+            .ShouldBe([_player1Mech.Id, _player2Mech.Id]);
     }
 
     [Fact]
-    public void Enter_AttackerDestroyedByAnEarlierAttackInThePhase_StillAttacks()
+    public void Enter_HigherInitiativeCharge_IsDeferredBehindTheLowerInitiativeAttack()
     {
-        // Arrange: player 2 goes first and destroys player 1's Mech, which also declared a punch
+        // Arrange: player 2 won initiative and declared a charge during the Movement Phase;
+        // player 1 declares a punch. The lower-initiative attack must resolve first, so the charge
+        // is deferred behind it even though it was declared earlier in the turn (Total Warfare p. 144).
         SetMap();
-        Declare(_player1Mech, _player2Mech, PhysicalAttackType.Punch, PartLocation.LeftArm);
-        Declare(_player2Mech, _player1Mech, PhysicalAttackType.Punch, PartLocation.RightArm);
-        MockPhysicalAttackResolver.ResolveAttack(Arg.Is<PhysicalAttackContext>(c => c.Attacker == _player2Mech))
-            .Returns(Hit(PhysicalAttackType.Punch, PartLocation.RightArm, PartLocation.Head,
-                armorDamage: 50, structureDamage: 50));
-        MockPhysicalAttackResolver.ResolveAttack(Arg.Is<PhysicalAttackContext>(c => c.Attacker == _player1Mech))
-            .Returns(Miss(PhysicalAttackType.Punch, PartLocation.LeftArm));
+        SetUpCharge(_player2Mech, _player1Mech);
+        Declare(_player1Mech, _player2Mech, PhysicalAttackType.Punch, PartLocation.RightArm);
+        ResolverReturnsMiss();
+        MockPhysicalAttackResolver.ResolveCharge(Arg.Any<ChargeAttackContext>())
+            .Returns(ChargeMiss(_player1Mech.Id));
 
         // Act
         _sut.Enter();
 
         // Assert
-        _player1Mech.IsDestroyed.ShouldBeTrue();
+        PublishedCommands().OfType<PhysicalAttackResolutionCommand>()
+            .Select(command => command.AttackerId)
+            .ShouldBe([_player1Mech.Id, _player2Mech.Id]);
+    }
+
+    [Fact]
+    public void Enter_AttackerDestroyedByAnEarlierAttackInThePhase_StillAttacks()
+    {
+        // Arrange: player 1 resolves first and destroys player 2's Mech, which also declared a punch
+        SetMap();
+        Declare(_player1Mech, _player2Mech, PhysicalAttackType.Punch, PartLocation.LeftArm);
+        Declare(_player2Mech, _player1Mech, PhysicalAttackType.Punch, PartLocation.RightArm);
+        MockPhysicalAttackResolver.ResolveAttack(Arg.Is<PhysicalAttackContext>(c => c.Attacker == _player1Mech))
+            .Returns(Hit(PhysicalAttackType.Punch, PartLocation.LeftArm, PartLocation.Head,
+                armorDamage: 50, structureDamage: 50));
+        MockPhysicalAttackResolver.ResolveAttack(Arg.Is<PhysicalAttackContext>(c => c.Attacker == _player2Mech))
+            .Returns(Miss(PhysicalAttackType.Punch, PartLocation.RightArm));
+
+        // Act
+        _sut.Enter();
+
+        // Assert
+        _player2Mech.IsDestroyed.ShouldBeTrue();
         var resolutions = PublishedCommands().OfType<PhysicalAttackResolutionCommand>().ToList();
-        resolutions.Select(c => c.AttackerId).ShouldBe([_player2Mech.Id, _player1Mech.Id]);
+        resolutions.Select(c => c.AttackerId).ShouldBe([_player1Mech.Id, _player2Mech.Id]);
         resolutions[0].ResolutionData.AttackResolution.UnitDestroyed.ShouldBeTrue();
         resolutions[0].ResolutionData.AttackResolution.DestroyedParts.ShouldNotBeNull()
             .ShouldContain(PartLocation.Head);
@@ -654,7 +678,8 @@ public class PhysicalAttackResolutionPhaseTests : GamePhaseTestsBase
     public void Enter_EndOfPhaseRolls_AreMadeInInitiativeOrder()
     {
         // Arrange: player 1 lands a kick on player 2, and player 2's kick at player 1 misses.
-        // Player 2 resolves first, so it is the first unit to roll at the end of the phase.
+        // Player 1 resolves first, so player 2's accumulated rolls start with the kick it took;
+        // player 2 won initiative, so it is the first unit to roll at the end of the phase.
         SetMap();
         Declare(_player1Mech, _player2Mech, PhysicalAttackType.Kick, PartLocation.LeftLeg);
         Declare(_player2Mech, _player1Mech, PhysicalAttackType.Kick, PartLocation.RightLeg);
@@ -674,7 +699,7 @@ public class PhysicalAttackResolutionPhaseTests : GamePhaseTestsBase
                 _player2Mech, Game, Arg.Any<List<ComponentHitData>>(), Arg.Any<List<PartLocation>?>(),
                 Arg.Is<IReadOnlyList<PilotingSkillRollContext>?>(contexts =>
                     contexts != null && contexts.Select(c => c.RollType).SequenceEqual(new[]
-                        { PilotingSkillRollType.KickMiss, PilotingSkillRollType.KickHit })));
+                        { PilotingSkillRollType.KickHit, PilotingSkillRollType.KickMiss })));
             MockFallProcessor.ProcessPotentialFall(
                 _player1Mech, Game, Arg.Any<List<ComponentHitData>>(), Arg.Any<List<PartLocation>?>(),
                 Arg.Any<IReadOnlyList<PilotingSkillRollContext>?>());

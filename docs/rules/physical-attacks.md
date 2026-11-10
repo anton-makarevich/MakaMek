@@ -8,7 +8,7 @@
 
 * **Phase Sequence:** Physical attacks take place in Phase 5 (**Physical Attack Phase**), which immediately follows the Weapon Attack Phase.
 * **Declaration:** Players alternate declaring physical attacks unit by unit (following Initiative / Unequal Numbers rules). 
-* **Simultaneous Resolution & Damage:** All declared physical attacks are resolved during the Physical Attack Phase, and all damage takes effect simultaneously at the end of the phase before the Heat Phase. Any required Piloting Skill Rolls (PSRs) resulting from physical attacks are rolled at the end of the phase.
+* **Resolution Order & Damage:** All declared physical attacks are resolved during the Physical Attack Phase. Attacks resolve from the **lower Initiative to the higher** (Total Warfare p. 144), so a charge declared during the Movement Phase keeps its attacker's slot rather than always resolving last. Each attack's damage and **displacement** take effect immediately, before the next attack resolves (Total Warfare p. 151); only a mutual push pair waits for both rolls, because if both hit neither unit moves (p. 148). Any required Piloting Skill Rolls (PSRs) resulting from physical attacks are rolled at the end of the phase.
 * **The Exception (Charge & Death From Above):** Unlike punches, kicks, or clubs—which are declared during the Physical Attack Phase—**Charge** and **Death From Above (DFA)** attacks must be declared during the **Movement Phase**. This is because these attacks dictate how and where the unit moves across the map. However, their actual damage resolution still takes place in the Physical Attack Phase.
 
 ---

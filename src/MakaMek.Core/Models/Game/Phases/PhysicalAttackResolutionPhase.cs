@@ -18,16 +18,19 @@ namespace Sanet.MakaMek.Core.Models.Game.Phases;
 
 /// <summary>
 /// Resolves the physical attacks declared this turn, following the weapon attack resolution
-/// pattern: a queue in initiative order with one item per declared limb (or one item for a
-/// paired-arm attack such as Push), the pre-attack gates, the resolver, then criticals,
+/// pattern: a queue in resolution order with one item per declared limb (or one item for a
+/// paired-arm attack such as Push) or charge, the pre-attack gates, the resolver, then criticals,
 /// consciousness rolls and the end-of-phase piloting skill rolls.
 /// </summary>
 /// <remarks>
-/// Physical attacks are simultaneous. Every gate runs while the queue is built, before any damage
-/// of the phase, so an attack is never dropped because an earlier one in the same phase destroyed
-/// or felled its attacker or its target. Damage is then applied attack by attack, as the weapon
-/// phase does, because the resolver works out damage transfer from the target's current state: a
-/// second hit on a location the first one destroyed has to move inward.
+/// The queue is built once, before any damage of the phase, so an attack is never dropped because
+/// an earlier one in the same phase destroyed or felled its attacker or its target. Attacks resolve
+/// from the lower Initiative to the higher (Total Warfare p. 144): a charge declared during the
+/// Movement Phase keeps its attacker's slot instead of always resolving last. Damage is applied
+/// attack by attack, as the weapon phase does, because the resolver works out damage transfer from
+/// the target's current state: a second hit on a location the first one destroyed has to move
+/// inward. Each attack's displacement follows immediately (Total Warfare p. 151); only a mutual
+/// push pair waits for both rolls, because if both hit neither unit moves (p. 148).
 /// </remarks>
 public class PhysicalAttackResolutionPhase(ServerGame game) : GamePhase(game)
 {
@@ -53,6 +56,11 @@ public class PhysicalAttackResolutionPhase(ServerGame game) : GamePhase(game)
         int HexesMoved,
         bool AttackerAutoFail);
 
+    /// <summary>
+    /// One attack of the phase in resolution order: either a limb-based attack or a charge.
+    /// </summary>
+    private sealed record ResolutionQueueItem(AttackQueueItem? Attack, ChargeQueueItem? Charge);
+
     private sealed record PushOutcome(IUnit Attacker, IUnit Target, bool IsHit, bool IsReciprocal);
 
     public override void Enter()
@@ -61,33 +69,45 @@ public class PhysicalAttackResolutionPhase(ServerGame game) : GamePhase(game)
         _accumulatedDamage.Clear();
         _pushHitContexts.Clear();
 
-        // Snapshot the charges before any damage: a charge must still resolve when an earlier
+        // The queue is snapshotted before any damage: a charge must still resolve when an earlier
         // attack of the phase destroys its attacker or target, and Unit clears a destroyed unit's
         // pending declaration.
-        var chargeQueue = BuildChargeQueue();
-        var queue = BuildAttackQueue();
+        var queue = BuildResolutionQueue();
         var reciprocalPushes = GetReciprocalPushPairs(queue);
-        List<PushOutcome> pushOutcomes = [];
+        List<PushOutcome> deferredPushes = [];
 
         foreach (var item in queue)
         {
-            var resolution = ResolveAttack(item);
-            if (item.Context.AttackType != PhysicalAttackType.Push) continue;
+            if (item.Charge is { } charge)
+            {
+                ResolveCharge(charge);
+                continue;
+            }
 
-            pushOutcomes.Add(new PushOutcome(
-                item.Context.Attacker,
-                item.Context.Target,
+            var attack = item.Attack!.Value;
+            var resolution = ResolveAttack(attack);
+            if (attack.Context.AttackType != PhysicalAttackType.Push) continue;
+
+            var push = new PushOutcome(
+                attack.Context.Attacker,
+                attack.Context.Target,
                 resolution.AttackResolution.IsHit,
-                reciprocalPushes.Contains((item.Context.Attacker.Id, item.Context.Target.Id))));
+                reciprocalPushes.Contains((attack.Context.Attacker.Id, attack.Context.Target.Id)));
+
+            if (!push.IsHit) continue;
+
+            // A mutual push pair needs both rolls before either unit moves (Total Warfare p. 148);
+            // every other push displaces its units immediately after the attack.
+            if (push.IsReciprocal)
+            {
+                deferredPushes.Add(push);
+                continue;
+            }
+
+            ApplyPushDisplacement(push.Attacker, push.Target);
         }
 
-        // Displacement is resolved once every attack of the phase is known, so mutual pushes can
-        // be resolved as a pair before any unit moves.
-        ApplyPushDisplacements(pushOutcomes);
-
-        // Charges resolve after ordinary attacks and push displacement, so the replacement-target
-        // rule sees the units that earlier displacements moved.
-        ResolveCharges(chargeQueue);
+        ApplyReciprocalPushDisplacements(deferredPushes);
 
         CalculateEndOfPhasePsrs();
         Game.TransitionToNextPhase(Name);
@@ -101,88 +121,75 @@ public class PhysicalAttackResolutionPhase(ServerGame game) : GamePhase(game)
     public override PhaseNames Name => PhaseNames.PhysicalAttackResolution;
 
     /// <summary>
-    /// One item per declared limb, in initiative order, keeping only the attacks every gate lets
-    /// through. All the gates run here, before any damage of the phase.
+    /// Every declared attack of the phase in resolution order, one item per declared limb (or one
+    /// for a paired-arm attack such as Push) and one per charge. The lower Initiative resolves
+    /// first (Total Warfare p. 144), so a charge keeps its attacker's slot instead of always
+    /// resolving after the limb attacks. All the gates run here, before any damage of the phase;
+    /// the attacker-side charge checks use the state at phase entry, so a charge whose attacker is
+    /// shut down, unconscious, prone or away from its approach position still appears here and
+    /// fails explicitly instead of silently disappearing.
     /// </summary>
-    private List<AttackQueueItem> BuildAttackQueue()
+    private List<ResolutionQueueItem> BuildResolutionQueue()
     {
-        var queue = new List<AttackQueueItem>();
-        var declaringUnits = Game.InitiativeOrder
-            .SelectMany(player => player.Units.Select(unit => (Player: player, Unit: unit)))
-            .Where(entry => entry.Unit.DeclaredPhysicalAttack != null)
-            .ToList();
-        if (declaringUnits.Count == 0) return queue;
+        var queue = new List<ResolutionQueueItem>();
+        if (!Game.InitiativeOrder
+                .SelectMany(player => player.Units)
+                .Any(unit => unit.DeclaredPhysicalAttack != null))
+            return queue;
 
         var map = Game.BattleMap ?? throw new InvalidOperationException("Battle map is null");
         var allUnits = Game.Players.SelectMany(p => p.Units).ToList();
 
-        foreach (var (player, attacker) in declaringUnits)
+        foreach (var player in Game.InitiativeOrder.Reverse())
         {
-            var declaration = attacker.DeclaredPhysicalAttack!;
-
-            // Charge has no limb-based definition and is resolved by the charge mechanics after
-            // the ordinary attacks. Skip it before the missing-target log, which stays for the
-            // limb-based attacks.
-            if (declaration.AttackType == PhysicalAttackType.Charge) continue;
-
-            var target = allUnits.FirstOrDefault(u => u.Id == declaration.TargetId);
-            if (target == null)
+            foreach (var attacker in player.Units)
             {
-                Game.Logger.LogWarning("Skipping {AttackType} by {AttackerName}: target {TargetId} is not in the game",
-                    declaration.AttackType, attacker.Name, declaration.TargetId);
-                continue;
-            }
+                var declaration = attacker.DeclaredPhysicalAttack;
+                if (declaration is null) continue;
 
-            // A paired-arm attack such as Push resolves once for the whole declaration; a punch
-            // still enqueues one independent item per declared arm. A movement-origin attack
-            // (Charge or DFA) has no definition yet: its resolution mechanics land in a later
-            // slice, so it must be skipped instead of throwing here.
-            if (!PhysicalAttackDefinitions.TryGet(declaration.AttackType, out var definition)) continue;
-            var limbs = definition.ResolvesAsSingleAttack
-                ? declaration.AttackerLimbs.Take(1)
-                : declaration.AttackerLimbs;
-
-            foreach (var limb in limbs)
-            {
-                var context = new PhysicalAttackContext
+                if (declaration.AttackType == PhysicalAttackType.Charge)
                 {
-                    Attacker = attacker,
-                    Target = target,
-                    AttackType = declaration.AttackType,
-                    AttackerLimb = limb,
-                    Map = map
-                };
-                if (_gates.Any(gate => gate.ShouldSkip(context, Game.Logger))) continue;
+                    queue.Add(new ResolutionQueueItem(null, new ChargeQueueItem(
+                        player,
+                        attacker,
+                        declaration.TargetId,
+                        declaration.HexesMoved ?? 0,
+                        IsAttackerAutoFail(attacker, declaration))));
+                    continue;
+                }
 
-                queue.Add(new AttackQueueItem(player, context));
-            }
-        }
+                var target = allUnits.FirstOrDefault(u => u.Id == declaration.TargetId);
+                if (target == null)
+                {
+                    Game.Logger.LogWarning(
+                        "Skipping {AttackType} by {AttackerName}: target {TargetId} is not in the game",
+                        declaration.AttackType, attacker.Name, declaration.TargetId);
+                    continue;
+                }
 
-        return queue;
-    }
+                // A paired-arm attack such as Push resolves once for the whole declaration; a punch
+                // still enqueues one independent item per declared arm. A movement-origin attack
+                // (Charge or DFA) has no definition yet: its resolution mechanics land in a later
+                // slice, so it must be skipped instead of throwing here.
+                if (!PhysicalAttackDefinitions.TryGet(declaration.AttackType, out var definition)) continue;
+                var limbs = definition.ResolvesAsSingleAttack
+                    ? declaration.AttackerLimbs.Take(1)
+                    : declaration.AttackerLimbs;
 
-    /// <summary>
-    /// Snapshots every declared charge in initiative order before any damage of the phase. The
-    /// attacker-side automatic-failure checks use the state at phase entry, so a charge whose
-    /// attacker is shut down, unconscious, prone or away from its approach position still appears
-    /// here and fails explicitly instead of silently disappearing.
-    /// </summary>
-    private List<ChargeQueueItem> BuildChargeQueue()
-    {
-        List<ChargeQueueItem> queue = [];
-        foreach (var player in Game.InitiativeOrder)
-        {
-            foreach (var unit in player.Units)
-            {
-                var declaration = unit.DeclaredPhysicalAttack;
-                if (declaration is not { AttackType: PhysicalAttackType.Charge }) continue;
+                foreach (var limb in limbs)
+                {
+                    var context = new PhysicalAttackContext
+                    {
+                        Attacker = attacker,
+                        Target = target,
+                        AttackType = declaration.AttackType,
+                        AttackerLimb = limb,
+                        Map = map
+                    };
+                    if (_gates.Any(gate => gate.ShouldSkip(context, Game.Logger))) continue;
 
-                queue.Add(new ChargeQueueItem(
-                    player,
-                    unit,
-                    declaration.TargetId,
-                    declaration.HexesMoved ?? 0,
-                    IsAttackerAutoFail(unit, declaration)));
+                    queue.Add(new ResolutionQueueItem(new AttackQueueItem(player, context), null));
+                }
             }
         }
 
@@ -237,12 +244,6 @@ public class PhysicalAttackResolutionPhase(ServerGame game) : GamePhase(game)
         ApplyPsrRequirements(attacker, target, resolution.PsrRequirements);
 
         return resolution;
-    }
-
-    private void ResolveCharges(IReadOnlyList<ChargeQueueItem> charges)
-    {
-        foreach (var charge in charges)
-            ResolveCharge(charge);
     }
 
     private void ResolveCharge(ChargeQueueItem item)
@@ -547,11 +548,13 @@ public class PhysicalAttackResolutionPhase(ServerGame game) : GamePhase(game)
     /// Only attacks that made it through the gates count, so an invalid push never pairs.
     /// </summary>
     private static HashSet<(Guid AttackerId, Guid TargetId)> GetReciprocalPushPairs(
-        IReadOnlyList<AttackQueueItem> queue)
+        IReadOnlyList<ResolutionQueueItem> queue)
     {
         var pushKeys = queue
-            .Where(item => item.Context.AttackType == PhysicalAttackType.Push)
-            .Select(item => (AttackerId: item.Context.Attacker.Id, TargetId: item.Context.Target.Id))
+            .Where(item => item.Attack?.Context.AttackType == PhysicalAttackType.Push)
+            .Select(item => (
+                AttackerId: item.Attack!.Value.Context.Attacker.Id,
+                TargetId: item.Attack.Value.Context.Target.Id))
             .ToHashSet();
 
         var reciprocal = new HashSet<(Guid AttackerId, Guid TargetId)>();
@@ -565,26 +568,22 @@ public class PhysicalAttackResolutionPhase(ServerGame game) : GamePhase(game)
     }
 
     /// <summary>
-    /// Applies the mutual-push matrix (Total Warfare, p. 148): if both pushes in a pair hit,
-    /// neither Mech moves and both keep their piloting skill rolls; if only one hits, it is a
-    /// standard push; if both miss, nothing happens. Unpaired hits are standard pushes. Pushes
-    /// are applied in queue (initiative) order and every destination is evaluated from the
-    /// positions at application time.
+    /// Applies the mutual-push matrix (Total Warfare, p. 148) once both rolls of a pair are known:
+    /// if both pushes hit, neither Mech moves and both keep their piloting skill rolls; if only
+    /// one hits, it is a standard push. Only reciprocal pairs are deferred this way — every other
+    /// push displaces immediately after its own attack. Pairs are applied in resolution order and
+    /// every destination is evaluated from the positions at application time.
     /// </summary>
-    private void ApplyPushDisplacements(IReadOnlyList<PushOutcome> outcomes)
+    private void ApplyReciprocalPushDisplacements(IReadOnlyList<PushOutcome> hits)
     {
-        var outcomesByAttack = outcomes.ToDictionary(
-            outcome => (outcome.Attacker.Id, outcome.Target.Id));
+        var hitKeys = hits.Select(push => (push.Attacker.Id, push.Target.Id)).ToHashSet();
 
-        foreach (var outcome in outcomes)
+        foreach (var push in hits)
         {
-            if (!outcome.IsHit) continue;
-
-            if (outcome.IsReciprocal
-                && outcomesByAttack.GetValueOrDefault((outcome.Target.Id, outcome.Attacker.Id)) is { IsHit: true })
+            if (hitKeys.Contains((push.Target.Id, push.Attacker.Id)))
                 continue; // Both pushes hit: neither unit moves.
 
-            ApplyPushDisplacement(outcome.Attacker, outcome.Target);
+            ApplyPushDisplacement(push.Attacker, push.Target);
         }
     }
 

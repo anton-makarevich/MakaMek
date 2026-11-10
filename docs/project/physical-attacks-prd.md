@@ -260,13 +260,13 @@ Physical-attack eligibility stays a **policy service**, not a rules-provider tab
 
 4.1. `PhysicalAttackResolutionPhase : GamePhase` with `Enter()` orchestration:
 
-    - Build queue from all units with `HasDeclaredPhysicalAttack`, in initiative order, one queue item per declared attack (punch arms enqueue separately).
+    - Build the resolution queue from all units with `HasDeclaredPhysicalAttack`, from the lower Initiative to the higher (the lower Initiative resolves first — Total Warfare p. 144), one queue item per declared attack (punch arms enqueue separately). A charge occupies its attacker's slot; it is not always resolved last.
     - Pre-attack gates (new `IAttackResolutionGate` implementations in `Mechanics/PhysicalAttack/`):
       - `PhysicalAttackTargetValidityGate` — re-validates target alive and attack-specific constraints at resolution time (adjacency, arc — including the punch side-arm restriction and torso-twist-rotated arcs, Background item 10 —, elevation; a standing target for Push).
       - `AttackerProneGate` — attacker that became prone during weapon attack resolution cannot perform the physical attack.
       - `AttackerDestroyedGate`.
     - Resolve each queued attack via `IPhysicalAttackResolver`; publish `PhysicalAttackResolutionCommand` per attack (mirrors `WeaponAttackResolutionCommand` fields: player, attacker, target, attack type, limb, resolution data).
-    - **Simultaneous damage principle:** all declared attacks are resolved in queue order and their results accumulated; damage is applied to all affected units simultaneously at the end of the phase (as the rules doc requires — a declared attack is never skipped because an earlier one destroyed its target), and all resulting PSRs are rolled at end of phase, reusing the `_accumulatedDamageData` pattern from `WeaponAttackResolutionPhase`.
+    - **Immediate damage and displacement:** attacks resolve in queue order and each attack's damage and displacement are applied before the next attack resolves (Total Warfare p. 148, 151). The queue and its gates are snapshotted at phase entry, so a declared attack is never skipped because an earlier one destroyed its attacker or target. Reciprocal push pairs are the one exception: both rolls are collected before either unit moves, because if both hit neither unit moves (p. 148). Attack-specific PSRs are still rolled at end of phase, reusing the `_accumulatedDamageData` pattern from `WeaponAttackResolutionPhase`.
 
 4.2. **End-of-phase PSR collection** (reuse and generalize the accumulated-damage approach):
     - Track per-target component hits and destroyed parts (for damage-caused fall PSRs) exactly like `WeaponAttackResolutionPhase.CalculateEndOfPhasePsrs`.
