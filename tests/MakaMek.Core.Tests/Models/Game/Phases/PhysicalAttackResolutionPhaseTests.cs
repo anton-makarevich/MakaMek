@@ -170,6 +170,84 @@ public class PhysicalAttackResolutionPhaseTests : GamePhaseTestsBase
                     context.RollType == PilotingSkillRollType.ChargeImpact)));
     }
 
+    [Fact]
+    public void Enter_ChargeHitIntoAnOccupiedHex_ResolvesTheDominoChainAndAdvancesBothUnits()
+    {
+        // Arrange: a third Mech stands in the hex the charge pushes the target into
+        SetMap();
+        Game.HandleCommand(CreateJoinCommand(Guid.NewGuid(), "Player 3"));
+        var occupant = (Mech)Game.Players[2].Units[0];
+        occupant.Deploy(new HexPosition(DestinationHex, HexDirection.Top), null);
+        SetUpCharge(_player1Mech, _player2Mech);
+        MockPhysicalAttackResolver.ResolveCharge(Arg.Any<ChargeAttackContext>())
+            .Returns(ChargeHit(_player2Mech.Id));
+        StubDominoRoll(occupant);
+        StubDominoRoll(_player2Mech);
+
+        // Act
+        _sut.Enter();
+
+        // Assert: the chain link moves first, then the target, then the attacker advance.
+        var displacements = PublishedCommands().OfType<DisplaceUnitCommand>().ToList();
+        displacements.ShouldContain(command => command.UnitId == occupant.Id
+                                              && command.DisplacementReason == DisplacementReason.DominoEffect
+                                              && command.ToCoordinates ==
+                                              DestinationHex.GetNeighbour(HexDirection.Top).ToData());
+        displacements.ShouldContain(command => command.UnitId == _player2Mech.Id
+                                              && command.DisplacementReason == DisplacementReason.Charge
+                                              && command.ToCoordinates == DestinationHex.ToData());
+        displacements.ShouldContain(command => command.UnitId == _player1Mech.Id
+                                              && command.DisplacementReason == DisplacementReason.ChargeAdvance
+                                              && command.ToCoordinates == TargetHex.ToData());
+        occupant.Position!.Coordinates.ShouldBe(DestinationHex.GetNeighbour(HexDirection.Top));
+        _player2Mech.Position!.Coordinates.ShouldBe(DestinationHex);
+        _player1Mech.Position!.Coordinates.ShouldBe(TargetHex);
+        MockFallProcessor.Received(1).ProcessMovementAttempt(
+            occupant,
+            Arg.Is<DominoEffectRollContext>(context => context.RollType == PilotingSkillRollType.DominoEffect),
+            Game,
+            Arg.Any<MovementType>(),
+            Arg.Any<HexPosition?>());
+    }
+
+    [Fact]
+    public void Enter_ChargeHitThatDropsTheTargetMoreThanTwoLevels_TriggersAnAutomaticFall()
+    {
+        // Arrange: the attacker and target stand three levels above the hex the target is pushed into
+        SetMap();
+        Game.BattleMap!.AddHex(new Hex(AttackerHex, 3));
+        Game.BattleMap.AddHex(new Hex(TargetHex, 3));
+        SetUpCharge(_player1Mech, _player2Mech);
+        MockPhysicalAttackResolver.ResolveCharge(Arg.Any<ChargeAttackContext>())
+            .Returns(ChargeHit(_player2Mech.Id));
+        Game.DiceRoller.RollD6().Returns(new DiceResult(1));
+        MockFallProcessor.ProcessMovementAttempt(
+                _player2Mech, Arg.Any<CliffFallRollContext>(), Game,
+                Arg.Any<MovementType>(), Arg.Any<HexPosition?>())
+            .Returns(new FallContextData
+            {
+                UnitId = _player2Mech.Id,
+                GameId = Game.Id,
+                IsFalling = true,
+                LevelsFallen = 3,
+                FallingDamageData = new FallingDamageData(
+                    HexDirection.Bottom,
+                    new HitLocationsData([], 0),
+                    new DiceResult(1),
+                    HitDirection.Front)
+            });
+        MockConsciousnessCalculator.MakeConsciousnessRolls(_player2Mech.Pilot!).Returns([]);
+
+        // Act
+        _sut.Enter();
+
+        // Assert: the target lands in the lower hex and falls there
+        _player2Mech.Position!.Coordinates.ShouldBe(DestinationHex);
+        _player2Mech.IsProne.ShouldBeTrue();
+        PublishedCommands().OfType<MechFallCommand>().ShouldHaveSingleItem()
+            .UnitId.ShouldBe(_player2Mech.Id);
+    }
+
     [Theory]
     [InlineData("prone")]
     [InlineData("destroyed")]

@@ -1095,6 +1095,26 @@ public class PhysicalAttackResolverTests
             CreateContext(attacker, target, PhysicalAttackType.Punch, PartLocation.LeftArm)));
     }
 
+    [Fact]
+    public void ResolveCharge_WithoutAnAttackerPosition_ShouldThrow()
+    {
+        var attacker = CreateUnit(55, null!);
+        var target = CreateUnit(20, TargetPosition());
+
+        Should.Throw<InvalidOperationException>(() =>
+            _sut.ResolveCharge(CreateChargeContext(attacker, target)));
+    }
+
+    [Fact]
+    public void ResolveCharge_WithoutATargetPosition_ShouldThrow()
+    {
+        var attacker = CreateUnit(55, AttackerPositionInArc(FiringArc.Front));
+        var target = CreateUnit(20, null!);
+
+        Should.Throw<InvalidOperationException>(() =>
+            _sut.ResolveCharge(CreateChargeContext(attacker, target)));
+    }
+
     #endregion
 
     #region Damage pipeline compatibility

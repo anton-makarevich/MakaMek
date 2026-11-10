@@ -328,6 +328,113 @@ public class PhysicalAttackResolutionCommandTests
         result.ShouldNotContain("Hit Locations:");
     }
 
+    [Fact]
+    public void Render_ChargeReplacement_NamesTheOriginalTarget()
+    {
+        // Arrange
+        var attackerCollision = new AttackHitLocationsData(
+            [new LocationHitData([new LocationDamageData(PartLocation.CenterTorso, 2, 0, false)], [], [3, 4],
+                PartLocation.CenterTorso)],
+            2, [], 1);
+        var sut = new PhysicalAttackResolutionCommand
+        {
+            ResolutionId = Guid.NewGuid(),
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = _player1.Id,
+            AttackerId = _attacker.Id,
+            TargetId = _target.Id,
+            ResolutionData = new PhysicalAttackResolutionData(
+                PhysicalAttackType.Charge,
+                null,
+                5,
+                ChargeHitResolution(),
+                [],
+                new ChargeResolutionData(ChargeOutcome.Hit, 3, true, _target.Id, attackerCollision))
+        };
+
+        // Act
+        var result = sut.Render(_localizationService, _game);
+
+        // Assert
+        result.ShouldContain($"Struck a replacement for {_target.Model}");
+    }
+
+    [Fact]
+    public void Render_ChargeReplacement_WhenTheOriginalTargetLeftTheGame_ShowsItsId()
+    {
+        // Arrange
+        var originalTargetId = Guid.NewGuid();
+        var sut = new PhysicalAttackResolutionCommand
+        {
+            ResolutionId = Guid.NewGuid(),
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = _player1.Id,
+            AttackerId = _attacker.Id,
+            TargetId = _target.Id,
+            ResolutionData = new PhysicalAttackResolutionData(
+                PhysicalAttackType.Charge,
+                null,
+                5,
+                ChargeHitResolution(),
+                [],
+                new ChargeResolutionData(ChargeOutcome.Hit, 3, true, originalTargetId))
+        };
+
+        // Act
+        var result = sut.Render(_localizationService, _game);
+
+        // Assert
+        result.ShouldContain($"Struck a replacement for {originalTargetId}");
+    }
+
+    [Fact]
+    public void Render_ChargeAttackerDestroyedByTheCollision_ShowsThePartsAndTheDestruction()
+    {
+        // Arrange: the collision did no location damage of its own, but it destroyed the attacker
+        var sut = new PhysicalAttackResolutionCommand
+        {
+            ResolutionId = Guid.NewGuid(),
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = _player1.Id,
+            AttackerId = _attacker.Id,
+            TargetId = _target.Id,
+            ResolutionData = new PhysicalAttackResolutionData(
+                PhysicalAttackType.Charge,
+                null,
+                5,
+                ChargeHitResolution(),
+                [],
+                new ChargeResolutionData(
+                    ChargeOutcome.Hit,
+                    3,
+                    false,
+                    _target.Id,
+                    new AttackHitLocationsData([], 2, [], 0),
+                    [PartLocation.Head],
+                    true))
+        };
+
+        // Act
+        var result = sut.Render(_localizationService, _game);
+
+        // Assert
+        result.ShouldContain($"{_attacker.Model} takes 2 collision damage");
+        result.ShouldContain("Destroyed parts:");
+        result.ShouldContain("- Head destroyed");
+        result.ShouldContain($"{_attacker.Model} has been destroyed!");
+    }
+
+    private static AttackResolutionData ChargeHitResolution() =>
+        new(7,
+            [new DiceResult(4), new DiceResult(4)],
+            true,
+            HitDirection.Front,
+            0,
+            new AttackHitLocationsData(
+                [new LocationHitData([new LocationDamageData(PartLocation.CenterTorso, 5, 0, false)], [], [3, 4],
+                    PartLocation.CenterTorso)],
+                5, [], 0));
+
     private PhysicalAttackResolutionCommand CreateCommand(AttackResolutionData resolution) => new()
     {
         ResolutionId = Guid.NewGuid(),

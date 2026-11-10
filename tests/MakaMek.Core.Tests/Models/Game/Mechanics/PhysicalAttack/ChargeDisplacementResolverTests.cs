@@ -73,6 +73,24 @@ public class ChargeDisplacementResolverTests
     }
 
     [Fact]
+    public void ResolveHit_WhenBothUnitsAreDestroyed_ReturnsNull()
+    {
+        // Arrange
+        var map = CreateMap();
+        var attacker = CreateMech(new HexPosition(AttackerCoordinates, ChargeDirection));
+        var target = CreateMech(new HexPosition(TargetCoordinates, HexDirection.Bottom));
+        MoveToChargeApproach(attacker, target.Position!);
+        Destroy(attacker);
+        Destroy(target);
+
+        // Act
+        var result = _sut.ResolveHit(attacker, target, map, [attacker, target], Guid.NewGuid());
+
+        // Assert
+        result.ShouldBeNull();
+    }
+
+    [Fact]
     public void ResolveHit_WhenThePrimaryHexIsBlocked_UsesTheAlternatingFallbackOrder()
     {
         // Arrange: the primary hex is too high to enter, so the first side hex (rotate +1) wins.
@@ -338,6 +356,71 @@ public class ChargeDisplacementResolverTests
         result.AttackerDestination!.Coordinates.ShouldBe(TargetCoordinates);
     }
 
+    [Fact]
+    public void ResolveHit_WhenTheOccupiedHexCannotBeDislodged_UsesAFallbackHex()
+    {
+        // Arrange: the occupant's own destination is too high, so the domino chain is blocked
+        var map = CreateMap();
+        var attacker = CreateMech(new HexPosition(AttackerCoordinates, ChargeDirection));
+        var target = CreateMech(new HexPosition(TargetCoordinates, HexDirection.Bottom));
+        var primaryCoordinates = TargetCoordinates.GetNeighbour(ChargeDirection);
+        var occupant = CreateMech(new HexPosition(primaryCoordinates, HexDirection.Bottom));
+        MoveToChargeApproach(attacker, target.Position!);
+        map.AddHex(new Hex(primaryCoordinates.GetNeighbour(ChargeDirection), 3));
+
+        // Act
+        var result = _sut.ResolveHit(attacker, target, map, [attacker, target, occupant], Guid.NewGuid());
+
+        // Assert
+        result.ShouldNotBeNull();
+        result.DominoEffect.ShouldBeNull();
+        result.TargetDestination!.Coordinates.ShouldBe(
+            TargetCoordinates.GetNeighbour(ChargeDirection.Rotate(1)));
+        result.AttackerDestination!.Coordinates.ShouldBe(TargetCoordinates);
+    }
+
+    [Fact]
+    public void ResolveHit_WithoutACommittedMovement_ReturnsNull()
+    {
+        // Arrange
+        var map = CreateMap();
+        var attacker = CreateMech(new HexPosition(AttackerCoordinates, ChargeDirection));
+        var target = CreateMech(new HexPosition(TargetCoordinates, HexDirection.Bottom));
+
+        // Act
+        var result = _sut.ResolveHit(attacker, target, map, [attacker, target]);
+
+        // Assert
+        result.ShouldBeNull();
+    }
+
+    [Fact]
+    public void ResolveAdvance_WithoutACommittedMovement_ReturnsNull()
+    {
+        // Arrange
+        var attacker = CreateMech(new HexPosition(AttackerCoordinates, ChargeDirection));
+
+        // Act
+        var result = _sut.ResolveAdvance(attacker);
+
+        // Assert
+        result.ShouldBeNull();
+    }
+
+    [Fact]
+    public void ResolveMiss_WhenTheAttackerHasNoPosition_ReturnsNull()
+    {
+        // Arrange
+        var map = CreateMap();
+        var attacker = CreateMechWithoutDeployment();
+
+        // Act
+        var result = _sut.ResolveMiss(attacker, map, [attacker]);
+
+        // Assert
+        result.ShouldBeNull();
+    }
+
     private static IEnumerable<HexDirection> GetSideDirections(HexDirection direction)
     {
         yield return direction.Rotate(1);
@@ -373,6 +456,13 @@ public class ChargeDisplacementResolverTests
 
     private static Mech CreateMech(HexPosition position)
     {
+        var mech = CreateMechWithoutDeployment();
+        mech.Deploy(position, null);
+        return mech;
+    }
+
+    private static Mech CreateMechWithoutDeployment()
+    {
         var factory = new MechFactory(
             new TotalWarfareRulesProvider(),
             new ClassicBattletechComponentProvider(),
@@ -381,7 +471,6 @@ public class ChargeDisplacementResolverTests
         data.Id = Guid.NewGuid();
         var mech = factory.Create(data);
         mech.AssignPilot(new MechWarrior("Test", "Pilot", gunnery: 4, piloting: 5));
-        mech.Deploy(position, null);
         return mech;
     }
 }

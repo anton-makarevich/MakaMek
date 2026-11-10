@@ -139,6 +139,20 @@ public class TotalWarfareRulesProviderTests
     }
 
     [Theory]
+    [InlineData(-1, 3, "attackerTonnage")]
+    [InlineData(55, -1, "hexesMoved")]
+    public void GetChargeDamage_WithNegativeValues_ThrowsArgumentOutOfRangeException(
+        int attackerTonnage,
+        int hexesMoved,
+        string expectedParamName)
+    {
+        var exception = Should.Throw<ArgumentOutOfRangeException>(
+            () => _sut.GetChargeDamage(attackerTonnage, hexesMoved));
+
+        exception.ParamName.ShouldBe(expectedParamName);
+    }
+
+    [Theory]
     [InlineData(20, 2)]
     [InlineData(21, 3)]
     [InlineData(100, 10)]
@@ -147,6 +161,15 @@ public class TotalWarfareRulesProviderTests
         int expectedDamage)
     {
         _sut.GetChargeCollisionDamage(targetTonnage).ShouldBe(expectedDamage);
+    }
+
+    [Fact]
+    public void GetChargeCollisionDamage_WithNegativeTonnage_ThrowsArgumentOutOfRangeException()
+    {
+        var exception = Should.Throw<ArgumentOutOfRangeException>(
+            () => _sut.GetChargeCollisionDamage(-1));
+
+        exception.ParamName.ShouldBe("targetTonnage");
     }
 
     [Theory]
