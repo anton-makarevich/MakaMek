@@ -42,8 +42,9 @@ public record ChargeDisplacementResult(
 /// without a deep drop.
 /// </para>
 /// <para>
-/// When the charge automatically fails because the target left the hex, the attacker completes
-/// its committed movement into that hex unless another non-destroyed unit occupies it.
+/// When the charge automatically fails because the target left the hex, the attacker is placed
+/// exactly like a rolled miss: in a side hex of its forward arc, never in the destination hex
+/// (Total Warfare, p. 148).
 /// </para>
 /// <para>
 /// A 'Mech that is airborne for a pending Death From Above is not a ground occupant: it does not
@@ -110,8 +111,9 @@ public class ChargeDisplacementResolver(
     }
 
     /// <summary>
-    /// The attacker's landing hex after a miss: the hex to the right or left of its forward arc
-    /// (right first), or null when neither is available (Total Warfare, p. 148).
+    /// The attacker's landing hex after a miss or an automatic failure: the hex to the right or
+    /// left of its forward arc (right first), or null when neither is available (Total Warfare,
+    /// p. 148).
     /// </summary>
     public ChargeDisplacementResult? ResolveMiss(
         IUnit attacker,
@@ -144,16 +146,6 @@ public class ChargeDisplacementResolver(
         }
 
         return null;
-    }
-
-    /// <summary>
-    /// The attacker's committed movement into the destination hex after an automatic failure.
-    /// </summary>
-    public ChargeDisplacementResult? ResolveAdvance(IUnit attacker)
-    {
-        if (attacker.IsDestroyed) return null;
-        if (attacker.MovementTaken is not { } movement) return null;
-        return new ChargeDisplacementResult(null, movement.Destination, 0, false);
     }
 
     private ChargeDisplacementResult CreateResult(

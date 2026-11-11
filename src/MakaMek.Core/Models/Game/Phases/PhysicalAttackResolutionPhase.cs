@@ -257,7 +257,7 @@ public class PhysicalAttackResolutionPhase(
 
         if (targetSelection.Target is not { } target)
         {
-            ResolveChargeAutoFail(item, targetSelection);
+            ResolveChargeAutoFail(item);
             return;
         }
 
@@ -316,11 +316,11 @@ public class PhysicalAttackResolutionPhase(
 
     /// <summary>
     /// Publishes the automatic failure of a charge. No roll is made and no damage or piloting
-    /// skill roll is created. On a target-side failure the attacker completes its committed
-    /// movement into the destination hex unless another non-destroyed unit occupies it; on an
-    /// attacker-side failure the attacker stays where it is.
+    /// skill roll is created. When the failure is on the target side, the attacker is placed
+    /// exactly like a rolled miss: in a side hex of its forward arc, never in the destination hex
+    /// (Total Warfare, p. 148). An attacker-side failure leaves the attacker where it is.
     /// </summary>
-    private void ResolveChargeAutoFail(ChargeQueueItem item, ChargeTargetSelection selection)
+    private void ResolveChargeAutoFail(ChargeQueueItem item)
     {
         var resolution = new PhysicalAttackResolutionData(
             PhysicalAttackType.Charge,
@@ -346,10 +346,9 @@ public class PhysicalAttackResolutionPhase(
         Game.OnPhysicalAttackResolution(command);
         Game.CommandPublisher.PublishCommand(command);
 
-        if (item.AttackerAutoFail || selection.BlocksAttackerEntry) return;
+        if (item.AttackerAutoFail) return;
 
-        if (_chargeDisplacementResolver.ResolveAdvance(item.Attacker) is { AttackerDestination: { } destination })
-            ExecuteDisplacement(item.Attacker, destination, DisplacementReason.ChargeAdvance);
+        ApplyChargeMissDisplacement(item.Attacker);
     }
 
     private void ApplyChargeHitDisplacement(IUnit attacker, IUnit target)

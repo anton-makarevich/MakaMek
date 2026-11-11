@@ -307,37 +307,6 @@ public class ChargeDisplacementResolverTests
     }
 
     [Fact]
-    public void ResolveAdvance_WhenTheAttackerIsDestroyed_ReturnsNull()
-    {
-        // Arrange
-        var attacker = CreateMech(new HexPosition(AttackerCoordinates, ChargeDirection));
-        MoveToChargeApproach(attacker, new HexPosition(TargetCoordinates, ChargeDirection));
-        Destroy(attacker);
-
-        // Act
-        var result = _sut.ResolveAdvance(attacker);
-
-        // Assert
-        result.ShouldBeNull();
-    }
-
-    [Fact]
-    public void ResolveAdvance_MovesTheAttackerToTheCommittedDestination()
-    {
-        // Arrange
-        var attacker = CreateMech(new HexPosition(AttackerCoordinates, ChargeDirection));
-        MoveToChargeApproach(attacker, new HexPosition(TargetCoordinates, ChargeDirection));
-
-        // Act
-        var result = _sut.ResolveAdvance(attacker);
-
-        // Assert
-        result.ShouldNotBeNull();
-        result.TargetDestination.ShouldBeNull();
-        result.AttackerDestination!.Coordinates.ShouldBe(TargetCoordinates);
-    }
-
-    [Fact]
     public void ResolveHit_WhenTheOccupiedHexCannotBeDislodged_LeavesBothUnitsInPlace()
     {
         // Arrange: the occupant's own destination is too high, so the domino chain is blocked
@@ -429,19 +398,6 @@ public class ChargeDisplacementResolverTests
 
         // Act
         var result = _sut.ResolveHit(attacker, target, map, [attacker, target]);
-
-        // Assert
-        result.ShouldBeNull();
-    }
-
-    [Fact]
-    public void ResolveAdvance_WithoutACommittedMovement_ReturnsNull()
-    {
-        // Arrange
-        var attacker = CreateMech(new HexPosition(AttackerCoordinates, ChargeDirection));
-
-        // Act
-        var result = _sut.ResolveAdvance(attacker);
 
         // Assert
         result.ShouldBeNull();

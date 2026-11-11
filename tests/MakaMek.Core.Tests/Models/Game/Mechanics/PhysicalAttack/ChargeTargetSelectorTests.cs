@@ -62,7 +62,7 @@ public class ChargeTargetSelectorTests
     }
 
     [Fact]
-    public void Select_WhenTheDeclaredTargetIsProne_AutoFailsWithoutBlockingEntry()
+    public void Select_WhenTheDeclaredTargetIsProne_AutoFails()
     {
         _declaredTarget.SetProne();
 
@@ -70,11 +70,10 @@ public class ChargeTargetSelectorTests
 
         selection.Target.ShouldBeNull();
         selection.IsAutoFail.ShouldBeTrue();
-        selection.BlocksAttackerEntry.ShouldBeFalse();
     }
 
     [Fact]
-    public void Select_WhenTheDeclaredTargetIsDestroyed_AutoFailsWithoutBlockingEntry()
+    public void Select_WhenTheDeclaredTargetIsDestroyed_AutoFails()
     {
         _declaredTarget.ApplyDamage(
             [new Sanet.MakaMek.Core.Data.Game.LocationHitData(
@@ -87,7 +86,6 @@ public class ChargeTargetSelectorTests
 
         selection.Target.ShouldBeNull();
         selection.IsAutoFail.ShouldBeTrue();
-        selection.BlocksAttackerEntry.ShouldBeFalse();
     }
 
     [Fact]
@@ -134,7 +132,7 @@ public class ChargeTargetSelectorTests
     }
 
     [Fact]
-    public void Select_WhenOnlyAFriendlyUnitOccupiesTheHex_AutoFailsAndBlocksEntry()
+    public void Select_WhenOnlyAFriendlyUnitOccupiesTheHex_AutoFails()
     {
         MoveElsewhere(_declaredTarget);
         var friendly = CreateMech();
@@ -145,7 +143,6 @@ public class ChargeTargetSelectorTests
 
         selection.Target.ShouldBeNull();
         selection.IsAutoFail.ShouldBeTrue();
-        selection.BlocksAttackerEntry.ShouldBeTrue();
     }
 
     /// <summary>
@@ -153,7 +150,7 @@ public class ChargeTargetSelectorTests
     /// declared against it auto-fails (Total Warfare p.149).
     /// </summary>
     [Fact]
-    public void Select_WhenTheDeclaredTargetPerformsDfa_AutoFailsWithoutBlockingEntry()
+    public void Select_WhenTheDeclaredTargetPerformsDfa_AutoFails()
     {
         DeclareDfa(_declaredTarget, _attacker);
 
@@ -161,15 +158,14 @@ public class ChargeTargetSelectorTests
 
         selection.Target.ShouldBeNull();
         selection.IsAutoFail.ShouldBeTrue();
-        selection.BlocksAttackerEntry.ShouldBeFalse();
     }
 
     /// <summary>
-    /// The replacement target is subject to the same p.149 immunity, and an airborne DFA performer
-    /// is not a ground occupant: it neither becomes the target nor blocks the committed entry.
+    /// The replacement target is subject to the same p.149 immunity, so an airborne DFA performer
+    /// never becomes the target.
     /// </summary>
     [Fact]
-    public void Select_WhenOnlyADfaPerformerOccupiesTheHex_AutoFailsWithoutBlockingEntry()
+    public void Select_WhenOnlyADfaPerformerOccupiesTheHex_AutoFails()
     {
         MoveElsewhere(_declaredTarget);
         var dfaPerformer = CreateMech();
@@ -183,7 +179,6 @@ public class ChargeTargetSelectorTests
         selection.Target.ShouldBeNull();
         selection.IsReplacementTarget.ShouldBeFalse();
         selection.IsAutoFail.ShouldBeTrue();
-        selection.BlocksAttackerEntry.ShouldBeFalse();
     }
 
     [Fact]

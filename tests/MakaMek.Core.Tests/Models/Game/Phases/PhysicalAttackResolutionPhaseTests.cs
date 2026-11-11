@@ -33,6 +33,8 @@ public class PhysicalAttackResolutionPhaseTests : GamePhaseTestsBase
     private static readonly HexCoordinates AttackerHex = new(5, 5);
     private static readonly HexCoordinates TargetHex = AttackerHex.GetNeighbour(HexDirection.Top);
     private static readonly HexCoordinates DestinationHex = TargetHex.GetNeighbour(HexDirection.Top);
+    // A failed charge places the attacker in the right or left side hex of its forward arc (right first).
+    private static readonly HexCoordinates SideHex = AttackerHex.GetNeighbour(HexDirection.TopRight);
 
     private PhysicalAttackResolutionPhase _sut = null!;
     private IGamePhase _mockNextPhase = null!;
@@ -331,7 +333,9 @@ public class PhysicalAttackResolutionPhaseTests : GamePhaseTestsBase
         resolution.ResolutionData.AttackResolution.IsHit.ShouldBeFalse();
         resolution.ResolutionData.PsrRequirements.ShouldBeEmpty();
         MockPhysicalAttackResolver.DidNotReceiveWithAnyArgs().ResolveCharge(null!);
-        _player1Mech.Position!.Coordinates.ShouldBe(TargetHex);
+        _player1Mech.Position!.Coordinates.ShouldBe(SideHex);
+        PublishedCommands().OfType<DisplaceUnitCommand>().ShouldHaveSingleItem()
+            .DisplacementReason.ShouldBe(DisplacementReason.ChargeMiss);
         PublishedCommands().OfType<MechFallCommand>().ShouldBeEmpty();
     }
 
@@ -358,11 +362,11 @@ public class PhysicalAttackResolutionPhaseTests : GamePhaseTestsBase
 
     /// <summary>
     /// A 'Mech making a Death From Above cannot be the target of a physical attack, so a charge
-    /// declared against it auto-fails. The declared target never blocks the committed movement, so
-    /// the charger still enters the destination hex (Total Warfare p.148-149).
+    /// declared against it auto-fails. A failed charge never ends in the target hex: the attacker
+    /// is placed in a side hex of its forward arc (Total Warfare p.148-149).
     /// </summary>
     [Fact]
-    public void Enter_ChargeAutoFails_WhenTheDeclaredTargetPerformsDfa_AndAdvancesIntoTheHex()
+    public void Enter_ChargeAutoFails_WhenTheDeclaredTargetPerformsDfa_AndMovesToASideHex()
     {
         // Arrange
         SetMap();
@@ -380,17 +384,17 @@ public class PhysicalAttackResolutionPhaseTests : GamePhaseTestsBase
         resolution.ResolutionData.AttackResolution.IsHit.ShouldBeFalse();
         resolution.ResolutionData.PsrRequirements.ShouldBeEmpty();
         MockPhysicalAttackResolver.DidNotReceiveWithAnyArgs().ResolveCharge(null!);
-        _player1Mech.Position!.Coordinates.ShouldBe(TargetHex);
+        _player1Mech.Position!.Coordinates.ShouldBe(SideHex);
         PublishedCommands().OfType<DisplaceUnitCommand>().ShouldHaveSingleItem()
-            .DisplacementReason.ShouldBe(DisplacementReason.ChargeAdvance);
+            .DisplacementReason.ShouldBe(DisplacementReason.ChargeMiss);
         PublishedCommands().OfType<MechFallCommand>().ShouldBeEmpty();
     }
 
     /// <summary>
     /// The p.149 immunity applies to replacement targets too: when the declared target left the hex
     /// and only a pending-DFA 'Mech occupies it, the charge auto-fails instead of resolving against
-    /// the DFA performer. An airborne 'Mech is not a ground occupant, so it does not block the
-    /// charger's committed entry and is never displaced.
+    /// the DFA performer. The failed charge lands in a side hex, and the airborne 'Mech is never
+    /// displaced.
     /// </summary>
     [Fact]
     public void Enter_ChargeAutoFails_WhenOnlyADfaPerformerOccupiesTheDestinationHex()
@@ -419,10 +423,10 @@ public class PhysicalAttackResolutionPhaseTests : GamePhaseTestsBase
         resolution.TargetId.ShouldBe(_player2Mech.Id);
         MockPhysicalAttackResolver.DidNotReceiveWithAnyArgs().ResolveCharge(null!);
 
-        // The charger enters the hex under the airborne 'Mech, which stays where it is.
-        _player1Mech.Position!.Coordinates.ShouldBe(TargetHex);
+        // The charger lands in a side hex; the airborne 'Mech stays where it is.
+        _player1Mech.Position!.Coordinates.ShouldBe(SideHex);
         PublishedCommands().OfType<DisplaceUnitCommand>().ShouldHaveSingleItem()
-            .DisplacementReason.ShouldBe(DisplacementReason.ChargeAdvance);
+            .DisplacementReason.ShouldBe(DisplacementReason.ChargeMiss);
         PublishedCommands().OfType<DisplaceUnitCommand>()
             .ShouldNotContain(command => command.UnitId == dfaPerformer.Id);
         dfaPerformer.Position!.Coordinates.ShouldBe(TargetHex);
@@ -430,12 +434,11 @@ public class PhysicalAttackResolutionPhaseTests : GamePhaseTestsBase
     }
 
     /// <summary>
-    /// A grounded unit that still holds the destination hex blocks the committed entry, so the
-    /// charger stays in its approach hex. This is the pre-existing rule the airborne DFA exemption
-    /// does not change.
+    /// A grounded unit that still holds the destination hex changes nothing about a failed charge:
+    /// the attacker is placed in a side hex of its forward arc, never in the occupied hex.
     /// </summary>
     [Fact]
-    public void Enter_ChargeAutoFails_WhenAGroundedUnitBlocksTheDestination_AndKeepsTheAttackerInPlace()
+    public void Enter_ChargeAutoFails_WhenAGroundedUnitOccupiesTheDestination_AndMovesToASideHex()
     {
         // Arrange
         SetMap();
@@ -457,8 +460,10 @@ public class PhysicalAttackResolutionPhaseTests : GamePhaseTestsBase
         PublishedCommands().OfType<PhysicalAttackResolutionCommand>().ShouldHaveSingleItem()
             .ResolutionData.Charge!.Outcome.ShouldBe(ChargeOutcome.AutoFail);
         MockPhysicalAttackResolver.DidNotReceiveWithAnyArgs().ResolveCharge(null!);
-        _player1Mech.Position!.Coordinates.ShouldBe(AttackerHex);
-        PublishedCommands().OfType<DisplaceUnitCommand>().ShouldBeEmpty();
+        _player1Mech.Position!.Coordinates.ShouldBe(SideHex);
+        friendly.Position!.Coordinates.ShouldBe(TargetHex);
+        PublishedCommands().OfType<DisplaceUnitCommand>().ShouldHaveSingleItem()
+            .DisplacementReason.ShouldBe(DisplacementReason.ChargeMiss);
     }
 
     [Fact]
