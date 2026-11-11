@@ -601,6 +601,30 @@ public class PhysicalAttackResolutionPhaseTests : GamePhaseTestsBase
     }
 
     [Fact]
+    public void Enter_TargetThatDeclaredDfa_IsSkipped()
+    {
+        // Arrange: the punch was declared while the target was still a legal target, then the
+        // target declared a DFA during its own movement (Total Warfare p.149).
+        SetMap();
+        Declare(_player1Mech, _player2Mech, PhysicalAttackType.Punch, PartLocation.LeftArm);
+        _player2Mech.DeclarePhysicalAttack(new PhysicalAttackDeclarationData
+        {
+            AttackType = PhysicalAttackType.DFA,
+            AttackerLimbs = [],
+            TargetId = _player1Mech.Id
+        });
+        ResolverReturnsMiss();
+        CommandPublisher.ClearReceivedCalls();
+
+        // Act
+        _sut.Enter();
+
+        // Assert
+        MockPhysicalAttackResolver.DidNotReceiveWithAnyArgs().ResolveAttack(null!);
+        PublishedCommands().ShouldHaveSingleItem().ShouldBeOfType<ChangePhaseCommand>();
+    }
+
+    [Fact]
     public void Enter_Hit_AppliesTheDamageOnTheServer()
     {
         // Arrange

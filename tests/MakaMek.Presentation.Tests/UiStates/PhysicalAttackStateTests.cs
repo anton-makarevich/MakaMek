@@ -134,6 +134,8 @@ public class PhysicalAttackStateTests
             .Returns("The target must be a standing Mech");
         _localizationService.GetString("PhysicalAttackRestriction_TargetPerformingDisplacementAttack")
             .Returns("The target is performing a Charge or Death From Above");
+        _localizationService.GetString("PhysicalAttackRestriction_TargetPerformingDeathFromAbove")
+            .Returns("The target is performing Death From Above");
         _localizationService.GetString("PhysicalAttackRestriction_ElevationMismatch")
             .Returns("The target must be at the same elevation");
         _localizationService.GetString("PhysicalAttackRestriction_ArmMissing")
@@ -229,6 +231,14 @@ public class PhysicalAttackStateTests
             UnitsToPlay = 1
         });
     }
+
+    private static void DeclareMovementAttack(IUnit unit, IUnit target, PhysicalAttackType attackType) =>
+        unit.DeclarePhysicalAttack(new PhysicalAttackDeclarationData
+        {
+            AttackType = attackType,
+            AttackerLimbs = [],
+            TargetId = target.Id
+        });
 
     private static void Destroy(IUnit unit)
     {
@@ -343,6 +353,31 @@ public class PhysicalAttackStateTests
         var kickOnlyHighlight = _game.BattleMap.GetHex(kickOnlyHex)!
             .Highlights.OfType<AttackReachableHighlight>().Single();
         kickOnlyHighlight.WeaponNames.ShouldBe(["Kick"]);
+    }
+
+    [Fact]
+    public void SelectingAnAttacker_DoesNotHighlightADfaPerformerButHighlightsAnotherEnemy()
+    {
+        // Arrange: one adjacent enemy is performing a DFA, the other is an ordinary target.
+        var dfaHex = AttackerHex.GetNeighbour(HexDirection.Top);
+        var ordinaryHex = AttackerHex.GetNeighbour(HexDirection.TopRight);
+        DeployPair(dfaHex);
+        SecondEnemy.Deploy(new HexPosition(ordinaryHex, HexDirection.Bottom), null);
+        DeclareMovementAttack(Enemy, Attacker, PhysicalAttackType.DFA);
+
+        // Act
+        SelectAttacker();
+
+        // Assert
+        _sut.Attacker.ShouldBe(Attacker);
+        _game.BattleMap!.GetHex(dfaHex)!.Highlights.OfType<AttackReachableHighlight>().ShouldBeEmpty();
+        _game.BattleMap!.GetHex(ordinaryHex)!.Highlights.OfType<AttackReachableHighlight>().ShouldNotBeEmpty();
+
+        // Clicking the DFA performer does not open the declaration panel.
+        SelectTarget(Enemy);
+        _sut.CurrentStep.ShouldBe(PhysicalAttackStep.TargetSelection);
+        _sut.SelectedTarget.ShouldBeNull();
+        _viewModel.IsPhysicalAttackDeclarationVisible.ShouldBeFalse();
     }
 
     [Fact]
@@ -683,6 +718,25 @@ public class PhysicalAttackStateTests
         _sut.ExecutePlayerAction();
 
         _commandPublisher.DidNotReceive().PublishCommand(Arg.Any<PhysicalAttackCommand>());
+    }
+
+    [Fact]
+    public void TargetDeclaresDfaAfterTheAttackWasSelected_DoesNotPublishACommand()
+    {
+        // Arrange
+        OpenDialog();
+        ChooseVariant(PhysicalAttackType.Punch, "Both Arms");
+
+        // The target declares a DFA after the punch was selected.
+        DeclareMovementAttack(Enemy, Attacker, PhysicalAttackType.DFA);
+
+        // Act
+        _sut.ExecutePlayerAction();
+
+        // Assert
+        _commandPublisher.DidNotReceive().PublishCommand(Arg.Any<PhysicalAttackCommand>());
+        _sut.CurrentStep.ShouldBe(PhysicalAttackStep.Declaration);
+        _sut.SelectedAttackType.ShouldBe(PhysicalAttackType.Punch);
     }
 
     [Fact]
@@ -1119,6 +1173,50 @@ public class PhysicalAttackStateTests
         _sut.CurrentStep.ShouldBe(PhysicalAttackStep.TargetSelection);
         _game.BattleMap!.GetHex(enemyHex)!
             .Highlights.OfType<AttackReachableHighlight>().ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void Dialog_TargetPerformingDfa_DisablesPunchKickAndPush()
+    {
+        // Arrange: the target was reachable when the attacker was selected, then declared a DFA.
+        DeployPair();
+        StubCalculator();
+        SelectAttacker();
+        DeclareMovementAttack(Enemy, Attacker, PhysicalAttackType.DFA);
+
+        // Act
+        SelectTarget(Enemy);
+
+        // Assert
+        foreach (var attackType in new[]
+                 {
+                     PhysicalAttackType.Punch, PhysicalAttackType.Kick, PhysicalAttackType.Push
+                 })
+        {
+            var option = Option(attackType);
+            option.IsEnabled.ShouldBeFalse();
+            option.RestrictionReason.ShouldBe("The target is performing Death From Above");
+        }
+    }
+
+    [Fact]
+    public void Dialog_ChargingTarget_KeepsPunchAndKickEnabled()
+    {
+        // Arrange: a charging 'Mech is not immune to physical attacks; only Push is barred.
+        DeployPair();
+        DeclareMovementAttack(Enemy, Attacker, PhysicalAttackType.Charge);
+        StubCalculator();
+
+        // Act
+        SelectAttacker();
+        SelectTarget(Enemy);
+
+        // Assert
+        Option(PhysicalAttackType.Punch).IsEnabled.ShouldBeTrue();
+        Option(PhysicalAttackType.Kick).IsEnabled.ShouldBeTrue();
+        Option(PhysicalAttackType.Push).IsEnabled.ShouldBeFalse();
+        Option(PhysicalAttackType.Push).RestrictionReason
+            .ShouldBe("The target is performing a Charge or Death From Above");
     }
 
     [Fact]

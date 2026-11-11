@@ -435,24 +435,119 @@ public class PhysicalAttackEligibilityTests
             .ShouldBe(PhysicalAttackRestriction.TargetNotStandingMech);
     }
 
-    [Theory]
-    [InlineData(PhysicalAttackType.Charge)]
-    [InlineData(PhysicalAttackType.DFA)]
-    public void Push_TargetPerformingADisplacementAttack_IsNotAllowed(PhysicalAttackType targetAttackType)
+    [Fact]
+    public void Push_TargetPerformingACharge_IsNotAllowed()
     {
         // Arrange
         var (attacker, target) = CreatePair(AttackerHex.GetNeighbour(HexDirection.Top));
-        target.DeclarePhysicalAttack(new PhysicalAttackDeclarationData
-        {
-            AttackType = targetAttackType,
-            AttackerLimbs = [PartLocation.LeftArm],
-            TargetId = attacker.Id
-        });
+        DeclareCharge(target, attacker);
 
         // Act + Assert
         _sut.GetEligibleLimbs(attacker, target, PhysicalAttackType.Push, _map).ShouldBeEmpty();
         _sut.GetRestriction(attacker, target, PhysicalAttackType.Push, _map)
             .ShouldBe(PhysicalAttackRestriction.TargetPerformingDisplacementAttack);
+    }
+
+    /// <summary>
+    /// A 'Mech making a DFA cannot be the target of any physical attack, but it may be the target
+    /// of weapon attacks (Total Warfare p.149). The immunity is part of the shared intrinsic path,
+    /// so declaration, enrollment, the UI and resolution all see it.
+    /// </summary>
+    [Theory]
+    [InlineData(PhysicalAttackType.Punch)]
+    [InlineData(PhysicalAttackType.Kick)]
+    [InlineData(PhysicalAttackType.Push)]
+    public void NoAttack_AgainstATargetPerformingDeathFromAbove(PhysicalAttackType attackType)
+    {
+        // Arrange
+        var (attacker, target) = CreatePair(AttackerHex.GetNeighbour(HexDirection.Top));
+        DeclareDfa(target, attacker);
+
+        // Act
+        var limbs = _sut.GetEligibleLimbs(attacker, target, attackType, _map);
+        var limbEligibility = _sut.GetLimbEligibility(attacker, target, attackType, _map);
+
+        // Assert
+        limbs.ShouldBeEmpty();
+        _sut.GetRestriction(attacker, target, attackType, _map)
+            .ShouldBe(PhysicalAttackRestriction.TargetPerformingDeathFromAbove);
+        limbEligibility.ShouldNotBeEmpty();
+        limbEligibility.ShouldAllBe(limb =>
+            limb.Restriction == PhysicalAttackRestriction.TargetPerformingDeathFromAbove);
+        _sut.HasAnyOption(attacker, [target], _map).ShouldBeFalse();
+    }
+
+    /// <summary>
+    /// A charging 'Mech is not immune to physical attacks: only another Charge or a DFA is barred
+    /// (Total Warfare p.148-149). Punch and Kick stay legal when the reach rules permit them.
+    /// </summary>
+    [Theory]
+    [InlineData(PhysicalAttackType.Punch)]
+    [InlineData(PhysicalAttackType.Kick)]
+    public void PunchAndKick_AgainstAChargingTarget_AreAllowed(PhysicalAttackType attackType)
+    {
+        // Arrange
+        var (attacker, target) = CreatePair(AttackerHex.GetNeighbour(HexDirection.Top));
+        DeclareCharge(target, attacker);
+
+        // Act + Assert
+        _sut.GetRestriction(attacker, target, attackType, _map).ShouldBeNull();
+        _sut.GetEligibleLimbs(attacker, target, attackType, _map).ShouldNotBeEmpty();
+    }
+
+    /// <summary>
+    /// A pending DFA leaves the Mech airborne at its base level (<c>max(...) + 2</c>). Physical
+    /// reach uses that level, so a target two levels above is out of reach for Punch and Kick and
+    /// at a different elevation for Push (Total Warfare p.149-150).
+    /// </summary>
+    [Theory]
+    [InlineData(PhysicalAttackType.Punch)]
+    [InlineData(PhysicalAttackType.Kick)]
+    public void Melee_AgainstAnAirborneTargetTwoLevelsAbove_IsOutOfReach(PhysicalAttackType attackType)
+    {
+        // Arrange
+        var attacker = CreateMech(_attackingPlayer, AttackerHex, HexDirection.Top);
+        var target = CreateMech(_defendingPlayer, AttackerHex.GetNeighbour(HexDirection.Top),
+            HexDirection.Bottom, airborneLevel: 2);
+
+        // Act + Assert
+        _sut.GetEligibleLimbs(attacker, target, attackType, _map).ShouldBeEmpty();
+        _sut.GetRestriction(attacker, target, attackType, _map)
+            .ShouldBe(PhysicalAttackRestriction.LevelDifferenceOutOfRange);
+    }
+
+    [Fact]
+    public void Push_AgainstAnAirborneTargetTwoLevelsAbove_ReportsElevationMismatch()
+    {
+        // Arrange
+        var attacker = CreateMech(_attackingPlayer, AttackerHex, HexDirection.Top);
+        var target = CreateMech(_defendingPlayer, AttackerHex.GetNeighbour(HexDirection.Top),
+            HexDirection.Bottom, airborneLevel: 2);
+
+        // Act + Assert
+        _sut.GetEligibleLimbs(attacker, target, PhysicalAttackType.Push, _map).ShouldBeEmpty();
+        _sut.GetRestriction(attacker, target, PhysicalAttackType.Push, _map)
+            .ShouldBe(PhysicalAttackRestriction.ElevationMismatch);
+    }
+
+    /// <summary>
+    /// The p.149 immunity is independent of the elevation: a DFA performer is immune even when
+    /// terrain puts its airborne level within physical reach.
+    /// </summary>
+    [Fact]
+    public void NoAttack_AgainstADfaPerformer_EvenWhenTheAirborneLevelIsInReach()
+    {
+        // Arrange: the attacker stands at level 2 next to a DFA performer airborne at level 2.
+        var attacker = CreateMech(_attackingPlayer, AttackerHex, HexDirection.Top);
+        SetLevel(AttackerHex, 2);
+        var target = CreateMech(_defendingPlayer, AttackerHex.GetNeighbour(HexDirection.Top),
+            HexDirection.Bottom, airborneLevel: 2);
+        DeclareDfa(target, attacker);
+
+        // Act + Assert
+        _sut.GetEligibleLimbs(attacker, target, PhysicalAttackType.Punch, _map).ShouldBeEmpty();
+        _sut.GetRestriction(attacker, target, PhysicalAttackType.Punch, _map)
+            .ShouldBe(PhysicalAttackRestriction.TargetPerformingDeathFromAbove);
     }
 
     [Fact]
@@ -1309,6 +1404,38 @@ public class PhysicalAttackEligibilityTests
         _sut.CanResolve(attacker, target, PhysicalAttackType.Punch, PartLocation.LeftArm, _map).ShouldBeFalse();
     }
 
+    [Theory]
+    [InlineData(PhysicalAttackType.Punch, PartLocation.LeftArm)]
+    [InlineData(PhysicalAttackType.Kick, PartLocation.LeftLeg)]
+    public void CanResolve_DeclaredAttackAgainstATargetThatDeclaresDfa_IsFalse(
+        PhysicalAttackType attackType, PartLocation limb)
+    {
+        // Arrange: the attack was declared while the target was still a legal target.
+        var (attacker, target) = CreatePair(AttackerHex.GetNeighbour(HexDirection.Top));
+        attacker.DeclarePhysicalAttack(new PhysicalAttackDeclarationData
+        {
+            AttackType = attackType,
+            AttackerLimbs = [limb],
+            TargetId = target.Id
+        });
+        DeclareDfa(target, attacker);
+
+        // Act + Assert: the declaration must not resolve against a pending DFA performer.
+        _sut.CanResolve(attacker, target, attackType, limb, _map).ShouldBeFalse();
+    }
+
+    [Fact]
+    public void CanResolve_DeclaredPushAgainstATargetThatDeclaresDfa_IsFalse()
+    {
+        // Arrange
+        var (attacker, target) = CreatePair(AttackerHex.GetNeighbour(HexDirection.Top));
+        DeclarePush(attacker, target);
+        DeclareDfa(target, attacker);
+
+        // Act + Assert
+        _sut.CanResolve(attacker, target, PhysicalAttackType.Push, PartLocation.LeftArm, _map).ShouldBeFalse();
+    }
+
     [Fact]
     public void CanResolve_TargetBecomesSubmerged_IsFalse()
     {
@@ -1382,11 +1509,28 @@ public class PhysicalAttackEligibilityTests
             TargetId = target.Id
         });
 
+    private static void DeclareDfa(Mech attacker, Mech target) =>
+        attacker.DeclarePhysicalAttack(new PhysicalAttackDeclarationData
+        {
+            AttackType = PhysicalAttackType.DFA,
+            AttackerLimbs = [],
+            TargetId = target.Id
+        });
+
+    private static void DeclareCharge(Mech attacker, Mech target) =>
+        attacker.DeclarePhysicalAttack(new PhysicalAttackDeclarationData
+        {
+            AttackType = PhysicalAttackType.Charge,
+            AttackerLimbs = [],
+            TargetId = target.Id
+        });
+
     private (Mech Attacker, Mech Target) CreatePair(HexCoordinates targetHex) =>
         (CreateMech(_attackingPlayer, AttackerHex, HexDirection.Top),
             CreateMech(_defendingPlayer, targetHex, HexDirection.Bottom));
 
-    private static Mech CreateMech(IPlayer owner, HexCoordinates hex, HexDirection facing, HexSurface surface = HexSurface.Ground)
+    private static Mech CreateMech(IPlayer owner, HexCoordinates hex, HexDirection facing, HexSurface surface = HexSurface.Ground,
+        int? airborneLevel = null)
     {
         PartLocation[] limbs = [PartLocation.LeftArm, PartLocation.RightArm, PartLocation.LeftLeg, PartLocation.RightLeg];
         var lasers = limbs.Select(limb => new ComponentData
@@ -1400,7 +1544,7 @@ public class PhysicalAttackEligibilityTests
                 Substitute.For<ILocalizationService>())
             .Create(MechFactoryTests.CreateDummyMechData(lasers));
         mech.Owner = owner;
-        mech.Deploy(new HexPosition(hex, facing, surface), null);
+        mech.Deploy(new HexPosition(hex, facing, surface, airborneLevel), null);
         return mech;
     }
 

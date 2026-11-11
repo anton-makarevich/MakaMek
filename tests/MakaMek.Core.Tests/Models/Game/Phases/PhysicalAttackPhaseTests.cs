@@ -288,6 +288,59 @@ public class PhysicalAttackPhaseTests : GamePhaseTestsBase
         Game.PhaseStepState!.Value.ActivePlayer.Id.ShouldBe(_player1Id);
     }
 
+    [Theory]
+    [InlineData(PhysicalAttackType.Punch)]
+    [InlineData(PhysicalAttackType.Kick)]
+    [InlineData(PhysicalAttackType.Push)]
+    public void HandleCommand_TargetDeclaresDfaAfterEnter_ShouldReturnAnError(PhysicalAttackType attackType)
+    {
+        // Arrange: the target was a legal target at phase entry, then declared a DFA.
+        var sut = CreateSut();
+        sut.Enter();
+        _target.DeclarePhysicalAttack(new PhysicalAttackDeclarationData
+        {
+            AttackType = PhysicalAttackType.DFA,
+            AttackerLimbs = [],
+            TargetId = _attacker.Id
+        });
+        var declaration = attackType switch
+        {
+            PhysicalAttackType.Punch => Punch(PartLocation.LeftArm),
+            PhysicalAttackType.Kick => Kick(PartLocation.LeftLeg),
+            _ => Push()
+        };
+
+        // Act
+        sut.HandleCommand(CreateCommand(_player1Id, _attacker.Id, declaration));
+
+        // Assert
+        VerifyRejected(ErrorCode.ValidationFailed);
+        _attacker.HasDeclaredPhysicalAttack.ShouldBeFalse();
+        Game.PhaseStepState!.Value.ActivePlayer.Id.ShouldBe(_player1Id);
+    }
+
+    [Fact]
+    public void Enter_SkipsAnAttackerWhoseOnlyAdjacentEnemyPerformsDfa()
+    {
+        // Arrange: the only adjacent enemy is performing a DFA, so the attacker has no option and
+        // the DFA performer itself has already declared a movement attack.
+        var sut = CreateSut();
+        _target.DeclarePhysicalAttack(new PhysicalAttackDeclarationData
+        {
+            AttackType = PhysicalAttackType.DFA,
+            AttackerLimbs = [],
+            TargetId = _attacker.Id
+        });
+
+        // Act
+        sut.Enter();
+
+        // Assert: nobody is activated and the phase moves on
+        CommandPublisher.DidNotReceive().PublishCommand(Arg.Is<ChangeActivePlayerCommand>(c =>
+            c.PlayerId == _player1Id));
+        MockPhaseManager.Received(1).GetNextPhase(PhaseNames.PhysicalAttack, Game);
+    }
+
     [Fact]
     public void HandleCommand_PunchWithAnArmThatCannotReach_ShouldReturnAnError()
     {
