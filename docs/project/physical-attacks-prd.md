@@ -312,7 +312,7 @@ Physical-attack eligibility stays a **policy service**, not a rules-provider tab
     - A DFA against a target standing in Depth 1 water is legal: a standing ’Mech is waist-deep, so its upper torso and head remain above the surface and it is not submerged. Only a fully submerged target (Depth 2+, or prone in Depth 1) is protected by the water restriction. The attacker needs enough Jumping MP to clear the target hex’s standing level plus the target’s height; when the DFA lands in the water hex, the attacker makes a landing PSR and on success stands on the waterbed.
     - Units with a pending Charge/DFA declaration cannot fire weapons this turn and cannot perform physical-phase attacks; the weapons-phase UI and server validation both read the persistent declaration state (R1.6).
 
-6.2. **To-hit:** Piloting base + relative piloting skill modifier (attacker piloting − target piloting) + jump modifier (DFA); standard movement and terrain modifiers apply to the charge impact roll.
+6.2. **To-hit:** Piloting base + relative piloting skill modifier (attacker piloting − target piloting) + jump modifier (DFA); standard movement and terrain modifiers apply to the charge impact roll, while a DFA applies all normal attack modifiers (including the jumping movement modifier) **except terrain** (Total Warfare p. 144 footnote).
 
 6.3. **Damage:** in 5-point clusters (`⌈(Tonnage / 10) × hexesMoved⌉` for the charge target — the tonnage fraction is multiplied first and the product rounded up; DFA target uses the punch table with ⌈(tonnage × 3) / 10⌉ — multiplied first, then rounded up, so a 35-ton DFA inflicts 11). Cluster application reuses existing 5-pt grouping logic (see `FallingDamageCalculator` for the cluster pattern).
 

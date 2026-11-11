@@ -611,6 +611,82 @@ public class PhysicalAttackCalculatorTests
     }
 
     [Fact]
+    public void GetModifierBreakdown_Dfa_ExcludesTerrainModifiers()
+    {
+        // Arrange — Total Warfare p. 144: the DFA roll is not modified for terrain.
+        var (attacker, target) = CreateUnits(
+            new HexPosition(2, 2, HexDirection.Bottom),
+            new HexPosition(2, 3, HexDirection.Bottom));
+        _rules.GetTerrainToHitModifier(MakaMekTerrains.HeavyWoods).Returns(2);
+        _rules.GetPhysicalAttackBaseModifier(PhysicalAttackType.DFA).Returns(0);
+        var map = CreateMap(targetTerrain: new HeavyWoodsTerrain());
+
+        // Act
+        var result = _sut.GetModifierBreakdown(attacker, target, PhysicalAttackType.DFA, map);
+
+        // Assert
+        result.TerrainModifiers.ShouldBeEmpty();
+        result.Total.ShouldBe(5); // piloting (5) + DFA base (0), both units stationary
+    }
+
+    [Fact]
+    public void GetMovementAttackModifierBreakdown_ForDfa_ExcludesTerrainAndPartialCover()
+    {
+        // Arrange — partial cover is a terrain modifier, so it does not modify a DFA roll either.
+        var (attacker, target) = CreateUnits(
+            new HexPosition(2, 2, HexDirection.Bottom),
+            new HexPosition(2, 3, HexDirection.Bottom));
+        _rules.GetAttackerMovementModifier(MovementType.Jump).Returns(3);
+        _rules.GetPhysicalAttackBaseModifier(PhysicalAttackType.DFA).Returns(0);
+        _rules.GetTerrainToHitModifier(MakaMekTerrains.HeavyWoods).Returns(2);
+        _rules.HasPartialCover(Arg.Any<IUnit>(), Arg.Any<LineOfSightResult>()).Returns(true);
+        _rules.GetPartialCoverModifier().Returns(1);
+        var map = CreateMap(targetTerrain: new HeavyWoodsTerrain());
+        var scenario = PhysicalAttackScenario.ForPreview(
+            attacker,
+            target,
+            PhysicalAttackType.DFA,
+            attacker.Position!,
+            MovementType.Jump,
+            targetHexesMoved: 0);
+
+        // Act
+        var breakdown = _sut.GetMovementAttackModifierBreakdown(scenario, map);
+
+        // Assert
+        breakdown.TerrainModifiers.ShouldBeEmpty();
+        breakdown.OtherModifiers.OfType<PartialCoverModifier>().ShouldBeEmpty();
+        breakdown.Total.ShouldBe(8); // piloting (5) + DFA base (0) + jumped (3) + relative piloting (0)
+    }
+
+    [Fact]
+    public void GetMovementAttackModifierBreakdown_ForCharge_IncludesTerrainModifiers()
+    {
+        // Arrange — the terrain exclusion is specific to DFA; a charge still uses terrain modifiers.
+        var (attacker, target) = CreateUnits(
+            new HexPosition(2, 2, HexDirection.Bottom),
+            new HexPosition(2, 3, HexDirection.Bottom));
+        _rules.GetAttackerMovementModifier(MovementType.Walk).Returns(1);
+        _rules.GetPhysicalAttackBaseModifier(PhysicalAttackType.Charge).Returns(0);
+        _rules.GetTerrainToHitModifier(MakaMekTerrains.HeavyWoods).Returns(2);
+        var map = CreateMap(targetTerrain: new HeavyWoodsTerrain());
+        var scenario = PhysicalAttackScenario.ForPreview(
+            attacker,
+            target,
+            PhysicalAttackType.Charge,
+            attacker.Position!,
+            MovementType.Walk,
+            targetHexesMoved: 0);
+
+        // Act
+        var breakdown = _sut.GetMovementAttackModifierBreakdown(scenario, map);
+
+        // Assert
+        breakdown.TerrainModifiers.ShouldHaveSingleItem().Value.ShouldBe(2);
+        breakdown.Total.ShouldBe(8); // piloting (5) + charge base (0) + walked (1) + terrain (2)
+    }
+
+    [Fact]
     public void GetMovementAttackModifierBreakdown_WithoutUnits_OmitsUnitDependentModifiers()
     {
         // Arrange: a scenario can be evaluated without live units (for previews and bots).

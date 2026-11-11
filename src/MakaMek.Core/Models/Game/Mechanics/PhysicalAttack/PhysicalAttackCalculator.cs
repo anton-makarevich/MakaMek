@@ -15,7 +15,9 @@ namespace Sanet.MakaMek.Core.Models.Game.Mechanics.PhysicalAttack;
 /// Base to-hit is the attacker's Piloting Skill plus a per-type base modifier
 /// (Punch +0, Kick -2, Push -1, Charge +0, DFA +0); standard attacker movement, target movement
 /// and terrain modifiers apply, as do target-side modifiers (partial cover, skidding, jumped) and
-/// the attacker-side skidding modifier. Heat and sensor modifiers are never applied.
+/// the attacker-side skidding modifier. Heat and sensor modifiers are never applied. A DFA is the
+/// one exception to terrain: it applies all the normal attack modifiers, including the attacker's
+/// jumping movement, but its roll is never modified for terrain.
 /// <para>
 /// Attacker movement modifiers are cumulative (Attack Modifiers Table): the skidding
 /// attacker modifier (+1) is added on top of the movement-type modifier, not in place
@@ -61,7 +63,13 @@ public class PhysicalAttackCalculator : IPhysicalAttackCalculator
             scenario.AttackerHeight,
             scenario.TargetHeight);
 
-        var terrainModifiers = losResult.GetTerrainToHitModifiers(_rules);
+        // Total Warfare, p. 144 (Attack Modifiers Table footnote): a DFA applies all the normal
+        // attack modifiers, including the attacker's jumping movement, but the roll is not
+        // modified for terrain. Target movement and target-status modifiers still apply.
+        var terrainModifiers =
+            scenario.AttackType == PhysicalAttackType.DFA
+                ? []
+                : losResult.GetTerrainToHitModifiers(_rules);
 
         var otherModifiers = GetTargetModifiers(scenario, losResult);
         AddPushShoulderModifier(scenario, otherModifiers);
@@ -180,8 +188,8 @@ public class PhysicalAttackCalculator : IPhysicalAttackCalculator
 
     /// <summary>
     /// Collects the target-side modifiers that apply to physical attacks.
-    /// Partial cover (+1) and skidding targets (+2) apply to all attacks,
-    /// weapon and physical alike.
+    /// Partial cover (+1) and skidding targets (+2) apply to all attacks, weapon and physical alike,
+    /// except a DFA: partial cover is a terrain modifier, and a DFA roll is never modified for terrain.
     /// </summary>
     private List<RollModifier> GetTargetModifiers(
         PhysicalAttackScenario scenario,
@@ -191,7 +199,8 @@ public class PhysicalAttackCalculator : IPhysicalAttackCalculator
 
         if (scenario.TargetUnit is null) return modifiers;
 
-        if (_rules.HasPartialCover(scenario.TargetUnit, losResult))
+        if (scenario.AttackType != PhysicalAttackType.DFA
+            && _rules.HasPartialCover(scenario.TargetUnit, losResult))
         {
             modifiers.Add(new PartialCoverModifier
             {
