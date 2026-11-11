@@ -1,5 +1,3 @@
-using Sanet.MakaMek.Core.Data.Game.Mechanics;
-
 namespace Sanet.MakaMek.Core.Data.Game.Mechanics.PhysicalAttacks;
 
 /// <summary>

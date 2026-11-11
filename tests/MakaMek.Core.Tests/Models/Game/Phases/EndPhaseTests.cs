@@ -711,6 +711,7 @@ public class EndPhaseTests : GamePhaseTestsBase
             MockHeatEffectsCalculator,
             new PhysicalAttackEligibility(),
             Substitute.For<IPhysicalAttackCalculator>(),
+            Substitute.For<IMovementAttackDeclarationValidator>(),
             MockFallProcessor,
             Substitute.For<IWeaponAttackResolver>(),
             Substitute.For<IPhysicalAttackResolver>(),

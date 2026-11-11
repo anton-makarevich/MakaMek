@@ -91,6 +91,16 @@ public enum PilotingSkillRollType
     ChargeImpact,
 
     /// <summary>
+    /// PSR required of the target of a successful Death From Above (Total Warfare, p. 150).
+    /// </summary>
+    DfaTargetImpact,
+
+    /// <summary>
+    /// PSR required of the attacker after a successful Death From Above (Total Warfare, p. 150).
+    /// </summary>
+    DfaAttackerImpact,
+
+    /// <summary>
     /// PSR required of a 'Mech displaced by a domino effect (Total Warfare, p. 151-153).
     /// </summary>
     DominoEffect

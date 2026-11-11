@@ -107,6 +107,7 @@ public class PhysicalAttackStateTests
         Substitute.For<IHeatEffectsCalculator>(),
         new PhysicalAttackEligibility(),
         _physicalAttackCalculator,
+        Substitute.For<IMovementAttackDeclarationValidator>(),
         Substitute.For<IBattleMapFactory>(),
         _hashService,
         Substitute.For<ILogger<ClientGame>>());

@@ -25,7 +25,7 @@ namespace Sanet.MakaMek.Presentation.UiStates;
 /// <see cref="_stateLock"/>: the public properties lock in their accessors and the private helpers
 /// that need a coherent view of several fields lock for the duration of that view.
 /// </remarks>
-public class PhysicalAttackState : IUiState, ICombatSelectionRoles
+public class PhysicalAttackState : IUiState, ICombatSelectionRoles, IPhysicalAttackDeclarationState
 {
     private static readonly IReadOnlyList<PhysicalAttackType> SupportedAttackTypes =
         PhysicalAttackDefinitions.Supported.Select(definition => definition.AttackType).ToList();
@@ -112,6 +112,18 @@ public class PhysicalAttackState : IUiState, ICombatSelectionRoles
             lock (_stateLock) _options = value;
         }
     }
+
+    /// <inheritdoc />
+    public bool IsDeclarationOpen => CurrentStep == PhysicalAttackStep.Declaration;
+
+    /// <inheritdoc />
+    public IUnit? DeclarationAttacker => Attacker;
+
+    /// <inheritdoc />
+    public IUnit? DeclarationTarget => SelectedTarget;
+
+    /// <inheritdoc />
+    public IReadOnlyList<PhysicalAttackOptionViewModel> DeclarationOptions => Options;
 
     public PhysicalAttackState(BattleMapViewModel viewModel)
     {

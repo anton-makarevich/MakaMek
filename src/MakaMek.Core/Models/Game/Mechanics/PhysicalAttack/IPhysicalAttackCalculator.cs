@@ -66,6 +66,15 @@ public interface IPhysicalAttackCalculator
         bool isReplacementTarget);
 
     /// <summary>
+    /// Gets a detailed breakdown of a movement-origin (Charge or DFA) attack from a preview
+    /// scenario: the standard physical attack modifiers plus the relative-piloting modifier.
+    /// Pure preview: mutates no unit, map or game state.
+    /// </summary>
+    /// <param name="scenario">The hypothetical attack scenario.</param>
+    /// <param name="map">The battle map.</param>
+    PhysicalAttackBreakdown GetMovementAttackModifierBreakdown(PhysicalAttackScenario scenario, IBattleMap map);
+
+    /// <summary>
     /// Gets the total charge to-hit number from the current unit state.
     /// Pure preview: mutates no unit, map or game state.
     /// </summary>

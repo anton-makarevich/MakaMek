@@ -71,6 +71,20 @@ public interface IRulesProvider
     int GetChargeCollisionDamage(int targetTonnage);
 
     /// <summary>
+    /// Gets the damage a successful Death From Above deals to its target: three times the
+    /// attacker's tonnage divided by ten, with the final result rounded up (Total Warfare, p. 150).
+    /// </summary>
+    /// <param name="attackerTonnage">The DFA attacker's tonnage.</param>
+    int GetDfaDamage(int attackerTonnage);
+
+    /// <summary>
+    /// Gets the damage a successful Death From Above deals to the attacker's legs: one point per
+    /// five tons of the attacker's tonnage, rounded up (Total Warfare, p. 150).
+    /// </summary>
+    /// <param name="attackerTonnage">The DFA attacker's tonnage.</param>
+    int GetDfaAttackerDamage(int attackerTonnage);
+
+    /// <summary>
     /// Gets the piloting skill roll requirements a physical attack creates.
     /// A successful kick requires the target to roll; a missed kick requires the attacker to roll.
     /// </summary>

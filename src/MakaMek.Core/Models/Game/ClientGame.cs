@@ -41,12 +41,13 @@ public sealed class ClientGame : BaseGame, IDisposable, IClientGame
         IHeatEffectsCalculator heatEffectsCalculator,
         IPhysicalAttackEligibility physicalAttackEligibility,
         IPhysicalAttackCalculator physicalAttackCalculator,
+        IMovementAttackDeclarationValidator movementAttackDeclarationValidator,
         IBattleMapFactory mapFactory,
         IHashService hashService,
         ILogger<ClientGame> logger,
         Guid? serverGameId = null,
         int ackTimeoutMilliseconds = 10000)
-        : base(rulesProvider, mechFactory, commandPublisher, toHitCalculator, pilotingSkillCalculator, consciousnessCalculator, heatEffectsCalculator, physicalAttackEligibility, physicalAttackCalculator, logger)
+        : base(rulesProvider, mechFactory, commandPublisher, toHitCalculator, pilotingSkillCalculator, consciousnessCalculator, heatEffectsCalculator, physicalAttackEligibility, physicalAttackCalculator, movementAttackDeclarationValidator, logger)
     {
         _mapFactory = mapFactory;
         _hashService = hashService;

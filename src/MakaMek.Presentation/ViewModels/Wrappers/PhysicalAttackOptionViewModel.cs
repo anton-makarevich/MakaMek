@@ -17,6 +17,7 @@ public class PhysicalAttackOptionViewModel : BindableBase
 {
     private readonly Action<PhysicalAttackOptionViewModel, bool> _onSelectionChanged;
     private readonly ILocalizationService _localizationService;
+    private readonly IReadOnlyList<string> _extraDescriptionLines;
     private bool _isEnabled;
     private bool _isSelected;
     private PhysicalAttackLimbOptionViewModel? _selectedLimbOption;
@@ -29,7 +30,8 @@ public class PhysicalAttackOptionViewModel : BindableBase
         int? targetNumber,
         PhysicalAttackBreakdown? breakdown,
         Action<PhysicalAttackOptionViewModel, bool> onSelectionChanged,
-        ILocalizationService localizationService)
+        ILocalizationService localizationService,
+        IReadOnlyList<string>? extraDescriptionLines = null)
     {
         AttackType = attackType;
         _isEnabled = isEnabled;
@@ -38,6 +40,7 @@ public class PhysicalAttackOptionViewModel : BindableBase
         Breakdown = breakdown;
         _onSelectionChanged = onSelectionChanged;
         _localizationService = localizationService;
+        _extraDescriptionLines = extraDescriptionLines ?? [];
 
         LimbOptions = limbVariants
             .Select(variant => new PhysicalAttackLimbOptionViewModel(variant, this, _localizationService))
@@ -128,7 +131,7 @@ public class PhysicalAttackOptionViewModel : BindableBase
     {
         get
         {
-            if (!IsEnabled || TargetNumber is not { } number || Breakdown is null)
+            if (!IsEnabled || TargetNumber is null || Breakdown is null)
                 return RestrictionReason
                        ?? _localizationService.GetString("PhysicalAttackDeclaration_Unavailable");
 
@@ -137,6 +140,7 @@ public class PhysicalAttackOptionViewModel : BindableBase
                 lines.Add(_localizationService.GetString("Attack_ImpossibleToHit"));
             lines.AddRange(Breakdown.AllModifiers
                 .Select(modifier => modifier.Render(_localizationService)));
+            lines.AddRange(_extraDescriptionLines);
             return string.Join(Environment.NewLine, lines);
         }
     }

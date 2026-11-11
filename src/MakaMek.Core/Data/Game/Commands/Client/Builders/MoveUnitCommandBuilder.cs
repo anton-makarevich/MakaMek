@@ -1,5 +1,5 @@
 using Sanet.MakaMek.Core.Data.Game.Mechanics.PhysicalAttacks;
-using Sanet.MakaMek.Core.Models.Game;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.Movement;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Map.Models;
 
@@ -63,17 +63,12 @@ public class MoveUnitCommandBuilder(Guid gameId, Guid playerId) : ClientCommandB
         if (_unitId == null || _movementPath == null || _movementAttackTargetId is not { } targetId)
             return null;
 
-        var attackType = _movementPath.MovementType switch
-        {
-            MovementType.Jump => PhysicalAttackType.DFA,
-            MovementType.Walk or MovementType.Run => PhysicalAttackType.Charge,
-            _ => (PhysicalAttackType?)null
-        };
-        if (attackType is not { } type) return null;
+        if (_movementPath.MovementType.GetMovementAttackType() is not { } attackType)
+            return null;
 
         return new PhysicalAttackDeclarationData
         {
-            AttackType = type,
+            AttackType = attackType,
             AttackerLimbs = [],
             TargetId = targetId
         };

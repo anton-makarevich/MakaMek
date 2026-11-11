@@ -443,21 +443,22 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
 
     /// <summary>
     /// The attack-type rows of the physical attack declaration dialog, or an empty list when the
-    /// dialog is closed.
+    /// dialog is closed. Shared by the Physical Attack Phase and by a Charge/DFA declared during
+    /// the Movement Phase.
     /// </summary>
     public IReadOnlyList<PhysicalAttackOptionViewModel> PhysicalAttackOptions =>
-        (CurrentState as PhysicalAttackState)?.Options ?? [];
+        (CurrentState as IPhysicalAttackDeclarationState)?.DeclarationOptions ?? [];
 
     /// <summary>
     /// The target the physical attack declaration dialog is open for, or null.
     /// </summary>
-    public IUnit? PhysicalAttackTarget => (CurrentState as PhysicalAttackState)?.SelectedTarget;
+    public IUnit? PhysicalAttackTarget => (CurrentState as IPhysicalAttackDeclarationState)?.DeclarationTarget;
 
     public bool IsPhysicalAttackDeclarationVisible
-        => CurrentState is PhysicalAttackState
+        => CurrentState is IPhysicalAttackDeclarationState
         {
-            CurrentStep: PhysicalAttackStep.Declaration,
-            SelectedTarget: not null
+            IsDeclarationOpen: true,
+            DeclarationTarget: not null
         };
 
     /// <summary>
@@ -465,7 +466,7 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
     /// </summary>
     public void ClosePhysicalAttackDeclarationCommand()
     {
-        (CurrentState as PhysicalAttackState)?.CloseDeclaration();
+        (CurrentState as IPhysicalAttackDeclarationState)?.CloseDeclaration();
     }
 
     private void SubscribeToGameChanges()
@@ -1374,7 +1375,9 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         SelectedUnitHeatProjection.Unit = SelectedUnit;
     }
 
-    public IUnit? Attacker => (CurrentState as ICombatSelectionRoles)?.Attacker;
+    public IUnit? Attacker =>
+        (CurrentState as ICombatSelectionRoles)?.Attacker
+        ?? (CurrentState as IPhysicalAttackDeclarationState)?.DeclarationAttacker;
 
     public void HandleHexSelection(Hex selectedHex)
     {

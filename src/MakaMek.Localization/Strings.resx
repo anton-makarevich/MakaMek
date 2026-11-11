@@ -187,6 +187,8 @@
   <data name="PilotingSkillRollType_KickMiss" xml:space="preserve"><value>Missed Kick</value></data>
   <data name="PilotingSkillRollType_PushHit" xml:space="preserve"><value>Hit by Push</value></data>
   <data name="PilotingSkillRollType_ChargeImpact" xml:space="preserve"><value>Charge Impact</value></data>
+  <data name="PilotingSkillRollType_DfaTargetImpact" xml:space="preserve"><value>Hit by Death From Above</value></data>
+  <data name="PilotingSkillRollType_DfaAttackerImpact" xml:space="preserve"><value>Death From Above Impact</value></data>
   <data name="PilotingSkillRollType_DominoEffect" xml:space="preserve"><value>Displaced by Domino Effect</value></data>
   <data name="PilotingSkillRollType_BridgeCollapse" xml:space="preserve"><value>Bridge Collapse</value></data>
   <data name="PilotingSkillRollType_SkidCheck_WithHexes" xml:space="preserve"><value>{0} ({1} hexes)</value></data>
@@ -212,6 +214,15 @@
   <data name="PhysicalAttack_NoOptions" xml:space="preserve"><value>This unit has no physical attack options</value></data>
   <data name="PhysicalAttackDeclaration_Title" xml:space="preserve"><value>Physical attack</value></data>
   <data name="PhysicalAttackDeclaration_Unavailable" xml:space="preserve"><value>This attack is not available for the selected target</value></data>
+  <data name="PhysicalAttackDeclaration_MovementDamage_Target" xml:space="preserve"><value>Damage to target: {0} (in 5-point clusters)</value></data>
+  <data name="PhysicalAttackDeclaration_MovementDamage_Attacker" xml:space="preserve"><value>Damage to attacker: {0}</value></data>
+  <data name="PhysicalAttackDeclaration_MovementHexesMoved" xml:space="preserve"><value>Hexes moved before entering the target hex: {0}</value></data>
+  <data name="PhysicalAttackDeclaration_ChargePsr" xml:space="preserve"><value>On a hit both units make a Piloting Skill Roll at +2</value></data>
+  <data name="PhysicalAttackDeclaration_DfaPsr" xml:space="preserve"><value>On a hit the target makes a Piloting Skill Roll at +2 and the attacker at +4</value></data>
+  <data name="PhysicalAttackDeclaration_ChargeMiss" xml:space="preserve"><value>On a miss: no damage and no charge PSRs</value></data>
+  <data name="PhysicalAttackDeclaration_DfaMiss" xml:space="preserve"><value>On a miss: the attacker falls from a 2-level fall and the target is displaced</value></data>
+  <data name="PhysicalAttackDeclaration_NoWeaponOrPhysicalAttacks" xml:space="preserve"><value>This unit cannot make weapon or physical-phase attacks this turn</value></data>
+  <data name="PhysicalAttackDeclaration_MovementFacing" xml:space="preserve"><value>The unit faces the target; no final facing needs to be chosen</value></data>
   <data name="Action_DeclarePhysicalAttack_WithLimb" xml:space="preserve"><value>{0} ({1})</value></data>
   <data name="PhysicalAttackRestriction_NoTargetInFront" xml:space="preserve"><value>No unit directly in front of this unit</value></data>
   <data name="PhysicalAttackRestriction_TargetNotStandingMech" xml:space="preserve"><value>The target must be a standing Mech</value></data>
@@ -239,6 +250,7 @@
   <data name="Modifier_PhysicalAttackBase" xml:space="preserve"><value>{0} Base: {1:+#;-#;0}</value></data>
   <data name="Modifier_AttackerMovement" xml:space="preserve"><value>Attacker Movement ({0}): +{1}</value></data>
   <data name="Modifier_TargetMovement" xml:space="preserve"><value>Target Movement ({0} hexes): +{1}</value></data>
+  <data name="Modifier_JumpedTarget" xml:space="preserve"><value>Target Jumped: +{0}</value></data>
   <data name="Modifier_Range" xml:space="preserve"><value>{0} at {1} hexes ({2} range): +{3}</value></data>
   <data name="Modifier_Heat" xml:space="preserve"><value>Heat ({0}) Attack Modifier: +{1}</value></data>
   <data name="Modifier_Terrain" xml:space="preserve"><value>{0} at {1}: +{2}</value></data>
@@ -300,6 +312,10 @@
   <data name="Action_SelectUnitToMove" xml:space="preserve"><value>Select unit to move</value></data>
   <data name="Action_SelectMovementType" xml:space="preserve"><value>Select movement type</value></data>
   <data name="Action_SelectTargetHex" xml:space="preserve"><value>Select target hex</value></data>
+  <data name="Action_SelectTargetHexOrEnemy" xml:space="preserve"><value>Select a target hex or an enemy to attack</value></data>
+  <data name="Action_ConfirmMovementAttack" xml:space="preserve"><value>Confirm or cancel the attack declaration</value></data>
+  <data name="Action_DeclareCharge" xml:space="preserve"><value>Declare Charge</value></data>
+  <data name="Action_DeclareDfa" xml:space="preserve"><value>Declare Death From Above</value></data>
   <data name="Action_SelectFacingDirection" xml:space="preserve"><value>Select facing direction</value></data>
   <data name="Action_SelectSurface" xml:space="preserve"><value>Select surface</value></data>
   <data name="Surface_Bridge" xml:space="preserve"><value>On the bridge</value></data>

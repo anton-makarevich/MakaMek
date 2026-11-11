@@ -9,5 +9,6 @@ public enum MovementStep
     SelectingDirection,
     SelectingStandingUpDirection,
     ConfirmMovement,
+    ConfirmMovementAttack,
     Completed
 }

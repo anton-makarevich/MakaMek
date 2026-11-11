@@ -202,4 +202,68 @@ public class PhysicalAttackScenarioTests
         Should.Throw<InvalidOperationException>(() => PhysicalAttackScenario.FromUnits(attacker, target, PhysicalAttackType.Punch))
             .Message.ShouldBe("Target's Movement Type is undefined");
     }
+
+    [Fact]
+    public void ForPreview_WithoutMovementTaken_CreatesAHypotheticalScenario()
+    {
+        // Arrange
+        var pilot = Substitute.For<IPilot>();
+        pilot.Piloting.Returns(4);
+        var attacker = CreateUnit(pilot, new HexPosition(1, 1, HexDirection.Top));
+        var target = CreateUnit(Substitute.For<IPilot>(),
+            new HexPosition(1, 2, HexDirection.Top));
+        var approach = new HexPosition(1, 2, HexDirection.Top) with { AirborneLevel = 4 };
+
+        // Act
+        var scenario = PhysicalAttackScenario.ForPreview(
+            attacker,
+            target,
+            PhysicalAttackType.DFA,
+            approach,
+            MovementType.Jump,
+            targetHexesMoved: 3);
+
+        // Assert
+        scenario.AttackerPiloting.ShouldBe(4);
+        scenario.AttackType.ShouldBe(PhysicalAttackType.DFA);
+        scenario.AttackerPosition.ShouldBe(approach);
+        scenario.AttackerMovementType.ShouldBe(MovementType.Jump);
+        scenario.TargetHexesMoved.ShouldBe(3);
+        scenario.AttackerUnit.ShouldBe(attacker);
+        scenario.TargetUnit.ShouldBe(target);
+    }
+
+    [Fact]
+    public void ForPreview_WithoutATargetPosition_ThrowsException()
+    {
+        // Arrange
+        var attacker = CreateUnit(Substitute.For<IPilot>(), new HexPosition(1, 1, HexDirection.Top));
+        var target = CreateUnit(Substitute.For<IPilot>());
+
+        // Act & Assert
+        Should.Throw<InvalidOperationException>(() => PhysicalAttackScenario.ForPreview(
+            attacker,
+            target,
+            PhysicalAttackType.Charge,
+            new HexPosition(1, 1, HexDirection.Top),
+            MovementType.Walk,
+            0));
+    }
+
+    [Fact]
+    public void ForPreview_WithoutAPilot_ThrowsException()
+    {
+        // Arrange
+        var attacker = CreateUnit(null, new HexPosition(1, 1, HexDirection.Top));
+        var target = CreateUnit(Substitute.For<IPilot>(), new HexPosition(1, 2, HexDirection.Top));
+
+        // Act & Assert
+        Should.Throw<InvalidOperationException>(() => PhysicalAttackScenario.ForPreview(
+            attacker,
+            target,
+            PhysicalAttackType.Charge,
+            new HexPosition(1, 1, HexDirection.Top),
+            MovementType.Walk,
+            0));
+    }
 }

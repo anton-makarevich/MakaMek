@@ -312,9 +312,9 @@ Physical-attack eligibility stays a **policy service**, not a rules-provider tab
     - A DFA against a target standing in Depth 1 water is legal: a standing ’Mech is waist-deep, so its upper torso and head remain above the surface and it is not submerged. Only a fully submerged target (Depth 2+, or prone in Depth 1) is protected by the water restriction. The attacker needs enough Jumping MP to clear the target hex’s standing level plus the target’s height; when the DFA lands in the water hex, the attacker makes a landing PSR and on success stands on the waterbed.
     - Units with a pending Charge/DFA declaration cannot fire weapons this turn and cannot perform physical-phase attacks; the weapons-phase UI and server validation both read the persistent declaration state (R1.6).
 
-6.2. **To-hit:** Piloting base + relative piloting skill modifier (attacker piloting − target piloting) + jump modifier (DFA); standard movement and terrain modifiers apply to the charge impact roll.
+6.2. **To-hit:** Piloting base + relative piloting skill modifier (attacker piloting − target piloting) + jump modifier (DFA); standard movement and terrain modifiers apply to the charge impact roll, while a DFA applies all normal attack modifiers (including the jumping movement modifier) **except terrain** (Total Warfare p. 144 footnote).
 
-6.3. **Damage:** in 5-point clusters (`⌈(Tonnage / 10) × hexesMoved⌉` for the charge target — the tonnage fraction is multiplied first and the product rounded up; DFA target uses punch table with ⌈tonnage/10⌉ × 3). Cluster application reuses existing 5-pt grouping logic (see `FallingDamageCalculator` for the cluster pattern).
+6.3. **Damage:** in 5-point clusters (`⌈(Tonnage / 10) × hexesMoved⌉` for the charge target — the tonnage fraction is multiplied first and the product rounded up; DFA target uses the punch table with ⌈(tonnage × 3) / 10⌉ — multiplied first, then rounded up, so a 35-ton DFA inflicts 11). Cluster application reuses existing 5-pt grouping logic (see `FallingDamageCalculator` for the cluster pattern).
 
 6.4. **Outcomes:**
     - Charge hit: target displaced one hex in the charge direction (occupied destination → domino effect), attacker advances into the vacated hex; target PSR (+2), attacker PSR (+2). If the destination is prohibited terrain, off the map, or its occupant cannot be dislodged, **neither unit moves** while the damage and both PSRs still occur (Total Warfare p. 148).
@@ -371,6 +371,15 @@ Physical-attack eligibility stays a **policy service**, not a rules-provider tab
 
 9.4. All user-facing strings localized in `MakaMek.Localization` (command render strings, modifier names, UI labels) following existing `Command_WeaponAttack*` conventions.
 
+9.5. **Charge/DFA declaration UI (issue #1703).** `MovementState` implements
+`IPhysicalAttackDeclarationState` and reuses the existing `PhysicalAttackDeclarationPanel.axaml`:
+movement-attack targets are highlighted with `AttackReachableHighlight`, clicking one opens the
+panel without a direction selector, and the cheapest path that passes the shared
+`IMovementAttackDeclarationValidator` becomes the movement preview. The generic player action
+confirms the declaration in one `MoveUnitCommand`. `BattleMapViewModel`'s declaration properties are
+sourced from the interface, so the panel is not coupled to `PhysicalAttackState`. The full flow is
+documented in [`docs/rules/physical-attacks.md`](../rules/physical-attacks.md#32-movement-phase-declaration-ui-issue-1703).
+
 ### R10 — Network & Serialization (M1)
 
 10.1. All new/extended commands implement `IGameCommand` serialization used by the transport layer; `PhysicalAttackCommand` idempotency key semantics match other client commands.
@@ -393,7 +402,7 @@ Physical-attack eligibility stays a **policy service**, not a rules-provider tab
 | `PhysicalAttackDisplacementCandidatesCommand` + `SelectPhysicalAttackDisplacementCommand` | commands (new, M3) | DFA-miss target-displacement selection (R6.4): server broadcasts candidate hexes, client highlights and confirms; auto-resolve when a single candidate exists |
 | `ClubItem` (source type, carried-by state, hex presence) | record/service (new, Core) | improvised club pickup / carry-across-turns / drop lifecycle; reusable vs single-use by source type (Background item 12) |
 | `PhysicalAttackScenario` / `PhysicalAttackContext` | records (new, Mechanics) | to-hit + resolution inputs |
-| `PhysicalAttackBaseModifier`, `ChargePilotingDifferenceModifier`, `DfaJumpModifier`, `PushDamagedShoulderModifier` | RollModifiers (new) | source-generated registry |
+| `PhysicalAttackBaseModifier`, `RelativePilotingModifier`, `JumpedTargetModifier`, `DamagedShoulderModifier` | RollModifiers (new) | source-generated registry |
 | `PilotingSkillRollType.*` | enum + context records (new) | kick/push/charge/DFA PSRs |
 | `IRulesProvider.GetPunchHitLocation / GetKickHitLocation` | interface (extend) | TotalWarfareRulesProvider implementation |
 | `Weapon.HasFiredThisTurn` | component flag (new) | per-weapon turn-scoped fired marker, set in `FireWeapon`, cleared in `ResetTurnState()` (R1.2) |

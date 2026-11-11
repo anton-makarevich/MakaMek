@@ -97,6 +97,7 @@ public static class BotContainerServices
         services.AddSingleton<IPhysicalAttackCalculator, PhysicalAttackCalculator>();
         services.AddSingleton<IPhysicalAttackResolver, PhysicalAttackResolver>();
         services.AddSingleton<IPhysicalAttackEligibility, PhysicalAttackEligibility>();
+        services.AddSingleton<IMovementAttackDeclarationValidator, MovementAttackDeclarationValidator>();
         services.AddSingleton<IPilotingSkillCalculator, PilotingSkillCalculator>();
         services.AddSingleton<IFallingDamageCalculator, FallingDamageCalculator>();
         services.AddSingleton<IFallProcessor, FallProcessor>();
