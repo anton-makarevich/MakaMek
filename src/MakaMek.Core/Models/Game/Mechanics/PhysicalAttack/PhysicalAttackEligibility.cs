@@ -21,6 +21,7 @@ namespace Sanet.MakaMek.Core.Models.Game.Mechanics.PhysicalAttack;
 /// <item>punch arcs following the torso and kick arcs following the feet;</item>
 /// <item>the shoulder and hip actuator prerequisites;</item>
 /// <item>the per-limb fired-weapon restrictions;</item>
+/// <item>the Death From Above target immunity (Total Warfare p. 149);</item>
 /// <item>the one physical attack per turn rule (applied by <see cref="GetEligibleLimbs"/>, skipped
 /// by <see cref="CanResolve"/>);</item>
 /// <item>the target checks: an enemy, standing, adjacent Mech.</item>
@@ -135,8 +136,8 @@ public class PhysicalAttackEligibility : IPhysicalAttackEligibility
     }
 
     /// <summary>
-    /// Punch and Kick share the generic checks, the water rule and the level-difference table, in
-    /// that order. The first failure wins.
+    /// Punch and Kick share the generic checks, the DFA target immunity, the water rule and the
+    /// level-difference table, in that order. The first failure wins.
     /// </summary>
     private static Evaluation EvaluateMelee(IUnit attacker, IUnit target, PhysicalAttackType attackType,
         IBattleMap map, IReadOnlyList<PartLocation> candidates)
@@ -145,6 +146,9 @@ public class PhysicalAttackEligibility : IPhysicalAttackEligibility
             || map.GetPhysicalAttackEndpoint(mech.Position!, mech.Height) is not { } attackerEndpoint
             || map.GetPhysicalAttackEndpoint(target.Position!, target.Height) is not { } targetEndpoint)
             return Evaluation.Fail(PhysicalAttackRestriction.TargetOutOfReach, candidates);
+
+        if (GetDfaTargetRestriction(target) is { } dfaRestriction)
+            return Evaluation.Fail(dfaRestriction, candidates);
 
         if (IsBlockedByWater(attackerEndpoint, targetEndpoint, attackType))
             return Evaluation.Fail(PhysicalAttackRestriction.TargetSubmerged, candidates);
@@ -282,6 +286,9 @@ public class PhysicalAttackEligibility : IPhysicalAttackEligibility
             || map.GetPhysicalAttackEndpoint(target.Position!, target.Height) is not { } targetEndpoint)
             return Evaluation.Fail(PhysicalAttackRestriction.NoTargetInFront, candidates);
 
+        if (GetDfaTargetRestriction(target) is { } dfaRestriction)
+            return Evaluation.Fail(dfaRestriction, candidates);
+
         // The same water rule that removes the limbs has to report a reason here, otherwise the
         // UI offers a Push that cannot be selected.
         if (IsBlockedByWater(attackerEndpoint, targetEndpoint, PhysicalAttackType.Push))
@@ -341,6 +348,17 @@ public class PhysicalAttackEligibility : IPhysicalAttackEligibility
         var firedFrom = attacker.GetFiredWeaponLocations();
         return arms.Any(firedFrom.Contains) ? PhysicalAttackRestriction.ArmWeaponFired : null;
     }
+
+    /// <summary>
+    /// Total Warfare p.149: a 'Mech making a Death From Above cannot be the target of physical
+    /// attacks until its movement is complete, but it may still be the target of weapon attacks.
+    /// The check sits in the shared intrinsic path so declaration validation, phase enrollment,
+    /// the UI and <see cref="CanResolve"/> all apply it.
+    /// </summary>
+    private static PhysicalAttackRestriction? GetDfaTargetRestriction(IUnit target) =>
+        target.DeclaredPhysicalAttack?.AttackType is PhysicalAttackType.DFA
+            ? PhysicalAttackRestriction.TargetPerformingDeathFromAbove
+            : null;
 
     /// <summary>
     /// The target must occupy the single hex directly in front of the attacker, using the feet

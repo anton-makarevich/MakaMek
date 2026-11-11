@@ -150,6 +150,31 @@ is added.
 
 ---
 
+ ### **3.1.1. DFA Target Immunity (Total Warfare p. 149)**
+
+A 'Mech with a pending Death From Above **cannot be the target of any physical attack** while its
+movement is unfinished: Punch, Kick, Push, Charge and another DFA are all illegal against it. The
+rule is enforced once in the shared `PhysicalAttackEligibility` policy, so server declaration
+validation, phase enrollment, the resolution-time `CanResolve` gate and the UI all apply it. The
+physical-attack rows report `TargetPerformingDeathFromAbove` ("The target is performing Death From
+Above"). A declaration made before the target becomes a DFA performer is skipped at resolution
+instead of being resolved.
+
+* The 'Mech **remains a legal weapon target** during the Weapon Attack Phase, at its airborne LOS
+  level (see §3.1 above).
+* Physical reach **stays grounded**: the airborne level is an LOS concept only, and the physical
+  endpoints continue to use the grounded effective standing level.
+* A 'Mech performing a **Charge** is not immune to physical attacks. Punch and Kick remain legal
+  against it when the reach rules permit them; Push keeps the
+  `TargetPerformingDisplacementAttack` restriction, and another Charge or DFA is rejected by
+  `MovementAttackDeclarationValidator`.
+* **Known gap ([#1706](https://github.com/anton-makarevich/MakaMek/issues/1706)):** at charge
+  resolution, `ChargeTargetSelector` can still pick a pending-DFA unit in the committed destination
+  hex as the target or replacement target. The fix and the related occupancy/blocker decision are
+  tracked separately.
+
+---
+
 ### **3.2. Movement-Phase Declaration UI (issue #1703)**
 
 Charge and DFA are declared while the unit moves, so the Movement Phase owns the declaration and
@@ -282,6 +307,6 @@ A decision is recorded here about where physical-attack knowledge lives:
 * **Do not extract the level-difference table now.** It is a small, well-tested table inside the default policy and no house rule needs to vary it yet.
 * **Do not introduce `IPhysicalAttackEligibilityRules`.** The existing `IPhysicalAttackEligibility` registration is already replaceable, so a second abstraction would add indirection without a consumer.
 * **`PhysicalAttackDefinitions` holds structural metadata only** — which attack types exist, their candidate limbs and the maximum limbs per declaration. Dynamic policy (arcs, actuator prerequisites, fired-weapon restrictions, level differences, target checks) stays in the eligibility service.
-* **`GetRestriction` explains every supported type.** Punch, Kick and Push derive the restriction and the reaching limbs from the same private evaluation, so a null restriction always means the attack has at least one reaching limb apart from the one-attack-per-turn rule. The first failure wins; the melee order is generic validity, water, level difference, arc, then limbs.
+* **`GetRestriction` explains every supported type.** Punch, Kick and Push derive the restriction and the reaching limbs from the same private evaluation, so a null restriction always means the attack has at least one reaching limb apart from the one-attack-per-turn rule. The first failure wins; the melee order is generic validity, the DFA target immunity, water, level difference, arc, then limbs.
 * **`GetDeclarationRestriction` adds the declaration-only budget check.** It returns the intrinsic `GetRestriction` first and then reports `TargetAlreadyDisplaced` only for a displacement attack whose target is already reserved this turn. `CanResolve` and `HasAnyOption` are unchanged and never apply the budget, so a declaration that reserved the target can still resolve.
 * **Qualified by the physical-attack level and water decision ([#1685](https://github.com/anton-makarevich/MakaMek/issues/1685)).** A shared Core endpoint record (effective standing level, submersion, in-water) and a small attack-type water predicate are planned, but the Different-Levels table stays local to this policy and no new eligibility interface is introduced. Charge/DFA remain in `MovementAttackDeclarationValidator`. See [`Physical-Attack-Level-And-Water-Rules.md`](../architecture/Physical-Attack-Level-And-Water-Rules.md).

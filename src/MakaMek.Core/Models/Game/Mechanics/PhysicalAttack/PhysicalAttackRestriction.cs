@@ -17,6 +17,12 @@ public enum PhysicalAttackRestriction
     /// <summary>The target is carrying out a Charge or a Death From Above attack this turn.</summary>
     TargetPerformingDisplacementAttack,
 
+    /// <summary>
+    /// The target is carrying out a Death From Above attack this turn, so its movement is not
+    /// finished and it cannot be the target of any physical attack (Total Warfare p. 149).
+    /// </summary>
+    TargetPerformingDeathFromAbove,
+
     /// <summary>The attacker and the target do not stand at the same elevation.</summary>
     ElevationMismatch,
 

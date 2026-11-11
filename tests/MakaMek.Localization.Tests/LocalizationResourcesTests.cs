@@ -459,6 +459,23 @@ public class LocalizationResourcesTests
     }
 
     [Theory]
+    [InlineData("PhysicalAttackRestriction_TargetPerformingDisplacementAttack",
+        "The target is performing a Charge or Death From Above")]
+    [InlineData("PhysicalAttackRestriction_TargetPerformingDeathFromAbove",
+        "The target is performing Death From Above")]
+    public void GetString_PhysicalAttackRestrictionMessages_ReturnExpectedString(string key, string expected)
+    {
+        // Arrange
+        var localizationService = TestLocalizationService.Create();
+
+        // Act
+        var result = localizationService.GetString(key);
+
+        // Assert
+        result.ShouldBe(expected);
+    }
+
+    [Theory]
     // Pilot status
     [InlineData("Pilot_Status_Unknown", "UNKNOWN")]
     [InlineData("Pilot_Status_Conscious", "CONSCIOUS")]
