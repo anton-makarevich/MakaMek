@@ -297,8 +297,9 @@ public class TotalWarfareRulesProvider : IRulesProvider
         if (attackerTonnage < 0)
             throw new ArgumentOutOfRangeException(nameof(attackerTonnage), "Tonnage cannot be negative.");
 
-        // One point per ten tons, rounded up, then tripled.
-        return 3 * ((attackerTonnage + 9) / 10);
+        // Three times the tonnage, divided by ten, rounding the final result up: a 35-ton Mech
+        // inflicts 11 points, not 12 (Total Warfare, p. 150).
+        return (attackerTonnage * 3 + 9) / 10;
     }
 
     /// <inheritdoc />

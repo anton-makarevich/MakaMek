@@ -345,8 +345,16 @@ public class MovementState : IUiState, IPhysicalAttackDeclarationState
     {
         if (CurrentMovementStep != MovementStep.ConfirmMovement) return;
         var direction = _viewModel.AvailableDirections?.FirstOrDefault();
-        if (direction == null) return; 
-        var path = _possibleDirections[direction.Value];
+        if (direction == null || !_possibleDirections.TryGetValue(direction.Value, out var path))
+        {
+            // A cancelled movement-attack declaration restores the confirmation step after the
+            // direction selector is gone; the path built so far is the move to confirm.
+            if (_selectedPath is not { TotalCost: > 0 } pathSoFar) return;
+            _builder.SetMovementPath(pathSoFar);
+            CompleteMovement();
+            return;
+        }
+
         if (_viewModel.MovementPath == null || _viewModel.MovementPath.Last().To != path.Destination)
         {
             if (_selectedUnit?.Position == null) return;
@@ -688,8 +696,22 @@ public class MovementState : IUiState, IPhysicalAttackDeclarationState
     private void CancelPendingMovementAttack()
     {
         ClearPendingMovementAttack();
-        _viewModel.HideMovementPath();
-        TransitionTo(new SelectingTargetHexStep(this));
+        _viewModel.ShowMovementPath(_selectedPath);
+
+        if (_selectedPath is { TotalCost: > 0 })
+        {
+            // The partial move is still active. Restore the confirmation step together with the
+            // single-direction selector it showed before the declaration opened.
+            _viewModel.ShowDirectionSelector(
+                _selectedPath.Destination.Coordinates,
+                [_selectedPath.Destination.Facing]);
+            TransitionTo(new ConfirmMovementStep(this));
+        }
+        else
+        {
+            TransitionTo(new SelectingTargetHexStep(this));
+        }
+
         HighlightReachableHexes();
     }
 
@@ -1299,6 +1321,12 @@ public class MovementState : IUiState, IPhysicalAttackDeclarationState
             if (movementType is MovementType.Walk or MovementType.Run && remainingMp > 0)
             {
                 State.HighlightReachableHexes();
+            }
+            else
+            {
+                // Reachability is not recomputed from the new destination (a jump or a path that
+                // used every MP), so the candidates and their highlights are stale.
+                State.ClearMovementAttackHighlights();
             }
             State._viewModel.NotifyStateChanged();
         }

@@ -2980,6 +2980,67 @@ public class MovementStateTests
     }
 
     [Fact]
+    public void CloseDeclaration_AfterChargeFromPartialPath_RestoresThePartialMove()
+    {
+        // Arrange
+        var targetPosition = DeployChargePair();
+        _game.PhysicalAttackCalculator.Returns(new PhysicalAttackCalculator(_rulesProvider));
+        MoveUnitCommand? sent = null;
+        _game.MoveUnit(Arg.Do<MoveUnitCommand>(command => sent = command));
+        SelectAttackerAndMovementType(MovementType.Walk);
+
+        var waypoint = new Hex(new HexCoordinates(1, 3));
+        _sut.HandleHexSelection(waypoint);
+        _sut.HandleFacingSelection(HexDirection.Top);
+        _sut.CurrentMovementStep.ShouldBe(MovementStep.ConfirmMovement);
+
+        _sut.HandleHexSelection(new Hex(targetPosition.Coordinates));
+        _sut.IsDeclarationOpen.ShouldBeTrue();
+
+        // Act
+        _sut.CloseDeclaration();
+
+        // Assert: the partial move is still active, so it stays visible and confirmable.
+        _sut.CurrentMovementStep.ShouldBe(MovementStep.ConfirmMovement);
+        _battleMapViewModel.MovementPath.ShouldNotBeNull();
+        _battleMapViewModel.MovementPath.Last().To.Coordinates.ShouldBe(waypoint.Coordinates);
+        _battleMapViewModel.IsDirectionSelectorVisible.ShouldBeTrue();
+        _battleMapViewModel.AvailableDirections.ShouldNotBeNull();
+        _battleMapViewModel.AvailableDirections!.ShouldContain(HexDirection.Top);
+        _game.BattleMap!.GetHex(targetPosition.Coordinates)!.HasHighlight<AttackReachableHighlight>()
+            .ShouldBeTrue();
+
+        // The confirm action still completes the partial move.
+        _sut.ExecutePlayerAction();
+        sent.ShouldNotBeNull();
+        sent.Value.Declaration.ShouldBeNull();
+        sent.Value.MovementPath[^1].To.Coordinates.ShouldBe(
+            new HexCoordinateData(waypoint.Coordinates.Q, waypoint.Coordinates.R));
+        _sut.CurrentMovementStep.ShouldBe(MovementStep.Completed);
+    }
+
+    [Fact]
+    public void HandleFacingSelection_AfterJump_ClearsStaleMovementAttackHighlights()
+    {
+        // Arrange
+        var targetPosition = DeployChargePair();
+        _game.PhysicalAttackCalculator.Returns(new PhysicalAttackCalculator(_rulesProvider));
+        SelectAttackerAndMovementType(MovementType.Jump);
+        _game.BattleMap!.GetHex(targetPosition.Coordinates)!.HasHighlight<AttackReachableHighlight>()
+            .ShouldBeTrue();
+
+        // Act: a jump is a single leg, so reachability is not recomputed from the landing hex.
+        _sut.HandleHexSelection(new Hex(new HexCoordinates(1, 3)));
+        _sut.HandleFacingSelection(HexDirection.Top);
+
+        // Assert
+        _sut.CurrentMovementStep.ShouldBe(MovementStep.ConfirmMovement);
+        _game.BattleMap!.GetHex(targetPosition.Coordinates)!.HasHighlight<AttackReachableHighlight>()
+            .ShouldBeFalse();
+        _sut.IsDeclarationOpen.ShouldBeFalse();
+    }
+
+    [Fact]
     public void HandleHexSelection_ClickingIneligibleEnemy_DoesNotResetTheMovement()
     {
         // Arrange: the target has not moved yet, so it cannot be charged.

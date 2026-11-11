@@ -184,10 +184,11 @@ public class TotalWarfareRulesProviderTests
 
     [Theory]
     [InlineData(20, 6)]
-    [InlineData(21, 9)]
-    [InlineData(55, 18)]
+    [InlineData(21, 7)]
+    [InlineData(35, 11)]
+    [InlineData(55, 17)]
     [InlineData(100, 30)]
-    public void GetDfaDamage_ShouldRoundTheTonnageUpThenTripleIt(
+    public void GetDfaDamage_ShouldTripleTheTonnageThenRoundTheResultUp(
         int attackerTonnage,
         int expectedDamage)
     {

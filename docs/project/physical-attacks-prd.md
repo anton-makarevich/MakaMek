@@ -314,7 +314,7 @@ Physical-attack eligibility stays a **policy service**, not a rules-provider tab
 
 6.2. **To-hit:** Piloting base + relative piloting skill modifier (attacker piloting − target piloting) + jump modifier (DFA); standard movement and terrain modifiers apply to the charge impact roll.
 
-6.3. **Damage:** in 5-point clusters (`⌈(Tonnage / 10) × hexesMoved⌉` for the charge target — the tonnage fraction is multiplied first and the product rounded up; DFA target uses punch table with ⌈tonnage/10⌉ × 3). Cluster application reuses existing 5-pt grouping logic (see `FallingDamageCalculator` for the cluster pattern).
+6.3. **Damage:** in 5-point clusters (`⌈(Tonnage / 10) × hexesMoved⌉` for the charge target — the tonnage fraction is multiplied first and the product rounded up; DFA target uses the punch table with ⌈(tonnage × 3) / 10⌉ — multiplied first, then rounded up, so a 35-ton DFA inflicts 11). Cluster application reuses existing 5-pt grouping logic (see `FallingDamageCalculator` for the cluster pattern).
 
 6.4. **Outcomes:**
     - Charge hit: target displaced one hex in the charge direction (occupied destination → domino effect), attacker advances into the vacated hex; target PSR (+2), attacker PSR (+2). If the destination is prohibited terrain, off the map, or its occupant cannot be dislodged, **neither unit moves** while the damage and both PSRs still occur (Total Warfare p. 148).
