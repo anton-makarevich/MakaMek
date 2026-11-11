@@ -701,7 +701,14 @@ public class MovementState : IUiState, IPhysicalAttackDeclarationState
         if (_selectedPath is { TotalCost: > 0 })
         {
             // The partial move is still active. Restore the confirmation step together with the
-            // single-direction selector it showed before the declaration opened.
+            // single-direction selector it showed before the declaration opened. The declaration
+            // can be opened from a direction selection for a different, unconfirmed hex, so the
+            // dictionary must only hold the partial move: a stale entry for another hex would make
+            // ConfirmMovement replace the partial move with a standing-still path.
+            _possibleDirections = new Dictionary<HexDirection, MovementPath>
+            {
+                [_selectedPath.Destination.Facing] = _selectedPath
+            };
             _viewModel.ShowDirectionSelector(
                 _selectedPath.Destination.Coordinates,
                 [_selectedPath.Destination.Facing]);

@@ -3020,6 +3020,41 @@ public class MovementStateTests
     }
 
     [Fact]
+    public void ConfirmMovement_AfterCancelledChargeFromSelectingDirection_ConfirmsThePartialMove()
+    {
+        // Arrange
+        var targetPosition = DeployChargePair();
+        _game.PhysicalAttackCalculator.Returns(new PhysicalAttackCalculator(_rulesProvider));
+        MoveUnitCommand? sent = null;
+        _game.MoveUnit(Arg.Do<MoveUnitCommand>(command => sent = command));
+        SelectAttackerAndMovementType(MovementType.Walk);
+
+        var waypoint = new Hex(new HexCoordinates(1, 3));
+        _sut.HandleHexSelection(waypoint);
+        _sut.HandleFacingSelection(HexDirection.Top);
+        _sut.CurrentMovementStep.ShouldBe(MovementStep.ConfirmMovement);
+
+        // Select another hex without confirming its facing, then open and cancel a charge from
+        // there: the restored direction selector belongs to the partial move, not to that hex.
+        _sut.HandleHexSelection(new Hex(new HexCoordinates(2, 3)));
+        _sut.CurrentMovementStep.ShouldBe(MovementStep.SelectingDirection);
+        _sut.HandleHexSelection(new Hex(targetPosition.Coordinates));
+        _sut.IsDeclarationOpen.ShouldBeTrue();
+        _sut.CloseDeclaration();
+        _sut.CurrentMovementStep.ShouldBe(MovementStep.ConfirmMovement);
+
+        // Act
+        _sut.ExecutePlayerAction();
+
+        // Assert: the confirmed move is the partial path to the waypoint.
+        sent.ShouldNotBeNull();
+        sent.Value.Declaration.ShouldBeNull();
+        sent.Value.MovementPath[^1].To.Coordinates.ShouldBe(
+            new HexCoordinateData(waypoint.Coordinates.Q, waypoint.Coordinates.R));
+        _sut.CurrentMovementStep.ShouldBe(MovementStep.Completed);
+    }
+
+    [Fact]
     public void HandleFacingSelection_AfterJump_ClearsStaleMovementAttackHighlights()
     {
         // Arrange
