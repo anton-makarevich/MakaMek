@@ -72,6 +72,12 @@ public class TotalWarfareRulesProviderTests
     }
 
     [Fact]
+    public void GetPhysicalAttackBaseModifier_UnsupportedAttackType_ThrowsNotSupportedException()
+    {
+        Should.Throw<NotSupportedException>(() => _sut.GetPhysicalAttackBaseModifier((PhysicalAttackType)999));
+    }
+
+    [Fact]
     public void GetPushDamagedShoulderModifier_ReturnsTwoPerShoulder()
     {
         _sut.GetPushDamagedShoulderModifier().ShouldBe(2);
@@ -326,6 +332,13 @@ public class TotalWarfareRulesProviderTests
     public void GetPhysicalAttackPsrRequirements_WhenAChargeMisses_ReturnsNoRequirements()
     {
         _sut.GetPhysicalAttackPsrRequirements(PhysicalAttackType.Charge, isHit: false).ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void GetPhysicalAttackPsrRequirements_UnsupportedAttackType_ThrowsNotSupportedException()
+    {
+        Should.Throw<NotSupportedException>(() =>
+            _sut.GetPhysicalAttackPsrRequirements((PhysicalAttackType)999, isHit: true));
     }
 
     #endregion

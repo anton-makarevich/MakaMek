@@ -611,6 +611,28 @@ public class PhysicalAttackCalculatorTests
     }
 
     [Fact]
+    public void GetMovementAttackModifierBreakdown_WithoutUnits_OmitsUnitDependentModifiers()
+    {
+        // Arrange: a scenario can be evaluated without live units (for previews and bots).
+        var scenario = new PhysicalAttackScenario
+        {
+            AttackerPiloting = 5,
+            AttackType = PhysicalAttackType.Punch,
+            AttackerPosition = new HexPosition(2, 2, HexDirection.Bottom),
+            TargetPosition = new HexPosition(2, 3, HexDirection.Bottom),
+            AttackerMovementType = MovementType.StandingStill,
+            TargetHexesMoved = 0
+        };
+
+        // Act
+        var breakdown = _sut.GetMovementAttackModifierBreakdown(scenario, CreateMap());
+
+        // Assert
+        breakdown.OtherModifiers.ShouldBeEmpty();
+        breakdown.Total.ShouldBe(5); // piloting (5) + punch base (0), both units stationary
+    }
+
+    [Fact]
     public void GetModifierBreakdown_Push_AddsTwoPerDamagedShoulder()
     {
         // Arrange

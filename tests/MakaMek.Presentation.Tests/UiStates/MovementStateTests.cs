@@ -3101,5 +3101,112 @@ public class MovementStateTests
         _sut.CurrentMovementStep.ShouldBe(MovementStep.SelectingTargetHex);
         _sut.IsDeclarationOpen.ShouldBeFalse();
     }
+
+    [Fact]
+    public void Declaration_ExposesTheConfirmAction_ThatSubmitsTheCharge()
+    {
+        // Arrange
+        var targetPosition = DeployChargePair();
+        _game.PhysicalAttackCalculator.Returns(new PhysicalAttackCalculator(_rulesProvider));
+        MoveUnitCommand? sent = null;
+        _game.MoveUnit(Arg.Do<MoveUnitCommand>(command => sent = command));
+        SelectAttackerAndMovementType(MovementType.Walk);
+        _sut.HandleHexSelection(new Hex(targetPosition.Coordinates));
+        _sut.CurrentMovementStep.ShouldBe(MovementStep.ConfirmMovementAttack);
+
+        // Assert: the action panel prompts for the pending declaration and offers its confirmation.
+        _sut.ActionLabel.ShouldBe("Confirm or cancel the attack declaration");
+        var action = _sut.GetAvailableActions().ShouldHaveSingleItem();
+        action.Label.ShouldBe("Declare Charge");
+
+        // Act
+        action.OnExecute();
+
+        // Assert
+        sent.ShouldNotBeNull();
+        sent.Value.Declaration.ShouldNotBeNull();
+        sent.Value.Declaration!.AttackType.ShouldBe(PhysicalAttackType.Charge);
+        sent.Value.Declaration.TargetId.ShouldBe(_unit2.Id);
+    }
+
+    [Fact]
+    public void HandleHexSelection_ClickingAnotherCandidate_SwitchesThePendingDeclaration()
+    {
+        // Arrange: place a second legal target right next to the attacker.
+        var targetPosition = DeployChargePair();
+        var thirdData = MechFactoryTests.CreateDummyMechData();
+        thirdData.Id = Guid.NewGuid();
+        var thirdEnemy = new MechFactory(_rulesProvider, _componentProvider, _localizationService)
+            .Create(thirdData);
+        var thirdPosition = new HexPosition(new HexCoordinates(1, 1), HexDirection.Top);
+        thirdEnemy.Deploy(thirdPosition, null);
+        thirdEnemy.Move(MovementPath.CreateSingleSegmentPath(thirdPosition), null);
+        _game.Players[1].ShouldBeOfType<Player>().AddUnit(thirdEnemy);
+
+        _game.PhysicalAttackCalculator.Returns(new PhysicalAttackCalculator(_rulesProvider));
+        SelectAttackerAndMovementType(MovementType.Walk);
+        _sut.HandleHexSelection(new Hex(targetPosition.Coordinates));
+        _sut.DeclarationTarget.ShouldBe(_unit2);
+
+        // Act
+        _sut.HandleHexSelection(new Hex(thirdPosition.Coordinates));
+
+        // Assert
+        _sut.CurrentMovementStep.ShouldBe(MovementStep.ConfirmMovementAttack);
+        _sut.IsDeclarationOpen.ShouldBeTrue();
+        _sut.DeclarationTarget.ShouldBe(thirdEnemy);
+        _sut.DeclarationOptions.ShouldHaveSingleItem().AttackType.ShouldBe(PhysicalAttackType.Charge);
+    }
+
+    [Fact]
+    public void MovementAttackCandidates_IncludeATargetWhoseHexIsProhibitedForPathfinding()
+    {
+        // Arrange: a state created after deployment treats enemy hexes as prohibited for pathfinding.
+        var targetPosition = DeployChargePair();
+        _game.PhysicalAttackCalculator.Returns(new PhysicalAttackCalculator(_rulesProvider));
+        var freshState = new MovementState(_battleMapViewModel);
+        BindViewModelCurrentStateTo(freshState, _battleMapViewModel);
+
+        // Act
+        freshState.HandleUnitSelectionFromList(_unit1);
+        freshState.HandleMovementTypeSelection(MovementType.Walk);
+
+        // Assert: the target's own hex is excluded from the prohibited set, so the charge stays legal.
+        _game.BattleMap!.GetHex(targetPosition.Coordinates)!.HasHighlight<AttackReachableHighlight>()
+            .ShouldBeTrue();
+        freshState.HandleHexSelection(new Hex(targetPosition.Coordinates));
+        freshState.DeclarationTarget.ShouldBe(_unit2);
+    }
+
+    [Fact]
+    public void ConfirmMovement_WithoutADirectionSelector_CompletesThePartialMove()
+    {
+        // Arrange
+        var targetPosition = DeployChargePair();
+        _game.PhysicalAttackCalculator.Returns(new PhysicalAttackCalculator(_rulesProvider));
+        MoveUnitCommand? sent = null;
+        _game.MoveUnit(Arg.Do<MoveUnitCommand>(command => sent = command));
+        SelectAttackerAndMovementType(MovementType.Walk);
+
+        var waypoint = new HexCoordinates(1, 3);
+        _sut.HandleHexSelection(new Hex(waypoint));
+        _sut.HandleFacingSelection(HexDirection.Top);
+        _sut.HandleHexSelection(new Hex(targetPosition.Coordinates));
+        _sut.CloseDeclaration();
+        _sut.CurrentMovementStep.ShouldBe(MovementStep.ConfirmMovement);
+
+        // The confirmation step has no direction to pick: the path built so far is the move.
+        _battleMapViewModel.HideDirectionSelector();
+
+        // Act
+        _sut.ExecutePlayerAction();
+
+        // Assert
+        sent.ShouldNotBeNull();
+        sent.Value.Declaration.ShouldBeNull();
+        sent.Value.MovementPath[^1].To.Coordinates.ShouldBe(
+            new HexCoordinateData(waypoint.Q, waypoint.R));
+        _sut.CurrentMovementStep.ShouldBe(MovementStep.Completed);
+    }
 }
 

@@ -234,6 +234,23 @@ public class PhysicalAttackScenarioTests
     }
 
     [Fact]
+    public void ForPreview_WithoutATargetPosition_ThrowsException()
+    {
+        // Arrange
+        var attacker = CreateUnit(Substitute.For<IPilot>(), new HexPosition(1, 1, HexDirection.Top));
+        var target = CreateUnit(Substitute.For<IPilot>());
+
+        // Act & Assert
+        Should.Throw<InvalidOperationException>(() => PhysicalAttackScenario.ForPreview(
+            attacker,
+            target,
+            PhysicalAttackType.Charge,
+            new HexPosition(1, 1, HexDirection.Top),
+            MovementType.Walk,
+            0));
+    }
+
+    [Fact]
     public void ForPreview_WithoutAPilot_ThrowsException()
     {
         // Arrange
