@@ -1,4 +1,6 @@
 using NSubstitute;
+using Sanet.MakaMek.Core.Data.Game.Mechanics.PhysicalAttacks;
+using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.PhysicalAttack;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Game.Rules;
@@ -146,6 +148,62 @@ public class ChargeTargetSelectorTests
         selection.BlocksAttackerEntry.ShouldBeTrue();
     }
 
+    /// <summary>
+    /// A 'Mech making a Death From Above cannot be the target of physical attacks, so a charge
+    /// declared against it auto-fails (Total Warfare p.149).
+    /// </summary>
+    [Fact]
+    public void Select_WhenTheDeclaredTargetPerformsDfa_AutoFailsAndBlocksEntry()
+    {
+        DeclareDfa(_declaredTarget, _attacker);
+
+        var selection = ChargeTargetSelector.Select(_attacker, _declaredTarget.Id, AllUnits());
+
+        selection.Target.ShouldBeNull();
+        selection.IsAutoFail.ShouldBeTrue();
+        selection.BlocksAttackerEntry.ShouldBeTrue();
+    }
+
+    /// <summary>
+    /// The replacement target is subject to the same p.149 immunity: a pending-DFA 'Mech is not a
+    /// replacement target, but it still occupies the hex the attacker committed to enter.
+    /// </summary>
+    [Fact]
+    public void Select_WhenOnlyADfaPerformerOccupiesTheHex_AutoFailsAndBlocksEntry()
+    {
+        MoveElsewhere(_declaredTarget);
+        var dfaPerformer = CreateMech();
+        _targetPlayer.AddUnit(dfaPerformer);
+        dfaPerformer.Deploy(new HexPosition(DestinationCoordinates, HexDirection.Bottom), null);
+        DeclareDfa(dfaPerformer, _attacker);
+
+        var selection = ChargeTargetSelector.Select(_attacker, _declaredTarget.Id, AllUnits());
+
+        selection.Target.ShouldBeNull();
+        selection.IsReplacementTarget.ShouldBeFalse();
+        selection.IsAutoFail.ShouldBeTrue();
+        selection.BlocksAttackerEntry.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void Select_WhenADfaPerformerAndAnotherEnemyOccupyTheHex_ReturnsTheOtherEnemy()
+    {
+        MoveElsewhere(_declaredTarget);
+        var dfaPerformer = CreateMech();
+        var replacement = CreateMech();
+        _targetPlayer.AddUnit(dfaPerformer);
+        _targetPlayer.AddUnit(replacement);
+        dfaPerformer.Deploy(new HexPosition(DestinationCoordinates, HexDirection.Bottom), null);
+        replacement.Deploy(new HexPosition(DestinationCoordinates, HexDirection.Bottom), null);
+        DeclareDfa(dfaPerformer, _attacker);
+
+        var selection = ChargeTargetSelector.Select(_attacker, _declaredTarget.Id, AllUnits());
+
+        selection.Target.ShouldBe(replacement);
+        selection.IsReplacementTarget.ShouldBeTrue();
+        selection.IsAutoFail.ShouldBeFalse();
+    }
+
     [Fact]
     public void Select_WhenTheOccupantIsOnAnotherSurface_AutoFails()
     {
@@ -197,6 +255,14 @@ public class ChargeTargetSelectorTests
             null,
             true);
     }
+
+    private static void DeclareDfa(Mech mech, Mech target) =>
+        mech.DeclarePhysicalAttack(new PhysicalAttackDeclarationData
+        {
+            AttackType = PhysicalAttackType.DFA,
+            AttackerLimbs = [],
+            TargetId = target.Id
+        });
 
     private IEnumerable<IUnit> AllUnits() =>
         _attackerPlayer.Units.Concat(_targetPlayer.Units);

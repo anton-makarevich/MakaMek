@@ -356,6 +356,111 @@ public class PhysicalAttackResolutionPhaseTests : GamePhaseTestsBase
         PublishedCommands().OfType<DisplaceUnitCommand>().ShouldBeEmpty();
     }
 
+    /// <summary>
+    /// A 'Mech making a Death From Above cannot be the target of a physical attack, so a charge
+    /// declared against it auto-fails. Because it still occupies the destination hex while
+    /// airborne, the charger cannot complete its committed movement into it and instead ends the
+    /// attack like a miss, in a side hex of its forward arc (Total Warfare p.148-149).
+    /// </summary>
+    [Fact]
+    public void Enter_ChargeAutoFails_WhenTheDeclaredTargetPerformsDfa_AndPlacesTheAttackerInASideHex()
+    {
+        // Arrange
+        SetMap();
+        SetUpCharge(_player1Mech, _player2Mech);
+        Declare(_player2Mech, _player1Mech, PhysicalAttackType.DFA);
+        CommandPublisher.ClearReceivedCalls();
+
+        // Act
+        _sut.Enter();
+
+        // Assert
+        var resolution = PublishedCommands().OfType<PhysicalAttackResolutionCommand>()
+            .ShouldHaveSingleItem();
+        resolution.ResolutionData.Charge!.Outcome.ShouldBe(ChargeOutcome.AutoFail);
+        resolution.ResolutionData.AttackResolution.IsHit.ShouldBeFalse();
+        resolution.ResolutionData.PsrRequirements.ShouldBeEmpty();
+        MockPhysicalAttackResolver.DidNotReceiveWithAnyArgs().ResolveCharge(null!);
+        _player2Mech.Position!.Coordinates.ShouldBe(TargetHex);
+        _player1Mech.Position!.Coordinates.ShouldNotBe(AttackerHex);
+        _player1Mech.Position.Coordinates.ShouldNotBe(TargetHex);
+        PublishedCommands().OfType<DisplaceUnitCommand>().ShouldHaveSingleItem()
+            .DisplacementReason.ShouldBe(DisplacementReason.ChargeMiss);
+        PublishedCommands().OfType<MechFallCommand>().ShouldBeEmpty();
+    }
+
+    /// <summary>
+    /// The p.149 immunity applies to replacement targets too: when the declared target left the hex
+    /// and only a pending-DFA 'Mech occupies it, the charge auto-fails instead of resolving against
+    /// the DFA performer.
+    /// </summary>
+    [Fact]
+    public void Enter_ChargeAutoFails_WhenOnlyADfaPerformerOccupiesTheDestinationHex()
+    {
+        // Arrange: the declared target is displaced and a DFA performer now holds its hex.
+        SetMap();
+        SetUpCharge(_player1Mech, _player2Mech);
+        _player2Mech.Move(
+            new MovementPath([new PathSegment(
+                _player2Mech.Position!, new HexPosition(new HexCoordinates(2, 2), HexDirection.Bottom),
+                [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])], MovementType.Walk),
+            null);
+        var dfaPerformer = CreateMech();
+        ((Player)Game.Players[1]).AddUnit(dfaPerformer);
+        dfaPerformer.Deploy(new HexPosition(TargetHex, HexDirection.Bottom), null);
+        Declare(dfaPerformer, _player1Mech, PhysicalAttackType.DFA);
+        CommandPublisher.ClearReceivedCalls();
+
+        // Act
+        _sut.Enter();
+
+        // Assert: the charge fails against nobody and never targets the DFA performer.
+        var resolution = PublishedCommands().OfType<PhysicalAttackResolutionCommand>()
+            .ShouldHaveSingleItem();
+        resolution.ResolutionData.Charge!.Outcome.ShouldBe(ChargeOutcome.AutoFail);
+        resolution.TargetId.ShouldBe(_player2Mech.Id);
+        MockPhysicalAttackResolver.DidNotReceiveWithAnyArgs().ResolveCharge(null!);
+        _player1Mech.Position!.Coordinates.ShouldNotBe(AttackerHex);
+        _player1Mech.Position.Coordinates.ShouldNotBe(TargetHex);
+        PublishedCommands().OfType<DisplaceUnitCommand>().ShouldHaveSingleItem()
+            .DisplacementReason.ShouldBe(DisplacementReason.ChargeMiss);
+    }
+
+    /// <summary>
+    /// Any non-destroyed unit that still holds the destination hex blocks the committed entry. The
+    /// charger cannot stand in the same hex, so it lands in a side hex of its forward arc as a
+    /// missed charge would.
+    /// </summary>
+    [Fact]
+    public void Enter_ChargeAutoFails_WhenAnotherUnitBlocksTheDestination_AndPlacesTheAttackerInASideHex()
+    {
+        // Arrange
+        SetMap();
+        SetUpCharge(_player1Mech, _player2Mech);
+        _player2Mech.Move(
+            new MovementPath([new PathSegment(
+                _player2Mech.Position!, new HexPosition(new HexCoordinates(2, 2), HexDirection.Bottom),
+                [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])], MovementType.Walk),
+            null);
+        var friendly = CreateMech();
+        ((Player)Game.Players[0]).AddUnit(friendly);
+        friendly.Deploy(new HexPosition(TargetHex, HexDirection.Bottom), null);
+        CommandPublisher.ClearReceivedCalls();
+
+        // Act
+        _sut.Enter();
+
+        // Assert
+        PublishedCommands().OfType<PhysicalAttackResolutionCommand>().ShouldHaveSingleItem()
+            .ResolutionData.Charge!.Outcome.ShouldBe(ChargeOutcome.AutoFail);
+        MockPhysicalAttackResolver.DidNotReceiveWithAnyArgs().ResolveCharge(null!);
+        friendly.Position!.Coordinates.ShouldBe(TargetHex);
+        _player1Mech.Position!.Coordinates.ShouldNotBe(AttackerHex);
+        _player1Mech.Position.Coordinates.ShouldNotBe(TargetHex);
+        PublishedCommands().OfType<DisplaceUnitCommand>().ShouldHaveSingleItem()
+            .DisplacementReason.ShouldBe(DisplacementReason.ChargeMiss);
+    }
+
     [Fact]
     public void Enter_ChargeAgainstAReplacementTarget_PassesTheReplacementFlag()
     {

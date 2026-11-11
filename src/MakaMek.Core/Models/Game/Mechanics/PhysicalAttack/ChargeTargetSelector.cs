@@ -1,3 +1,4 @@
+using Sanet.MakaMek.Core.Data.Game.Mechanics.PhysicalAttacks;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Map.Models;
@@ -12,7 +13,8 @@ namespace Sanet.MakaMek.Core.Models.Game.Mechanics.PhysicalAttack;
 /// <param name="IsAutoFail">Whether the charge automatically fails.</param>
 /// <param name="BlocksAttackerEntry">
 /// Whether another non-destroyed unit still occupies the destination hex, so the attacker cannot
-/// complete its committed movement into it after an automatic failure.
+/// complete its committed movement into it after an automatic failure; the charge then ends like a
+/// normal miss, in a side hex of the attacker's forward arc.
 /// </param>
 public sealed record ChargeTargetSelection(
     IUnit? Target,
@@ -33,8 +35,12 @@ public sealed record ChargeTargetSelection(
 /// <item>Otherwise the first non-destroyed, non-prone enemy Mech in that hex is the replacement,
 /// which is attacked at +1 to hit.</item>
 /// <item>Otherwise the charge automatically fails. The attacker still completes its committed
-/// movement into the hex unless another non-destroyed unit occupies it.</item>
+/// movement into the hex unless another non-destroyed unit occupies it, in which case the charge
+/// ends like a normal miss, in a side hex of the attacker's forward arc.</item>
 /// </list>
+/// A 'Mech performing a Death From Above is never a target, declared or replacement: its movement
+/// is unfinished, so it cannot be the subject of a physical attack (Total Warfare, p. 149). It does
+/// still occupy the hex while airborne, so it blocks the attacker's entry on an automatic failure.
 /// </summary>
 public static class ChargeTargetSelector
 {
@@ -62,20 +68,41 @@ public static class ChargeTargetSelector
         if (replacement is not null)
             return new ChargeTargetSelection(replacement, true, false, false);
 
-        var blocksEntry = deployed.Any(unit =>
-            unit.Id != declaredTargetId
-            && !ReferenceEquals(unit, attacker)
-            && !unit.IsDestroyed
-            && unit.Position!.Coordinates == destination.Coordinates
-            && unit.Position.Surface == destination.Surface);
+        var blocksEntry = deployed.Any(unit => BlocksEntry(unit, attacker, declaredTargetId, destination));
 
         return ChargeTargetSelection.AutoFail(blocksEntry);
     }
 
+    /// <summary>
+    /// The declared target is a legal charge target while it still stands on the committed
+    /// destination hex and surface and is not performing a Death From Above, whose performer is
+    /// immune to physical attacks until its movement is complete (Total Warfare, p. 149).
+    /// </summary>
     private static bool IsValidTarget(IUnit unit, HexPosition destination) =>
         !unit.IsDestroyed
+        && !unit.DeclaredPhysicalAttack.IsDfa()
         && unit is not Mech { IsProne: true }
-        && unit.Position is { } position
+        && IsInDestination(unit, destination);
+
+    /// <summary>
+    /// Whether the unit still occupies the destination hex, so the attacker cannot complete its
+    /// committed movement into it. The declared target stops blocking once it is no longer a valid
+    /// target (prone, destroyed or displaced) because the attacker moves into the hex regardless;
+    /// a pending-DFA unit keeps blocking even when it is the declared target, because the attacker
+    /// cannot enter a hex another 'Mech occupies (Total Warfare, p. 148-149).
+    /// </summary>
+    private static bool BlocksEntry(
+        IUnit unit,
+        IUnit attacker,
+        Guid declaredTargetId,
+        HexPosition destination) =>
+        !unit.IsDestroyed
+        && !ReferenceEquals(unit, attacker)
+        && IsInDestination(unit, destination)
+        && (unit.Id != declaredTargetId || unit.DeclaredPhysicalAttack.IsDfa());
+
+    private static bool IsInDestination(IUnit unit, HexPosition destination) =>
+        unit.Position is { } position
         && position.Coordinates == destination.Coordinates
         && position.Surface == destination.Surface;
 
