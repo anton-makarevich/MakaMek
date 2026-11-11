@@ -123,9 +123,7 @@ is added.
   by the declaration validator (jump jets, MP, submerged attacker, target reservation).
 * **Cover:** an airborne unit can never claim partial cover (`Mech.CanHavePartialCover`); a target
   that is airborne is not partially concealed by the terrain it hovers over.
-* **Physical reach:** stays grounded. The airborne level is applied only to LOS; reach, arcs and
-  water eligibility continue to use `PhysicalAttackEligibility.GetEndpoint`, which reuses the
-  grounded effective standing level.
+* **Physical reach:** uses the airborne base level. The endpoint resolves `Position.AirborneLevel` when it is set, so the DFA attacker's feet are `max(approach, target) + 2` and the Different-Levels table sees that difference. The airborne level is the unit's base (feet) level; LOS adds the unit height on top, reach does not. An airborne endpoint is never submerged or in water.
 * **Water eligibility:** unchanged. Whether a DFA may be declared at all (including the
   submerged-attacker rejection) is decided before the move, when the attacker is grounded.
 * **Lifecycle:** the airborne value ends deterministically when the pending movement attack ends —
@@ -162,8 +160,10 @@ instead of being resolved.
 
 * The 'Mech **remains a legal weapon target** during the Weapon Attack Phase, at its airborne LOS
   level (see §3.1 above).
-* Physical reach **stays grounded**: the airborne level is an LOS concept only, and the physical
-  endpoints continue to use the grounded effective standing level.
+* Physical reach **uses the airborne base level**: the airborne level is resolved as the unit's
+  elevation, so a DFA performer is normally two levels above the higher adjacent hex and out of
+  reach for Punch and Kick, and at a different elevation for Push. The p. 149 immunity remains the
+  authoritative rule and still blocks the attack when terrain puts the airborne level within reach.
 * A 'Mech performing a **Charge** is not immune to physical attacks. Punch and Kick remain legal
   against it when the reach rules permit them; Push keeps the
   `TargetPerformingDisplacementAttack` restriction, and another Charge or DFA is rejected by

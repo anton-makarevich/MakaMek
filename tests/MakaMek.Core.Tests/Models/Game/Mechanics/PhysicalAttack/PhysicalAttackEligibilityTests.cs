@@ -495,6 +495,61 @@ public class PhysicalAttackEligibilityTests
         _sut.GetEligibleLimbs(attacker, target, attackType, _map).ShouldNotBeEmpty();
     }
 
+    /// <summary>
+    /// A pending DFA leaves the Mech airborne at its base level (<c>max(...) + 2</c>). Physical
+    /// reach uses that level, so a target two levels above is out of reach for Punch and Kick and
+    /// at a different elevation for Push (Total Warfare p.149-150).
+    /// </summary>
+    [Theory]
+    [InlineData(PhysicalAttackType.Punch)]
+    [InlineData(PhysicalAttackType.Kick)]
+    public void Melee_AgainstAnAirborneTargetTwoLevelsAbove_IsOutOfReach(PhysicalAttackType attackType)
+    {
+        // Arrange
+        var attacker = CreateMech(_attackingPlayer, AttackerHex, HexDirection.Top);
+        var target = CreateMech(_defendingPlayer, AttackerHex.GetNeighbour(HexDirection.Top),
+            HexDirection.Bottom, airborneLevel: 2);
+
+        // Act + Assert
+        _sut.GetEligibleLimbs(attacker, target, attackType, _map).ShouldBeEmpty();
+        _sut.GetRestriction(attacker, target, attackType, _map)
+            .ShouldBe(PhysicalAttackRestriction.LevelDifferenceOutOfRange);
+    }
+
+    [Fact]
+    public void Push_AgainstAnAirborneTargetTwoLevelsAbove_ReportsElevationMismatch()
+    {
+        // Arrange
+        var attacker = CreateMech(_attackingPlayer, AttackerHex, HexDirection.Top);
+        var target = CreateMech(_defendingPlayer, AttackerHex.GetNeighbour(HexDirection.Top),
+            HexDirection.Bottom, airborneLevel: 2);
+
+        // Act + Assert
+        _sut.GetEligibleLimbs(attacker, target, PhysicalAttackType.Push, _map).ShouldBeEmpty();
+        _sut.GetRestriction(attacker, target, PhysicalAttackType.Push, _map)
+            .ShouldBe(PhysicalAttackRestriction.ElevationMismatch);
+    }
+
+    /// <summary>
+    /// The p.149 immunity is independent of the elevation: a DFA performer is immune even when
+    /// terrain puts its airborne level within physical reach.
+    /// </summary>
+    [Fact]
+    public void NoAttack_AgainstADfaPerformer_EvenWhenTheAirborneLevelIsInReach()
+    {
+        // Arrange: the attacker stands at level 2 next to a DFA performer airborne at level 2.
+        var attacker = CreateMech(_attackingPlayer, AttackerHex, HexDirection.Top);
+        SetLevel(AttackerHex, 2);
+        var target = CreateMech(_defendingPlayer, AttackerHex.GetNeighbour(HexDirection.Top),
+            HexDirection.Bottom, airborneLevel: 2);
+        DeclareDfa(target, attacker);
+
+        // Act + Assert
+        _sut.GetEligibleLimbs(attacker, target, PhysicalAttackType.Punch, _map).ShouldBeEmpty();
+        _sut.GetRestriction(attacker, target, PhysicalAttackType.Punch, _map)
+            .ShouldBe(PhysicalAttackRestriction.TargetPerformingDeathFromAbove);
+    }
+
     [Fact]
     public void Push_MissingArm_IsNotAllowed()
     {
@@ -1474,7 +1529,8 @@ public class PhysicalAttackEligibilityTests
         (CreateMech(_attackingPlayer, AttackerHex, HexDirection.Top),
             CreateMech(_defendingPlayer, targetHex, HexDirection.Bottom));
 
-    private static Mech CreateMech(IPlayer owner, HexCoordinates hex, HexDirection facing, HexSurface surface = HexSurface.Ground)
+    private static Mech CreateMech(IPlayer owner, HexCoordinates hex, HexDirection facing, HexSurface surface = HexSurface.Ground,
+        int? airborneLevel = null)
     {
         PartLocation[] limbs = [PartLocation.LeftArm, PartLocation.RightArm, PartLocation.LeftLeg, PartLocation.RightLeg];
         var lasers = limbs.Select(limb => new ComponentData
@@ -1488,7 +1544,7 @@ public class PhysicalAttackEligibilityTests
                 Substitute.For<ILocalizationService>())
             .Create(MechFactoryTests.CreateDummyMechData(lasers));
         mech.Owner = owner;
-        mech.Deploy(new HexPosition(hex, facing, surface), null);
+        mech.Deploy(new HexPosition(hex, facing, surface, airborneLevel), null);
         return mech;
     }
 

@@ -72,7 +72,7 @@ This counterexample applies to Punch/Kick/Push. It does not apply to Charge, bec
 
 - The PR [#1684](https://github.com/anton-makarevich/MakaMek/pull/1684) rules-review comment **is accessible**. It claimed that accepting a DFA whose target stands in Depth 1 water was a Total Warfare violation, on the ground that a 'Mech cannot jump directly into a Depth 1-or-deeper water hex. The maintainer clarification of 2026-11-09 rejects that reading: a standing 'Mech in Depth 1 water is only waist-deep and is **not** submerged, so it remains a legal DFA target, and the jump lands in the water hex with a landing PSR. The review comment is recorded as superseded, not as a defect.
 - The Charge test `HandleCommand_WhenTheChargeTargetIsSubmerged_ShouldRejectTheCharge` is **confounded**. Its target hex has raw level 1 with Depth 2 water, so the target's effective standing level is −1 against an approach level of 1 — a two-level difference. The level check alone rejects it, so the test does not isolate the water rule.
-- The endpoint helpers ignore `AirborneLevel`. Physical reach deliberately stays grounded for a pending DFA attacker; the airborne contract of `GetLosEndpointInfo` belongs to line of sight and is not reused here.
+- The endpoint helper uses `Position.AirborneLevel` when it is non-null: the airborne base level replaces the surface standing level for physical reach, and the endpoint is never submerged or in water. A target two levels above is therefore out of physical reach as well as covered by the p. 149 DFA immunity.
 - The DFA clearance formula (`Jump MP >= targetStandingLevel + target.Height`) does not subtract the start standing level. This is recorded as an open question, not as a defect.
 - `Unit.IsSubmerged` / `UnitPart.IsSubmerged` and the map-based endpoint can disagree after a map hex is replaced, because they read the stored `Unit.Hex`; they can also disagree for a unit on a bridge over water, because `UnitPart.IsSubmerged` ignores the occupied surface. This matters to the jump-jet guard and is recorded as an open question.
 
@@ -89,19 +89,19 @@ public readonly record struct PhysicalAttackEndpoint(
     bool IsInWater);
 ```
 
-Add one extension for the map in the same folder. It takes a `HexPosition` and a unit height, returns `null` when the hex is missing, wraps `GetHex` and `GetLosEndpointInfo`, and adds the in-water flag:
+Add one extension for the map in the same folder. It takes a `HexPosition` and a unit height, returns `null` when the hex is missing, wraps `GetHex` and `GetLosEndpointInfo`, and adds the in-water flag. When `Position.AirborneLevel` is set (a pending DFA approach position), that absolute base level replaces the surface standing level and the endpoint is never submerged or in water:
 
 ```text
 map.GetPhysicalAttackEndpoint(position, unitHeight) -> PhysicalAttackEndpoint?
 ```
 
-The in-water flag is `position.Surface == HexSurface.Ground && hex.GetWaterDepth() > 0`. A bridge is never in water.
+The in-water flag is `position.Surface == HexSurface.Ground && hex.GetWaterDepth() > 0`. A bridge is never in water. An airborne position is never in water.
 
 Both services replace their private `UnitEndpoint`/`GetEndpoint` with this record and extension. This follows the `<Type>Extensions` convention in `AGENTS.md`.
 
 ### D2 — Why the extension is in Core and not in Map
 
-Physical attacks use an explicit occupied surface and ignore `AirborneLevel`. Line of sight uses a different airborne contract and different reference levels. Putting the physical-attack endpoint in `MakaMek.Map` would either expose LOS behaviour to physical attacks or force the Map layer to know about physical-attack semantics. The record and extension therefore live in the Core physical-attack module, above the Map primitives they compose.
+Physical attacks use an explicit occupied surface and, for a pending DFA approach position, its airborne base level. Line of sight uses a different airborne contract and different reference levels (LOS adds the unit height on top of the base; physical reach compares the base levels). Putting the physical-attack endpoint in `MakaMek.Map` would either expose LOS behaviour to physical attacks or force the Map layer to know about physical-attack semantics. The record and extension therefore live in the Core physical-attack module, above the Map primitives they compose.
 
 ### D3 — One signed level primitive; comparisons stay local
 
@@ -169,6 +169,14 @@ The fact-only endpoint record and the small water predicate **qualify** the [#16
 
 They do not supersede #1612. A replacement of `IPhysicalAttackEligibility` does **not** change Charge or DFA, because those declarations are validated by a separate service. A separate follow-up must make the movement validator replaceable if house rules need to vary Charge/DFA.
 
+### D7 — Airborne positions use their base level for physical reach
+
+A pending DFA leaves the attacker airborne above its approach hex, with its feet at `max(target hex reference level, approach hex reference level) + 2` (*Total Warfare* p. 149-150 errata). That absolute base level is the unit's elevation for the Different-Levels table, so the endpoint extension uses `Position.AirborneLevel` when it is non-null instead of the hex surface standing level, and marks the endpoint as neither submerged nor in water.
+
+- **No height added:** the base level replaces the surface standing level exactly as `GetLosEndpointInfo` does. LOS then adds the unit height on top of the base; physical reach compares the base levels of the two units.
+- **Both mechanisms apply:** the airborne level can put the DFA performer out of reach on its own (for example `LevelDifferenceOutOfRange` for Punch/Kick and `ElevationMismatch` for Push), but the p. 149 immunity stays the authoritative rule. It blocks attacks even when terrain puts the airborne level within reach, and it is the reason the UI reports for a DFA performer.
+- **Charge/DFA declarations:** the movement validator runs before the move, so its endpoints are grounded and its behaviour is unchanged.
+
 ## Effects on current behaviour
 
 | Case | Current | After the follow-up code changes |
@@ -227,7 +235,7 @@ These rules are recorded for completeness but are **not** implemented or changed
 | :--- | :--- |
 | DFA clearance formula does not subtract the start standing level | **Open question.** Compare with the jump ceiling in `BattleMap`; track in Issue C. |
 | `Unit.IsSubmerged` / `UnitPart.IsSubmerged` (stored `Unit.Hex`, surface-unaware) and the map endpoint can disagree after a hex replacement **or for a unit on a bridge over water** | **Open question.** Affects the jump-jet guard only: a bridge over Depth 2 water can make torso `JumpJets` report `IsSubmerged` even though the map endpoint is not submerged. Track in Issue C. |
-| `AirborneLevel` handling for attack endpoints | **Open question, not a defect.** Physical reach deliberately stays grounded; LOS is the only consumer of `AirborneLevel`. |
+| `AirborneLevel` handling for attack endpoints | **Implemented (D7).** The endpoint uses `Position.AirborneLevel` when present, so a DFA performer is compared at its airborne base level and is never submerged. |
 | Charge/DFA resolution, underwater half damage, hull breach on charge | **Not implemented.** #1503 and the Charge/DFA resolution milestones. |
 
 ## Follow-up issues
@@ -271,6 +279,5 @@ These are recorded here for the maintainer to file as separate, reviewable GitHu
 
 ### Deferred / open questions
 
-- `AirborneLevel` handling for attack endpoints: record only; do not treat it as a defect.
 - Underwater movement cost (4 MP per hex) and charge-distance consequences: verify against the movement code before documenting them as implemented.
 - Charge/DFA resolution: underwater damage halving (#1503), charge return collision, and hull breach on charge resolution.

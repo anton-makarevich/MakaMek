@@ -149,6 +149,58 @@ public class PhysicalAttackEndpointExtensionsTests
         higher.LevelDifferenceTo(deeper).ShouldBe(-4);
     }
 
+    [Fact]
+    public void GetPhysicalAttackEndpoint_AirbornePosition_UsesTheAirborneBaseLevel()
+    {
+        // Arrange: a pending DFA leaves the Mech airborne above its approach hex.
+        var map = new BattleMap(10, 10);
+        map.AddHex(ClearHex(TestHex));
+        var position = new HexPosition(TestHex, HexDirection.Top, AirborneLevel: 2);
+
+        // Act
+        var endpoint = map.GetPhysicalAttackEndpoint(position, StandingHeight);
+
+        // Assert
+        endpoint.ShouldNotBeNull();
+        endpoint.Value.EffectiveStandingLevel.ShouldBe(2);
+        endpoint.Value.IsSubmerged.ShouldBeFalse();
+        endpoint.Value.IsInWater.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void GetPhysicalAttackEndpoint_AirbornePositionOverDeepWater_IsNotSubmergedOrInWater()
+    {
+        // Arrange: the airborne base level replaces the surface standing level entirely.
+        var map = new BattleMap(10, 10);
+        map.AddHex(WaterHex(TestHex, 0, 2));
+        var position = new HexPosition(TestHex, HexDirection.Top, AirborneLevel: 3);
+
+        // Act
+        var endpoint = map.GetPhysicalAttackEndpoint(position, StandingHeight);
+
+        // Assert
+        endpoint.ShouldNotBeNull();
+        endpoint.Value.EffectiveStandingLevel.ShouldBe(3);
+        endpoint.Value.IsSubmerged.ShouldBeFalse();
+        endpoint.Value.IsInWater.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void GetPhysicalAttackEndpoint_AirbornePositionAboveARaisedHex_KeepsTheAbsoluteLevel()
+    {
+        // Arrange: the hex stands at level 1, the airborne base at level 3.
+        var map = new BattleMap(10, 10);
+        map.AddHex(ClearHex(TestHex, 1));
+        var position = new HexPosition(TestHex, HexDirection.Top, AirborneLevel: 3);
+
+        // Act
+        var endpoint = map.GetPhysicalAttackEndpoint(position, StandingHeight);
+
+        // Assert
+        endpoint.ShouldNotBeNull();
+        endpoint.Value.EffectiveStandingLevel.ShouldBe(3);
+    }
+
     private static HexPosition Position(HexCoordinates coordinates,
         HexSurface surface = HexSurface.Ground) =>
         new(coordinates, HexDirection.Top, surface);
