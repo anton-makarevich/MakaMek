@@ -53,7 +53,9 @@ public record PushDisplacementResult(
 /// </para>
 /// <para>
 /// The destination is evaluated from the positions at application time, not at declaration time:
-/// an earlier push in the same phase can have moved either unit.
+/// an earlier push in the same phase can have moved either unit. A 'Mech that is airborne for a
+/// pending Death From Above is not a ground occupant, so it does not trigger a chain and cannot be
+/// displaced while it is in the air (Total Warfare, p. 149).
 /// </para>
 /// </summary>
 public class PushDisplacementResolver(
@@ -90,6 +92,7 @@ public class PushDisplacementResolver(
         var occupants = allUnits
             .Where(unit => !ReferenceEquals(unit, target)
                            && unit.IsDeployed
+                           && !unit.IsAirborneDfaAttacker
                            && unit.Position!.Coordinates == destinationCoordinates)
             .ToList();
 

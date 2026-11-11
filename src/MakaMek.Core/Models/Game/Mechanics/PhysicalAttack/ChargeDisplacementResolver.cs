@@ -45,6 +45,10 @@ public record ChargeDisplacementResult(
 /// When the charge automatically fails because the target left the hex, the attacker completes
 /// its committed movement into that hex unless another non-destroyed unit occupies it.
 /// </para>
+/// <para>
+/// A 'Mech that is airborne for a pending Death From Above is not a ground occupant: it does not
+/// trigger the domino effect and cannot be displaced while it is in the air (Total Warfare, p. 149).
+/// </para>
 /// </summary>
 public class ChargeDisplacementResolver(
     IRulesProvider rulesProvider,
@@ -205,7 +209,7 @@ public class ChargeDisplacementResolver(
         IUnit displacedUnit) =>
         units
             .Where(unit => !ReferenceEquals(unit, displacedUnit)
-                           && unit is { IsDeployed: true, Position: not null }
+                           && unit is { IsDeployed: true, Position: not null, IsAirborneDfaAttacker: false }
                            && unit.Position.Coordinates == coordinates)
             .ToList();
 
@@ -214,6 +218,6 @@ public class ChargeDisplacementResolver(
         HexCoordinates coordinates,
         IUnit attacker) =>
         units.Any(unit => !ReferenceEquals(unit, attacker)
-                          && unit is { IsDeployed: true, IsDestroyed: false, Position: not null }
+                          && unit is { IsDeployed: true, IsDestroyed: false, Position: not null, IsAirborneDfaAttacker: false }
                           && unit.Position.Coordinates == coordinates);
 }

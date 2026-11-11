@@ -153,7 +153,7 @@ public class ChargeTargetSelectorTests
     /// declared against it auto-fails (Total Warfare p.149).
     /// </summary>
     [Fact]
-    public void Select_WhenTheDeclaredTargetPerformsDfa_AutoFailsAndBlocksEntry()
+    public void Select_WhenTheDeclaredTargetPerformsDfa_AutoFailsWithoutBlockingEntry()
     {
         DeclareDfa(_declaredTarget, _attacker);
 
@@ -161,20 +161,21 @@ public class ChargeTargetSelectorTests
 
         selection.Target.ShouldBeNull();
         selection.IsAutoFail.ShouldBeTrue();
-        selection.BlocksAttackerEntry.ShouldBeTrue();
+        selection.BlocksAttackerEntry.ShouldBeFalse();
     }
 
     /// <summary>
-    /// The replacement target is subject to the same p.149 immunity: a pending-DFA 'Mech is not a
-    /// replacement target, but it still occupies the hex the attacker committed to enter.
+    /// The replacement target is subject to the same p.149 immunity, and an airborne DFA performer
+    /// is not a ground occupant: it neither becomes the target nor blocks the committed entry.
     /// </summary>
     [Fact]
-    public void Select_WhenOnlyADfaPerformerOccupiesTheHex_AutoFailsAndBlocksEntry()
+    public void Select_WhenOnlyADfaPerformerOccupiesTheHex_AutoFailsWithoutBlockingEntry()
     {
         MoveElsewhere(_declaredTarget);
         var dfaPerformer = CreateMech();
         _targetPlayer.AddUnit(dfaPerformer);
-        dfaPerformer.Deploy(new HexPosition(DestinationCoordinates, HexDirection.Bottom), null);
+        dfaPerformer.Deploy(
+            new HexPosition(DestinationCoordinates, HexDirection.Bottom, AirborneLevel: 4), null);
         DeclareDfa(dfaPerformer, _attacker);
 
         var selection = ChargeTargetSelector.Select(_attacker, _declaredTarget.Id, AllUnits());
@@ -182,7 +183,7 @@ public class ChargeTargetSelectorTests
         selection.Target.ShouldBeNull();
         selection.IsReplacementTarget.ShouldBeFalse();
         selection.IsAutoFail.ShouldBeTrue();
-        selection.BlocksAttackerEntry.ShouldBeTrue();
+        selection.BlocksAttackerEntry.ShouldBeFalse();
     }
 
     [Fact]
@@ -193,7 +194,8 @@ public class ChargeTargetSelectorTests
         var replacement = CreateMech();
         _targetPlayer.AddUnit(dfaPerformer);
         _targetPlayer.AddUnit(replacement);
-        dfaPerformer.Deploy(new HexPosition(DestinationCoordinates, HexDirection.Bottom), null);
+        dfaPerformer.Deploy(
+            new HexPosition(DestinationCoordinates, HexDirection.Bottom, AirborneLevel: 4), null);
         replacement.Deploy(new HexPosition(DestinationCoordinates, HexDirection.Bottom), null);
         DeclareDfa(dfaPerformer, _attacker);
 

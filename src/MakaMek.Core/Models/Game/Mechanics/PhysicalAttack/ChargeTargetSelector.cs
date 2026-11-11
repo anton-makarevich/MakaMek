@@ -13,8 +13,8 @@ namespace Sanet.MakaMek.Core.Models.Game.Mechanics.PhysicalAttack;
 /// <param name="IsAutoFail">Whether the charge automatically fails.</param>
 /// <param name="BlocksAttackerEntry">
 /// Whether another non-destroyed unit still occupies the destination hex, so the attacker cannot
-/// complete its committed movement into it after an automatic failure; the charge then ends like a
-/// normal miss, in a side hex of the attacker's forward arc.
+/// complete its committed movement into it after an automatic failure. A 'Mech that is airborne for
+/// a pending Death From Above is not a ground occupant and never blocks the entry.
 /// </param>
 public sealed record ChargeTargetSelection(
     IUnit? Target,
@@ -35,12 +35,12 @@ public sealed record ChargeTargetSelection(
 /// <item>Otherwise the first non-destroyed, non-prone enemy Mech in that hex is the replacement,
 /// which is attacked at +1 to hit.</item>
 /// <item>Otherwise the charge automatically fails. The attacker still completes its committed
-/// movement into the hex unless another non-destroyed unit occupies it, in which case the charge
-/// ends like a normal miss, in a side hex of the attacker's forward arc.</item>
+/// movement into the hex unless another non-destroyed unit occupies it.</item>
 /// </list>
 /// A 'Mech performing a Death From Above is never a target, declared or replacement: its movement
-/// is unfinished, so it cannot be the subject of a physical attack (Total Warfare, p. 149). It does
-/// still occupy the hex while airborne, so it blocks the attacker's entry on an automatic failure.
+/// is unfinished, so it cannot be the subject of a physical attack (Total Warfare, p. 149). It is
+/// airborne over its approach hex, though, so it is not a ground occupant: it neither blocks the
+/// attacker's entry on an automatic failure nor takes part in stacking.
 /// </summary>
 public static class ChargeTargetSelector
 {
@@ -87,19 +87,19 @@ public static class ChargeTargetSelector
     /// <summary>
     /// Whether the unit still occupies the destination hex, so the attacker cannot complete its
     /// committed movement into it. The declared target stops blocking once it is no longer a valid
-    /// target (prone, destroyed or displaced) because the attacker moves into the hex regardless;
-    /// a pending-DFA unit keeps blocking even when it is the declared target, because the attacker
-    /// cannot enter a hex another 'Mech occupies (Total Warfare, p. 148-149).
+    /// target (prone, destroyed or displaced) because the attacker moves into the hex regardless,
+    /// and a 'Mech airborne for a pending Death From Above is not a ground occupant at all: it does
+    /// not count for stacking until its attack resolves (Total Warfare, p. 149).
     /// </summary>
     private static bool BlocksEntry(
         IUnit unit,
         IUnit attacker,
         Guid declaredTargetId,
         HexPosition destination) =>
-        !unit.IsDestroyed
+        unit is { IsDestroyed: false, IsAirborneDfaAttacker: false }
         && !ReferenceEquals(unit, attacker)
-        && IsInDestination(unit, destination)
-        && (unit.Id != declaredTargetId || unit.DeclaredPhysicalAttack.IsDfa());
+        && unit.Id != declaredTargetId
+        && IsInDestination(unit, destination);
 
     private static bool IsInDestination(IUnit unit, HexPosition destination) =>
         unit.Position is { } position

@@ -358,12 +358,11 @@ public class PhysicalAttackResolutionPhaseTests : GamePhaseTestsBase
 
     /// <summary>
     /// A 'Mech making a Death From Above cannot be the target of a physical attack, so a charge
-    /// declared against it auto-fails. Because it still occupies the destination hex while
-    /// airborne, the charger cannot complete its committed movement into it and instead ends the
-    /// attack like a miss, in a side hex of its forward arc (Total Warfare p.148-149).
+    /// declared against it auto-fails. The declared target never blocks the committed movement, so
+    /// the charger still enters the destination hex (Total Warfare p.148-149).
     /// </summary>
     [Fact]
-    public void Enter_ChargeAutoFails_WhenTheDeclaredTargetPerformsDfa_AndPlacesTheAttackerInASideHex()
+    public void Enter_ChargeAutoFails_WhenTheDeclaredTargetPerformsDfa_AndAdvancesIntoTheHex()
     {
         // Arrange
         SetMap();
@@ -381,23 +380,22 @@ public class PhysicalAttackResolutionPhaseTests : GamePhaseTestsBase
         resolution.ResolutionData.AttackResolution.IsHit.ShouldBeFalse();
         resolution.ResolutionData.PsrRequirements.ShouldBeEmpty();
         MockPhysicalAttackResolver.DidNotReceiveWithAnyArgs().ResolveCharge(null!);
-        _player2Mech.Position!.Coordinates.ShouldBe(TargetHex);
-        _player1Mech.Position!.Coordinates.ShouldNotBe(AttackerHex);
-        _player1Mech.Position.Coordinates.ShouldNotBe(TargetHex);
+        _player1Mech.Position!.Coordinates.ShouldBe(TargetHex);
         PublishedCommands().OfType<DisplaceUnitCommand>().ShouldHaveSingleItem()
-            .DisplacementReason.ShouldBe(DisplacementReason.ChargeMiss);
+            .DisplacementReason.ShouldBe(DisplacementReason.ChargeAdvance);
         PublishedCommands().OfType<MechFallCommand>().ShouldBeEmpty();
     }
 
     /// <summary>
     /// The p.149 immunity applies to replacement targets too: when the declared target left the hex
     /// and only a pending-DFA 'Mech occupies it, the charge auto-fails instead of resolving against
-    /// the DFA performer.
+    /// the DFA performer. An airborne 'Mech is not a ground occupant, so it does not block the
+    /// charger's committed entry and is never displaced.
     /// </summary>
     [Fact]
     public void Enter_ChargeAutoFails_WhenOnlyADfaPerformerOccupiesTheDestinationHex()
     {
-        // Arrange: the declared target is displaced and a DFA performer now holds its hex.
+        // Arrange: the declared target is displaced and a DFA performer now hovers over its hex.
         SetMap();
         SetUpCharge(_player1Mech, _player2Mech);
         _player2Mech.Move(
@@ -407,7 +405,7 @@ public class PhysicalAttackResolutionPhaseTests : GamePhaseTestsBase
             null);
         var dfaPerformer = CreateMech();
         ((Player)Game.Players[1]).AddUnit(dfaPerformer);
-        dfaPerformer.Deploy(new HexPosition(TargetHex, HexDirection.Bottom), null);
+        dfaPerformer.Deploy(new HexPosition(TargetHex, HexDirection.Bottom, AirborneLevel: 4), null);
         Declare(dfaPerformer, _player1Mech, PhysicalAttackType.DFA);
         CommandPublisher.ClearReceivedCalls();
 
@@ -420,19 +418,24 @@ public class PhysicalAttackResolutionPhaseTests : GamePhaseTestsBase
         resolution.ResolutionData.Charge!.Outcome.ShouldBe(ChargeOutcome.AutoFail);
         resolution.TargetId.ShouldBe(_player2Mech.Id);
         MockPhysicalAttackResolver.DidNotReceiveWithAnyArgs().ResolveCharge(null!);
-        _player1Mech.Position!.Coordinates.ShouldNotBe(AttackerHex);
-        _player1Mech.Position.Coordinates.ShouldNotBe(TargetHex);
+
+        // The charger enters the hex under the airborne 'Mech, which stays where it is.
+        _player1Mech.Position!.Coordinates.ShouldBe(TargetHex);
         PublishedCommands().OfType<DisplaceUnitCommand>().ShouldHaveSingleItem()
-            .DisplacementReason.ShouldBe(DisplacementReason.ChargeMiss);
+            .DisplacementReason.ShouldBe(DisplacementReason.ChargeAdvance);
+        PublishedCommands().OfType<DisplaceUnitCommand>()
+            .ShouldNotContain(command => command.UnitId == dfaPerformer.Id);
+        dfaPerformer.Position!.Coordinates.ShouldBe(TargetHex);
+        dfaPerformer.Position.AirborneLevel.ShouldBe(4);
     }
 
     /// <summary>
-    /// Any non-destroyed unit that still holds the destination hex blocks the committed entry. The
-    /// charger cannot stand in the same hex, so it lands in a side hex of its forward arc as a
-    /// missed charge would.
+    /// A grounded unit that still holds the destination hex blocks the committed entry, so the
+    /// charger stays in its approach hex. This is the pre-existing rule the airborne DFA exemption
+    /// does not change.
     /// </summary>
     [Fact]
-    public void Enter_ChargeAutoFails_WhenAnotherUnitBlocksTheDestination_AndPlacesTheAttackerInASideHex()
+    public void Enter_ChargeAutoFails_WhenAGroundedUnitBlocksTheDestination_AndKeepsTheAttackerInPlace()
     {
         // Arrange
         SetMap();
@@ -454,11 +457,8 @@ public class PhysicalAttackResolutionPhaseTests : GamePhaseTestsBase
         PublishedCommands().OfType<PhysicalAttackResolutionCommand>().ShouldHaveSingleItem()
             .ResolutionData.Charge!.Outcome.ShouldBe(ChargeOutcome.AutoFail);
         MockPhysicalAttackResolver.DidNotReceiveWithAnyArgs().ResolveCharge(null!);
-        friendly.Position!.Coordinates.ShouldBe(TargetHex);
-        _player1Mech.Position!.Coordinates.ShouldNotBe(AttackerHex);
-        _player1Mech.Position.Coordinates.ShouldNotBe(TargetHex);
-        PublishedCommands().OfType<DisplaceUnitCommand>().ShouldHaveSingleItem()
-            .DisplacementReason.ShouldBe(DisplacementReason.ChargeMiss);
+        _player1Mech.Position!.Coordinates.ShouldBe(AttackerHex);
+        PublishedCommands().OfType<DisplaceUnitCommand>().ShouldBeEmpty();
     }
 
     [Fact]

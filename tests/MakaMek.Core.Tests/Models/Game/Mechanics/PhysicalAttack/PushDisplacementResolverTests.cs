@@ -1,4 +1,6 @@
 using NSubstitute;
+using Sanet.MakaMek.Core.Data.Game.Mechanics.PhysicalAttacks;
+using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Displacement;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.PhysicalAttack;
@@ -85,6 +87,30 @@ public class PushDisplacementResolverTests
         result.DominoEffect!.Outcome.ShouldBe(DominoEffectOutcome.Resolved);
         result.DominoEffect.Commands.ShouldHaveSingleItem().UnitId.ShouldBe(occupant.Id);
         result.DominoEffect.PsrCandidates.ShouldContain(target);
+    }
+
+    /// <summary>
+    /// A 'Mech airborne for a pending Death From Above is not a ground occupant, so the pushed
+    /// target enters its hex without a chain and the airborne unit cannot be displaced
+    /// (Total Warfare p.149).
+    /// </summary>
+    [Fact]
+    public void Resolve_DestinationHeldOnlyByAnAirborneDfaAttacker_PushesWithoutADomino()
+    {
+        // Arrange
+        var map = CreateFlatMap();
+        var attacker = UnitAt(AttackerHex, HexDirection.Top);
+        var target = UnitAt(TargetHex, HexDirection.Bottom);
+        var dfaAttacker = AirborneDfaUnitAt(DestinationHex, HexDirection.Top);
+
+        // Act
+        var result = _sut.Resolve(attacker, target, map, [attacker, target, dfaAttacker]);
+
+        // Assert
+        result.ShouldNotBeNull();
+        result.TargetDestination.Coordinates.ShouldBe(DestinationHex);
+        result.AttackerDestination.Coordinates.ShouldBe(TargetHex);
+        result.DominoEffect.ShouldBeNull();
     }
 
     [Fact]
@@ -500,6 +526,23 @@ public class PushDisplacementResolverTests
         unit.IsDestroyed.Returns(isDestroyed);
         unit.Height.Returns(height);
         unit.MaxLevelChangeForward.Returns(maxLevelChangeForward);
+        return unit;
+    }
+
+    /// <summary>
+    /// A 'Mech waiting airborne for a pending Death From Above is not a ground occupant.
+    /// </summary>
+    private static IUnit AirborneDfaUnitAt(HexCoordinates coordinates, HexDirection facing)
+    {
+        var unit = UnitAt(coordinates, facing);
+        unit.Position.Returns(new HexPosition(coordinates, facing, AirborneLevel: 4));
+        unit.HasPendingMovementAttack.Returns(true);
+        unit.DeclaredPhysicalAttack.Returns(new PhysicalAttackDeclarationData
+        {
+            AttackType = PhysicalAttackType.DFA,
+            AttackerLimbs = [],
+            TargetId = Guid.NewGuid()
+        });
         return unit;
     }
 

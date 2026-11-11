@@ -317,9 +317,8 @@ public class PhysicalAttackResolutionPhase(
     /// <summary>
     /// Publishes the automatic failure of a charge. No roll is made and no damage or piloting
     /// skill roll is created. On a target-side failure the attacker completes its committed
-    /// movement into the destination hex unless another non-destroyed unit occupies it: the hex
-    /// cannot be entered then, so the charge ends like a normal miss, in a side hex of the
-    /// attacker's forward arc. On an attacker-side failure the attacker stays where it is.
+    /// movement into the destination hex unless another non-destroyed unit occupies it; on an
+    /// attacker-side failure the attacker stays where it is.
     /// </summary>
     private void ResolveChargeAutoFail(ChargeQueueItem item, ChargeTargetSelection selection)
     {
@@ -347,16 +346,7 @@ public class PhysicalAttackResolutionPhase(
         Game.OnPhysicalAttackResolution(command);
         Game.CommandPublisher.PublishCommand(command);
 
-        if (item.AttackerAutoFail) return;
-
-        // Another non-destroyed unit still holds the committed hex (a friendly unit, or a 'Mech
-        // whose pending DFA makes it immune as a target but keeps it in the hex). The attacker
-        // cannot enter it, so it ends the charge like a miss, in a side hex of its forward arc.
-        if (selection.BlocksAttackerEntry)
-        {
-            ApplyChargeMissDisplacement(item.Attacker);
-            return;
-        }
+        if (item.AttackerAutoFail || selection.BlocksAttackerEntry) return;
 
         if (_chargeDisplacementResolver.ResolveAdvance(item.Attacker) is { AttackerDestination: { } destination })
             ExecuteDisplacement(item.Attacker, destination, DisplacementReason.ChargeAdvance);

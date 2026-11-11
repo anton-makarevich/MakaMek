@@ -1,6 +1,8 @@
 using NSubstitute;
 using Sanet.Localization;
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
+using Sanet.MakaMek.Core.Data.Game.Mechanics.PhysicalAttacks;
+using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Displacement;
 using Sanet.MakaMek.Core.Models.Game.Rules;
@@ -427,6 +429,42 @@ public class DominoEffectResolverTests
         result.Commands.ShouldHaveSingleItem();
     }
 
+    /// <summary>
+    /// A 'Mech airborne for a pending Death From Above is not a ground occupant, so entering its
+    /// hex never starts a domino chain (Total Warfare p.149).
+    /// </summary>
+    [Fact]
+    public void Resolve_DestinationHeldOnlyByAnAirborneDfaAttacker_ReturnsNotRequired()
+    {
+        var map = CreateFlatMap();
+        var entering = UnitAt(SourceHex);
+        var dfaAttacker = AirborneDfaUnitAt(DestinationHex);
+
+        var result = _sut.Resolve(Request(entering), map, [entering, dfaAttacker]);
+
+        result.Outcome.ShouldBe(DominoEffectOutcome.NotRequired);
+        result.Commands.ShouldBeEmpty();
+    }
+
+    /// <summary>
+    /// An airborne DFA 'Mech further along the chain is skipped as an occupant: the chain displaces
+    /// the grounded unit and ends there instead of pushing the airborne one (Total Warfare p.149).
+    /// </summary>
+    [Fact]
+    public void Resolve_AnAirborneDfaAttackerFurtherAlongTheChain_EndsTheChainWithoutDisplacingIt()
+    {
+        var map = CreateFlatMap();
+        var entering = UnitAt(SourceHex);
+        var occupant = UnitAt(DestinationHex);
+        var dfaAttacker = AirborneDfaUnitAt(FirstChainHex);
+
+        var result = _sut.Resolve(Request(entering), map, [entering, occupant, dfaAttacker]);
+
+        result.Outcome.ShouldBe(DominoEffectOutcome.Resolved);
+        result.Commands.ShouldHaveSingleItem().UnitId.ShouldBe(occupant.Id);
+        result.Commands.ShouldNotContain(command => command.UnitId == dfaAttacker.Id);
+    }
+
     private DominoEffectRequest Request(
         IUnit entering,
         IReadOnlyList<IUnit>? occupants = null,
@@ -456,6 +494,24 @@ public class DominoEffectResolverTests
         unit.IsDestroyed.Returns(false);
         unit.Height.Returns(height);
         unit.MaxLevelChangeForward.Returns(maxLevelChangeForward);
+        return unit;
+    }
+
+    /// <summary>
+    /// A 'Mech waiting airborne for a pending Death From Above is not a ground occupant: it neither
+    /// starts a chain nor can be displaced while it is in the air (Total Warfare p.149).
+    /// </summary>
+    private static IUnit AirborneDfaUnitAt(HexCoordinates coordinates)
+    {
+        var unit = UnitAt(coordinates);
+        unit.Position.Returns(new HexPosition(coordinates, HexDirection.Top, AirborneLevel: 4));
+        unit.HasPendingMovementAttack.Returns(true);
+        unit.DeclaredPhysicalAttack.Returns(new PhysicalAttackDeclarationData
+        {
+            AttackType = PhysicalAttackType.DFA,
+            AttackerLimbs = [],
+            TargetId = Guid.NewGuid()
+        });
         return unit;
     }
 

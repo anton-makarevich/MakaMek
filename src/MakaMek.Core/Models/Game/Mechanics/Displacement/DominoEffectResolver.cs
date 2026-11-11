@@ -30,6 +30,8 @@ namespace Sanet.MakaMek.Core.Models.Game.Mechanics.Displacement;
 /// <para>
 /// A displaced unit that drops two or more levels into an empty hex is recorded in
 /// <see cref="DominoEffectResult.Falls"/>: it falls after the displacement instead of stepping down.
+/// A 'Mech that is airborne for a pending Death From Above is not a ground occupant: it neither
+/// starts nor continues a chain and cannot be displaced until it lands (Total Warfare, p. 149).
 /// </para>
 /// </summary>
 public class DominoEffectResolver(IDiceRoller diceRoller)
@@ -56,6 +58,7 @@ public class DominoEffectResolver(IDiceRoller diceRoller)
             .Where(unit => unit.Id != enteringUnit.Id
                            && unit.IsDeployed
                            && unit.Position is not null
+                           && !unit.IsAirborneDfaAttacker
                            && unit.Position.Coordinates == request.Destination)
             .ToList();
 
@@ -216,6 +219,8 @@ public class DominoEffectResolver(IDiceRoller diceRoller)
         HexCoordinates coordinates,
         HashSet<Guid> excluded) =>
         deployedUnits
-            .Where(unit => unit.Position!.Coordinates == coordinates && !excluded.Contains(unit.Id))
+            .Where(unit => unit.Position!.Coordinates == coordinates
+                           && !excluded.Contains(unit.Id)
+                           && !unit.IsAirborneDfaAttacker)
             .ToList();
 }
