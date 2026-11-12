@@ -14,7 +14,7 @@ dotnet_diagnostic.CA1501.severity = warning
 dotnet_diagnostic.CA1502.severity = warning
 dotnet_diagnostic.CA1505.severity = warning
 dotnet_diagnostic.CA1506.severity = warning
-dotnet_diagnostic.CA1509.severity = warning
+# CA1509 (invalid CodeMetricsConfig.txt) must live in .globalconfig.
 
 # --- SonarAnalyzer.CSharp ---
 # Phase 1 enables cognitive complexity only; the rest of the legacy Sonar

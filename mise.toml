@@ -57,14 +57,37 @@ run = '''
 set -euo pipefail
 
 base="${ANALYZER_BASE:-origin/main}"
+config_changed=false
+files=()
 
 if [ "$#" -gt 0 ]; then
-  files=("$@")
+  for arg in "$@"; do
+    if [ "$arg" = "CodeMetricsConfig.txt" ]; then
+      config_changed=true
+    else
+      files+=("$arg")
+    fi
+  done
 else
   if ! git rev-parse --verify --quiet "$base" >/dev/null; then
     echo "Base '$base' not found, falling back to 'main'. Run 'git fetch' for an up-to-date diff." >&2
     base="main"
   fi
+  if ! git rev-parse --verify --quiet "$base" >/dev/null; then
+    echo "ERROR: neither the requested base nor 'main' exists. Run 'git fetch' or set ANALYZER_BASE." >&2
+    exit 1
+  fi
+
+  if [ -n "$(
+    {
+      git diff --name-only --diff-filter=ACMR "$base...HEAD" -- 'CodeMetricsConfig.txt'
+      git diff --name-only --diff-filter=ACMR HEAD -- 'CodeMetricsConfig.txt'
+      git ls-files --others --exclude-standard -- 'CodeMetricsConfig.txt'
+    } | sort -u
+  )" ]; then
+    config_changed=true
+  fi
+
   mapfile -t files < <(
     {
       git diff --name-only --diff-filter=ACMR "$base...HEAD" -- '*.cs'
@@ -74,9 +97,21 @@ else
   )
 fi
 
+status=0
+
+# CA1509 (invalid CodeMetricsConfig.txt entry) is reported on the config file,
+# so it can't be filtered with dotnet format's --include. Promote it to an error
+# via a build when the config itself changed.
+if [ "$config_changed" = true ]; then
+  echo "CodeMetricsConfig.txt changed; validating CA1509..."
+  if ! dotnet build src/MakaMek.Core/MakaMek.Core.csproj -warnaserror:CA1509 -v:q; then
+    status=1
+  fi
+fi
+
 if [ -z "${files[*]-}" ]; then
   echo "No changed C# files to analyze (base: $base)."
-  exit 0
+  exit "$status"
 fi
 
 # Group changed files by their owning project so platform heads
@@ -109,10 +144,9 @@ done
 
 if [ -z "${project_files[*]-}" ]; then
   echo "No C# files to analyze."
-  exit 0
+  exit "$status"
 fi
 
-status=0
 for project in "${!project_files[@]}"; do
   mapfile -t project_changed < <(printf '%s' "${project_files[$project]}")
   echo "Analyzing changed file(s) in $project:"

@@ -10,6 +10,7 @@ on:
       - 'tests/**'
       - 'Directory.Build.props'
       - '.editorconfig'
+      - '.globalconfig'
       - 'CodeMetricsConfig.txt'
       - 'mise.toml'
       - '.github/workflows/analyzers.yml'
