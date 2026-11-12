@@ -84,12 +84,11 @@ fi
 declare -A project_files
 for file in "${files[@]}"; do
   case "$file" in
-    src/MakaMek.Tools/*|src/MakaMek.SourceGenerators/*)
-      echo "Skipping disposable code: $file" >&2
+    src/MakaMek.Core/*.cs|src/MakaMek.Presentation/*.cs|src/MakaMek.Map/*.cs|src/MakaMek.Services/*.cs|src/MakaMek.Assets/*.cs|src/MakaMek.Localization/*.cs|src/MakaMek.Bots/*.cs) ;;
+    *)
+      echo "Skipping non-library code: $file" >&2
       continue
       ;;
-    *.cs) ;;
-    *) continue ;;
   esac
   if [ ! -f "$file" ]; then
     echo "Skipping missing file: $file" >&2
