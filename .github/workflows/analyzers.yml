@@ -11,6 +11,7 @@ on:
       - 'Directory.Build.props'
       - '.editorconfig'
       - 'CodeMetricsConfig.txt'
+      - 'mise.toml'
       - '.github/workflows/analyzers.yml'
 
 jobs:
@@ -30,45 +31,14 @@ jobs:
         with:
           global-json-file: global.json
 
+      - name: Setup mise
+        uses: jdx/mise-action@v5
+        with:
+          install: false
+
       - name: Verify analyzers on changed files
-        shell: bash
+        env:
+          ANALYZER_BASE: origin/${{ github.base_ref }}
         run: |
-          set -euo pipefail
           git fetch --no-tags origin "${{ github.base_ref }}"
-
-          mapfile -t files < <(git diff --name-only --diff-filter=ACMR \
-            "origin/${{ github.base_ref }}...HEAD" -- '*.cs')
-
-          if [ ${#files[@]} -eq 0 ]; then
-            echo "::notice::No changed C# files; analyzer gate has nothing to check."
-            exit 0
-          fi
-
-          # Group changed files by their owning project so platform heads
-          # (Android/iOS) are only loaded when they actually changed.
-          declare -A project_files
-          for file in "${files[@]}"; do
-            dir="$(dirname "$file")"
-            while [ "$dir" != "." ] && ! compgen -G "$dir/*.csproj" > /dev/null; do
-              dir="$(dirname "$dir")"
-            done
-            mapfile -t found < <(compgen -G "$dir/*.csproj")
-            if [ ${#found[@]} -ne 1 ]; then
-              echo "::error::Could not determine a single project for $file"
-              exit 1
-            fi
-            project_files["${found[0]}"]+="$file"$'\n'
-          done
-
-          status=0
-          for project in "${!project_files[@]}"; do
-            mapfile -t project_changed < <(printf '%s' "${project_files[$project]}")
-            echo "Analyzing ${#project_changed[@]} changed file(s) in $project:"
-            printf '  %s\n' "${project_changed[@]}"
-            dotnet format analyzers "$project" \
-              --verify-no-changes \
-              --severity warn \
-              --include "${project_changed[@]}" || status=1
-          done
-
-          exit "$status"
+          mise run analyzer-gate

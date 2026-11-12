@@ -49,3 +49,82 @@ cognee-mcp --help
 [tasks.update-cognee]
 description = "Updates the Cognee MCP server to the latest version"
 run = "uv tool upgrade -p 3.13 cognee-mcp"
+
+[tasks.analyzer-gate]
+description = "Runs the diff-scoped .NET analyzer gate on changed C# files (vs origin/main, or explicit files)"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+
+base="${ANALYZER_BASE:-origin/main}"
+
+if [ "$#" -gt 0 ]; then
+  files=("$@")
+else
+  if ! git rev-parse --verify --quiet "$base" >/dev/null; then
+    echo "Base '$base' not found, falling back to 'main'. Run 'git fetch' for an up-to-date diff." >&2
+    base="main"
+  fi
+  mapfile -t files < <(
+    {
+      git diff --name-only --diff-filter=ACMR "$base...HEAD" -- '*.cs'
+      git diff --name-only --diff-filter=ACMR HEAD -- '*.cs'
+      git ls-files --others --exclude-standard -- '*.cs'
+    } | sort -u
+  )
+fi
+
+if [ -z "${files[*]-}" ]; then
+  echo "No changed C# files to analyze (base: $base)."
+  exit 0
+fi
+
+# Group changed files by their owning project so platform heads
+# (Android/iOS) are only loaded when they actually changed.
+declare -A project_files
+for file in "${files[@]}"; do
+  case "$file" in
+    *.cs) ;;
+    *) continue ;;
+  esac
+  if [ ! -f "$file" ]; then
+    echo "Skipping missing file: $file" >&2
+    continue
+  fi
+
+  dir="$(dirname "$file")"
+  while [ "$dir" != "." ] && ! compgen -G "$dir/*.csproj" >/dev/null; do
+    dir="$(dirname "$dir")"
+  done
+  mapfile -t found < <(compgen -G "$dir/*.csproj")
+  if [ -z "${found[0]-}" ] || [ -n "${found[1]-}" ]; then
+    echo "ERROR: could not determine a single project for $file" >&2
+    exit 1
+  fi
+  project_files["${found[0]}"]+="$file"$'\n'
+done
+
+if [ -z "${project_files[*]-}" ]; then
+  echo "No C# files to analyze."
+  exit 0
+fi
+
+status=0
+for project in "${!project_files[@]}"; do
+  mapfile -t project_changed < <(printf '%s' "${project_files[$project]}")
+  echo "Analyzing changed file(s) in $project:"
+  printf '  %s\n' "${project_changed[@]}"
+  if ! dotnet format analyzers "$project" \
+    --verify-no-changes \
+    --severity warn \
+    --include "${project_changed[@]}"; then
+    status=1
+  fi
+done
+
+exit "$status"
+'''
+
+[tasks.test-architecture]
+description = "Runs the ArchUnitNET architecture test suite"
+run = "dotnet test tests/MakaMek.Architecture.Tests/MakaMek.Architecture.Tests.csproj"

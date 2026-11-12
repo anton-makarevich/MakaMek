@@ -26,5 +26,10 @@ jobs:
         with:
           global-json-file: global.json
 
+      - name: Setup mise
+        uses: jdx/mise-action@v5
+        with:
+          install: false
+
       - name: Run architecture tests
-        run: dotnet test tests/MakaMek.Architecture.Tests/MakaMek.Architecture.Tests.csproj
+        run: mise run test-architecture
