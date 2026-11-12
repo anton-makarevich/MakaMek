@@ -6,10 +6,15 @@
         <AvaloniaVersion>12.1.6</AvaloniaVersion>
         <!-- Single source of truth for the Avalonia Developer Tools version (global 'avdt' tool and the Debug-only AvaloniaUI.DiagnosticsSupport package). Keep both in sync with the installed tool. -->
         <AvaloniaDevToolsVersion>2.2.3</AvaloniaDevToolsVersion>
-        <!-- Deterministic analyzer gate (see issue #1708). -->
+        <!-- Deterministic analyzer gate (see issue #1708). Tools and source generators are
+             disposable utilities, so they opt out of the quality gates entirely. -->
         <SonarAnalyzerVersion>10.36.0.15337</SonarAnalyzerVersion>
-        <AnalysisMode>Recommended</AnalysisMode>
-        <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+        <SkipDeterministicAnalyzers Condition="'$(SkipDeterministicAnalyzers)' == ''">false</SkipDeterministicAnalyzers>
+        <SkipDeterministicAnalyzers Condition="$([System.String]::Copy('$(MSBuildProjectDirectory)').Replace('\', '/').Contains('/src/MakaMek.Tools'))">true</SkipDeterministicAnalyzers>
+        <SkipDeterministicAnalyzers Condition="$([System.String]::Copy('$(MSBuildProjectDirectory)').Replace('\', '/').Contains('/src/MakaMek.SourceGenerators'))">true</SkipDeterministicAnalyzers>
+        <AnalysisMode Condition="'$(SkipDeterministicAnalyzers)' != 'true'">Recommended</AnalysisMode>
+        <EnforceCodeStyleInBuild Condition="'$(SkipDeterministicAnalyzers)' != 'true'">true</EnforceCodeStyleInBuild>
+        <EnableNETAnalyzers Condition="'$(SkipDeterministicAnalyzers)' == 'true'">false</EnableNETAnalyzers>
         <Version Condition="'$(VersionSuffix)' == ''">$(VersionPrefix)</Version>
         <Authors>Anton Makarevich</Authors>
         <Company>Anton Makarevich</Company>
@@ -18,12 +23,12 @@
     </PropertyGroup>
 
     <!-- Code-metrics thresholds (CA1502/CA1506) validated by CA1509. -->
-    <ItemGroup>
+    <ItemGroup Condition="'$(SkipDeterministicAnalyzers)' != 'true'">
         <AdditionalFiles Include="$(MSBuildThisFileDirectory)CodeMetricsConfig.txt" />
     </ItemGroup>
 
-    <!-- Analyzer-only, applies to every project; rule severities live in .editorconfig. -->
-    <ItemGroup>
+    <!-- Analyzer-only, applies to every non-disposable project; rule severities live in .editorconfig. -->
+    <ItemGroup Condition="'$(SkipDeterministicAnalyzers)' != 'true'">
         <PackageReference Include="SonarAnalyzer.CSharp" Version="$(SonarAnalyzerVersion)" PrivateAssets="all"
                           IncludeAssets="runtime; build; native; contentfiles; analyzers; buildtransitive" />
     </ItemGroup>

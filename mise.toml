@@ -84,6 +84,10 @@ fi
 declare -A project_files
 for file in "${files[@]}"; do
   case "$file" in
+    src/MakaMek.Tools/*|src/MakaMek.SourceGenerators/*)
+      echo "Skipping disposable code: $file" >&2
+      continue
+      ;;
     *.cs) ;;
     *) continue ;;
   esac
