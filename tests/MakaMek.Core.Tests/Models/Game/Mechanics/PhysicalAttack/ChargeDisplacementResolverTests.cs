@@ -1,5 +1,7 @@
 using NSubstitute;
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
+using Sanet.MakaMek.Core.Data.Game.Mechanics.PhysicalAttacks;
+using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Displacement;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.PhysicalAttack;
@@ -74,6 +76,39 @@ public class ChargeDisplacementResolverTests
         result.AttackerDestination!.Coordinates.ShouldBe(TargetCoordinates);
     }
 
+    /// <summary>
+    /// A 'Mech airborne for a pending Death From Above is not a ground occupant: the target is
+    /// displaced into its hex without a domino and the airborne unit cannot be displaced
+    /// (Total Warfare p.149).
+    /// </summary>
+    [Fact]
+    public void ResolveHit_WhenTheDestinationIsHeldOnlyByAnAirborneDfaAttacker_DoesNotDisplaceIt()
+    {
+        // Arrange
+        var map = CreateMap();
+        var attacker = CreateMech(new HexPosition(AttackerCoordinates, ChargeDirection));
+        var target = CreateMech(new HexPosition(TargetCoordinates, HexDirection.Bottom));
+        var dfaAttacker = CreateMech(new HexPosition(
+            TargetCoordinates.GetNeighbour(ChargeDirection), HexDirection.Bottom, AirborneLevel: 4));
+        dfaAttacker.DeclarePhysicalAttack(new PhysicalAttackDeclarationData
+        {
+            AttackType = PhysicalAttackType.DFA,
+            AttackerLimbs = [],
+            TargetId = attacker.Id
+        });
+        MoveToChargeApproach(attacker, target.Position!);
+
+        // Act
+        var result = _sut.ResolveHit(
+            attacker, target, map, [attacker, target, dfaAttacker], Guid.NewGuid());
+
+        // Assert
+        result.ShouldNotBeNull();
+        result.DominoEffect.ShouldBeNull();
+        result.TargetDestination!.Coordinates.ShouldBe(TargetCoordinates.GetNeighbour(ChargeDirection));
+        result.AttackerDestination!.Coordinates.ShouldBe(TargetCoordinates);
+    }
+
     [Fact]
     public void ResolveHit_WhenBothUnitsAreDestroyed_ReturnsNull()
     {
@@ -93,8 +128,7 @@ public class ChargeDisplacementResolverTests
     }
 
     [Fact]
-    public void ResolveHit_WhenThePrimaryHexIsProhibitedTerrain_LeavesBothUnitsInPlace()
-    {
+    public void ResolveHit_WhenThePrimaryHexIsProhibitedTerrain_LeavesBothUnitsInPlace()    {
         // Arrange: the hex behind the target is too high to enter, so the target cannot be pushed.
         var map = CreateMap();
         var attacker = CreateMech(new HexPosition(AttackerCoordinates, ChargeDirection));
@@ -273,37 +307,6 @@ public class ChargeDisplacementResolverTests
     }
 
     [Fact]
-    public void ResolveAdvance_WhenTheAttackerIsDestroyed_ReturnsNull()
-    {
-        // Arrange
-        var attacker = CreateMech(new HexPosition(AttackerCoordinates, ChargeDirection));
-        MoveToChargeApproach(attacker, new HexPosition(TargetCoordinates, ChargeDirection));
-        Destroy(attacker);
-
-        // Act
-        var result = _sut.ResolveAdvance(attacker);
-
-        // Assert
-        result.ShouldBeNull();
-    }
-
-    [Fact]
-    public void ResolveAdvance_MovesTheAttackerToTheCommittedDestination()
-    {
-        // Arrange
-        var attacker = CreateMech(new HexPosition(AttackerCoordinates, ChargeDirection));
-        MoveToChargeApproach(attacker, new HexPosition(TargetCoordinates, ChargeDirection));
-
-        // Act
-        var result = _sut.ResolveAdvance(attacker);
-
-        // Assert
-        result.ShouldNotBeNull();
-        result.TargetDestination.ShouldBeNull();
-        result.AttackerDestination!.Coordinates.ShouldBe(TargetCoordinates);
-    }
-
-    [Fact]
     public void ResolveHit_WhenTheOccupiedHexCannotBeDislodged_LeavesBothUnitsInPlace()
     {
         // Arrange: the occupant's own destination is too high, so the domino chain is blocked
@@ -395,19 +398,6 @@ public class ChargeDisplacementResolverTests
 
         // Act
         var result = _sut.ResolveHit(attacker, target, map, [attacker, target]);
-
-        // Assert
-        result.ShouldBeNull();
-    }
-
-    [Fact]
-    public void ResolveAdvance_WithoutACommittedMovement_ReturnsNull()
-    {
-        // Arrange
-        var attacker = CreateMech(new HexPosition(AttackerCoordinates, ChargeDirection));
-
-        // Act
-        var result = _sut.ResolveAdvance(attacker);
 
         // Assert
         result.ShouldBeNull();

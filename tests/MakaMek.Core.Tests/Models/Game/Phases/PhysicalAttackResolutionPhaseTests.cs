@@ -33,6 +33,8 @@ public class PhysicalAttackResolutionPhaseTests : GamePhaseTestsBase
     private static readonly HexCoordinates AttackerHex = new(5, 5);
     private static readonly HexCoordinates TargetHex = AttackerHex.GetNeighbour(HexDirection.Top);
     private static readonly HexCoordinates DestinationHex = TargetHex.GetNeighbour(HexDirection.Top);
+    // A failed charge places the attacker in the right or left side hex of its forward arc (right first).
+    private static readonly HexCoordinates SideHex = AttackerHex.GetNeighbour(HexDirection.TopRight);
 
     private PhysicalAttackResolutionPhase _sut = null!;
     private IGamePhase _mockNextPhase = null!;
@@ -331,7 +333,9 @@ public class PhysicalAttackResolutionPhaseTests : GamePhaseTestsBase
         resolution.ResolutionData.AttackResolution.IsHit.ShouldBeFalse();
         resolution.ResolutionData.PsrRequirements.ShouldBeEmpty();
         MockPhysicalAttackResolver.DidNotReceiveWithAnyArgs().ResolveCharge(null!);
-        _player1Mech.Position!.Coordinates.ShouldBe(TargetHex);
+        _player1Mech.Position!.Coordinates.ShouldBe(SideHex);
+        PublishedCommands().OfType<DisplaceUnitCommand>().ShouldHaveSingleItem()
+            .DisplacementReason.ShouldBe(DisplacementReason.ChargeMiss);
         PublishedCommands().OfType<MechFallCommand>().ShouldBeEmpty();
     }
 
@@ -354,6 +358,112 @@ public class PhysicalAttackResolutionPhaseTests : GamePhaseTestsBase
         MockPhysicalAttackResolver.DidNotReceiveWithAnyArgs().ResolveCharge(null!);
         _player1Mech.Position!.Coordinates.ShouldBe(AttackerHex);
         PublishedCommands().OfType<DisplaceUnitCommand>().ShouldBeEmpty();
+    }
+
+    /// <summary>
+    /// A 'Mech making a Death From Above cannot be the target of a physical attack, so a charge
+    /// declared against it auto-fails. A failed charge never ends in the target hex: the attacker
+    /// is placed in a side hex of its forward arc (Total Warfare p.148-149).
+    /// </summary>
+    [Fact]
+    public void Enter_ChargeAutoFails_WhenTheDeclaredTargetPerformsDfa_AndMovesToASideHex()
+    {
+        // Arrange
+        SetMap();
+        SetUpCharge(_player1Mech, _player2Mech);
+        Declare(_player2Mech, _player1Mech, PhysicalAttackType.DFA);
+        CommandPublisher.ClearReceivedCalls();
+
+        // Act
+        _sut.Enter();
+
+        // Assert
+        var resolution = PublishedCommands().OfType<PhysicalAttackResolutionCommand>()
+            .ShouldHaveSingleItem();
+        resolution.ResolutionData.Charge!.Outcome.ShouldBe(ChargeOutcome.AutoFail);
+        resolution.ResolutionData.AttackResolution.IsHit.ShouldBeFalse();
+        resolution.ResolutionData.PsrRequirements.ShouldBeEmpty();
+        MockPhysicalAttackResolver.DidNotReceiveWithAnyArgs().ResolveCharge(null!);
+        _player1Mech.Position!.Coordinates.ShouldBe(SideHex);
+        PublishedCommands().OfType<DisplaceUnitCommand>().ShouldHaveSingleItem()
+            .DisplacementReason.ShouldBe(DisplacementReason.ChargeMiss);
+        PublishedCommands().OfType<MechFallCommand>().ShouldBeEmpty();
+    }
+
+    /// <summary>
+    /// The p.149 immunity applies to replacement targets too: when the declared target left the hex
+    /// and only a pending-DFA 'Mech occupies it, the charge auto-fails instead of resolving against
+    /// the DFA performer. The failed charge lands in a side hex, and the airborne 'Mech is never
+    /// displaced.
+    /// </summary>
+    [Fact]
+    public void Enter_ChargeAutoFails_WhenOnlyADfaPerformerOccupiesTheDestinationHex()
+    {
+        // Arrange: the declared target is displaced and a DFA performer now hovers over its hex.
+        SetMap();
+        SetUpCharge(_player1Mech, _player2Mech);
+        _player2Mech.Move(
+            new MovementPath([new PathSegment(
+                _player2Mech.Position!, new HexPosition(new HexCoordinates(2, 2), HexDirection.Bottom),
+                [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])], MovementType.Walk),
+            null);
+        var dfaPerformer = CreateMech();
+        ((Player)Game.Players[1]).AddUnit(dfaPerformer);
+        dfaPerformer.Deploy(new HexPosition(TargetHex, HexDirection.Bottom, AirborneLevel: 4), null);
+        Declare(dfaPerformer, _player1Mech, PhysicalAttackType.DFA);
+        CommandPublisher.ClearReceivedCalls();
+
+        // Act
+        _sut.Enter();
+
+        // Assert: the charge fails against nobody and never targets the DFA performer.
+        var resolution = PublishedCommands().OfType<PhysicalAttackResolutionCommand>()
+            .ShouldHaveSingleItem();
+        resolution.ResolutionData.Charge!.Outcome.ShouldBe(ChargeOutcome.AutoFail);
+        resolution.TargetId.ShouldBe(_player2Mech.Id);
+        MockPhysicalAttackResolver.DidNotReceiveWithAnyArgs().ResolveCharge(null!);
+
+        // The charger lands in a side hex; the airborne 'Mech stays where it is.
+        _player1Mech.Position!.Coordinates.ShouldBe(SideHex);
+        PublishedCommands().OfType<DisplaceUnitCommand>().ShouldHaveSingleItem()
+            .DisplacementReason.ShouldBe(DisplacementReason.ChargeMiss);
+        PublishedCommands().OfType<DisplaceUnitCommand>()
+            .ShouldNotContain(command => command.UnitId == dfaPerformer.Id);
+        dfaPerformer.Position!.Coordinates.ShouldBe(TargetHex);
+        dfaPerformer.Position.AirborneLevel.ShouldBe(4);
+    }
+
+    /// <summary>
+    /// A grounded unit that still holds the destination hex changes nothing about a failed charge:
+    /// the attacker is placed in a side hex of its forward arc, never in the occupied hex.
+    /// </summary>
+    [Fact]
+    public void Enter_ChargeAutoFails_WhenAGroundedUnitOccupiesTheDestination_AndMovesToASideHex()
+    {
+        // Arrange
+        SetMap();
+        SetUpCharge(_player1Mech, _player2Mech);
+        _player2Mech.Move(
+            new MovementPath([new PathSegment(
+                _player2Mech.Position!, new HexPosition(new HexCoordinates(2, 2), HexDirection.Bottom),
+                [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])], MovementType.Walk),
+            null);
+        var friendly = CreateMech();
+        ((Player)Game.Players[0]).AddUnit(friendly);
+        friendly.Deploy(new HexPosition(TargetHex, HexDirection.Bottom), null);
+        CommandPublisher.ClearReceivedCalls();
+
+        // Act
+        _sut.Enter();
+
+        // Assert
+        PublishedCommands().OfType<PhysicalAttackResolutionCommand>().ShouldHaveSingleItem()
+            .ResolutionData.Charge!.Outcome.ShouldBe(ChargeOutcome.AutoFail);
+        MockPhysicalAttackResolver.DidNotReceiveWithAnyArgs().ResolveCharge(null!);
+        _player1Mech.Position!.Coordinates.ShouldBe(SideHex);
+        friendly.Position!.Coordinates.ShouldBe(TargetHex);
+        PublishedCommands().OfType<DisplaceUnitCommand>().ShouldHaveSingleItem()
+            .DisplacementReason.ShouldBe(DisplacementReason.ChargeMiss);
     }
 
     [Fact]
