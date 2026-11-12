@@ -46,5 +46,6 @@
     <Project Path="tests/MakaMek.Assets.Tests/MakaMek.Assets.Tests.csproj" />
     <Project Path="tests/MakaMek.Localization.Tests/MakaMek.Localization.Tests.csproj" />
     <Project Path="tests/MakaMek.Services.Tests/MakaMek.Services.Tests.csproj" />
+    <Project Path="tests/MakaMek.Architecture.Tests/MakaMek.Architecture.Tests.csproj" />
   </Folder>
 </Solution>

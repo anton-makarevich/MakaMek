@@ -21,6 +21,12 @@ MakaMek is a cross-platform, turn-based tactical BattleTech implementation built
   The coverage filter uses the source assembly name (test assembly name minus `.Tests`). See `skills/coverage-check`.
 - **Diff-coverage (PR pipeline):** [Cocodif](https://github.com/sanet/Cocodif) runs as a composite GitHub Action in each coverage workflow. It parses the coverlet OpenCover XML, computes `git diff --merge-base` against the PR base branch, and posts a per-file diff-coverage report as a sticky PR comment (one per module). The action is informational only — no `fail-under` gate. Each module workflow passes its own `coverage.opencover.xml`, `include` globs scoped to `src/<Module>/**`, and a unique `comment-marker` so reports don't collide. For local diff-coverage, install the CLI: `dotnet tool install --global Sanet.Cocodif`.
 - **Run the desktop app:** `dotnet run --project src/MakaMek.Avalonia/MakaMek.Avalonia.Desktop`
+- **Analyzer gate (new/changed files only):**
+  ```bash
+  dotnet format analyzers MakaMek.slnx --verify-no-changes --severity warn --include <changed .cs files...>
+  ```
+  CI groups the changed files by owning project and runs the same command per project (avoids loading Android/iOS heads). Rules and thresholds: root `.editorconfig` (`CA1501`/`CA1502`/`CA1505`/`CA1506`/`CA1509`, Sonar `S3776`) and `CodeMetricsConfig.txt` (`CA1502: 15`, `CA1506: 40`). Pre-existing debt is intentionally not part of the gate — only new/changed code is checked.
+- **Architecture rules:** `dotnet test tests/MakaMek.Architecture.Tests/MakaMek.Architecture.Tests.csproj` — ArchUnitNET checks for the Avalonia → Presentation → Core direction, UiState/command/mechanics placement, and ViewModel base types.
 
 Assembly/root namespaces are prefixed `Sanet.` (e.g. `MakaMek.Core` → `Sanet.MakaMek.Core`), even though project/folder names omit it.
 

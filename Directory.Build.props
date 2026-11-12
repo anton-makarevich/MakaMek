@@ -1,17 +1,32 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project>
     <PropertyGroup>
-        <VersionPrefix>0.66.12</VersionPrefix>
+        <VersionPrefix>0.66.13</VersionPrefix>
         <!-- Single source of truth for the Avalonia version (platform packages, Skia, themes, Browser head, headless tests). -->
         <AvaloniaVersion>12.1.6</AvaloniaVersion>
         <!-- Single source of truth for the Avalonia Developer Tools version (global 'avdt' tool and the Debug-only AvaloniaUI.DiagnosticsSupport package). Keep both in sync with the installed tool. -->
         <AvaloniaDevToolsVersion>2.2.3</AvaloniaDevToolsVersion>
+        <!-- Deterministic analyzer gate (see issue #1708). -->
+        <SonarAnalyzerVersion>10.36.0.15337</SonarAnalyzerVersion>
+        <AnalysisMode>Recommended</AnalysisMode>
+        <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
         <Version Condition="'$(VersionSuffix)' == ''">$(VersionPrefix)</Version>
         <Authors>Anton Makarevich</Authors>
         <Company>Anton Makarevich</Company>
         <PackageLicenseExpression>GPL-3.0-only</PackageLicenseExpression>
         <PackageReadmeFile>README.md</PackageReadmeFile>
     </PropertyGroup>
+
+    <!-- Code-metrics thresholds (CA1502/CA1506) validated by CA1509. -->
+    <ItemGroup>
+        <AdditionalFiles Include="$(MSBuildThisFileDirectory)CodeMetricsConfig.txt" />
+    </ItemGroup>
+
+    <!-- Analyzer-only, applies to every project; rule severities live in .editorconfig. -->
+    <ItemGroup>
+        <PackageReference Include="SonarAnalyzer.CSharp" Version="$(SonarAnalyzerVersion)" PrivateAssets="all"
+                          IncludeAssets="runtime; build; native; contentfiles; analyzers; buildtransitive" />
+    </ItemGroup>
 
     <!-- Invoked from `mise run install-devtools`; update||install keeps a missing/fresh global tool working. -->
     <Target Name="InstallAvaloniaDevTools">
