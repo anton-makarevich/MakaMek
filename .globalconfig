@@ -1,0 +1,5 @@
+# Some diagnostics (CA1509 — invalid CodeMetricsConfig.txt entries) can only be
+# enabled from a global analyzer config, not from .editorconfig.
+is_global = true
+
+dotnet_diagnostic.CA1509.severity = warning

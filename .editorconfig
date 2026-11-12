@@ -1,0 +1,22 @@
+# Root editor config for the analyzer gates (see issue #1708).
+# Formatting/style rules are intentionally not enforced yet; only analyzer
+# severities that drive `dotnet format analyzers --severity warn` live here.
+
+root = true
+
+[*.cs]
+# Disable every analyzer rule by default ("Sonar way" is too noisy for this
+# phase); the deterministic gates below opt individual rules back in.
+dotnet_analyzer_diagnostic.severity = none
+
+# --- Built-in .NET code-metrics rules (thresholds in CodeMetricsConfig.txt) ---
+dotnet_diagnostic.CA1501.severity = warning
+dotnet_diagnostic.CA1502.severity = warning
+dotnet_diagnostic.CA1505.severity = warning
+dotnet_diagnostic.CA1506.severity = warning
+# CA1509 (invalid CodeMetricsConfig.txt) must live in .globalconfig.
+
+# --- SonarAnalyzer.CSharp ---
+# Phase 1 enables cognitive complexity only; the rest of the legacy Sonar
+# ruleset stays out of scope to avoid an unrelated-debt avalanche.
+dotnet_diagnostic.S3776.severity = warning

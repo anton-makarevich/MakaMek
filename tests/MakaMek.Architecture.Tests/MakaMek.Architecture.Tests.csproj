@@ -1,0 +1,40 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <AssemblyName>Sanet.MakaMek.Architecture.Tests</AssemblyName>
+    <RootNamespace>Sanet.MakaMek.Architecture.Tests</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.11.0" />
+    <PackageReference Include="Shouldly" Version="4.3.0" />
+    <PackageReference Include="TngTech.ArchUnitNET.xUnit" Version="0.13.5" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="4.0.1">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\MakaMek.Core\MakaMek.Core.csproj" />
+    <ProjectReference Include="..\..\src\MakaMek.Map\MakaMek.Map.csproj" />
+    <ProjectReference Include="..\..\src\MakaMek.Services\MakaMek.Services.csproj" />
+    <ProjectReference Include="..\..\src\MakaMek.Localization\MakaMek.Localization.csproj" />
+    <ProjectReference Include="..\..\src\MakaMek.Assets\MakaMek.Assets.csproj" />
+    <ProjectReference Include="..\..\src\MakaMek.Bots\MakaMek.Bots.csproj" />
+    <ProjectReference Include="..\..\src\MakaMek.Presentation\MakaMek.Presentation.csproj" />
+    <ProjectReference Include="..\..\src\MakaMek.Avalonia\MakaMek.Avalonia\MakaMek.Avalonia.csproj" />
+    <ProjectReference Include="..\..\src\MakaMek.Avalonia\MakaMek.Avalonia.Controls\MakaMek.Avalonia.Controls.csproj" />
+    <ProjectReference Include="..\..\src\MakaMek.Avalonia\MakaMek.Services.Avalonia\MakaMek.Services.Avalonia.csproj" />
+  </ItemGroup>
+
+</Project>

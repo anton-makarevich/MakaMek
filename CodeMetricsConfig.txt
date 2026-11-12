@@ -1,0 +1,4 @@
+# Code-metrics thresholds consumed by the .NET analyzers (CA1502 / CA1506).
+# Syntax: <rule id>: <threshold>. CA1509 validates this file.
+CA1502: 15
+CA1506: 40

@@ -1,0 +1,45 @@
+name: Analyzer Gate
+
+permissions:
+  contents: read
+
+on:
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'tests/**'
+      - 'Directory.Build.props'
+      - '.editorconfig'
+      - '.globalconfig'
+      - 'CodeMetricsConfig.txt'
+      - 'mise.toml'
+      - '.github/workflows/analyzers.yml'
+
+jobs:
+  changed-code-analyzers:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+
+      - name: Setup mise
+        uses: jdx/mise-action@v5
+        with:
+          install: false
+
+      - name: Verify analyzers on changed files
+        env:
+          ANALYZER_BASE: origin/${{ github.base_ref }}
+        run: |
+          git fetch --no-tags origin "${{ github.base_ref }}"
+          mise run analyzer-gate
