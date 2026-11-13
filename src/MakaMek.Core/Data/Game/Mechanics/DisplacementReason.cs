@@ -17,5 +17,17 @@ public enum DisplacementReason
     ChargeAdvance,
 
     /// <summary>A missed charge placed the charging unit in a side hex of its forward arc.</summary>
-    ChargeMiss
+    ChargeMiss,
+
+    /// <summary>A successful Death From Above displaced its target one hex along the jump line.</summary>
+    DfaTarget,
+
+    /// <summary>The Death From Above attacker landed in the target's vacated hex.</summary>
+    DfaAttackerLanding,
+
+    /// <summary>A missed Death From Above placed the attacker in the target hex before its fall.</summary>
+    DfaMissLanding,
+
+    /// <summary>A failed Death From Above placed the attacker in its approach hex.</summary>
+    DfaAutoFailLanding
 }

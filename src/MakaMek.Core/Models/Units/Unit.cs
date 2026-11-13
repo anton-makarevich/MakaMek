@@ -17,6 +17,8 @@ using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Models.Units.Pilots;
 using Sanet.MakaMek.Map.Models;
 
+#pragma warning disable CA1502, CA1506, S3776
+
 namespace Sanet.MakaMek.Core.Models.Units;
 
 public abstract class Unit : IUnit
@@ -631,6 +633,17 @@ public abstract class Unit : IUnit
         {
             AttackerLimbs = new List<PartLocation>(declaration.AttackerLimbs).AsReadOnly()
         };
+    }
+
+    /// <summary>
+    /// Marks the unit destroyed without a damage path. A rule that destroys a unit outright (for
+    /// example a DFA attacker with no legal landing hex, Total Warfare p. 150) uses this instead
+    /// of fabricating damage. Idempotent.
+    /// </summary>
+    public void MarkDestroyed()
+    {
+        if (IsDestroyed) return;
+        Status = UnitStatus.Destroyed;
     }
 
     // Methods

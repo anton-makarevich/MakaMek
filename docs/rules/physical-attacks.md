@@ -127,9 +127,11 @@ is added.
 * **Water eligibility:** unchanged. Whether a DFA may be declared at all (including the
   submerged-attacker rejection) is decided before the move, when the attacker is grounded.
 * **Lifecycle:** the airborne value ends deterministically when the pending movement attack ends —
-  on attacker destruction and on the turn reset (`ResetTurnState`). Displacement also grounds the
-  position. The DFA resolution slice must clear the declaration and the airborne level when the
-  attack resolves, and apply the deferred weapon-phase fall.
+  on attacker destruction and on the turn reset (`ResetTurnState`). The DFA resolution slice grounds
+  the attacker through the displacement pipeline: a hit lands it in the target's original hex, a
+  miss or a destroyed target lands it there before the automatic two-level rear fall, and an
+  auto-fail places it in its approach hex. The declaration itself remains turn-scoped and is cleared
+  by `ResetTurnState` at the end of the turn.
 * **Serialization / reconstruction:** `Unit.ToData` exports the airborne position through the
   optional `HexPositionData.AirborneLevel`; the declaration itself is not exported. `MechFactory`
   and `CloneUnit` do not restore the position, so a reconstructed unit is undeployed and never
@@ -142,7 +144,6 @@ is added.
   hexes.
 * **Facing** toward the target: the stop position keeps the facing of the last translation rather
   than being turned toward the declared target hex.
-* **Resolution clearing and deferred fall** for the DFA, linked to #1510.
 * `MoveUnitCommand.GetPayloadHash` omits the surface and `AirborneLevel`; the value is derived, so
   hashing it is not required for correctness today.
 
@@ -306,7 +307,7 @@ The water rules decide whether a physical attack may be **made at all** — they
 * **DFA:** the attack is **never** entirely underwater. A fully submerged target is rejected by an explicit check because DFA has no level comparison to fall back on. A fully submerged attacker is also rejected, but under the **jump-jet rule** ("jump jets cannot be fired while submerged"), not under the physical-attack water rule. A 'Mech in Depth 1 water can still jump with its torso-mounted jets.
 * **DFA against a target standing in Depth 1 water:** legal. A standing 'Mech is waist-deep, so its torso and head remain above the surface and it is **not** submerged; the target-side rule only protects a fully submerged unit. The attacker needs enough Jumping MP to clear the target hex's standing level plus the target's height (for a Depth 1 hex at level 0 the waterbed is −1 and a standing 'Mech reaches +1). If the DFA lands in the water hex, the attacker makes a landing PSR; on success it stands on the waterbed, on failure it falls onto the waterbed.
 
-**Implementation scope:** `PhysicalAttackEligibility` applies the Punch/Kick/Push rules (and the effective-standing-level comparison) to physical-phase declarations; the same rules are re-checked at resolution time via `CanResolve` and `PhysicalAttackTargetValidityGate`, so a declaration that has become illegal by resolution is skipped automatically. `MovementAttackDeclarationValidator` applies the Charge/DFA declaration rules. **Charge/DFA resolution is not implemented yet**, so the resolution-time water rules (half damage, hull breach on a charge) are tracked separately (#1503 and the Charge/DFA milestones).
+**Implementation scope:** `PhysicalAttackEligibility` applies the Punch/Kick/Push rules (and the effective-standing-level comparison) to physical-phase declarations; the same rules are re-checked at resolution time via `CanResolve` and `PhysicalAttackTargetValidityGate`, so a declaration that has become illegal by resolution is skipped automatically. `MovementAttackDeclarationValidator` applies the Charge/DFA declaration rules. Charge and DFA resolutions live in `PhysicalAttackResolutionPhase`: a charge applies the charge water rules, and a DFA grounds the attacker through the displacement pipeline, with a two-level rear fall on a miss. The DFA landing PSR carries the water-entry modifier when the attacker lands in water (Depth 1 −1, Depth 2 0, Depth 3+ +1).
 
 ---
 

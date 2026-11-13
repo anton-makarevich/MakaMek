@@ -37,6 +37,9 @@ public class PhysicalAttackCalculator : IPhysicalAttackCalculator
 
     public int GetToHitNumber(IUnit attacker, IUnit target, PhysicalAttackType attackType, IBattleMap map)
     {
+        if (attackType == PhysicalAttackType.DFA)
+            return GetDfaToHitNumber(attacker, target, map);
+
         var scenario = PhysicalAttackScenario.FromUnits(attacker, target, attackType);
         return GetModifierBreakdown(scenario, map).Total;
     }
@@ -46,13 +49,20 @@ public class PhysicalAttackCalculator : IPhysicalAttackCalculator
 
     public PhysicalAttackBreakdown GetModifierBreakdown(IUnit attacker, IUnit target, PhysicalAttackType attackType, IBattleMap map)
     {
+        if (attackType == PhysicalAttackType.DFA)
+            return GetDfaModifierBreakdown(attacker, target, map);
+
         var scenario = PhysicalAttackScenario.FromUnits(attacker, target, attackType);
         return GetModifierBreakdown(scenario, map);
     }
 
     public int GetToHitNumber(PhysicalAttackScenario scenario, IBattleMap map)
     {
-        return GetModifierBreakdown(scenario, map).Total;
+        // Movement attacks add the relative-piloting modifier on top of the standard physical
+        // attack modifiers, exactly as the resolution path does.
+        return PhysicalAttackDefinitions.IsMovementAttack(scenario.AttackType)
+            ? GetMovementAttackModifierBreakdown(scenario, map).Total
+            : GetModifierBreakdown(scenario, map).Total;
     }
 
     public PhysicalAttackBreakdown GetModifierBreakdown(PhysicalAttackScenario scenario, IBattleMap map)
@@ -165,6 +175,17 @@ public class PhysicalAttackCalculator : IPhysicalAttackCalculator
     /// <inheritdoc />
     public int GetChargeToHitNumber(IUnit attacker, IUnit target, IBattleMap map, bool isReplacementTarget) =>
         GetChargeModifierBreakdown(attacker, target, map, isReplacementTarget).Total;
+
+    /// <inheritdoc />
+    public PhysicalAttackBreakdown GetDfaModifierBreakdown(IUnit attacker, IUnit target, IBattleMap map)
+    {
+        var scenario = PhysicalAttackScenario.FromUnits(attacker, target, PhysicalAttackType.DFA);
+        return GetMovementAttackModifierBreakdown(scenario, map);
+    }
+
+    /// <inheritdoc />
+    public int GetDfaToHitNumber(IUnit attacker, IUnit target, IBattleMap map) =>
+        GetDfaModifierBreakdown(attacker, target, map).Total;
 
     /// <summary>
     /// A push adds +2 for each damaged shoulder actuator across the attacker's arms. It is not a

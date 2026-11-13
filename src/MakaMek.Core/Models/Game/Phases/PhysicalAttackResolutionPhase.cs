@@ -1,10 +1,12 @@
 using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Game.Commands;
+using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
 using Sanet.MakaMek.Core.Data.Game.Mechanics.PhysicalAttacks;
 using Sanet.MakaMek.Core.Data.Game.Mechanics.PilotingSkillRollContexts;
+using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Movement;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Movement.Actions;
@@ -13,6 +15,8 @@ using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Map.Models;
+
+#pragma warning disable CA1502, CA1506, S3776
 
 namespace Sanet.MakaMek.Core.Models.Game.Phases;
 
@@ -35,7 +39,8 @@ namespace Sanet.MakaMek.Core.Models.Game.Phases;
 public class PhysicalAttackResolutionPhase(
     ServerGame game,
     PushDisplacementResolver pushDisplacementResolver,
-    ChargeDisplacementResolver chargeDisplacementResolver) : GamePhase(game)
+    ChargeDisplacementResolver chargeDisplacementResolver,
+    DfaDisplacementResolver dfaDisplacementResolver) : GamePhase(game)
 {
     private readonly IReadOnlyList<IPhysicalAttackResolutionGate> _gates =
     [
@@ -49,6 +54,14 @@ public class PhysicalAttackResolutionPhase(
         _pushHitContexts = new();
     private readonly PushDisplacementResolver _pushDisplacementResolver = pushDisplacementResolver;
     private readonly ChargeDisplacementResolver _chargeDisplacementResolver = chargeDisplacementResolver;
+    private readonly DfaDisplacementResolver _dfaDisplacementResolver = dfaDisplacementResolver;
+
+    private List<ResolutionQueueItem> _queue = [];
+    private int _cursor;
+    private bool _isProcessing;
+    private HashSet<(Guid AttackerId, Guid TargetId)> _reciprocalPushes = [];
+    private List<PushOutcome> _deferredPushes = [];
+    private DfaPendingSelection? _pendingDfaSelection;
 
     private readonly record struct AttackQueueItem(IPlayer Player, PhysicalAttackContext Context);
 
@@ -59,66 +72,193 @@ public class PhysicalAttackResolutionPhase(
         int HexesMoved,
         bool AttackerAutoFail);
 
+    private sealed record DfaQueueItem(
+        IPlayer Player,
+        IUnit Attacker,
+        Guid DeclaredTargetId,
+        HexCoordinates DeclaredTargetCoordinates,
+        HexSurface DeclaredTargetSurface,
+        HexCoordinates StartCoordinates,
+        HexPosition ApproachCoordinates);
+
     /// <summary>
-    /// One attack of the phase in resolution order: either a limb-based attack or a charge.
+    /// One attack of the phase in resolution order: a limb-based attack, a charge, or a DFA.
     /// </summary>
-    private sealed record ResolutionQueueItem(AttackQueueItem? Attack, ChargeQueueItem? Charge);
+    private sealed record ResolutionQueueItem(
+        AttackQueueItem? Attack,
+        ChargeQueueItem? Charge,
+        DfaQueueItem? Dfa);
 
     private sealed record PushOutcome(IUnit Attacker, IUnit Target, bool IsHit, bool IsReciprocal);
+
+    /// <summary>
+    /// A DFA miss whose target displacement needs a controller's choice. The phase pauses until a
+    /// selection arrives; every input needed to finish the resolution is snapshotted here.
+    /// </summary>
+    private sealed record DfaPendingSelection(
+        Guid RequestId,
+        Guid OwnerPlayerId,
+        IUnit Attacker,
+        IUnit Target,
+        HexPosition TargetPosition,
+        IReadOnlyList<DfaMissDisplacementCandidate> Candidates);
 
     public override void Enter()
     {
         base.Enter();
         _accumulatedDamage.Clear();
         _pushHitContexts.Clear();
+        _deferredPushes = [];
+        _pendingDfaSelection = null;
+        _cursor = 0;
+        _isProcessing = false;
 
-        // The queue is snapshotted before any damage: a charge must still resolve when an earlier
+        // The queue is snapshotted before any damage: an attack must still resolve when an earlier
         // attack of the phase destroys its attacker or target, and Unit clears a destroyed unit's
         // pending declaration.
-        var queue = BuildResolutionQueue();
-        var reciprocalPushes = GetReciprocalPushPairs(queue);
-        List<PushOutcome> deferredPushes = [];
+        _queue = BuildResolutionQueue();
+        _reciprocalPushes = GetReciprocalPushPairs(_queue);
 
-        foreach (var item in queue)
-        {
-            if (item.Charge is { } charge)
-            {
-                ResolveCharge(charge);
-                continue;
-            }
-
-            var attack = item.Attack!.Value;
-            var resolution = ResolveAttack(attack);
-            if (attack.Context.AttackType != PhysicalAttackType.Push) continue;
-
-            var push = new PushOutcome(
-                attack.Context.Attacker,
-                attack.Context.Target,
-                resolution.AttackResolution.IsHit,
-                reciprocalPushes.Contains((attack.Context.Attacker.Id, attack.Context.Target.Id)));
-
-            if (!push.IsHit) continue;
-
-            // A mutual push pair needs both rolls before either unit moves (Total Warfare p. 148);
-            // every other push displaces its units immediately after the attack.
-            if (push.IsReciprocal)
-            {
-                deferredPushes.Add(push);
-                continue;
-            }
-
-            ApplyPushDisplacement(push.Attacker, push.Target);
-        }
-
-        ApplyReciprocalPushDisplacements(deferredPushes);
-
-        CalculateEndOfPhasePsrs();
-        Game.TransitionToNextPhase(Name);
+        ProcessQueue();
     }
 
     public override void HandleCommand(IGameCommand command)
     {
-        // This phase doesn't process incoming commands, but we need to implement this method
+        if (command is not SelectPhysicalAttackDisplacementCommand selection) return;
+        if (_pendingDfaSelection is not { } pending) return;
+        if (!pending.RequestId.Equals(selection.RequestId)) return;
+
+        var candidate = pending.Candidates.FirstOrDefault(candidate =>
+            candidate.Coordinates.Q == selection.Coordinates.Q
+            && candidate.Coordinates.R == selection.Coordinates.R
+            && (int)candidate.Surface == selection.Surface);
+        if (candidate is null) return;
+
+        _pendingDfaSelection = null;
+
+        // The server records the raw selection once before this point; the server-origin copy is
+        // what every client applies and logs.
+        var broadcast = selection;
+        broadcast.GameOriginId = Game.Id;
+        Game.CommandPublisher.PublishCommand(broadcast);
+
+        ApplyDfaMissDisplacement(
+            pending.Attacker,
+            pending.Target,
+            pending.TargetPosition,
+            candidate,
+            DisplacementReason.DfaTarget);
+
+        // A selection delivered inline during the candidates publish is consumed here; the outer
+        // loop continues without re-entering or rebuilding anything.
+        ProcessQueue();
+    }
+
+    /// <summary>
+    /// Validates a DFA displacement selection against the pending request before the server
+    /// records it. The candidate is re-checked against the current board state, so a hex that
+    /// became occupied between the broadcast and the answer is rejected.
+    /// </summary>
+    public CommandValidationResult ValidateDfaSelection(
+        SelectPhysicalAttackDisplacementCommand selection)
+    {
+        if (_pendingDfaSelection is not { } pending)
+            return CommandValidationResult.Invalid(ErrorCode.InvalidGameState);
+
+        if (!pending.RequestId.Equals(selection.RequestId)
+            || !pending.OwnerPlayerId.Equals(selection.PlayerId)
+            || !pending.Target.Id.Equals(selection.UnitId))
+            return CommandValidationResult.Invalid(ErrorCode.ValidationFailed);
+
+        if (Game.BattleMap is not { } map)
+            return CommandValidationResult.Invalid(ErrorCode.InvalidGameState);
+
+        if (pending.Target.Position is not { } currentPosition
+            || currentPosition.Coordinates != pending.TargetPosition.Coordinates)
+            return CommandValidationResult.Invalid(ErrorCode.InvalidGameState);
+
+        var currentCandidates = _dfaDisplacementResolver.GetMissCandidates(
+            pending.Target,
+            map,
+            AllUnits());
+
+        var stillLegal = currentCandidates.Any(candidate =>
+            candidate.Coordinates.Q == selection.Coordinates.Q
+            && candidate.Coordinates.R == selection.Coordinates.R
+            && (int)candidate.Surface == selection.Surface);
+
+        return stillLegal
+            ? CommandValidationResult.Valid()
+            : CommandValidationResult.Invalid(ErrorCode.ValidationFailed);
+    }
+
+    /// <summary>
+    /// Processes the snapshot queue. The loop pauses when a DFA miss needs the target
+    /// controller's displacement choice and finishes the phase only when the queue is drained.
+    /// </summary>
+    private void ProcessQueue()
+    {
+        if (_isProcessing) return;
+        _isProcessing = true;
+        try
+        {
+            while (_cursor < _queue.Count && _pendingDfaSelection is null)
+            {
+                var item = _queue[_cursor++];
+                ProcessQueueItem(item);
+            }
+
+            if (_pendingDfaSelection is null)
+                Finish();
+        }
+        finally
+        {
+            _isProcessing = false;
+        }
+    }
+
+    private void ProcessQueueItem(ResolutionQueueItem item)
+    {
+        if (item.Charge is { } charge)
+        {
+            ResolveCharge(charge);
+            return;
+        }
+
+        if (item.Dfa is { } dfa)
+        {
+            ResolveDfa(dfa);
+            return;
+        }
+
+        var attack = item.Attack!.Value;
+        var resolution = ResolveAttack(attack);
+        if (attack.Context.AttackType != PhysicalAttackType.Push) return;
+
+        var push = new PushOutcome(
+            attack.Context.Attacker,
+            attack.Context.Target,
+            resolution.AttackResolution.IsHit,
+            _reciprocalPushes.Contains((attack.Context.Attacker.Id, attack.Context.Target.Id)));
+
+        if (!push.IsHit) return;
+
+        // A mutual push pair needs both rolls before either unit moves (Total Warfare p. 148);
+        // every other push displaces its units immediately after the attack.
+        if (push.IsReciprocal)
+        {
+            _deferredPushes.Add(push);
+            return;
+        }
+
+        ApplyPushDisplacement(push.Attacker, push.Target);
+    }
+
+    private void Finish()
+    {
+        ApplyReciprocalPushDisplacements(_deferredPushes);
+        CalculateEndOfPhasePsrs();
+        Game.TransitionToNextPhase(Name);
     }
 
     public override PhaseNames Name => PhaseNames.PhysicalAttackResolution;
@@ -157,7 +297,14 @@ public class PhysicalAttackResolutionPhase(
                         attacker,
                         declaration.TargetId,
                         declaration.HexesMoved ?? 0,
-                        IsAttackerAutoFail(attacker, declaration))));
+                        IsAttackerAutoFail(attacker, declaration)), null));
+                    continue;
+                }
+
+                if (declaration.AttackType == PhysicalAttackType.DFA)
+                {
+                    if (CreateDfaQueueItem(player, attacker, declaration) is { } dfa)
+                        queue.Add(new ResolutionQueueItem(null, null, dfa));
                     continue;
                 }
 
@@ -172,8 +319,7 @@ public class PhysicalAttackResolutionPhase(
 
                 // A paired-arm attack such as Push resolves once for the whole declaration; a punch
                 // still enqueues one independent item per declared arm. A movement-origin attack
-                // (Charge or DFA) has no definition yet: its resolution mechanics land in a later
-                // slice, so it must be skipped instead of throwing here.
+                // (Charge or DFA) has no limb definition and is handled above.
                 if (!PhysicalAttackDefinitions.TryGet(declaration.AttackType, out var definition)) continue;
                 var limbs = definition.ResolvesAsSingleAttack
                     ? declaration.AttackerLimbs.Take(1)
@@ -191,12 +337,38 @@ public class PhysicalAttackResolutionPhase(
                     };
                     if (_gates.Any(gate => gate.ShouldSkip(context, Game.Logger))) continue;
 
-                    queue.Add(new ResolutionQueueItem(new AttackQueueItem(player, context), null));
+                    queue.Add(new ResolutionQueueItem(new AttackQueueItem(player, context), null, null));
                 }
             }
         }
 
         return queue;
+    }
+
+    /// <summary>
+    /// Snapshots a DFA's movement origin, approach hex and declared target hex at queue-build time.
+    /// A destroyed attacker has nothing left to place, so it is the only build-time skip.
+    /// </summary>
+    private static DfaQueueItem? CreateDfaQueueItem(
+        IPlayer player,
+        IUnit attacker,
+        PhysicalAttackDeclarationData declaration)
+    {
+        if (attacker.IsDestroyed) return null;
+        if (attacker.MovementTaken is not { } movement) return null;
+
+        var approach = movement.GetStopPosition(declaration);
+        if (approach is null) return null;
+
+        var declaredTarget = movement.Destination;
+        return new DfaQueueItem(
+            player,
+            attacker,
+            declaration.TargetId,
+            declaredTarget.Coordinates,
+            declaredTarget.Surface,
+            movement.Start.Coordinates,
+            approach);
     }
 
     private static bool IsAttackerAutoFail(IUnit attacker, PhysicalAttackDeclarationData declaration)
@@ -247,6 +419,383 @@ public class PhysicalAttackResolutionPhase(
         ApplyPsrRequirements(attacker, target, resolution.PsrRequirements);
 
         return resolution;
+    }
+
+    /// <summary>
+    /// Resolves a Death From Above: the auto-fail checks, the no-roll miss paths, the to-hit roll
+    /// and then either the hit consequences or the miss's target-selected displacement.
+    /// </summary>
+    private void ResolveDfa(DfaQueueItem item)
+    {
+        if (Game.BattleMap is not { } map) return;
+        if (item.Attacker.IsDestroyed) return;
+
+        var target = AllUnits().FirstOrDefault(u => u.Id == item.DeclaredTargetId);
+
+        if (IsDfaAutoFail(item, target))
+        {
+            ResolveDfaAutoFail(item, target);
+            return;
+        }
+
+        // The null-forgiving target is safe after IsDfaAutoFail returned false.
+        var presentTarget = target!;
+
+        // A target destroyed in place does not move and does not resolve a displacement; the
+        // attacker falls into its hex (Total Warfare, p. 150). A prone, shutdown or unconscious
+        // attacker also resolves as a miss without a to-hit roll; a fall does not cancel the
+        // pending DFA (docs/rules/physical-attacks.md section 3.1).
+        if (presentTarget.IsDestroyed || IsDfaAutoMiss(item.Attacker))
+        {
+            ResolveDfaMiss(item, presentTarget, CreateDfaAutoResolution(item, DfaOutcome.Miss));
+            return;
+        }
+
+        var resolution = Game.PhysicalAttackResolver.ResolveDfa(new DfaAttackContext
+        {
+            Attacker = item.Attacker,
+            Target = presentTarget,
+            Map = map,
+            StartCoordinates = item.StartCoordinates,
+            ApproachCoordinates = item.ApproachCoordinates
+        });
+
+        if (resolution.AttackResolution.IsHit)
+        {
+            resolution = PublishDfaResolution(item, presentTarget, resolution);
+            ApplyDfaHitDisplacement(item, presentTarget);
+            ApplyDfaWaterEntryModifier(item.Attacker, map);
+        }
+        else
+        {
+            // A miss is published by ResolveDfaMiss once the zero-candidate outcome is known.
+            ResolveDfaMiss(item, presentTarget, resolution);
+        }
+    }
+
+    private static bool IsDfaAutoFail(DfaQueueItem item, IUnit? target)
+    {
+        var attackerAtApproach = item.Attacker.Position is { } attackerPosition
+                                 && attackerPosition.Coordinates == item.ApproachCoordinates.Coordinates;
+        var targetInPlace = target?.Position is { } targetPosition
+                            && targetPosition.Coordinates == item.DeclaredTargetCoordinates
+                            && targetPosition.Surface == item.DeclaredTargetSurface;
+
+        return !attackerAtApproach || target is null || !targetInPlace;
+    }
+
+    private static bool IsDfaAutoMiss(IUnit attacker) =>
+        attacker.IsShutdown
+        || attacker.Pilot is not { IsConscious: true }
+        || attacker.Status.HasFlag(UnitStatus.Prone);
+
+    /// <summary>
+    /// Resolves a DFA miss: the target is displaced by its controller (or immediately when there is
+    /// exactly one candidate), the attacker lands in the target's original hex and automatically
+    /// falls two levels. Zero candidates destroy the attacker (Total Warfare, p. 150).
+    /// </summary>
+    private void ResolveDfaMiss(
+        DfaQueueItem item,
+        IUnit target,
+        PhysicalAttackResolutionData resolution)
+    {
+        var map = Game.BattleMap;
+        if (map is null) return;
+
+        // A target destroyed in place does not move; the attacker still falls into its hex.
+        if (target.IsDestroyed)
+        {
+            PublishDfaResolution(item, target, resolution);
+            if (target.Position is { } destroyedTargetPosition)
+            {
+                ExecuteDfaLanding(item.Attacker, destroyedTargetPosition);
+                ApplyDfaFall(item.Attacker);
+            }
+            return;
+        }
+
+        if (target.Position is not { } targetPosition) return;
+
+        var candidates = _dfaDisplacementResolver.GetMissCandidates(
+            target,
+            map,
+            AllUnits());
+
+        if (candidates.Count == 0)
+        {
+            // No legal adjacent hex exists: the attacker is destroyed (Total Warfare, p. 150).
+            var destroyed = resolution with
+            {
+                Dfa = (resolution.Dfa ?? new DfaResolutionData(
+                        DfaOutcome.Miss,
+                        OriginalTargetId: target.Id))
+                    with
+                    {
+                        Outcome = DfaOutcome.AttackerDestroyedNoLanding
+                    }
+            };
+            PublishDfaResolution(item, target, destroyed);
+            return;
+        }
+
+        resolution = PublishDfaResolution(item, target, resolution);
+
+        if (candidates.Count == 1)
+        {
+            ApplyDfaMissDisplacement(
+                item.Attacker,
+                target,
+                targetPosition,
+                candidates[0],
+                DisplacementReason.DfaTarget);
+            return;
+        }
+
+        var pending = new DfaPendingSelection(
+            Guid.NewGuid(),
+            target.Owner?.Id ?? item.Player.Id,
+            item.Attacker,
+            target,
+            targetPosition,
+            candidates);
+
+        // Store the request before publishing: a selection delivered inline during the publish is
+        // consumed by HandleCommand and the outer loop continues without rebuilding anything.
+        _pendingDfaSelection = pending;
+        Game.CommandPublisher.PublishCommand(new PhysicalAttackDisplacementCandidatesCommand
+        {
+            RequestId = pending.RequestId,
+            AttackerId = item.Attacker.Id,
+            TargetUnitId = target.Id,
+            OwnerPlayerId = pending.OwnerPlayerId,
+            Candidates = candidates
+                .Select(candidate => new PhysicalAttackDisplacementCandidateData(
+                    candidate.Coordinates.ToData(),
+                    (int)candidate.Surface))
+                .ToList(),
+            GameOriginId = Game.Id,
+            Timestamp = DateTime.UtcNow
+        });
+    }
+
+    private void ResolveDfaAutoFail(DfaQueueItem item, IUnit? target)
+    {
+        PublishDfaResolution(
+            item,
+            target,
+            CreateDfaAutoResolution(item, DfaOutcome.AutoFail));
+
+        ExecuteDfaLanding(
+            item.Attacker,
+            item.ApproachCoordinates,
+            DisplacementReason.DfaAutoFailLanding);
+    }
+
+    private static PhysicalAttackResolutionData CreateDfaAutoResolution(
+        DfaQueueItem item,
+        DfaOutcome outcome) =>
+        new(
+            PhysicalAttackType.DFA,
+            null,
+            0,
+            new AttackResolutionData(0, [], false, HitDirection.Front, 0),
+            [],
+            Dfa: new DfaResolutionData(outcome, OriginalTargetId: item.DeclaredTargetId));
+
+    /// <summary>
+    /// Applies the DFA's damage, destruction metadata and piloting skill rolls, publishing the
+    /// resolution in the weapon-phase command order.
+    /// </summary>
+    private PhysicalAttackResolutionData PublishDfaResolution(
+        DfaQueueItem item,
+        IUnit? target,
+        PhysicalAttackResolutionData resolution)
+    {
+        var targetDestroyedPartsBefore = target is null ? [] : GetDestroyedParts(target);
+        var targetWasDestroyedBefore = target?.IsDestroyed == true;
+        var attackerDestroyedPartsBefore = GetDestroyedParts(item.Attacker);
+        var attackerWasDestroyedBefore = item.Attacker.IsDestroyed;
+
+        var command = new PhysicalAttackResolutionCommand
+        {
+            ResolutionId = Guid.NewGuid(),
+            GameOriginId = Game.Id,
+            PlayerId = item.Player.Id,
+            AttackerId = item.Attacker.Id,
+            TargetId = target?.Id ?? item.DeclaredTargetId,
+            ResolutionData = resolution
+        };
+
+        // The server transport does not loop commands back to the server game.
+        Game.OnPhysicalAttackResolution(command);
+
+        resolution = AttachDestructionMetadata(
+            resolution,
+            target, targetDestroyedPartsBefore, targetWasDestroyedBefore,
+            item.Attacker, attackerDestroyedPartsBefore, attackerWasDestroyedBefore);
+
+        Game.CommandPublisher.PublishCommand(command with { ResolutionData = resolution });
+
+        if (target is not null)
+        {
+            ApplyDamageConsequences(target, resolution.AttackResolution);
+            ApplyPsrRequirements(item.Attacker, target, resolution.PsrRequirements);
+        }
+
+        if (resolution.Dfa?.AttackerLegHitLocations is { } attackerLegs)
+            ApplyDamageConsequences(item.Attacker, attackerLegs);
+
+        return resolution;
+    }
+
+    private void ApplyDfaHitDisplacement(DfaQueueItem item, IUnit target)
+    {
+        if (Game.BattleMap is not { } map) return;
+
+        var displacement = _dfaDisplacementResolver.ResolveHit(
+            item.Attacker,
+            target,
+            item.StartCoordinates,
+            map,
+            AllUnits(),
+            Game.Id);
+
+        if (displacement is null)
+        {
+            ExecuteDfaLanding(item.Attacker, item.ApproachCoordinates);
+            return;
+        }
+
+        if (displacement.DominoEffect is { HasDisplacements: true } domino)
+        {
+            foreach (var chainCommand in domino.Commands)
+                Execute(new DisplaceUnitAction(chainCommand with { GameOriginId = Game.Id }, publish: true));
+        }
+
+        if (displacement.TargetDestination is { } targetDestination)
+        {
+            ExecuteDisplacement(target, targetDestination, DisplacementReason.DfaTarget);
+
+            if (displacement.TriggersAutomaticFall && target is Mech targetMech)
+                ResolveAutomaticFall(targetMech, displacement.LevelsFallen);
+        }
+
+        // A blocked push leaves the target in place; the attacker cannot take its hex and lands in
+        // its approach hex instead (Total Warfare, p. 150).
+        var landingDesired = displacement.TargetDestination is null && !target.IsDestroyed
+            ? item.ApproachCoordinates
+            : displacement.AttackerDestination;
+
+        ExecuteDfaLanding(
+            item.Attacker,
+            landingDesired,
+            DisplacementReason.DfaAttackerLanding);
+    }
+
+    /// <summary>
+    /// Grounds the attacker after a miss: the target moves to the chosen candidate, then the
+    /// attacker lands in the target's original hex and falls two levels with rear hit locations.
+    /// </summary>
+    private void ApplyDfaMissDisplacement(
+        IUnit attacker,
+        IUnit target,
+        HexPosition targetPosition,
+        DfaMissDisplacementCandidate candidate,
+        DisplacementReason reason)
+    {
+        if (target.Position is { } currentPosition)
+        {
+            ExecuteDisplacement(
+                target,
+                new HexPosition(candidate.Coordinates, currentPosition.Facing, candidate.Surface),
+                reason);
+        }
+
+        ExecuteDfaLanding(attacker, targetPosition);
+        ApplyDfaFall(attacker);
+    }
+
+    /// <summary>
+    /// Moves the attacker to a landing hex through the displacement pipeline, resolving an
+    /// occupied hex with the shared domino effect and the charge side-hex fallback.
+    /// </summary>
+    private void ExecuteDfaLanding(
+        IUnit attacker,
+        HexPosition desired,
+        DisplacementReason reason = DisplacementReason.DfaMissLanding)
+    {
+        if (Game.BattleMap is not { } map) return;
+
+        var landing = _dfaDisplacementResolver.ResolveLanding(
+            attacker,
+            desired,
+            map,
+            AllUnits(),
+            Game.Id);
+
+        if (landing is null) return;
+
+        if (landing.DominoEffect is { HasDisplacements: true } domino)
+        {
+            foreach (var chainCommand in domino.Commands)
+                Execute(new DisplaceUnitAction(chainCommand with { GameOriginId = Game.Id }, publish: true));
+        }
+
+        if (landing.IsOverlapUnresolved)
+            Game.Logger.LogWarning(
+                "DFA attacker {AttackerName} could not resolve the occupied landing hex {Hex}",
+                attacker.Name,
+                desired.Coordinates);
+
+        ExecuteDisplacement(attacker, landing.Destination, reason);
+    }
+
+    /// <summary>
+    /// The miss fall: two levels, every hit location rear, no initial piloting skill roll
+    /// (Total Warfare, p. 150).
+    /// </summary>
+    private void ApplyDfaFall(IUnit attacker)
+    {
+        if (attacker is not Mech attackerMech) return;
+        if (attackerMech.Position is not { } position) return;
+
+        var facingRoll = new DiceResult(Game.RulesProvider.GetDfaFallFacingRoll());
+        var facingAfterFall = Game.RulesProvider.GetFacingAfterFall(
+            facingRoll.Result,
+            position.Facing);
+        var fallContext = Game.FallProcessor.ProcessMovementAttempt(
+            attackerMech,
+            new DfaFallRollContext(
+                Game.RulesProvider.GetDfaFallLevels(),
+                facingRoll,
+                facingAfterFall),
+            Game,
+            MovementType.Jump,
+            position);
+
+        if (fallContext.IsFalling)
+            Execute(new ApplyFallAction(attackerMech, fallContext.ToMechFallCommand()));
+    }
+
+    /// <summary>
+    /// Adds the water-entry modifier to the attacker's +4 landing PSR when it landed in water.
+    /// Entering water is not a separate roll (Total Warfare, p. 150).
+    /// </summary>
+    private void ApplyDfaWaterEntryModifier(IUnit attacker, IBattleMap map)
+    {
+        if (!_accumulatedDamage.TryGetValue(attacker.Id, out var accumulated)) return;
+
+        var index = accumulated.RollContexts.FindIndex(
+            context => context is DfaAttackerImpactRollContext);
+        if (index < 0) return;
+
+        if (attacker.Position is not { Surface: HexSurface.Ground } position) return;
+
+        var waterDepth = map.GetHex(position.Coordinates)?.GetWaterDepth() ?? 0;
+        if (waterDepth < 1) return;
+
+        var context = (DfaAttackerImpactRollContext)accumulated.RollContexts[index];
+        accumulated.RollContexts[index] = context with { WaterDepth = waterDepth };
     }
 
     private void ResolveCharge(ChargeQueueItem item)
@@ -494,43 +1043,65 @@ public class PhysicalAttackResolutionPhase(
 
     /// <summary>
     /// Records the parts and the destruction a resolution caused on both units. The target's
-    /// metadata stays on the attack resolution; a charge's attacker metadata travels in its
-    /// charge sub-record so clients can show both units' results.
+    /// metadata stays on the attack resolution; a charge's or DFA's attacker metadata travels in
+    /// its sub-record so clients can show both units' results.
     /// </summary>
     private static PhysicalAttackResolutionData AttachDestructionMetadata(
         PhysicalAttackResolutionData resolution,
-        IUnit target,
+        IUnit? target,
         IReadOnlyList<PartLocation> targetDestroyedPartsBefore,
         bool targetWasDestroyedBefore,
         IUnit attacker,
         IReadOnlyList<PartLocation> attackerDestroyedPartsBefore,
         bool attackerWasDestroyedBefore)
     {
-        var newlyDestroyedTargetParts = GetDestroyedParts(target)
-            .Except(targetDestroyedPartsBefore).ToList();
-        resolution = resolution with
+        if (target is not null)
         {
-            AttackResolution = resolution.AttackResolution with
+            var newlyDestroyedTargetParts = GetDestroyedParts(target)
+                .Except(targetDestroyedPartsBefore).ToList();
+            resolution = resolution with
             {
-                DestroyedParts = newlyDestroyedTargetParts.Count != 0 ? newlyDestroyedTargetParts : null,
-                UnitDestroyed = !targetWasDestroyedBefore && target.IsDestroyed
-            }
-        };
-
-        if (resolution.Charge is not { } charge) return resolution;
+                AttackResolution = resolution.AttackResolution with
+                {
+                    DestroyedParts = newlyDestroyedTargetParts.Count != 0 ? newlyDestroyedTargetParts : null,
+                    UnitDestroyed = !targetWasDestroyedBefore && target.IsDestroyed
+                }
+            };
+        }
 
         var newlyDestroyedAttackerParts = GetDestroyedParts(attacker)
             .Except(attackerDestroyedPartsBefore).ToList();
-        return resolution with
+        var attackerUnitDestroyed = !attackerWasDestroyedBefore && attacker.IsDestroyed;
+
+        if (resolution.Charge is { } charge)
         {
-            Charge = charge with
+            return resolution with
             {
-                AttackerDestroyedParts = newlyDestroyedAttackerParts.Count != 0
-                    ? newlyDestroyedAttackerParts
-                    : null,
-                AttackerUnitDestroyed = !attackerWasDestroyedBefore && attacker.IsDestroyed
-            }
-        };
+                Charge = charge with
+                {
+                    AttackerDestroyedParts = newlyDestroyedAttackerParts.Count != 0
+                        ? newlyDestroyedAttackerParts
+                        : null,
+                    AttackerUnitDestroyed = attackerUnitDestroyed
+                }
+            };
+        }
+
+        if (resolution.Dfa is { } dfa)
+        {
+            return resolution with
+            {
+                Dfa = dfa with
+                {
+                    AttackerDestroyedParts = newlyDestroyedAttackerParts.Count != 0
+                        ? newlyDestroyedAttackerParts
+                        : null,
+                    AttackerUnitDestroyed = attackerUnitDestroyed
+                }
+            };
+        }
+
+        return resolution;
     }
 
     private static List<PartLocation> GetDestroyedParts(IUnit unit) =>
@@ -542,6 +1113,8 @@ public class PhysicalAttackResolutionPhase(
         PilotingSkillRollType.KickMiss => new KickMissRollContext(),
         PilotingSkillRollType.PushHit => new PushHitRollContext(),
         PilotingSkillRollType.ChargeImpact => new ChargeImpactRollContext(),
+        PilotingSkillRollType.DfaTargetImpact => new DfaTargetImpactRollContext(),
+        PilotingSkillRollType.DfaAttackerImpact => new DfaAttackerImpactRollContext(),
         _ => throw new NotSupportedException($"No piloting skill roll context is defined for {rollType}")
     };
 

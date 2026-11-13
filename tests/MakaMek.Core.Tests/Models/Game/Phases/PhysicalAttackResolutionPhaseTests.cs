@@ -21,6 +21,7 @@ using Sanet.MakaMek.Core.Models.Units.Pilots;
 using Sanet.MakaMek.Core.Tests.Utils;
 using Sanet.MakaMek.Core.Utils;
 using Sanet.Localization;
+using Sanet.MakaMek.Map.Data;
 using Sanet.MakaMek.Map.Models;
 using Sanet.MakaMek.Map.Models.MovementCosts;
 using Sanet.MakaMek.Map.Models.Terrains;
@@ -52,7 +53,8 @@ public class PhysicalAttackResolutionPhaseTests : GamePhaseTestsBase
         _sut = new PhysicalAttackResolutionPhase(
             Game,
             new PushDisplacementResolver(Game.RulesProvider, dominoEffectResolver),
-            new ChargeDisplacementResolver(Game.RulesProvider, dominoEffectResolver));
+            new ChargeDisplacementResolver(Game.RulesProvider, dominoEffectResolver),
+            new DfaDisplacementResolver(Game.RulesProvider, dominoEffectResolver));
 
         Game.HandleCommand(CreateJoinCommand(_player1Id, "Player 1"));
         Game.HandleCommand(CreateJoinCommand(_player2Id, "Player 2"));
@@ -1734,4 +1736,392 @@ public class PhysicalAttackResolutionPhaseTests : GamePhaseTestsBase
             .Where(call => call.GetMethodInfo().Name == nameof(CommandPublisher.PublishCommand))
             .Select(call => (IGameCommand)call.GetArguments()[0]!)
             .ToList();
+
+    [Fact]
+    public void ServerCommand_RecordsTheAcceptedDfaSelectionOnceBeforeResuming()
+    {
+        SetMap();
+        SetUpDfa(_player1Mech, _player2Mech);
+        MockPhysicalAttackResolver.ResolveDfa(Arg.Any<DfaAttackContext>())
+            .Returns(DfaMiss(_player2Mech.Id));
+        StubDfaFall();
+        _sut.Enter();
+        var request = PublishedCommands()
+            .OfType<PhysicalAttackDisplacementCandidatesCommand>()
+            .ShouldHaveSingleItem();
+        var candidate = request.Candidates[0];
+        typeof(ServerGame)
+            .GetField("_currentPhase", System.Reflection.BindingFlags.NonPublic
+                                       | System.Reflection.BindingFlags.Instance)!
+            .SetValue(Game, _sut);
+
+        Game.HandleCommand(new SelectPhysicalAttackDisplacementCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = request.OwnerPlayerId,
+            UnitId = request.TargetUnitId,
+            RequestId = request.RequestId,
+            Coordinates = candidate.Coordinates,
+            Surface = candidate.Surface
+        });
+
+        Game.CommandLog.Count(command =>
+            command is SelectPhysicalAttackDisplacementCommand).ShouldBe(1);
+        MockPhaseManager.Received(1).GetNextPhase(PhaseNames.PhysicalAttackResolution, Game);
+        _mockNextPhase.Received(1).Enter();
+    }
+
+    [Fact]
+    public void ValidateDfaSelection_RejectsWrongRequestPlayerOrHex()
+    {
+        SetMap();
+        SetUpDfa(_player1Mech, _player2Mech);
+        MockPhysicalAttackResolver.ResolveDfa(Arg.Any<DfaAttackContext>())
+            .Returns(DfaMiss(_player2Mech.Id));
+        StubDfaFall();
+        _sut.Enter();
+        var request = PublishedCommands()
+            .OfType<PhysicalAttackDisplacementCandidatesCommand>()
+            .ShouldHaveSingleItem();
+        var candidate = request.Candidates[0];
+
+        var wrongRequest = _sut.ValidateDfaSelection(new SelectPhysicalAttackDisplacementCommand
+        {
+            GameOriginId = Game.Id,
+            PlayerId = request.OwnerPlayerId,
+            UnitId = request.TargetUnitId,
+            RequestId = Guid.NewGuid(),
+            Coordinates = candidate.Coordinates,
+            Surface = candidate.Surface
+        });
+        var wrongPlayer = _sut.ValidateDfaSelection(new SelectPhysicalAttackDisplacementCommand
+        {
+            GameOriginId = Game.Id,
+            PlayerId = Guid.NewGuid(),
+            UnitId = request.TargetUnitId,
+            RequestId = request.RequestId,
+            Coordinates = candidate.Coordinates,
+            Surface = candidate.Surface
+        });
+        var wrongHex = _sut.ValidateDfaSelection(new SelectPhysicalAttackDisplacementCommand
+        {
+            GameOriginId = Game.Id,
+            PlayerId = request.OwnerPlayerId,
+            UnitId = request.TargetUnitId,
+            RequestId = request.RequestId,
+            Coordinates = new HexCoordinateData(9, 9),
+            Surface = candidate.Surface
+        });
+        var valid = _sut.ValidateDfaSelection(new SelectPhysicalAttackDisplacementCommand
+        {
+            GameOriginId = Game.Id,
+            PlayerId = request.OwnerPlayerId,
+            UnitId = request.TargetUnitId,
+            RequestId = request.RequestId,
+            Coordinates = candidate.Coordinates,
+            Surface = candidate.Surface
+        });
+
+        wrongRequest.IsValid.ShouldBeFalse();
+        wrongPlayer.IsValid.ShouldBeFalse();
+        wrongHex.IsValid.ShouldBeFalse();
+        valid.IsValid.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void Enter_DfaHit_LandsTheAttackerInTheTargetHexAndDisplacesTheTarget()
+    {
+        // Arrange
+        SetMap();
+        SetUpDfa(_player1Mech, _player2Mech);
+        MockPhysicalAttackResolver.ResolveDfa(Arg.Any<DfaAttackContext>())
+            .Returns(DfaHit(_player2Mech.Id));
+
+        // Act
+        _sut.Enter();
+
+        // Assert
+        var resolution = PublishedCommands().OfType<PhysicalAttackResolutionCommand>()
+            .ShouldHaveSingleItem();
+        resolution.ResolutionData.Dfa!.Outcome.ShouldBe(DfaOutcome.Hit);
+        // The jump origin (5,2) is north of the target, so the push continues south to (5,5).
+        _player2Mech.Position!.Coordinates.ShouldBe(new HexCoordinates(5, 5));
+        _player1Mech.Position!.Coordinates.ShouldBe(new HexCoordinates(5, 4));
+        PublishedCommands().OfType<DisplaceUnitCommand>()
+            .Select(command => command.DisplacementReason)
+            .ShouldBe([DisplacementReason.DfaTarget, DisplacementReason.DfaAttackerLanding]);
+        MockPhaseManager.Received(1).GetNextPhase(PhaseNames.PhysicalAttackResolution, Game);
+        _mockNextPhase.Received(1).Enter();
+    }
+
+    [Fact]
+    public void Enter_DfaHit_RequestsBothDfaPsrContexts()
+    {
+        SetMap();
+        SetUpDfa(_player1Mech, _player2Mech);
+        MockPhysicalAttackResolver.ResolveDfa(Arg.Any<DfaAttackContext>())
+            .Returns(DfaHit(_player2Mech.Id));
+
+        _sut.Enter();
+
+        MockFallProcessor.Received(1).ProcessPotentialFall(
+            _player2Mech, Game, Arg.Any<List<ComponentHitData>>(), Arg.Any<List<PartLocation>?>(),
+            Arg.Is<IReadOnlyList<PilotingSkillRollContext>?>(contexts =>
+                contexts != null && contexts.Any(context =>
+                    context.RollType == PilotingSkillRollType.DfaTargetImpact)));
+        MockFallProcessor.Received(1).ProcessPotentialFall(
+            _player1Mech, Game, Arg.Any<List<ComponentHitData>>(), Arg.Any<List<PartLocation>?>(),
+            Arg.Is<IReadOnlyList<PilotingSkillRollContext>?>(contexts =>
+                contexts != null && contexts.Any(context =>
+                    context.RollType == PilotingSkillRollType.DfaAttackerImpact)));
+    }
+
+    [Fact]
+    public void Enter_DfaMiss_WithManyCandidates_PausesAndResumesWithTheSelection()
+    {
+        // Arrange
+        SetMap();
+        SetUpDfa(_player1Mech, _player2Mech);
+        MockPhysicalAttackResolver.ResolveDfa(Arg.Any<DfaAttackContext>())
+            .Returns(DfaMiss(_player2Mech.Id));
+        StubDfaFall();
+
+        // Act
+        _sut.Enter();
+
+        // Assert: the phase pauses after broadcasting the request
+        var candidatesCommand = PublishedCommands()
+            .OfType<PhysicalAttackDisplacementCandidatesCommand>()
+            .ShouldHaveSingleItem();
+        candidatesCommand.Candidates.Count.ShouldBe(6);
+        PublishedCommands().OfType<DisplaceUnitCommand>().ShouldBeEmpty();
+        MockPhaseManager.DidNotReceive().GetNextPhase(
+            PhaseNames.PhysicalAttackResolution, Game);
+
+        // Act: select the first candidate
+        var selected = candidatesCommand.Candidates[0];
+        _sut.HandleCommand(new SelectPhysicalAttackDisplacementCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            Timestamp = DateTime.UtcNow,
+            PlayerId = candidatesCommand.OwnerPlayerId,
+            UnitId = candidatesCommand.TargetUnitId,
+            RequestId = candidatesCommand.RequestId,
+            Coordinates = selected.Coordinates,
+            Surface = selected.Surface
+        });
+
+        // Assert: the target moves, the attacker lands in its old hex and falls
+        _player2Mech.Position!.Coordinates.ShouldBe(
+            new HexCoordinates(selected.Coordinates.Q, selected.Coordinates.R));
+        _player1Mech.Position!.Coordinates.ShouldBe(new HexCoordinates(5, 4));
+        PublishedCommands().OfType<SelectPhysicalAttackDisplacementCommand>()
+            .ShouldHaveSingleItem().GameOriginId.ShouldBe(Game.Id);
+        MockFallProcessor.Received(1).ProcessMovementAttempt(
+            _player1Mech,
+            Arg.Is<DfaFallRollContext>(context => context.RollType == PilotingSkillRollType.DfaFall),
+            Game,
+            MovementType.Jump,
+            Arg.Any<HexPosition?>());
+        MockPhaseManager.Received(1).GetNextPhase(PhaseNames.PhysicalAttackResolution, Game);
+        _mockNextPhase.Received(1).Enter();
+    }
+
+    [Fact]
+    public void Enter_DfaMiss_WithOneCandidate_ResolvesWithoutASelectionRequest()
+    {
+        SetMap();
+        SetUpDfa(_player1Mech, _player2Mech);
+        // Occupy five of the six neighbours, leaving exactly one legal destination.
+        var targetPosition = _player2Mech.Position!.Coordinates;
+        var singleCandidate = targetPosition.GetNeighbour(HexDirection.Top);
+        var others = HexDirectionExtensions.AllDirections
+            .Select(direction => targetPosition.GetNeighbour(direction))
+            .Where(coordinates => coordinates != singleCandidate)
+            .ToList();
+        var blockerOwner = (Player)Game.Players[1];
+        foreach (var coordinates in others)
+        {
+            var blocker = CreateMech();
+            blocker.Deploy(new HexPosition(coordinates, HexDirection.Top), null);
+            blockerOwner.AddUnit(blocker);
+        }
+        MockPhysicalAttackResolver.ResolveDfa(Arg.Any<DfaAttackContext>())
+            .Returns(DfaMiss(_player2Mech.Id));
+        StubDfaFall();
+
+        _sut.Enter();
+
+        PublishedCommands().OfType<PhysicalAttackDisplacementCandidatesCommand>().ShouldBeEmpty();
+        _player2Mech.Position!.Coordinates.ShouldBe(singleCandidate);
+        _player1Mech.Position!.Coordinates.ShouldBe(targetPosition);
+        MockPhaseManager.Received(1).GetNextPhase(PhaseNames.PhysicalAttackResolution, Game);
+        _mockNextPhase.Received(1).Enter();
+    }
+
+    [Fact]
+    public void Enter_DfaMiss_WithNoCandidates_DestroysTheAttacker()
+    {
+        SetMap();
+        SetUpDfa(_player1Mech, _player2Mech);
+        var targetPosition = _player2Mech.Position!.Coordinates;
+        var blockerOwner = (Player)Game.Players[1];
+        foreach (var direction in HexDirectionExtensions.AllDirections)
+        {
+            var blocker = CreateMech();
+            blocker.Deploy(
+                new HexPosition(targetPosition.GetNeighbour(direction), HexDirection.Top),
+                null);
+            blockerOwner.AddUnit(blocker);
+        }
+        MockPhysicalAttackResolver.ResolveDfa(Arg.Any<DfaAttackContext>())
+            .Returns(DfaMiss(_player2Mech.Id));
+
+        _sut.Enter();
+
+        var resolution = PublishedCommands().OfType<PhysicalAttackResolutionCommand>()
+            .ShouldHaveSingleItem();
+        resolution.ResolutionData.Dfa!.Outcome.ShouldBe(DfaOutcome.AttackerDestroyedNoLanding);
+        _player1Mech.IsDestroyed.ShouldBeTrue();
+        PublishedCommands().OfType<DisplaceUnitCommand>().ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void Enter_DfaWhenTheTargetMovedAway_AutoFailsAndLandsInTheApproachHex()
+    {
+        SetMap();
+        SetUpDfa(_player1Mech, _player2Mech);
+        var oldPosition = _player2Mech.Position!;
+        _player2Mech.Move(
+            new MovementPath(
+                [new PathSegment(
+                    oldPosition,
+                    new HexPosition(new HexCoordinates(6, 6), HexDirection.Top),
+                    [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])],
+                MovementType.Walk),
+            null,
+            true);
+
+        _sut.Enter();
+
+        var resolution = PublishedCommands().OfType<PhysicalAttackResolutionCommand>()
+            .ShouldHaveSingleItem();
+        resolution.ResolutionData.Dfa!.Outcome.ShouldBe(DfaOutcome.AutoFail);
+        _player1Mech.Position!.Coordinates.ShouldBe(new HexCoordinates(5, 3));
+        MockPhysicalAttackResolver.DidNotReceiveWithAnyArgs().ResolveDfa(null!);
+        PublishedCommands().OfType<MechFallCommand>().ShouldBeEmpty();
+        MockPhaseManager.Received(1).GetNextPhase(PhaseNames.PhysicalAttackResolution, Game);
+        _mockNextPhase.Received(1).Enter();
+    }
+
+    [Fact]
+    public void Enter_DfaAgainstADestroyedTarget_LandsAndFallsIntoItsHex()
+    {
+        SetMap();
+        SetUpDfa(_player1Mech, _player2Mech);
+        _player2Mech.MarkDestroyed();
+        StubDfaFall();
+
+        _sut.Enter();
+
+        var resolution = PublishedCommands().OfType<PhysicalAttackResolutionCommand>()
+            .ShouldHaveSingleItem();
+        resolution.ResolutionData.Dfa!.Outcome.ShouldBe(DfaOutcome.Miss);
+        _player1Mech.Position!.Coordinates.ShouldBe(new HexCoordinates(5, 4));
+        MockPhysicalAttackResolver.DidNotReceiveWithAnyArgs().ResolveDfa(null!);
+        MockFallProcessor.Received(1).ProcessMovementAttempt(
+            _player1Mech, Arg.Any<DfaFallRollContext>(), Game, MovementType.Jump,
+            Arg.Any<HexPosition?>());
+    }
+
+    private static void SetUpDfa(IUnit attacker, IUnit target)
+    {
+        var start = new HexCoordinates(5, 2);
+        var approach = new HexPosition(new HexCoordinates(5, 3), HexDirection.Top, AirborneLevel: 4);
+        var targetPosition = target.Position!;
+        var path = new MovementPath(
+        [
+            new PathSegment(
+                new HexPosition(start, HexDirection.Top),
+                approach,
+                [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]),
+            new PathSegment(
+                approach,
+                targetPosition,
+                [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])
+        ], MovementType.Jump);
+
+        attacker.Move(path, null, true, approach);
+        attacker.DeclarePhysicalAttack(new PhysicalAttackDeclarationData
+        {
+            AttackType = PhysicalAttackType.DFA,
+            AttackerLimbs = [],
+            TargetId = target.Id
+        });
+    }
+
+    private static PhysicalAttackResolutionData DfaHit(Guid targetId)
+    {
+        var targetHitLocations = new AttackHitLocationsData(
+            [new LocationHitData(
+                [new LocationDamageData(PartLocation.CenterTorso, 5, 0, false)],
+                [], [1], PartLocation.CenterTorso)],
+            5, [], 0);
+        var attackerLegs = new AttackHitLocationsData(
+            [new LocationHitData(
+                [new LocationDamageData(PartLocation.LeftLeg, 4, 0, false)],
+                [], [1], PartLocation.LeftLeg)],
+            4, [], 0);
+
+        return new PhysicalAttackResolutionData(
+            PhysicalAttackType.DFA,
+            null,
+            5,
+            new AttackResolutionData(
+                7,
+                [new DiceResult(4), new DiceResult(4)],
+                true,
+                HitDirection.Rear,
+                0,
+                targetHitLocations),
+            [
+                new PhysicalAttackPsrRequirement(
+                    PhysicalAttackParticipant.Target, PilotingSkillRollType.DfaTargetImpact),
+                new PhysicalAttackPsrRequirement(
+                    PhysicalAttackParticipant.Attacker, PilotingSkillRollType.DfaAttackerImpact)
+            ],
+            Dfa: new DfaResolutionData(
+                DfaOutcome.Hit,
+                targetHitLocations,
+                attackerLegs,
+                targetId));
+    }
+
+    private static PhysicalAttackResolutionData DfaMiss(Guid targetId) =>
+        new(PhysicalAttackType.DFA,
+            null,
+            0,
+            new AttackResolutionData(
+                7,
+                [new DiceResult(2), new DiceResult(2)],
+                false,
+                HitDirection.Front,
+                0),
+            [],
+            Dfa: new DfaResolutionData(DfaOutcome.Miss, OriginalTargetId: targetId));
+
+    private void StubDfaFall() =>
+        MockFallProcessor.ProcessMovementAttempt(
+                Arg.Any<Mech>(),
+                Arg.Any<DfaFallRollContext>(),
+                Game,
+                Arg.Any<MovementType>(),
+                Arg.Any<HexPosition?>())
+            .Returns(call => new FallContextData
+            {
+                UnitId = call.Arg<Mech>().Id,
+                GameId = Game.Id,
+                IsFalling = true,
+                LevelsFallen = 2
+            });
 }

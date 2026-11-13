@@ -977,5 +977,54 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics.Mechs.Falling
             modifier.Value.ShouldBe(2);
             result.ModifiedPilotingSkill.ShouldBe(mech.Pilot!.Piloting + 2);
         }
+
+        [Fact]
+        public void GetPsrBreakdown_DfaTargetImpact_AddsPlusTwo()
+        {
+            var mech = new Mech("Test", "TST-1A", 50, [new CenterTorso("Test Torso", 10, 3, 5)]);
+            mech.AssignPilot(new MechWarrior("John", "Doe"));
+            _mockRulesProvider.GetPilotingSkillRollModifier(PilotingSkillRollType.DfaTargetImpact).Returns(2);
+
+            var result = _sut.GetPsrBreakdown(mech, new DfaTargetImpactRollContext());
+
+            var modifier = result.Modifiers.OfType<DfaTargetImpactModifier>().ShouldHaveSingleItem();
+            modifier.Value.ShouldBe(2);
+            result.ModifiedPilotingSkill.ShouldBe(mech.Pilot!.Piloting + 2);
+        }
+
+        [Theory]
+        [InlineData(1, -1)]
+        [InlineData(2, 0)]
+        [InlineData(3, 1)]
+        public void GetPsrBreakdown_DfaAttackerImpact_AddsPlusFourAndWaterDepth(
+            int waterDepth,
+            int expectedWaterModifier)
+        {
+            var mech = new Mech("Test", "TST-1A", 50, [new CenterTorso("Test Torso", 10, 3, 5)]);
+            mech.AssignPilot(new MechWarrior("John", "Doe"));
+            _mockRulesProvider.GetPilotingSkillRollModifier(PilotingSkillRollType.DfaAttackerImpact).Returns(4);
+            _mockRulesProvider.GetWaterDepthModifier(waterDepth).Returns(expectedWaterModifier);
+
+            var result = _sut.GetPsrBreakdown(mech, new DfaAttackerImpactRollContext(waterDepth));
+
+            result.Modifiers.OfType<DfaAttackerImpactModifier>()
+                .ShouldHaveSingleItem().Value.ShouldBe(4);
+            var waterModifier = result.Modifiers.OfType<WaterDepthModifier>().ShouldHaveSingleItem();
+            waterModifier.Value.ShouldBe(expectedWaterModifier);
+            waterModifier.WaterDepth.ShouldBe(waterDepth);
+            result.ModifiedPilotingSkill.ShouldBe(mech.Pilot!.Piloting + 4 + expectedWaterModifier);
+        }
+
+        [Fact]
+        public void GetPsrBreakdown_DfaAttackerImpactWithoutWater_AddsNoWaterDepthModifier()
+        {
+            var mech = new Mech("Test", "TST-1A", 50, [new CenterTorso("Test Torso", 10, 3, 5)]);
+            mech.AssignPilot(new MechWarrior("John", "Doe"));
+            _mockRulesProvider.GetPilotingSkillRollModifier(PilotingSkillRollType.DfaAttackerImpact).Returns(4);
+
+            var result = _sut.GetPsrBreakdown(mech, new DfaAttackerImpactRollContext());
+
+            result.Modifiers.OfType<WaterDepthModifier>().ShouldBeEmpty();
+        }
     }
 }

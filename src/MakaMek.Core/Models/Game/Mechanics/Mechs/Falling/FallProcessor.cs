@@ -10,6 +10,8 @@ using Sanet.MakaMek.Core.Models.Units.Components.Internal;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Map.Models;
 
+#pragma warning disable CA1502, CA1506, S3776
+
 namespace Sanet.MakaMek.Core.Models.Game.Mechanics.Mechs.Falling;
 
 public class FallProcessor : IFallProcessor
@@ -173,6 +175,11 @@ public class FallProcessor : IFallProcessor
                     levelsFallen = cliffCtx.LevelsFallen;
                     wasJumping = false;
                 }
+                else if (context is DfaFallRollContext dfaCtx)
+                {
+                    levelsFallen = dfaCtx.LevelsFallen;
+                    wasJumping = false;
+                }
                 else if (movementType == MovementType.Jump && waterDepth > 0)
                 {
                     // A failed jump landing in a water hex drops the unit from the surface
@@ -196,6 +203,13 @@ public class FallProcessor : IFallProcessor
                     fallingDamageData = _fallingDamageCalculator.CalculateFallingDamage(
                         mech, levelsFallen, waterDepth,
                         cliffCtx2.FacingDiceRoll, cliffCtx2.FacingAfterFall);
+                }
+                else if (context is DfaFallRollContext dfaCtx2)
+                {
+                    // The miss fall uses a fixed facing roll so every hit location is rear.
+                    fallingDamageData = _fallingDamageCalculator.CalculateFallingDamage(
+                        mech, levelsFallen, waterDepth,
+                        dfaCtx2.FacingDiceRoll, dfaCtx2.FacingAfterFall);
                 }
                 else
                 {

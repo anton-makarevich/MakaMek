@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Bots.Data;
 using Sanet.MakaMek.Bots.Models.DecisionEngines;
 using Sanet.MakaMek.Bots.Services;
@@ -6,6 +6,8 @@ using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Phases;
+
+#pragma warning disable CA1502, CA1506, S3776
 
 namespace Sanet.MakaMek.Bots.Models;
 
@@ -83,7 +85,45 @@ public class Bot : IBot
                 // After (failed) standup, we need to decide what to do next
                 ContinueAfterStandUpOrFall(fallCommand.UnitId);
                 break;
+            case PhysicalAttackDisplacementCandidatesCommand candidatesCommand:
+                ConfirmDfaDisplacement(candidatesCommand);
+                break;
         }
+    }
+
+    /// <summary>
+    /// Answers a DFA target-displacement request for the bot's own unit independently of the active
+    /// player: the interaction happens mid-phase and does not belong to the initiative actor.
+    /// </summary>
+    private void ConfirmDfaDisplacement(PhysicalAttackDisplacementCandidatesCommand candidatesCommand)
+    {
+        if (candidatesCommand.OwnerPlayerId != PlayerId) return;
+        if (candidatesCommand.Candidates.FirstOrDefault() is not { } candidate) return;
+
+        var command = new SelectPhysicalAttackDisplacementCommand
+        {
+            GameOriginId = _clientGame.Id,
+            Timestamp = DateTime.UtcNow,
+            PlayerId = PlayerId,
+            UnitId = candidatesCommand.TargetUnitId,
+            RequestId = candidatesCommand.RequestId,
+            Coordinates = candidate.Coordinates,
+            Surface = candidate.Surface
+        };
+
+        _ = _clientGame.ConfirmDfaDisplacement(command)
+            .ContinueWith(
+                task =>
+                {
+                    if (!task.Result)
+                        _clientGame.Logger.LogWarning(
+                            "Bot {PlayerId} could not confirm the DFA displacement for request {RequestId}",
+                            PlayerId,
+                            candidatesCommand.RequestId);
+                },
+                CancellationToken.None,
+                TaskContinuationOptions.ExecuteSynchronously,
+                TaskScheduler.Default);
     }
 
     private void ContinueAfterStandUpOrFall(Guid unitId)

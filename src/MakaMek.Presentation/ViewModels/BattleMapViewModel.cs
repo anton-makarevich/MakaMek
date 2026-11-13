@@ -31,6 +31,8 @@ using Sanet.MakaMek.Services;
 using Sanet.MVVM.Core.Models;
 using Sanet.MVVM.Core.ViewModels;
 
+#pragma warning disable CA1502, CA1506, S3776
+
 namespace Sanet.MakaMek.Presentation.ViewModels;
 
 /// <summary>
@@ -546,6 +548,8 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
 
         if (command is ErrorCommand)
         {
+            // A rejected selection must not leave the board locked in the displacement state.
+            ExitDfaDisplacement();
             CommandFeedbackLabel = string.Format(
                 _localizationService.GetString("BattleMap_CommandRejected"),
                 formattedCommand);
@@ -564,6 +568,8 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
                 AnnounceTurn(turnCommand.TurnNumber);
                 break;
             case ChangePhaseCommand phaseCommand:
+                // A pending DFA displacement must not survive its resolution phase.
+                ExitDfaDisplacement();
                 // Declarations outlive the phase they were made in: a charge or a death from above
                 // is declared while moving, a punch during the physical attack phase, and all of
                 // them resolve in the physical attack resolution. That is therefore the only phase
@@ -594,6 +600,14 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
                 break;
             case PhysicalAttackResolutionCommand physicalAttackResolutionCommand:
                 ProcessPhysicalAttackResolution(physicalAttackResolutionCommand);
+                break;
+            case PhysicalAttackDisplacementCandidatesCommand:
+                if (Game is IClientGame { PendingDfaDisplacementRequest: { } request } clientGame
+                    && DfaDisplacementState.IsLocalOwner(clientGame, request))
+                    EnterDfaDisplacement(request);
+                break;
+            case SelectPhysicalAttackDisplacementCommand:
+                ExitDfaDisplacement();
                 break;
             case MechStandUpCommand standUpCommand:
                 ProcessMechStandUp(standUpCommand.UnitId, false);
@@ -931,6 +945,12 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
             return;
         }
 
+        // A DFA displacement is a mid-resolution interaction: the phase already maps to IdleState,
+        // but the pending request must keep the selection state alive.
+        if (CurrentState is DfaDisplacementState
+            && Game is IClientGame { PendingDfaDisplacementRequest: not null })
+            return;
+
         var phase = Game.TurnPhase;
         switch (phase)
         {
@@ -989,6 +1009,26 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         CurrentState = newState;
         NotifyStateChanged();
         NotifySelectedUnitChanged();
+    }
+
+    /// <summary>
+    /// Enters the DFA displacement state for a local human owner. A remote player or spectator
+    /// keeps the current state; the request still renders in the command log for every viewer.
+    /// </summary>
+    internal void EnterDfaDisplacement(PendingDfaDisplacementRequest request)
+    {
+        if (CurrentState is DfaDisplacementState) return;
+        TransitionToState(new DfaDisplacementState(this, request));
+    }
+
+    /// <summary>
+    /// Leaves the DFA displacement state if it is active, clearing its candidate highlights.
+    /// </summary>
+    internal void ExitDfaDisplacement()
+    {
+        if (CurrentState is not DfaDisplacementState displacementState) return;
+        displacementState.ClearHighlights();
+        TransitionToState(new IdleState());
     }
 
     public void NotifyStateChanged()

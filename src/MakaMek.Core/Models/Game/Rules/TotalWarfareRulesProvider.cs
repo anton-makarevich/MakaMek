@@ -6,6 +6,8 @@ using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Map.Models;
 using Sanet.MakaMek.Map.Models.Terrains;
 
+#pragma warning disable CA1502, CA1506, S3776
+
 namespace Sanet.MakaMek.Core.Models.Game.Rules;
 
 public class TotalWarfareRulesProvider : IRulesProvider
@@ -311,6 +313,12 @@ public class TotalWarfareRulesProvider : IRulesProvider
         return (attackerTonnage + 4) / 5;
     }
 
+    /// <inheritdoc />
+    public int GetDfaFallLevels() => 2;
+
+    /// <inheritdoc />
+    public int GetDfaFallFacingRoll() => 4;
+
     /// <summary>
     /// A kick forces the target to make a piloting skill roll when it hits and the attacker to
     /// make one when it misses (Total Warfare, p. 146). A push forces the target to roll when it
@@ -402,6 +410,9 @@ public class TotalWarfareRulesProvider : IRulesProvider
         {
             PhysicalAttackType.Punch => GetPunchHitLocation(roll, direction),
             PhysicalAttackType.Kick => GetKickHitLocation(roll, direction),
+            // A Death From Above uses the Punch Location Table; a prone target instead uses the
+            // rear column of the standard table (2D6), which the resolver selects directly.
+            PhysicalAttackType.DFA => GetPunchHitLocation(roll, direction),
             // A charge uses the standard 2D6 hit location table, so the roll is already a 2D6 total.
             PhysicalAttackType.Charge => GetHitLocation(roll, direction),
             _ => throw new NotSupportedException(
@@ -689,6 +700,7 @@ public class TotalWarfareRulesProvider : IRulesProvider
         PilotingSkillRollType.LegDestroyed => false,
         PilotingSkillRollType.BridgeCollapse => false,
         PilotingSkillRollType.CliffFall => false,
+        PilotingSkillRollType.DfaFall => false,
         _ => true
     };
 

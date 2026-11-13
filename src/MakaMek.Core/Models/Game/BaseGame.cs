@@ -24,6 +24,8 @@ using Sanet.MakaMek.Map.Models;
 using Sanet.MakaMek.Map.Models.Terrains;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.PhysicalAttack;
 
+#pragma warning disable CA1502, CA1506, S3776
+
 namespace Sanet.MakaMek.Core.Models.Game;
 
 public abstract class BaseGame : IGame
@@ -329,6 +331,26 @@ public abstract class BaseGame : IGame
 
             attackerUnit?.ApplyDamage(attackerCollision.HitLocations, HitDirection.Front);
         }
+
+        // A successful DFA damages the attacker's legs on the Front column. The target damage is
+        // already carried by AttackResolution.HitLocationsData above.
+        if (data.Dfa?.AttackerLegHitLocations is { } attackerLegs)
+        {
+            var attackerUnit = _players
+                .SelectMany(p => p.Units)
+                .FirstOrDefault(u => u.Id == resolutionCommand.AttackerId);
+
+            attackerUnit?.ApplyDamage(attackerLegs.HitLocations, HitDirection.Front);
+        }
+
+        // A DFA attacker with no legal landing hex is destroyed outright (Total Warfare, p. 150).
+        if (data.Dfa?.Outcome == DfaOutcome.AttackerDestroyedNoLanding)
+        {
+            _players
+                .SelectMany(p => p.Units)
+                .FirstOrDefault(u => u.Id == resolutionCommand.AttackerId)
+                ?.MarkDestroyed();
+        }
     }
 
     internal void OnMechFalling(MechFallCommand fallCommand)
@@ -547,6 +569,7 @@ public abstract class BaseGame : IGame
             WeaponAttackResolutionCommand => CommandValidationResult.Valid(),
             PhysicalAttackCommand => CommandValidationResult.Valid(),
             PhysicalAttackResolutionCommand => CommandValidationResult.Valid(),
+            SelectPhysicalAttackDisplacementCommand => CommandValidationResult.Valid(),
             HeatUpdatedCommand => CommandValidationResult.Valid(),
             TurnEndedCommand => CommandValidationResult.Valid(),
             RequestGameLobbyStatusCommand => CommandValidationResult.Valid(),

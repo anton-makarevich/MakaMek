@@ -3,6 +3,8 @@ using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
 using Sanet.MakaMek.Core.Data.Game.Mechanics.PilotingSkillRollContexts;
+using Sanet.MakaMek.Core.Models.Game.Dice;
+using Sanet.MakaMek.Map.Models;
 using Shouldly;
 using PilotingSkillRollContextTypeResolver = Sanet.MakaMek.Core.Data.Serialization.PilotingSkillRollContextTypeResolver;
 
@@ -151,6 +153,38 @@ public class PilotingSkillRollContextTypeResolverTests
         waterContext.WaterDepth.ShouldBe(5);
     }
     
+    [Fact]
+    public void Should_Serialize_And_Deserialize_DfaContexts()
+    {
+        var attackerContext = new DfaAttackerImpactRollContext(2);
+        var attackerJson = JsonSerializer.Serialize(attackerContext, _options);
+        var deserializedAttacker =
+            JsonSerializer.Deserialize<DfaAttackerImpactRollContext>(attackerJson, _options);
+
+        deserializedAttacker.ShouldNotBeNull();
+        deserializedAttacker.RollType.ShouldBe(PilotingSkillRollType.DfaAttackerImpact);
+        deserializedAttacker.WaterDepth.ShouldBe(2);
+
+        var targetContext = new DfaTargetImpactRollContext();
+        var targetJson = JsonSerializer.Serialize(targetContext, _options);
+        var deserializedTarget =
+            JsonSerializer.Deserialize<DfaTargetImpactRollContext>(targetJson, _options);
+
+        deserializedTarget.ShouldNotBeNull();
+        deserializedTarget.RollType.ShouldBe(PilotingSkillRollType.DfaTargetImpact);
+
+        var fallContext = new DfaFallRollContext(2, new DiceResult(4), HexDirection.Bottom);
+        var fallJson = JsonSerializer.Serialize(fallContext, _options);
+        var deserializedFall =
+            JsonSerializer.Deserialize<DfaFallRollContext>(fallJson, _options);
+
+        deserializedFall.ShouldNotBeNull();
+        deserializedFall.RollType.ShouldBe(PilotingSkillRollType.DfaFall);
+        deserializedFall.LevelsFallen.ShouldBe(2);
+        deserializedFall.FacingDiceRoll.Result.ShouldBe(4);
+        deserializedFall.FacingAfterFall.ShouldBe(HexDirection.Bottom);
+    }
+
     [Fact]
     public void Should_Deserialize_Array_Of_PilotingSkillRollContexts()
     {

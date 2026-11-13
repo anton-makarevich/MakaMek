@@ -1282,6 +1282,103 @@ public class PhysicalAttackResolverTests
 
     #endregion
 
+    [Fact]
+    public void ResolveDfa_OnAHit_UsesTheJumpOriginForDirectionAndTheDfaDamageTables()
+    {
+        // Arrange: the target faces Top, so a jump origin two hexes to the south enters the rear.
+        _toHitCalculator.GetDfaToHitNumber(Arg.Any<IUnit>(), Arg.Any<IUnit>(), Arg.Any<IBattleMap>())
+            .Returns(7);
+        SetHitRoll(3, 4);
+        _diceRoller.RollD6().Returns(
+            new DiceResult(1),
+            new DiceResult(2),
+            new DiceResult(3),
+            new DiceResult(4));
+        var target = CreateUnit(20, TargetPosition());
+        var attacker = CreateUnit(35, new HexPosition(new HexCoordinates(0, 2), HexDirection.Top));
+
+        // Act
+        var result = _sut.ResolveDfa(new DfaAttackContext
+        {
+            Attacker = attacker,
+            Target = target,
+            Map = _map,
+            StartCoordinates = new HexCoordinates(0, 2),
+            ApproachCoordinates = new HexPosition(new HexCoordinates(0, 1), HexDirection.Top)
+        });
+
+        // Assert: 35 tons deal ceil(35 × 3 / 10) = 11 in three clusters (5+5+1).
+        result.Dfa!.Outcome.ShouldBe(DfaOutcome.Hit);
+        result.AttackResolution.IsHit.ShouldBeTrue();
+        result.AttackResolution.AttackDirection.ShouldBe(HitDirection.Rear);
+        result.Damage.ShouldBe(11);
+        result.Dfa.TargetHitLocations!.TotalDamage.ShouldBe(11);
+        result.Dfa.TargetHitLocations.HitLocations.Count.ShouldBe(3);
+        // The attacker takes ceil(35 / 5) = 7 in two leg clusters (5+2).
+        result.Dfa.AttackerLegHitLocations!.TotalDamage.ShouldBe(7);
+        result.Dfa.AttackerLegHitLocations.HitLocations.Count.ShouldBe(2);
+        result.Dfa.AttackerLegHitLocations.HitLocations
+            .ShouldAllBe(hit => hit.LocationRoll.Length == 1);
+    }
+
+    [Fact]
+    public void ResolveDfa_OnAMiss_ReturnsNoDamageAndNoPsrRequirements()
+    {
+        _toHitCalculator.GetDfaToHitNumber(Arg.Any<IUnit>(), Arg.Any<IUnit>(), Arg.Any<IBattleMap>())
+            .Returns(7);
+        SetHitRoll(2, 2);
+        var target = CreateUnit(20, TargetPosition());
+        var attacker = CreateUnit(35, new HexPosition(new HexCoordinates(0, 2), HexDirection.Top));
+
+        var result = _sut.ResolveDfa(new DfaAttackContext
+        {
+            Attacker = attacker,
+            Target = target,
+            Map = _map,
+            StartCoordinates = new HexCoordinates(0, 2),
+            ApproachCoordinates = new HexPosition(new HexCoordinates(0, 1), HexDirection.Top)
+        });
+
+        result.Dfa!.Outcome.ShouldBe(DfaOutcome.Miss);
+        result.AttackResolution.IsHit.ShouldBeFalse();
+        result.Damage.ShouldBe(0);
+        result.PsrRequirements.ShouldBeEmpty();
+        result.Dfa.TargetHitLocations.ShouldBeNull();
+        result.Dfa.AttackerLegHitLocations.ShouldBeNull();
+    }
+
+    [Fact]
+    public void ResolveDfa_AgainstAProneTarget_RollsTheRearColumnOfTheStandardTable()
+    {
+        _toHitCalculator.GetDfaToHitNumber(Arg.Any<IUnit>(), Arg.Any<IUnit>(), Arg.Any<IBattleMap>())
+            .Returns(7);
+        QueueRoll2D6(3, 4);
+        QueueRoll2D6(3, 4);
+        QueueRoll2D6(3, 4);
+        QueueRoll2D6(3, 4);
+        UseQueuedRoll2D6();
+        _diceRoller.RollD6().Returns(new DiceResult(1), new DiceResult(2));
+        var target = CreateUnit(20, TargetPosition());
+        target.Status.Returns(UnitStatus.Prone);
+        var attacker = CreateUnit(35, new HexPosition(new HexCoordinates(0, 2), HexDirection.Top));
+
+        var result = _sut.ResolveDfa(new DfaAttackContext
+        {
+            Attacker = attacker,
+            Target = target,
+            Map = _map,
+            StartCoordinates = new HexCoordinates(0, 2),
+            ApproachCoordinates = new HexPosition(new HexCoordinates(0, 1), HexDirection.Top)
+        });
+
+        var expected = _rulesProvider.GetHitLocation(7, HitDirection.Rear);
+        result.Dfa!.Outcome.ShouldBe(DfaOutcome.Hit);
+        result.Dfa.TargetHitLocations!.HitLocations
+            .ShouldAllBe(hit => hit.InitialLocation == expected);
+        result.Dfa.TargetHitLocations.HitLocations
+            .ShouldAllBe(hit => hit.LocationRoll.Sum() == 7);
+    }
+
     private static PartLocation GetInitialLocation(PhysicalAttackResolutionData result) =>
         result.AttackResolution.HitLocationsData!.HitLocations.ShouldHaveSingleItem().InitialLocation;
 }

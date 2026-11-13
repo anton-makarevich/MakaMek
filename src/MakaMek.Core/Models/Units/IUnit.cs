@@ -1,4 +1,4 @@
-﻿using Sanet.MakaMek.Core.Data.Game;
+using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Game.Mechanics.PhysicalAttacks;
 using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Data.Units.Components;
@@ -15,6 +15,8 @@ using Sanet.MakaMek.Core.Models.Units.Components;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Models.Units.Pilots;
 using Sanet.MakaMek.Map.Models;
+
+#pragma warning disable CA1502, CA1506, S3776
 
 namespace Sanet.MakaMek.Core.Models.Units;
 
@@ -276,6 +278,13 @@ public interface IUnit
     /// </summary>
     /// <param name="criticalHitsData">Pre-calculated critical hits data from the server</param>
     void ApplyCriticalHits(List<LocationCriticalHitsData> criticalHitsData);
+
+    /// <summary>
+    /// Marks the unit destroyed without a damage path. Used when a rule destroys a unit outright,
+    /// such as a Death From Above attacker with no legal landing hex (Total Warfare, p. 150).
+    /// Idempotent.
+    /// </summary>
+    void MarkDestroyed();
 
     /// <summary>
     /// Applies a hull breach to a specific location, flooding its components and applying consequences.

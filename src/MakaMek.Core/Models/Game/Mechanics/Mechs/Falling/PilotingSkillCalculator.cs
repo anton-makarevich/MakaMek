@@ -9,6 +9,8 @@ using Sanet.MakaMek.Core.Models.Units.Components.Internal;
 using Sanet.MakaMek.Core.Models.Units.Components.Internal.Actuators;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 
+#pragma warning disable CA1502, CA1506, S3776
+
 namespace Sanet.MakaMek.Core.Models.Game.Mechanics.Mechs.Falling;
 
 /// <summary>
@@ -230,6 +232,21 @@ public class PilotingSkillCalculator : IPilotingSkillCalculator
                 {
                     Value = _rules.GetPilotingSkillRollModifier(PilotingSkillRollType.ChargeImpact)
                 });
+                break;
+            case DfaTargetImpactRollContext:
+                modifiers.Add(new DfaTargetImpactModifier
+                {
+                    Value = _rules.GetPilotingSkillRollModifier(PilotingSkillRollType.DfaTargetImpact)
+                });
+                break;
+            case DfaAttackerImpactRollContext attackerContext:
+                modifiers.Add(new DfaAttackerImpactModifier
+                {
+                    Value = _rules.GetPilotingSkillRollModifier(PilotingSkillRollType.DfaAttackerImpact)
+                });
+                // Landing in water adds the standard water-entry modifier to the same +4 roll.
+                if (attackerContext.WaterDepth > 0)
+                    AddWaterDepthModifier(attackerContext.WaterDepth, modifiers);
                 break;
             case PilotDamageFromFallRollContext pilotDamageCtx:
             {

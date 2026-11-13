@@ -79,4 +79,21 @@ public interface IPhysicalAttackCalculator
     /// Pure preview: mutates no unit, map or game state.
     /// </summary>
     int GetChargeToHitNumber(IUnit attacker, IUnit target, IBattleMap map, bool isReplacementTarget);
+
+    /// <summary>
+    /// Gets a detailed breakdown of a Death From Above's to-hit modifiers: the standard physical
+    /// attack modifiers, including the attacker's jumping movement and the target's movement and
+    /// status, plus the relative-piloting modifier. Terrain is excluded (Total Warfare p. 144
+    /// footnote). Pure preview: mutates no unit, map or game state.
+    /// </summary>
+    /// <param name="attacker">The jumping unit.</param>
+    /// <param name="target">The unit in the target hex.</param>
+    /// <param name="map">The battle map.</param>
+    PhysicalAttackBreakdown GetDfaModifierBreakdown(IUnit attacker, IUnit target, IBattleMap map);
+
+    /// <summary>
+    /// Gets the total Death From Above to-hit number from the current unit state.
+    /// Pure preview: mutates no unit, map or game state.
+    /// </summary>
+    int GetDfaToHitNumber(IUnit attacker, IUnit target, IBattleMap map);
 }

@@ -10,6 +10,7 @@ using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
+using Sanet.MakaMek.Core.Data.Game.Mechanics.PhysicalAttacks;
 using Sanet.MakaMek.Core.Data.Game.Mechanics.PilotingSkillRollContexts;
 using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Models.Game;
@@ -643,6 +644,56 @@ public class BotTests : IDisposable
             _player,
             Arg.Any<ITurnState>(),
             Arg.Is<BotSettings>(s => Math.Abs(s.AggressivenessIndex - 0.7f) < 0.05));
+    }
+
+    [Fact]
+    public void HandleGameCommand_WhenTheBotOwnsTheDfaTarget_ConfirmsTheFirstCandidate()
+    {
+        var requestId = Guid.NewGuid();
+        var targetUnitId = Guid.NewGuid();
+        var candidate = new PhysicalAttackDisplacementCandidateData(
+            new Sanet.MakaMek.Map.Data.HexCoordinateData(3, 4),
+            (int)HexSurface.Ground);
+        _clientGame.ConfirmDfaDisplacement(Arg.Any<SelectPhysicalAttackDisplacementCommand>())
+            .Returns(Task.FromResult(true));
+
+        _commandSubject.OnNext(new PhysicalAttackDisplacementCandidatesCommand
+        {
+            RequestId = requestId,
+            AttackerId = Guid.NewGuid(),
+            TargetUnitId = targetUnitId,
+            OwnerPlayerId = _player.Id,
+            Candidates = [candidate],
+            GameOriginId = Guid.NewGuid()
+        });
+
+        _clientGame.Received(1).ConfirmDfaDisplacement(Arg.Is<SelectPhysicalAttackDisplacementCommand>(
+            command => command.RequestId == requestId
+                       && command.UnitId == targetUnitId
+                       && command.PlayerId == _player.Id
+                       && command.Coordinates == candidate.Coordinates
+                       && command.Surface == candidate.Surface));
+    }
+
+    [Fact]
+    public void HandleGameCommand_WhenAnotherPlayerOwnsTheDfaTarget_DoesNotConfirm()
+    {
+        _commandSubject.OnNext(new PhysicalAttackDisplacementCandidatesCommand
+        {
+            RequestId = Guid.NewGuid(),
+            AttackerId = Guid.NewGuid(),
+            TargetUnitId = Guid.NewGuid(),
+            OwnerPlayerId = Guid.NewGuid(),
+            Candidates =
+            [
+                new PhysicalAttackDisplacementCandidateData(
+                    new Sanet.MakaMek.Map.Data.HexCoordinateData(3, 4),
+                    (int)HexSurface.Ground)
+            ],
+            GameOriginId = Guid.NewGuid()
+        });
+
+        _clientGame.DidNotReceiveWithAnyArgs().ConfirmDfaDisplacement(default);
     }
 
     public void Dispose()

@@ -31,4 +31,16 @@ public interface IPhysicalAttackResolver
     /// </summary>
     /// <param name="context">The attacker, the selected target and the charge's committed data.</param>
     PhysicalAttackResolutionData ResolveCharge(ChargeAttackContext context);
+
+    /// <summary>
+    /// Resolves a Death From Above. On a hit it calculates the target damage on the Punch table
+    /// (the rear column of the standard table for a prone target), the attacker's leg damage on
+    /// the Kick table and returns the piloting skill rolls the impact requires. On a miss it
+    /// returns no damage and no rolls.
+    /// </summary>
+    /// <param name="context">
+    /// The attacker, the target and the movement origin the direction and push vector are measured
+    /// from.
+    /// </param>
+    PhysicalAttackResolutionData ResolveDfa(DfaAttackContext context);
 }

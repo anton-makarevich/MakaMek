@@ -2,7 +2,10 @@ using System.Text;
 using Sanet.MakaMek.Core.Data.Game.Mechanics.PhysicalAttacks;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.PhysicalAttack;
+using Sanet.MakaMek.Core.Models.Units;
 using Sanet.Localization;
+
+#pragma warning disable CA1502, CA1506, S3776
 
 namespace Sanet.MakaMek.Core.Data.Game.Commands.Server;
 
@@ -52,6 +55,11 @@ public record struct PhysicalAttackResolutionCommand : IGameCommand
                 autoFail.HexesMoved);
         }
 
+        if (ResolutionData.Dfa is { } dfaEarly
+            && RenderDfaEarlyOutcome(localizationService, player.Name, attacker.Model, target, dfaEarly)
+                is { } earlyOutcome)
+            return earlyOutcome;
+
         if (target == null || targetPlayer == null)
             return string.Empty;
 
@@ -81,6 +89,9 @@ public record struct PhysicalAttackResolutionCommand : IGameCommand
             resolution.ToHitNumber,
             rollTotal).AppendLine();
 
+        if (ResolutionData.Dfa is { } dfa)
+            AppendDfaOutcome(stringBuilder, localizationService, dfa);
+
         if (ResolutionData.Charge is { } charge)
         {
             stringBuilder.AppendFormat(
@@ -101,6 +112,9 @@ public record struct PhysicalAttackResolutionCommand : IGameCommand
 
         if (!resolution.IsHit || resolution.HitLocationsData == null)
             return stringBuilder.ToString().TrimEnd();
+
+        if (ResolutionData.Dfa is { } dfaData)
+            AppendDfaAttackerLegDamage(stringBuilder, localizationService, attacker, dfaData);
 
         stringBuilder.AppendFormat(
             localizationService.GetString("Command_WeaponAttackResolution_Direction"),
@@ -168,5 +182,72 @@ public record struct PhysicalAttackResolutionCommand : IGameCommand
         }
 
         return stringBuilder.ToString().TrimEnd();
+    }
+
+    private static string? RenderDfaEarlyOutcome(
+        ILocalizationService localizationService,
+        string playerName,
+        string attackerModel,
+        IUnit? target,
+        DfaResolutionData dfa) =>
+        dfa.Outcome switch
+        {
+            DfaOutcome.AutoFail => string.Format(
+                localizationService.GetString("Command_DfaResolution_AutoFail"),
+                playerName,
+                attackerModel,
+                target?.Model ?? dfa.OriginalTargetId.ToString()),
+            DfaOutcome.AttackerDestroyedNoLanding => string.Format(
+                localizationService.GetString("Command_DfaResolution_AttackerDestroyed"),
+                playerName,
+                attackerModel),
+            _ => null
+        };
+
+    private static void AppendDfaOutcome(
+        StringBuilder stringBuilder,
+        ILocalizationService localizationService,
+        DfaResolutionData dfa) =>
+        stringBuilder.AppendFormat(
+            localizationService.GetString("Command_DfaResolution_Outcome"),
+            localizationService.GetString($"DfaOutcome_{dfa.Outcome}")).AppendLine();
+
+    private static void AppendDfaAttackerLegDamage(
+        StringBuilder stringBuilder,
+        ILocalizationService localizationService,
+        IUnit attacker,
+        DfaResolutionData dfa)
+    {
+        if (dfa.AttackerLegHitLocations is not { } attackerLegs) return;
+
+        stringBuilder.AppendFormat(
+            localizationService.GetString("Command_DfaResolution_AttackerLegDamage"),
+            attacker.Model,
+            attackerLegs.TotalDamage).AppendLine();
+
+        if (attackerLegs.HitLocations.Count > 0)
+        {
+            stringBuilder.AppendLine(localizationService.GetString("Command_WeaponAttackResolution_HitLocations"));
+            foreach (var hitLocation in attackerLegs.HitLocations)
+                stringBuilder.Append(hitLocation.Render(localizationService));
+        }
+
+        if (dfa.AttackerDestroyedParts is { Count: > 0 } dfaAttackerParts)
+        {
+            stringBuilder.AppendLine(localizationService.GetString("Command_WeaponAttackResolution_DestroyedParts"));
+            foreach (var location in dfaAttackerParts)
+            {
+                stringBuilder.AppendFormat(
+                    localizationService.GetString("Command_WeaponAttackResolution_DestroyedPart"),
+                    localizationService.GetString($"MechPart_{location}")).AppendLine();
+            }
+        }
+
+        if (dfa.AttackerUnitDestroyed)
+        {
+            stringBuilder.AppendFormat(
+                localizationService.GetString("Command_WeaponAttackResolution_UnitDestroyed"),
+                attacker.Model).AppendLine();
+        }
     }
 }
