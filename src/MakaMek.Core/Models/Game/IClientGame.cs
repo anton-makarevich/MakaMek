@@ -1,6 +1,5 @@
-﻿using Sanet.MakaMek.Core.Data.Game.Commands;
+using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
-using Sanet.MakaMek.Core.Data.Game.Mechanics.PhysicalAttacks;
 using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Mechs.Falling;
@@ -42,11 +41,6 @@ public interface IClientGame:IGame
     /// </summary>
     Guid? ServerGameId { get; }
     bool CanActivePlayerAct { get; }
-
-    /// <summary>
-    /// The outstanding DFA target-displacement request, or null when no selection is pending.
-    /// </summary>
-    PendingDfaDisplacementRequest? PendingDfaDisplacementRequest { get; }
     IPilotingSkillCalculator PilotingSkillCalculator { get; }
     IConsciousnessCalculator ConsciousnessCalculator { get; }
     IHeatEffectsCalculator HeatEffectsCalculator { get; }
@@ -64,7 +58,6 @@ public interface IClientGame:IGame
     Task<bool> ConfigureUnitWeapons(WeaponConfigurationCommand command);
     Task<bool> DeclareWeaponAttack(WeaponAttackDeclarationCommand command);
     Task<bool> DeclarePhysicalAttack(PhysicalAttackCommand command);
-    Task<bool> ConfirmDfaDisplacement(SelectPhysicalAttackDisplacementCommand command);
     Task<bool> EndTurn(TurnEndedCommand command);
     Task<bool> TryStandupUnit(TryStandupCommand command);
     Task<bool> ShutdownUnit(ShutdownUnitCommand command);

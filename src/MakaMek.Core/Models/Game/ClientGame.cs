@@ -2,7 +2,6 @@ using System.Collections.Concurrent;
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
-using Sanet.MakaMek.Core.Data.Game.Mechanics.PhysicalAttacks;
 using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Mechs.Falling;
@@ -31,8 +30,6 @@ public sealed class ClientGame : BaseGame, IDisposable, IClientGame
 
     private readonly ConcurrentDictionary<Guid, PendingCommand> _pendingCommands = new();
     private readonly Lock _pendingCommandsSync = new();
-    private readonly HashSet<Guid> _pendingDfaSubmissions = [];
-    private readonly Lock _pendingDfaSubmissionsSync = new();
     private bool _isDisposed;
     private readonly TimeSpan _ackTimeout;
     private readonly ConcurrentDictionary<Guid, PlayerControlType> _localPlayers = new();
@@ -69,9 +66,6 @@ public sealed class ClientGame : BaseGame, IDisposable, IClientGame
 
     /// <inheritdoc />
     public bool HasPendingCommands => !_pendingCommands.IsEmpty;
-
-    /// <inheritdoc />
-    public PendingDfaDisplacementRequest? PendingDfaDisplacementRequest { get; private set; }
 
     /// <inheritdoc />
     public event Action? PendingCommandsChanged;
@@ -136,9 +130,6 @@ public sealed class ClientGame : BaseGame, IDisposable, IClientGame
             case ChangePhaseCommand phaseCommand:
                 TurnPhase = phaseCommand.Phase;
 
-                // A pending DFA displacement only makes sense inside the resolution phase.
-                ClearPendingDfaDisplacement();
-
                 // When entering the End phase, clear the players who ended turn
                 // Note: ActivePlayer is set when StartPhaseCommand is received to avoid race condition
                 if (phaseCommand.Phase == PhaseNames.End)
@@ -183,19 +174,6 @@ public sealed class ClientGame : BaseGame, IDisposable, IClientGame
                 break;
             case PhysicalAttackResolutionCommand physicalAttackResolutionCommand:
                 OnPhysicalAttackResolution(physicalAttackResolutionCommand);
-                break;
-            case PhysicalAttackDisplacementCandidatesCommand candidatesCommand:
-                PendingDfaDisplacementRequest = new PendingDfaDisplacementRequest(
-                    candidatesCommand.RequestId,
-                    candidatesCommand.AttackerId,
-                    candidatesCommand.TargetUnitId,
-                    candidatesCommand.OwnerPlayerId,
-                    candidatesCommand.Candidates);
-                break;
-            case SelectPhysicalAttackDisplacementCommand selectionCommand:
-                // The server-origin rebroadcast completes the interaction and clears the request.
-                if (PendingDfaDisplacementRequest?.RequestId == selectionCommand.RequestId)
-                    ClearPendingDfaDisplacement();
                 break;
             case MechFallCommand mechFallingCommand:
                 OnMechFalling(mechFallingCommand);
@@ -245,8 +223,6 @@ public sealed class ClientGame : BaseGame, IDisposable, IClientGame
                 OnHullBreach(hullBreachCommand);
                 break;
             case ErrorCommand errorCommand:
-                // A rejected selection or request must not leave the interaction pending.
-                ClearPendingDfaDisplacement();
                 // Complete the pending task with failure
                 if (errorCommand.IdempotencyKey.HasValue)
                     CompletePendingCommand(errorCommand.IdempotencyKey.Value, false);
@@ -395,54 +371,6 @@ public sealed class ClientGame : BaseGame, IDisposable, IClientGame
     /// Declares a physical attack for the active unit, or no attack when the declaration is null.
     /// </summary>
     public Task<bool> DeclarePhysicalAttack(PhysicalAttackCommand command) => SendPlayerAction(command);
-
-    /// <summary>
-    /// Confirms where a unit is displaced after a missed DFA. This interaction happens mid-phase,
-    /// so it bypasses the active-player gate but still requires a matching request owned by a local
-    /// player, a known candidate and no submission already in flight for the request.
-    /// </summary>
-    public Task<bool> ConfirmDfaDisplacement(SelectPhysicalAttackDisplacementCommand command)
-    {
-        if (PendingDfaDisplacementRequest is not { } pending)
-            return Task.FromResult(false);
-
-        if (!pending.RequestId.Equals(command.RequestId)
-            || !pending.TargetUnitId.Equals(command.UnitId)
-            || !_localPlayers.ContainsKey(command.PlayerId))
-            return Task.FromResult(false);
-
-        var isCandidate = pending.Candidates.Any(candidate =>
-            candidate.Coordinates.Q == command.Coordinates.Q
-            && candidate.Coordinates.R == command.Coordinates.R
-            && candidate.Surface == command.Surface);
-        if (!isCandidate) return Task.FromResult(false);
-
-        lock (_pendingDfaSubmissionsSync)
-        {
-            if (!_pendingDfaSubmissions.Add(pending.RequestId))
-                return Task.FromResult(false);
-        }
-
-        var task = SendClientCommand(command);
-        _ = task.ContinueWith(
-            _ =>
-            {
-                lock (_pendingDfaSubmissionsSync)
-                    _pendingDfaSubmissions.Remove(pending.RequestId);
-            },
-            CancellationToken.None,
-            TaskContinuationOptions.ExecuteSynchronously,
-            TaskScheduler.Default);
-
-        return task;
-    }
-
-    private void ClearPendingDfaDisplacement()
-    {
-        PendingDfaDisplacementRequest = null;
-        lock (_pendingDfaSubmissionsSync)
-            _pendingDfaSubmissions.Clear();
-    }
 
     public Task<bool> EndTurn(TurnEndedCommand command) => SendPlayerAction(command);
 

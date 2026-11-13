@@ -218,13 +218,8 @@
   <data name="Command_DfaResolution_AutoFail" xml:space="preserve"><value>{0}'s {1} Death From Above against {2} automatically fails</value></data>
   <data name="Command_DfaResolution_AttackerDestroyed" xml:space="preserve"><value>{0}'s {1} is destroyed: no legal landing hex remains after the Death From Above miss</value></data>
   <data name="Command_DfaResolution_AttackerLegDamage" xml:space="preserve"><value>{0} takes {1} leg damage</value></data>
-  <data name="Command_DfaDisplacementCandidates" xml:space="preserve"><value>{0} must choose an adjacent hex for {2} after {1}'s Death From Above ({3} options)</value></data>
-  <data name="Command_DfaDisplacementSelected" xml:space="preserve"><value>{0} moves {1} to {2}</value></data>
   <data name="Modifier_DfaTargetImpact" xml:space="preserve"><value>DFA Target Impact: +{0}</value></data>
   <data name="Modifier_DfaAttackerImpact" xml:space="preserve"><value>DFA Attacker Impact: +{0}</value></data>
-  <data name="Action_ConfirmDfaDisplacement" xml:space="preserve"><value>Confirm displacement</value></data>
-  <data name="Action_SelectDfaDisplacement" xml:space="preserve"><value>Select a highlighted hex</value></data>
-  <data name="DfaDisplacementHighlight" xml:space="preserve"><value>DFA displacement</value></data>
   <data name="PhysicalAttack_BothArms" xml:space="preserve"><value>Both Arms</value></data>
   <data name="PhysicalAttack_NoOptions" xml:space="preserve"><value>This unit has no physical attack options</value></data>
   <data name="PhysicalAttackDeclaration_Title" xml:space="preserve"><value>Physical attack</value></data>

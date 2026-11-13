@@ -172,10 +172,6 @@ public class ServerGame : BaseGame, IDisposable
             return;
         }
 
-        // A DFA displacement selection resumes the phase, so it is validated, recorded and then
-        // handed over in that order: the accepted selection precedes every result it produces.
-        if (TryHandleDfaSelection(command)) return;
-
         // Handle PlayerLeftCommand before delegating to phase
         if (command is PlayerLeftCommand playerLeftCommand)
         {
@@ -186,40 +182,6 @@ public class ServerGame : BaseGame, IDisposable
 
         _currentPhase.HandleCommand(command);
         RecordCommand(command);
-    }
-
-    /// <summary>
-    /// Handles a DFA displacement selection specially: it must be validated against the pending
-    /// phase request and recorded before the phase resumes and publishes later results.
-    /// </summary>
-    private bool TryHandleDfaSelection(IGameCommand command)
-    {
-        if (command is not SelectPhysicalAttackDisplacementCommand selection) return false;
-
-        var phaseValidation = _currentPhase is PhysicalAttackResolutionPhase phase
-            ? phase.ValidateDfaSelection(selection)
-            : CommandValidationResult.Invalid(ErrorCode.InvalidGameState);
-
-        if (!phaseValidation.IsValid)
-        {
-            Logger.LogWarning(
-                "Command {CommandType} (key: {IdempotencyKey}) was rejected - validation failed: {ErrorCode}",
-                command.GetType().Name,
-                selection.IdempotencyKey?.ToString() ?? "none",
-                phaseValidation.ErrorCode ?? ErrorCode.UnknownError);
-            CommandPublisher.PublishCommand(new ErrorCommand
-            {
-                GameOriginId = Id,
-                IdempotencyKey = selection.IdempotencyKey,
-                ErrorCode = phaseValidation.ErrorCode ?? ErrorCode.UnknownError,
-                Timestamp = DateTime.UtcNow
-            });
-            return true;
-        }
-
-        RecordCommand(command);
-        _currentPhase.HandleCommand(command);
-        return true;
     }
 
     protected override PlayerControlType? GetLocalPlayerControlType(Guid playerId)

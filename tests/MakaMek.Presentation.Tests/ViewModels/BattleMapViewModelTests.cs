@@ -94,9 +94,6 @@ public class BattleMapViewModelTests
         _localizationService.GetString("Action_SelectUnitToFire").Returns("Select unit to fire weapons");
         _localizationService.GetString("Action_SelectUnitToMove").Returns("Select unit to move");
         _localizationService.GetString("Action_SelectUnitToDeploy").Returns("Select Unit");
-        _localizationService.GetString("Action_SelectDfaDisplacement").Returns("Select a highlighted hex");
-        _localizationService.GetString("Action_ConfirmDfaDisplacement").Returns("Confirm displacement");
-        _localizationService.GetString("DfaDisplacementHighlight").Returns("DFA displacement");
         _localizationService.GetString("EndPhase_PlayerActionLabel").Returns("End turn");
         _localizationService.GetString("Action_MovementPoints").Returns("{0} | MP: {1}");
         _localizationService.GetString("MovementType_Walk").Returns("Walk");
@@ -4603,117 +4600,6 @@ public class BattleMapViewModelTests
     /// A client game whose acknowledgement timeout expires almost immediately, so a command that
     /// is never acknowledged raises CommandTimedOut without the test waiting ten seconds.
     /// </summary>
-    [Fact]
-    public void DfaDisplacementCandidates_ForALocalHumanOwner_EnterTheSelectionState()
-    {
-        var owner = new Player(Guid.NewGuid(), "Owner", PlayerControlType.Human);
-        RegisterLocalPlayer(owner);
-        var request = CreateDfaCandidatesCommand(owner.Id);
-
-        _game.HandleCommand(request);
-
-        var state = _sut.CurrentState.ShouldBeOfType<DfaDisplacementState>();
-        state.SelectedUnit.ShouldBeNull();
-        state.IsActionRequired.ShouldBeTrue();
-        state.ActionLabel.ShouldBe(_localizationService.GetString("Action_SelectDfaDisplacement"));
-    }
-
-    [Fact]
-    public void DfaDisplacementCandidates_ForARemoteOwner_KeepTheIdleState()
-    {
-        var owner = new Player(Guid.NewGuid(), "Remote owner", PlayerControlType.Remote);
-        _game.HandleCommand(new JoinGameCommand
-        {
-            PlayerId = owner.Id,
-            PlayerName = owner.Name,
-            Tint = owner.Tint,
-            GameOriginId = Guid.NewGuid(),
-            Units = [],
-            PilotAssignments = []
-        });
-
-        _game.HandleCommand(CreateDfaCandidatesCommand(owner.Id));
-
-        _sut.CurrentState.ShouldBeOfType<IdleState>();
-    }
-
-    [Fact]
-    public void DfaDisplacementState_SelectsAHighlightedHexAndEnablesTheAction()
-    {
-        var owner = new Player(Guid.NewGuid(), "Owner", PlayerControlType.Human);
-        RegisterLocalPlayer(owner);
-        var request = CreateDfaCandidatesCommand(owner.Id);
-        _game.HandleCommand(request);
-        var state = _sut.CurrentState.ShouldBeOfType<DfaDisplacementState>();
-
-        _sut.HandleHexSelection(new Hex(new HexCoordinates(3, 4)));
-
-        state.CanExecutePlayerAction.ShouldBeTrue();
-        state.ActionLabel.ShouldBe(_localizationService.GetString("Action_ConfirmDfaDisplacement"));
-        // A click outside the candidate set is ignored.
-        _sut.HandleHexSelection(new Hex(new HexCoordinates(9, 9)));
-        state.CanExecutePlayerAction.ShouldBeTrue();
-    }
-
-    [Fact]
-    public void DfaDisplacementState_IsClearedByTheSelectionRebroadcastAndAPhaseChange()
-    {
-        var owner = new Player(Guid.NewGuid(), "Owner", PlayerControlType.Human);
-        RegisterLocalPlayer(owner);
-        var request = CreateDfaCandidatesCommand(owner.Id);
-        _game.HandleCommand(request);
-        _sut.CurrentState.ShouldBeOfType<DfaDisplacementState>();
-
-        _game.HandleCommand(new SelectPhysicalAttackDisplacementCommand
-        {
-            GameOriginId = Guid.NewGuid(),
-            PlayerId = owner.Id,
-            UnitId = request.TargetUnitId,
-            RequestId = request.RequestId,
-            Coordinates = request.Candidates[0].Coordinates,
-            Surface = request.Candidates[0].Surface
-        });
-        _sut.CurrentState.ShouldBeOfType<IdleState>();
-
-        _game.HandleCommand(request);
-        _sut.CurrentState.ShouldBeOfType<DfaDisplacementState>();
-        _game.HandleCommand(new ChangePhaseCommand
-        {
-            GameOriginId = Guid.NewGuid(),
-            Phase = PhaseNames.Heat
-        });
-        _sut.CurrentState.ShouldBeOfType<IdleState>();
-    }
-
-    private void RegisterLocalPlayer(Player player)
-    {
-        _ = _game.JoinGameWithUnits(player, [], []);
-        _game.HandleCommand(new JoinGameCommand
-        {
-            PlayerId = player.Id,
-            PlayerName = player.Name,
-            Tint = player.Tint,
-            GameOriginId = Guid.NewGuid(),
-            Units = [],
-            PilotAssignments = []
-        });
-    }
-
-    private static PhysicalAttackDisplacementCandidatesCommand CreateDfaCandidatesCommand(
-        Guid ownerPlayerId) => new()
-    {
-        RequestId = Guid.NewGuid(),
-        AttackerId = Guid.NewGuid(),
-        TargetUnitId = Guid.NewGuid(),
-        OwnerPlayerId = ownerPlayerId,
-        Candidates =
-        [
-            new PhysicalAttackDisplacementCandidateData(
-                new HexCoordinateData(3, 4),
-                (int)HexSurface.Ground)
-        ],
-        GameOriginId = Guid.NewGuid()
-    };
 
     private ClientGame CreateClientGameWithShortAckTimeout() =>
         new(new TotalWarfareRulesProvider(),

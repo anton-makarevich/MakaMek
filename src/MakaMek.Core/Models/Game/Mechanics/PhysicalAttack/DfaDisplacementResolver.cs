@@ -58,9 +58,9 @@ public record DfaLandingResult(
 /// effect.
 /// </para>
 /// <para>
-/// The attacker always lands in the target's original hex. On a miss or an auto-fail it may land in
-/// its approach hex instead; an occupied landing hex is resolved through the same domino effect,
-/// with the charge side-hex precedent (right then left) as a fallback.
+/// The attacker lands in the target's original hex on a hit and on a miss; an auto-fail places it in
+/// its approach hex. An occupied landing hex is resolved through the same domino effect, with the
+/// charge side-hex precedent (right then left) as a fallback.
 /// </para>
 /// </summary>
 public class DfaDisplacementResolver(
@@ -213,22 +213,31 @@ public class DfaDisplacementResolver(
     }
 
     /// <summary>
-    /// Every adjacent passable, unoccupied hex the target of a missed DFA can be displaced into.
-    /// Even a prone or immobile target is displaced. The airborne DFA attacker is not a ground
-    /// occupant, so its approach hex can be a candidate.
+    /// Picks the hex the target of a missed Death From Above is displaced into: the first empty,
+    /// passable adjacent hex along the jump vector, measured away from the hex where the attacker
+    /// started its movement. A miss therefore displaces the target along the same line as a hit.
+    /// <para>
+    /// The rules give this choice to the target's controller (Total Warfare, p. 150). The first
+    /// version resolves it on the server so that a miss needs no interaction; restoring the
+    /// controller's choice is tracked as a follow-up. Returns null when no adjacent hex is available,
+    /// which destroys the attacker.
+    /// </para>
     /// </summary>
-    public IReadOnlyList<DfaMissDisplacementCandidate> GetMissCandidates(
+    public DfaMissDisplacementCandidate? ResolveMiss(
         IUnit target,
+        HexCoordinates startCoordinates,
         IBattleMap map,
         IEnumerable<IUnit> units)
     {
-        if (target.Position is not { } targetPosition) return [];
+        if (target.Position is not { } targetPosition) return null;
 
         var allUnits = units.ToList();
         var maxDrop = rulesProvider.GetMaxDisplacementDropWithoutAutomaticFall();
-        var candidates = new List<DfaMissDisplacementCandidate>();
 
-        foreach (var direction in HexDirectionExtensions.AllDirections)
+        // Ordered by how closely each neighbour points away from the jump origin, so the ideal hex
+        // of the hit push is tried first and the rest of the ring is a deterministic fallback.
+        foreach (var direction in
+                 targetPosition.Coordinates.GetDirectionsByAlignmentAwayFrom(startCoordinates))
         {
             var candidate = targetPosition.Coordinates.GetNeighbour(direction);
             if (!map.IsOnMap(candidate)) continue;
@@ -246,10 +255,10 @@ public class DfaDisplacementResolver(
                 map, targetPosition, candidate, entry.Surface);
             if (levelsFallen > maxDrop) continue;
 
-            candidates.Add(new DfaMissDisplacementCandidate(candidate, entry.Surface));
+            return new DfaMissDisplacementCandidate(candidate, entry.Surface);
         }
 
-        return candidates;
+        return null;
     }
 
     /// <summary>

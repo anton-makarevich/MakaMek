@@ -118,20 +118,36 @@ public class DfaDisplacementResolverTests
     }
 
     [Fact]
-    public void GetMissCandidates_ExcludesOccupiedHexes()
+    public void ResolveMiss_PicksTheFirstFreeHexAwayFromTheJumpOrigin()
+    {
+        var map = CreateMap();
+        var target = CreateMech(new HexPosition(TargetCoordinates, HexDirection.Top));
+
+        var candidate = _sut.ResolveMiss(target, StartCoordinates, map, [target]);
+
+        // The origin (5,3) is north of the target, so the miss displaces it south to (5,6),
+        // exactly where a hit would push it.
+        candidate.ShouldNotBeNull();
+        candidate.Coordinates.ShouldBe(new HexCoordinates(5, 6));
+        candidate.Surface.ShouldBe(HexSurface.Ground);
+    }
+
+    [Fact]
+    public void ResolveMiss_SkipsTheIdealHexWhenItIsOccupied()
     {
         var map = CreateMap();
         var target = CreateMech(new HexPosition(TargetCoordinates, HexDirection.Top));
         var occupant = CreateMech(new HexPosition(new HexCoordinates(5, 6), HexDirection.Top));
 
-        var candidates = _sut.GetMissCandidates(target, map, [target, occupant]);
+        var candidate = _sut.ResolveMiss(target, StartCoordinates, map, [target, occupant]);
 
-        candidates.Count.ShouldBe(5);
-        candidates.ShouldNotContain(candidate => candidate.Coordinates == new HexCoordinates(5, 6));
+        candidate.ShouldNotBeNull();
+        candidate.Coordinates.ShouldNotBe(new HexCoordinates(5, 6));
+        candidate.Coordinates.DistanceTo(TargetCoordinates).ShouldBe(1);
     }
 
     [Fact]
-    public void GetMissCandidates_IncludesTheApproachHexHeldOnlyByAnAirborneDfaAttacker()
+    public void ResolveMiss_WhenOnlyAnAirborneDfaAttackerHoldsTheApproachHex_UsesThatHex()
     {
         var map = CreateMap();
         var target = CreateMech(new HexPosition(TargetCoordinates, HexDirection.Top));
@@ -144,10 +160,26 @@ public class DfaDisplacementResolverTests
             TargetId = target.Id
         });
 
-        var candidates = _sut.GetMissCandidates(target, map, [target, dfaAttacker]);
+        var candidate = _sut.ResolveMiss(target, StartCoordinates, map, [target, dfaAttacker]);
 
-        candidates.Count.ShouldBe(6);
-        candidates.ShouldContain(candidate => candidate.Coordinates == approach);
+        // An airborne pending-DFA unit is not a ground occupant (Total Warfare, p. 149).
+        candidate.ShouldNotBeNull();
+        candidate.Coordinates.ShouldBe(approach);
+    }
+
+    [Fact]
+    public void ResolveMiss_WhenEveryNeighbourIsTaken_ReturnsNull()
+    {
+        var map = CreateMap();
+        var target = CreateMech(new HexPosition(TargetCoordinates, HexDirection.Top));
+        var occupants = HexDirectionExtensions.AllDirections
+            .Select(direction => CreateMech(new HexPosition(TargetCoordinates.GetNeighbour(direction), HexDirection.Top)))
+            .ToList<IUnit>();
+        occupants.Add(target);
+
+        var candidate = _sut.ResolveMiss(target, StartCoordinates, map, occupants);
+
+        candidate.ShouldBeNull();
     }
 
     [Fact]

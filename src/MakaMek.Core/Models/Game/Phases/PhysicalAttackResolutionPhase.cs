@@ -1,7 +1,6 @@
 using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Game.Commands;
-using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
 using Sanet.MakaMek.Core.Data.Game.Mechanics.PhysicalAttacks;
@@ -58,10 +57,8 @@ public class PhysicalAttackResolutionPhase(
 
     private List<ResolutionQueueItem> _queue = [];
     private int _cursor;
-    private bool _isProcessing;
     private HashSet<(Guid AttackerId, Guid TargetId)> _reciprocalPushes = [];
     private List<PushOutcome> _deferredPushes = [];
-    private DfaPendingSelection? _pendingDfaSelection;
 
     private readonly record struct AttackQueueItem(IPlayer Player, PhysicalAttackContext Context);
 
@@ -91,27 +88,13 @@ public class PhysicalAttackResolutionPhase(
 
     private sealed record PushOutcome(IUnit Attacker, IUnit Target, bool IsHit, bool IsReciprocal);
 
-    /// <summary>
-    /// A DFA miss whose target displacement needs a controller's choice. The phase pauses until a
-    /// selection arrives; every input needed to finish the resolution is snapshotted here.
-    /// </summary>
-    private sealed record DfaPendingSelection(
-        Guid RequestId,
-        Guid OwnerPlayerId,
-        IUnit Attacker,
-        IUnit Target,
-        HexPosition TargetPosition,
-        IReadOnlyList<DfaMissDisplacementCandidate> Candidates);
-
     public override void Enter()
     {
         base.Enter();
         _accumulatedDamage.Clear();
         _pushHitContexts.Clear();
         _deferredPushes = [];
-        _pendingDfaSelection = null;
         _cursor = 0;
-        _isProcessing = false;
 
         // The queue is snapshotted before any damage: an attack must still resolve when an earlier
         // attack of the phase destroys its attacker or target, and Unit clears a destroyed unit's
@@ -124,97 +107,18 @@ public class PhysicalAttackResolutionPhase(
 
     public override void HandleCommand(IGameCommand command)
     {
-        if (command is not SelectPhysicalAttackDisplacementCommand selection) return;
-        if (_pendingDfaSelection is not { } pending) return;
-        if (!pending.RequestId.Equals(selection.RequestId)) return;
-
-        var candidate = pending.Candidates.FirstOrDefault(candidate =>
-            candidate.Coordinates.Q == selection.Coordinates.Q
-            && candidate.Coordinates.R == selection.Coordinates.R
-            && (int)candidate.Surface == selection.Surface);
-        if (candidate is null) return;
-
-        _pendingDfaSelection = null;
-
-        // The server records the raw selection once before this point; the server-origin copy is
-        // what every client applies and logs.
-        var broadcast = selection;
-        broadcast.GameOriginId = Game.Id;
-        Game.CommandPublisher.PublishCommand(broadcast);
-
-        ApplyDfaMissDisplacement(
-            pending.Attacker,
-            pending.Target,
-            pending.TargetPosition,
-            candidate,
-            DisplacementReason.DfaTarget);
-
-        // A selection delivered inline during the candidates publish is consumed here; the outer
-        // loop continues without re-entering or rebuilding anything.
-        ProcessQueue();
+        // The phase is not driven by client commands: a DFA miss displacement resolves on the server.
     }
 
     /// <summary>
-    /// Validates a DFA displacement selection against the pending request before the server
-    /// records it. The candidate is re-checked against the current board state, so a hex that
-    /// became occupied between the broadcast and the answer is rejected.
-    /// </summary>
-    public CommandValidationResult ValidateDfaSelection(
-        SelectPhysicalAttackDisplacementCommand selection)
-    {
-        if (_pendingDfaSelection is not { } pending)
-            return CommandValidationResult.Invalid(ErrorCode.InvalidGameState);
-
-        if (!pending.RequestId.Equals(selection.RequestId)
-            || !pending.OwnerPlayerId.Equals(selection.PlayerId)
-            || !pending.Target.Id.Equals(selection.UnitId))
-            return CommandValidationResult.Invalid(ErrorCode.ValidationFailed);
-
-        if (Game.BattleMap is not { } map)
-            return CommandValidationResult.Invalid(ErrorCode.InvalidGameState);
-
-        if (pending.Target.Position is not { } currentPosition
-            || currentPosition.Coordinates != pending.TargetPosition.Coordinates)
-            return CommandValidationResult.Invalid(ErrorCode.InvalidGameState);
-
-        var currentCandidates = _dfaDisplacementResolver.GetMissCandidates(
-            pending.Target,
-            map,
-            AllUnits());
-
-        var stillLegal = currentCandidates.Any(candidate =>
-            candidate.Coordinates.Q == selection.Coordinates.Q
-            && candidate.Coordinates.R == selection.Coordinates.R
-            && (int)candidate.Surface == selection.Surface);
-
-        return stillLegal
-            ? CommandValidationResult.Valid()
-            : CommandValidationResult.Invalid(ErrorCode.ValidationFailed);
-    }
-
-    /// <summary>
-    /// Processes the snapshot queue. The loop pauses when a DFA miss needs the target
-    /// controller's displacement choice and finishes the phase only when the queue is drained.
+    /// Resolves the snapshot queue in order and finishes the phase when it is drained.
     /// </summary>
     private void ProcessQueue()
     {
-        if (_isProcessing) return;
-        _isProcessing = true;
-        try
-        {
-            while (_cursor < _queue.Count && _pendingDfaSelection is null)
-            {
-                var item = _queue[_cursor++];
-                ProcessQueueItem(item);
-            }
+        while (_cursor < _queue.Count)
+            ProcessQueueItem(_queue[_cursor++]);
 
-            if (_pendingDfaSelection is null)
-                Finish();
-        }
-        finally
-        {
-            _isProcessing = false;
-        }
+        Finish();
     }
 
     private void ProcessQueueItem(ResolutionQueueItem item)
@@ -423,7 +327,7 @@ public class PhysicalAttackResolutionPhase(
 
     /// <summary>
     /// Resolves a Death From Above: the auto-fail checks, the no-roll miss paths, the to-hit roll
-    /// and then either the hit consequences or the miss's target-selected displacement.
+    /// and then either the hit consequences or the miss's automatic target displacement.
     /// </summary>
     private void ResolveDfa(DfaQueueItem item)
     {
@@ -490,9 +394,9 @@ public class PhysicalAttackResolutionPhase(
         || attacker.Status.HasFlag(UnitStatus.Prone);
 
     /// <summary>
-    /// Resolves a DFA miss: the target is displaced by its controller (or immediately when there is
-    /// exactly one candidate), the attacker lands in the target's original hex and automatically
-    /// falls two levels. Zero candidates destroy the attacker (Total Warfare, p. 150).
+    /// Resolves a DFA miss: the target is displaced into the hex the resolver picks along the jump
+    /// vector, the attacker lands in the target's original hex and automatically falls two levels.
+    /// No adjacent hex available destroys the attacker (Total Warfare, p. 150).
     /// </summary>
     private void ResolveDfaMiss(
         DfaQueueItem item,
@@ -516,12 +420,13 @@ public class PhysicalAttackResolutionPhase(
 
         if (target.Position is not { } targetPosition) return;
 
-        var candidates = _dfaDisplacementResolver.GetMissCandidates(
+        var candidate = _dfaDisplacementResolver.ResolveMiss(
             target,
+            item.StartCoordinates,
             map,
             AllUnits());
 
-        if (candidates.Count == 0)
+        if (candidate is null)
         {
             // No legal adjacent hex exists: the attacker is destroyed (Total Warfare, p. 150).
             var destroyed = resolution with
@@ -538,44 +443,14 @@ public class PhysicalAttackResolutionPhase(
             return;
         }
 
-        resolution = PublishDfaResolution(item, target, resolution);
+        PublishDfaResolution(item, target, resolution);
 
-        if (candidates.Count == 1)
-        {
-            ApplyDfaMissDisplacement(
-                item.Attacker,
-                target,
-                targetPosition,
-                candidates[0],
-                DisplacementReason.DfaTarget);
-            return;
-        }
-
-        var pending = new DfaPendingSelection(
-            Guid.NewGuid(),
-            target.Owner?.Id ?? item.Player.Id,
+        ApplyDfaMissDisplacement(
             item.Attacker,
             target,
             targetPosition,
-            candidates);
-
-        // Store the request before publishing: a selection delivered inline during the publish is
-        // consumed by HandleCommand and the outer loop continues without rebuilding anything.
-        _pendingDfaSelection = pending;
-        Game.CommandPublisher.PublishCommand(new PhysicalAttackDisplacementCandidatesCommand
-        {
-            RequestId = pending.RequestId,
-            AttackerId = item.Attacker.Id,
-            TargetUnitId = target.Id,
-            OwnerPlayerId = pending.OwnerPlayerId,
-            Candidates = candidates
-                .Select(candidate => new PhysicalAttackDisplacementCandidateData(
-                    candidate.Coordinates.ToData(),
-                    (int)candidate.Surface))
-                .ToList(),
-            GameOriginId = Game.Id,
-            Timestamp = DateTime.UtcNow
-        });
+            candidate,
+            DisplacementReason.DfaTarget);
     }
 
     private void ResolveDfaAutoFail(DfaQueueItem item, IUnit? target)
@@ -693,8 +568,9 @@ public class PhysicalAttackResolutionPhase(
     }
 
     /// <summary>
-    /// Grounds the attacker after a miss: the target moves to the chosen candidate, then the
-    /// attacker lands in the target's original hex and falls two levels with rear hit locations.
+    /// Grounds the attacker after a miss: the target moves to the hex the resolver picked along the
+    /// jump vector, then the attacker lands in the target's original hex and falls two levels with
+    /// rear hit locations.
     /// </summary>
     private void ApplyDfaMissDisplacement(
         IUnit attacker,

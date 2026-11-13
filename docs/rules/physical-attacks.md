@@ -309,6 +309,8 @@ The water rules decide whether a physical attack may be **made at all** — they
 
 **Implementation scope:** `PhysicalAttackEligibility` applies the Punch/Kick/Push rules (and the effective-standing-level comparison) to physical-phase declarations; the same rules are re-checked at resolution time via `CanResolve` and `PhysicalAttackTargetValidityGate`, so a declaration that has become illegal by resolution is skipped automatically. `MovementAttackDeclarationValidator` applies the Charge/DFA declaration rules. Charge and DFA resolutions live in `PhysicalAttackResolutionPhase`: a charge applies the charge water rules, and a DFA grounds the attacker through the displacement pipeline, with a two-level rear fall on a miss. The DFA landing PSR carries the water-entry modifier when the attacker lands in water (Depth 1 −1, Depth 2 0, Depth 3+ +1).
 
+**DFA miss displacement — first implementation:** the rules give the target's controller the choice of the adjacent hex. The first version resolves it on the server instead, so a miss needs no client interaction: `DfaDisplacementResolver.ResolveMiss` walks the adjacent hexes ordered by alignment away from the attacker's jump origin (`MovementTaken.Start`) and takes the first passable, unoccupied one, which is the hex a hit would push the target into. No adjacent hex is available → the attacker is destroyed. Restoring the controller's choice is tracked as a follow-up.
+
 ---
 
 ### **7. Eligibility Policy and Structural Metadata (issue #1612)**

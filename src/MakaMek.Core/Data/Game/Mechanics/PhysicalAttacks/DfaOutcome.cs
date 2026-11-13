@@ -9,8 +9,8 @@ public enum DfaOutcome
     Hit,
 
     /// <summary>
-    /// The attack missed: the attacker fell into the target hex and the target was displaced by
-    /// its controller (Total Warfare, p. 150).
+    /// The attack missed: the attacker fell into the target hex and the target was displaced one
+    /// hex along the jump vector (Total Warfare, p. 150).
     /// </summary>
     Miss,
 

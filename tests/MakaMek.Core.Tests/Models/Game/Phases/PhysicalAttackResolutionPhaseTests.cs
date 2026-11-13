@@ -1738,97 +1738,6 @@ public class PhysicalAttackResolutionPhaseTests : GamePhaseTestsBase
             .ToList();
 
     [Fact]
-    public void ServerCommand_RecordsTheAcceptedDfaSelectionOnceBeforeResuming()
-    {
-        SetMap();
-        SetUpDfa(_player1Mech, _player2Mech);
-        MockPhysicalAttackResolver.ResolveDfa(Arg.Any<DfaAttackContext>())
-            .Returns(DfaMiss(_player2Mech.Id));
-        StubDfaFall();
-        _sut.Enter();
-        var request = PublishedCommands()
-            .OfType<PhysicalAttackDisplacementCandidatesCommand>()
-            .ShouldHaveSingleItem();
-        var candidate = request.Candidates[0];
-        typeof(ServerGame)
-            .GetField("_currentPhase", System.Reflection.BindingFlags.NonPublic
-                                       | System.Reflection.BindingFlags.Instance)!
-            .SetValue(Game, _sut);
-
-        Game.HandleCommand(new SelectPhysicalAttackDisplacementCommand
-        {
-            GameOriginId = Guid.NewGuid(),
-            PlayerId = request.OwnerPlayerId,
-            UnitId = request.TargetUnitId,
-            RequestId = request.RequestId,
-            Coordinates = candidate.Coordinates,
-            Surface = candidate.Surface
-        });
-
-        Game.CommandLog.Count(command =>
-            command is SelectPhysicalAttackDisplacementCommand).ShouldBe(1);
-        MockPhaseManager.Received(1).GetNextPhase(PhaseNames.PhysicalAttackResolution, Game);
-        _mockNextPhase.Received(1).Enter();
-    }
-
-    [Fact]
-    public void ValidateDfaSelection_RejectsWrongRequestPlayerOrHex()
-    {
-        SetMap();
-        SetUpDfa(_player1Mech, _player2Mech);
-        MockPhysicalAttackResolver.ResolveDfa(Arg.Any<DfaAttackContext>())
-            .Returns(DfaMiss(_player2Mech.Id));
-        StubDfaFall();
-        _sut.Enter();
-        var request = PublishedCommands()
-            .OfType<PhysicalAttackDisplacementCandidatesCommand>()
-            .ShouldHaveSingleItem();
-        var candidate = request.Candidates[0];
-
-        var wrongRequest = _sut.ValidateDfaSelection(new SelectPhysicalAttackDisplacementCommand
-        {
-            GameOriginId = Game.Id,
-            PlayerId = request.OwnerPlayerId,
-            UnitId = request.TargetUnitId,
-            RequestId = Guid.NewGuid(),
-            Coordinates = candidate.Coordinates,
-            Surface = candidate.Surface
-        });
-        var wrongPlayer = _sut.ValidateDfaSelection(new SelectPhysicalAttackDisplacementCommand
-        {
-            GameOriginId = Game.Id,
-            PlayerId = Guid.NewGuid(),
-            UnitId = request.TargetUnitId,
-            RequestId = request.RequestId,
-            Coordinates = candidate.Coordinates,
-            Surface = candidate.Surface
-        });
-        var wrongHex = _sut.ValidateDfaSelection(new SelectPhysicalAttackDisplacementCommand
-        {
-            GameOriginId = Game.Id,
-            PlayerId = request.OwnerPlayerId,
-            UnitId = request.TargetUnitId,
-            RequestId = request.RequestId,
-            Coordinates = new HexCoordinateData(9, 9),
-            Surface = candidate.Surface
-        });
-        var valid = _sut.ValidateDfaSelection(new SelectPhysicalAttackDisplacementCommand
-        {
-            GameOriginId = Game.Id,
-            PlayerId = request.OwnerPlayerId,
-            UnitId = request.TargetUnitId,
-            RequestId = request.RequestId,
-            Coordinates = candidate.Coordinates,
-            Surface = candidate.Surface
-        });
-
-        wrongRequest.IsValid.ShouldBeFalse();
-        wrongPlayer.IsValid.ShouldBeFalse();
-        wrongHex.IsValid.ShouldBeFalse();
-        valid.IsValid.ShouldBeTrue();
-    }
-
-    [Fact]
     public void Enter_DfaHit_LandsTheAttackerInTheTargetHexAndDisplacesTheTarget()
     {
         // Arrange
@@ -1877,46 +1786,24 @@ public class PhysicalAttackResolutionPhaseTests : GamePhaseTestsBase
     }
 
     [Fact]
-    public void Enter_DfaMiss_WithManyCandidates_PausesAndResumesWithTheSelection()
+    public void Enter_DfaMiss_FreeRing_DisplacesTheTargetAlongTheJumpVector()
     {
-        // Arrange
         SetMap();
         SetUpDfa(_player1Mech, _player2Mech);
+        var targetPosition = _player2Mech.Position!.Coordinates;
+        // The jump runs from (5,2) through the approach hex to the target hex at (5,4): the hex on
+        // the far side of that line, (5,5), is the first direction away from the movement origin.
+        var expectedDestination = targetPosition.GetNeighbour(HexDirection.Bottom);
         MockPhysicalAttackResolver.ResolveDfa(Arg.Any<DfaAttackContext>())
             .Returns(DfaMiss(_player2Mech.Id));
         StubDfaFall();
 
-        // Act
         _sut.Enter();
 
-        // Assert: the phase pauses after broadcasting the request
-        var candidatesCommand = PublishedCommands()
-            .OfType<PhysicalAttackDisplacementCandidatesCommand>()
-            .ShouldHaveSingleItem();
-        candidatesCommand.Candidates.Count.ShouldBe(6);
-        PublishedCommands().OfType<DisplaceUnitCommand>().ShouldBeEmpty();
-        MockPhaseManager.DidNotReceive().GetNextPhase(
-            PhaseNames.PhysicalAttackResolution, Game);
-
-        // Act: select the first candidate
-        var selected = candidatesCommand.Candidates[0];
-        _sut.HandleCommand(new SelectPhysicalAttackDisplacementCommand
-        {
-            GameOriginId = Guid.NewGuid(),
-            Timestamp = DateTime.UtcNow,
-            PlayerId = candidatesCommand.OwnerPlayerId,
-            UnitId = candidatesCommand.TargetUnitId,
-            RequestId = candidatesCommand.RequestId,
-            Coordinates = selected.Coordinates,
-            Surface = selected.Surface
-        });
-
-        // Assert: the target moves, the attacker lands in its old hex and falls
-        _player2Mech.Position!.Coordinates.ShouldBe(
-            new HexCoordinates(selected.Coordinates.Q, selected.Coordinates.R));
-        _player1Mech.Position!.Coordinates.ShouldBe(new HexCoordinates(5, 4));
-        PublishedCommands().OfType<SelectPhysicalAttackDisplacementCommand>()
-            .ShouldHaveSingleItem().GameOriginId.ShouldBe(Game.Id);
+        _player2Mech.Position!.Coordinates.ShouldBe(expectedDestination);
+        _player1Mech.Position!.Coordinates.ShouldBe(targetPosition);
+        PublishedCommands().OfType<DisplaceUnitCommand>()
+            .ShouldContain(command => command.DisplacementReason == DisplacementReason.DfaTarget);
         MockFallProcessor.Received(1).ProcessMovementAttempt(
             _player1Mech,
             Arg.Is<DfaFallRollContext>(context => context.RollType == PilotingSkillRollType.DfaFall),
@@ -1928,35 +1815,25 @@ public class PhysicalAttackResolutionPhaseTests : GamePhaseTestsBase
     }
 
     [Fact]
-    public void Enter_DfaMiss_WithOneCandidate_ResolvesWithoutASelectionRequest()
+    public void Enter_DfaMiss_WhenTheIdealHexIsOccupied_UsesTheNextLegalHex()
     {
         SetMap();
         SetUpDfa(_player1Mech, _player2Mech);
-        // Occupy five of the six neighbours, leaving exactly one legal destination.
         var targetPosition = _player2Mech.Position!.Coordinates;
-        var singleCandidate = targetPosition.GetNeighbour(HexDirection.Top);
-        var others = HexDirectionExtensions.AllDirections
-            .Select(direction => targetPosition.GetNeighbour(direction))
-            .Where(coordinates => coordinates != singleCandidate)
-            .ToList();
+        var ideal = targetPosition.GetNeighbour(HexDirection.Bottom);
+        var expected = targetPosition.GetNeighbour(HexDirection.BottomRight);
         var blockerOwner = (Player)Game.Players[1];
-        foreach (var coordinates in others)
-        {
-            var blocker = CreateMech();
-            blocker.Deploy(new HexPosition(coordinates, HexDirection.Top), null);
-            blockerOwner.AddUnit(blocker);
-        }
+        var blocker = CreateMech();
+        blocker.Deploy(new HexPosition(ideal, HexDirection.Top), null);
+        blockerOwner.AddUnit(blocker);
         MockPhysicalAttackResolver.ResolveDfa(Arg.Any<DfaAttackContext>())
             .Returns(DfaMiss(_player2Mech.Id));
         StubDfaFall();
 
         _sut.Enter();
 
-        PublishedCommands().OfType<PhysicalAttackDisplacementCandidatesCommand>().ShouldBeEmpty();
-        _player2Mech.Position!.Coordinates.ShouldBe(singleCandidate);
+        _player2Mech.Position!.Coordinates.ShouldBe(expected);
         _player1Mech.Position!.Coordinates.ShouldBe(targetPosition);
-        MockPhaseManager.Received(1).GetNextPhase(PhaseNames.PhysicalAttackResolution, Game);
-        _mockNextPhase.Received(1).Enter();
     }
 
     [Fact]

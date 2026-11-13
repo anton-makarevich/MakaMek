@@ -637,65 +637,6 @@ public class GameCommandJsonConverterTests
     }
 
     [Fact]
-    public void RoundTrip_DfaDisplacementCandidatesCommand_WorksCorrectly()
-    {
-        var original = new PhysicalAttackDisplacementCandidatesCommand
-        {
-            RequestId = Guid.NewGuid(),
-            AttackerId = Guid.NewGuid(),
-            TargetUnitId = Guid.NewGuid(),
-            OwnerPlayerId = Guid.NewGuid(),
-            Candidates =
-            [
-                new PhysicalAttackDisplacementCandidateData(new HexCoordinateData(1, 2), 0),
-                new PhysicalAttackDisplacementCandidateData(new HexCoordinateData(2, 3), 1)
-            ],
-            GameOriginId = Guid.NewGuid(),
-            Timestamp = DateTime.UtcNow
-        };
-
-        var json = JsonSerializer.Serialize<IGameCommand>(original, _options);
-        var deserialized = JsonSerializer.Deserialize<IGameCommand>(json, _options);
-
-        var command = deserialized.ShouldBeOfType<PhysicalAttackDisplacementCandidatesCommand>();
-        command.RequestId.ShouldBe(original.RequestId);
-        command.AttackerId.ShouldBe(original.AttackerId);
-        command.TargetUnitId.ShouldBe(original.TargetUnitId);
-        command.OwnerPlayerId.ShouldBe(original.OwnerPlayerId);
-        command.Candidates.Count.ShouldBe(2);
-        command.Candidates[1].Coordinates.ShouldBe(new HexCoordinateData(2, 3));
-        command.Candidates[1].Surface.ShouldBe(1);
-    }
-
-    [Fact]
-    public void RoundTrip_SelectPhysicalAttackDisplacementCommand_WorksCorrectly()
-    {
-        var original = new SelectPhysicalAttackDisplacementCommand
-        {
-            RequestId = Guid.NewGuid(),
-            PlayerId = Guid.NewGuid(),
-            UnitId = Guid.NewGuid(),
-            Coordinates = new HexCoordinateData(3, 4),
-            Surface = 1,
-            GameOriginId = Guid.NewGuid(),
-            Timestamp = DateTime.UtcNow,
-            IdempotencyKey = Guid.NewGuid()
-        };
-
-        var json = JsonSerializer.Serialize<IGameCommand>(original, _options);
-        var deserialized = JsonSerializer.Deserialize<IGameCommand>(json, _options);
-
-        var command = deserialized.ShouldBeOfType<SelectPhysicalAttackDisplacementCommand>();
-        command.RequestId.ShouldBe(original.RequestId);
-        command.PlayerId.ShouldBe(original.PlayerId);
-        command.UnitId.ShouldBe(original.UnitId);
-        command.Coordinates.ShouldBe(new HexCoordinateData(3, 4));
-        command.Surface.ShouldBe(1);
-        command.GetPayloadHash().ShouldBe(original.GetPayloadHash());
-        command.GetPayloadHash().ShouldContain(original.RequestId.ToString());
-    }
-
-    [Fact]
     public void RoundTrip_WeaponAttackResolutionCommand_WorksCorrectly()
     {
         // Arrange
