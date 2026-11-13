@@ -16,7 +16,8 @@ public enum DfaOutcome
 
     /// <summary>
     /// The attack could not resolve (the target left the declared hex or the attacker could not
-    /// reach its approach position). The attacker lands in its approach hex and nothing is damaged.
+    /// reach its approach position). The attacker still lands in the declared target hex and nothing
+    /// is damaged or fallen.
     /// </summary>
     AutoFail,
 

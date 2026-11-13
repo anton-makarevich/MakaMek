@@ -130,8 +130,9 @@ is added.
   on attacker destruction and on the turn reset (`ResetTurnState`). The DFA resolution slice grounds
   the attacker through the displacement pipeline: a hit lands it in the target's original hex, a
   miss or a destroyed target lands it there before the automatic two-level rear fall, and an
-  auto-fail places it in its approach hex. The declaration itself remains turn-scoped and is cleared
-  by `ResetTurnState` at the end of the turn.
+  auto-fail lands it in the declared target hex (the jump destination) without damage or a fall.
+  The declaration itself remains turn-scoped and is cleared by `ResetTurnState` at the end of the
+  turn.
 * **Serialization / reconstruction:** `Unit.ToData` exports the airborne position through the
   optional `HexPositionData.AirborneLevel`; the declaration itself is not exported. `MechFactory`
   and `CloneUnit` do not restore the position, so a reconstructed unit is undeployed and never

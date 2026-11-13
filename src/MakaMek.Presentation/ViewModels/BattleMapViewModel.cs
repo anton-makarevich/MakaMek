@@ -31,7 +31,9 @@ using Sanet.MakaMek.Services;
 using Sanet.MVVM.Core.Models;
 using Sanet.MVVM.Core.ViewModels;
 
-#pragma warning disable CA1502, CA1506, S3776
+// Pre-existing class coupling in this type, not introduced by this change. It is tracked in
+// #1714 together with the baseline-aware analyzer gate that will make this suppression unnecessary.
+#pragma warning disable CA1506
 
 namespace Sanet.MakaMek.Presentation.ViewModels;
 
@@ -539,6 +541,7 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         });
     }
 
+#pragma warning disable CA1502 // pre-existing complexity of the command switch, tracked in #1714
     private void ProcessCommand(IGameCommand command)
     {
         if (Game == null) return;
@@ -623,6 +626,7 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         RemoveVoidedMovementAttackIndicators();
         NotifyStateChanged();
     }
+#pragma warning restore CA1502
 
     /// <summary>
     /// Forwards playback-relevant commands to the unit controls. Movement commands animate along their

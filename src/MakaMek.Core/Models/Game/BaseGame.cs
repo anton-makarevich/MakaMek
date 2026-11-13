@@ -24,7 +24,9 @@ using Sanet.MakaMek.Map.Models;
 using Sanet.MakaMek.Map.Models.Terrains;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.PhysicalAttack;
 
-#pragma warning disable CA1502, CA1506, S3776
+// Pre-existing class coupling in this type, not introduced by this change. It is tracked in
+// #1714 together with the baseline-aware analyzer gate that will make this suppression unnecessary.
+#pragma warning disable CA1506
 
 namespace Sanet.MakaMek.Core.Models.Game;
 

@@ -28,6 +28,6 @@ public enum DisplacementReason
     /// <summary>A missed Death From Above placed the attacker in the target hex before its fall.</summary>
     DfaMissLanding,
 
-    /// <summary>A failed Death From Above placed the attacker in its approach hex.</summary>
+    /// <summary>A failed Death From Above placed the attacker in the declared target hex.</summary>
     DfaAutoFailLanding
 }

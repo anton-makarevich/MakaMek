@@ -2060,7 +2060,8 @@ public class FallProcessorTests
         // Assert
         result.IsFalling.ShouldBeTrue();
         result.LevelsFallen.ShouldBe(2);
-        result.WasJumping.ShouldBeFalse();
+        // A DFA attacker is jumping, so the fall is reported as happening mid-jump.
+        result.WasJumping.ShouldBeTrue();
         result.PilotingSkillRoll.ShouldBeNull();
         _mockFallingDamageCalculator.Received(1).CalculateFallingDamage(
             _testMech, 2, 0, facingDiceRoll, facingAfterFall);

@@ -58,9 +58,9 @@ public record DfaLandingResult(
 /// effect.
 /// </para>
 /// <para>
-/// The attacker lands in the target's original hex on a hit and on a miss; an auto-fail places it in
-/// its approach hex. An occupied landing hex is resolved through the same domino effect, with the
-/// charge side-hex precedent (right then left) as a fallback.
+/// The attacker lands in the target's original hex on a hit and on a miss, and in the declared target
+/// hex on an auto-fail: the jump destination is always that hex. An occupied landing hex is resolved
+/// through the same domino effect, with the charge side-hex precedent (right then left) as a fallback.
 /// </para>
 /// </summary>
 public class DfaDisplacementResolver(

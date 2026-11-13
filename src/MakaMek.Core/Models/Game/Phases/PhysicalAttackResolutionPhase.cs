@@ -15,7 +15,9 @@ using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Map.Models;
 
-#pragma warning disable CA1502, CA1506, S3776
+// Pre-existing class coupling in this type, not introduced by this change. It is tracked in
+// #1714 together with the baseline-aware analyzer gate that will make this suppression unnecessary.
+#pragma warning disable CA1506
 
 namespace Sanet.MakaMek.Core.Models.Game.Phases;
 
@@ -35,30 +37,55 @@ namespace Sanet.MakaMek.Core.Models.Game.Phases;
 /// inward. Each attack's displacement follows immediately (Total Warfare p. 151); only a mutual
 /// push pair waits for both rolls, because if both hit neither unit moves (p. 148).
 /// </remarks>
-public class PhysicalAttackResolutionPhase(
-    ServerGame game,
-    PushDisplacementResolver pushDisplacementResolver,
-    ChargeDisplacementResolver chargeDisplacementResolver,
-    DfaDisplacementResolver dfaDisplacementResolver) : GamePhase(game)
+public class PhysicalAttackResolutionPhase : GamePhase
 {
-    private readonly IReadOnlyList<IPhysicalAttackResolutionGate> _gates =
-    [
-        new AttackerDestroyedGate(),
-        new AttackerProneGate(),
-        new PhysicalAttackTargetValidityGate(game.PhysicalAttackEligibility)
-    ];
+    private readonly IReadOnlyList<IPhysicalAttackResolutionGate> _gates;
 
     private readonly Dictionary<Guid, UnitPhaseAccumulatedDamage> _accumulatedDamage = new();
     private readonly Dictionary<Guid, (List<PilotingSkillRollContext> Contexts, PushHitRollContext Context)>
         _pushHitContexts = new();
-    private readonly PushDisplacementResolver _pushDisplacementResolver = pushDisplacementResolver;
-    private readonly ChargeDisplacementResolver _chargeDisplacementResolver = chargeDisplacementResolver;
-    private readonly DfaDisplacementResolver _dfaDisplacementResolver = dfaDisplacementResolver;
+    private readonly PushDisplacementResolver _pushDisplacementResolver;
+    private readonly ChargeDisplacementResolver _chargeDisplacementResolver;
+    private readonly DfaDisplacementResolver _dfaDisplacementResolver;
+    private readonly IDfaAttackResolver _dfaAttackResolver;
 
     private List<ResolutionQueueItem> _queue = [];
     private int _cursor;
     private HashSet<(Guid AttackerId, Guid TargetId)> _reciprocalPushes = [];
     private List<PushOutcome> _deferredPushes = [];
+
+    /// <summary>
+    /// Resolves the physical attacks declared this turn, following the weapon attack resolution
+    /// pattern: a queue in resolution order with one item per declared limb (or one item for a
+    /// paired-arm attack such as Push) or charge, the pre-attack gates, the resolver, then criticals,
+    /// consciousness rolls and the end-of-phase piloting skill rolls.
+    /// </summary>
+    /// <remarks>
+    /// The queue is built once, before any damage of the phase, so an attack is never dropped because
+    /// an earlier one in the same phase destroyed or felled its attacker or its target. Attacks resolve
+    /// from the lower Initiative to the higher (Total Warfare p. 144): a charge declared during the
+    /// Movement Phase keeps its attacker's slot instead of always resolving last. Damage is applied
+    /// attack by attack, as the weapon phase does, because the resolver works out damage transfer from
+    /// the target's current state: a second hit on a location the first one destroyed has to move
+    /// inward. Each attack's displacement follows immediately (Total Warfare p. 151); only a mutual
+    /// push pair waits for both rolls, because if both hit neither unit moves (p. 148).
+    /// </remarks>
+    public PhysicalAttackResolutionPhase(ServerGame game,
+        PushDisplacementResolver pushDisplacementResolver,
+        ChargeDisplacementResolver chargeDisplacementResolver,
+        DfaDisplacementResolver dfaDisplacementResolver,
+        IDfaAttackResolver dfaAttackResolver) : base(game)
+    {
+        _gates = [
+            new AttackerDestroyedGate(),
+            new AttackerProneGate(),
+            new PhysicalAttackTargetValidityGate(game.PhysicalAttackEligibility)
+        ];
+        _pushDisplacementResolver = pushDisplacementResolver;
+        _chargeDisplacementResolver = chargeDisplacementResolver;
+        _dfaDisplacementResolver = dfaDisplacementResolver;
+        _dfaAttackResolver = dfaAttackResolver;
+    }
 
     private readonly record struct AttackQueueItem(IPlayer Player, PhysicalAttackContext Context);
 
@@ -73,8 +100,7 @@ public class PhysicalAttackResolutionPhase(
         IPlayer Player,
         IUnit Attacker,
         Guid DeclaredTargetId,
-        HexCoordinates DeclaredTargetCoordinates,
-        HexSurface DeclaredTargetSurface,
+        HexPosition DeclaredTargetPosition,
         HexCoordinates StartCoordinates,
         HexPosition ApproachCoordinates);
 
@@ -194,59 +220,89 @@ public class PhysicalAttackResolutionPhase(
                 var declaration = attacker.DeclaredPhysicalAttack;
                 if (declaration is null) continue;
 
-                if (declaration.AttackType == PhysicalAttackType.Charge)
-                {
-                    queue.Add(new ResolutionQueueItem(null, new ChargeQueueItem(
-                        player,
-                        attacker,
-                        declaration.TargetId,
-                        declaration.HexesMoved ?? 0,
-                        IsAttackerAutoFail(attacker, declaration)), null));
-                    continue;
-                }
-
-                if (declaration.AttackType == PhysicalAttackType.DFA)
-                {
-                    if (CreateDfaQueueItem(player, attacker, declaration) is { } dfa)
-                        queue.Add(new ResolutionQueueItem(null, null, dfa));
-                    continue;
-                }
-
-                var target = allUnits.FirstOrDefault(u => u.Id == declaration.TargetId);
-                if (target == null)
-                {
-                    Game.Logger.LogWarning(
-                        "Skipping {AttackType} by {AttackerName}: target {TargetId} is not in the game",
-                        declaration.AttackType, attacker.Name, declaration.TargetId);
-                    continue;
-                }
-
-                // A paired-arm attack such as Push resolves once for the whole declaration; a punch
-                // still enqueues one independent item per declared arm. A movement-origin attack
-                // (Charge or DFA) has no limb definition and is handled above.
-                if (!PhysicalAttackDefinitions.TryGet(declaration.AttackType, out var definition)) continue;
-                var limbs = definition.ResolvesAsSingleAttack
-                    ? declaration.AttackerLimbs.Take(1)
-                    : declaration.AttackerLimbs;
-
-                foreach (var limb in limbs)
-                {
-                    var context = new PhysicalAttackContext
-                    {
-                        Attacker = attacker,
-                        Target = target,
-                        AttackType = declaration.AttackType,
-                        AttackerLimb = limb,
-                        Map = map
-                    };
-                    if (_gates.Any(gate => gate.ShouldSkip(context, Game.Logger))) continue;
-
-                    queue.Add(new ResolutionQueueItem(new AttackQueueItem(player, context), null, null));
-                }
+                queue.AddRange(CreateItems(player, attacker, declaration, allUnits, map));
             }
         }
 
         return queue;
+    }
+
+    /// <summary>
+    /// The queue items one declaration produces: a single charge item, a single DFA item, or one
+    /// item per declared limb. A movement-origin attack has no limb definition.
+    /// </summary>
+    private IEnumerable<ResolutionQueueItem> CreateItems(
+        IPlayer player,
+        IUnit attacker,
+        PhysicalAttackDeclarationData declaration,
+        IReadOnlyList<IUnit> allUnits,
+        IBattleMap map)
+    {
+        if (declaration.AttackType == PhysicalAttackType.Charge)
+            return
+            [
+                new ResolutionQueueItem(
+                    null,
+                    new ChargeQueueItem(
+                        player,
+                        attacker,
+                        declaration.TargetId,
+                        declaration.HexesMoved ?? 0,
+                        IsAttackerAutoFail(attacker, declaration)),
+                    null)
+            ];
+
+        if (declaration.AttackType == PhysicalAttackType.DFA)
+            return CreateDfaQueueItem(player, attacker, declaration) is { } dfa
+                ? [new ResolutionQueueItem(null, null, dfa)]
+                : [];
+
+        return CreateLimbItems(player, attacker, declaration, allUnits, map);
+    }
+
+    /// <summary>
+    /// A paired-arm attack such as Push resolves once for the whole declaration; a punch still
+    /// enqueues one independent item per declared arm. Every item runs the pre-attack gates here,
+    /// before any damage of the phase.
+    /// </summary>
+    private List<ResolutionQueueItem> CreateLimbItems(
+        IPlayer player,
+        IUnit attacker,
+        PhysicalAttackDeclarationData declaration,
+        IReadOnlyList<IUnit> allUnits,
+        IBattleMap map)
+    {
+        var items = new List<ResolutionQueueItem>();
+        var target = allUnits.FirstOrDefault(u => u.Id == declaration.TargetId);
+        if (target == null)
+        {
+            Game.Logger.LogWarning(
+                "Skipping {AttackType} by {AttackerName}: target {TargetId} is not in the game",
+                declaration.AttackType, attacker.Name, declaration.TargetId);
+            return items;
+        }
+
+        if (!PhysicalAttackDefinitions.TryGet(declaration.AttackType, out var definition)) return items;
+        var limbs = definition.ResolvesAsSingleAttack
+            ? declaration.AttackerLimbs.Take(1)
+            : declaration.AttackerLimbs;
+
+        foreach (var limb in limbs)
+        {
+            var context = new PhysicalAttackContext
+            {
+                Attacker = attacker,
+                Target = target,
+                AttackType = declaration.AttackType,
+                AttackerLimb = limb,
+                Map = map
+            };
+            if (_gates.Any(gate => gate.ShouldSkip(context, Game.Logger))) continue;
+
+            items.Add(new ResolutionQueueItem(new AttackQueueItem(player, context), null, null));
+        }
+
+        return items;
     }
 
     /// <summary>
@@ -269,8 +325,7 @@ public class PhysicalAttackResolutionPhase(
             player,
             attacker,
             declaration.TargetId,
-            declaredTarget.Coordinates,
-            declaredTarget.Surface,
+            declaredTarget,
             movement.Start.Coordinates,
             approach);
     }
@@ -355,7 +410,7 @@ public class PhysicalAttackResolutionPhase(
             return;
         }
 
-        var resolution = Game.PhysicalAttackResolver.ResolveDfa(new DfaAttackContext
+        var resolution = _dfaAttackResolver.ResolveDfa(new DfaAttackContext
         {
             Attacker = item.Attacker,
             Target = presentTarget,
@@ -382,8 +437,8 @@ public class PhysicalAttackResolutionPhase(
         var attackerAtApproach = item.Attacker.Position is { } attackerPosition
                                  && attackerPosition.Coordinates == item.ApproachCoordinates.Coordinates;
         var targetInPlace = target?.Position is { } targetPosition
-                            && targetPosition.Coordinates == item.DeclaredTargetCoordinates
-                            && targetPosition.Surface == item.DeclaredTargetSurface;
+                            && targetPosition.Coordinates == item.DeclaredTargetPosition.Coordinates
+                            && targetPosition.Surface == item.DeclaredTargetPosition.Surface;
 
         return !attackerAtApproach || target is null || !targetInPlace;
     }
@@ -429,15 +484,11 @@ public class PhysicalAttackResolutionPhase(
         if (candidate is null)
         {
             // No legal adjacent hex exists: the attacker is destroyed (Total Warfare, p. 150).
+            if (resolution.Dfa is not { } dfa)
+                throw new InvalidOperationException("A DFA miss resolution must carry DFA data.");
             var destroyed = resolution with
             {
-                Dfa = (resolution.Dfa ?? new DfaResolutionData(
-                        DfaOutcome.Miss,
-                        OriginalTargetId: target.Id))
-                    with
-                    {
-                        Outcome = DfaOutcome.AttackerDestroyedNoLanding
-                    }
+                Dfa = dfa with { Outcome = DfaOutcome.AttackerDestroyedNoLanding }
             };
             PublishDfaResolution(item, target, destroyed);
             return;
@@ -453,6 +504,13 @@ public class PhysicalAttackResolutionPhase(
             DisplacementReason.DfaTarget);
     }
 
+    /// <summary>
+    /// Publishes an attack that could not resolve (the target left the declared hex, or the attacker
+    /// is no longer at its approach hex) and grounds the attacker in the hex it committed to land in.
+    /// The jump destination of a DFA is the target hex, so a failed attack never ends anywhere else;
+    /// an occupied hex is resolved through the displacement pipeline. No damage and no fall
+    /// (Total Warfare, p. 150).
+    /// </summary>
     private void ResolveDfaAutoFail(DfaQueueItem item, IUnit? target)
     {
         PublishDfaResolution(
@@ -462,7 +520,7 @@ public class PhysicalAttackResolutionPhase(
 
         ExecuteDfaLanding(
             item.Attacker,
-            item.ApproachCoordinates,
+            item.DeclaredTargetPosition,
             DisplacementReason.DfaAutoFailLanding);
     }
 
@@ -1162,36 +1220,43 @@ public class PhysicalAttackResolutionPhase(
                 Game,
                 accumulated.ComponentHits,
                 accumulated.DestroyedParts.ToList(),
-                accumulated.RollContexts);
+                accumulated.RollContexts).ToList();
 
-            foreach (var fallCommand in fallCommands)
-            {
-                Game.OnMechFalling(fallCommand);
-                Game.CommandPublisher.PublishCommand(fallCommand);
-                if (fallCommand.DamageData is null) continue;
-
-                var fallStructureDamage = fallCommand.DamageData.HitLocations.HitLocations
-                    .Where(h => h.Damage.Any(d => d.StructureDamage > 0))
-                    .SelectMany(h => h.Damage)
-                    .ToList();
-                if (fallStructureDamage.Count != 0)
-                {
-                    var fallCriticalHitsCommand = Game.CriticalHitsCalculator
-                        .CalculateCriticalHits(mech, fallStructureDamage);
-                    if (fallCriticalHitsCommand != null)
-                    {
-                        fallCriticalHitsCommand.GameOriginId = Game.Id;
-                        Game.OnCriticalHitsResolution(fallCriticalHitsCommand);
-                        Game.CommandPublisher.PublishCommand(fallCriticalHitsCommand);
-                    }
-                }
-
-                ProcessConsciousnessRollsForUnit(mech);
-                break;
-            }
+            // A unit makes at most one fall, and makes no further roll once it falls.
+            if (fallCommands.Count != 0)
+                ApplyFallConsequences(mech, fallCommands[0]);
         }
 
         _accumulatedDamage.Clear();
+    }
+
+    /// <summary>
+    /// Publishes a fall and the consequences the fall damage calls for: critical hits in the
+    /// locations that took structure damage, then the consciousness rolls.
+    /// </summary>
+    private void ApplyFallConsequences(Mech mech, MechFallCommand fallCommand)
+    {
+        Game.OnMechFalling(fallCommand);
+        Game.CommandPublisher.PublishCommand(fallCommand);
+        if (fallCommand.DamageData is null) return;
+
+        var fallStructureDamage = fallCommand.DamageData.HitLocations.HitLocations
+            .Where(h => h.Damage.Any(d => d.StructureDamage > 0))
+            .SelectMany(h => h.Damage)
+            .ToList();
+        if (fallStructureDamage.Count != 0)
+        {
+            var criticalHitsCommand = Game.CriticalHitsCalculator
+                .CalculateCriticalHits(mech, fallStructureDamage);
+            if (criticalHitsCommand != null)
+            {
+                criticalHitsCommand.GameOriginId = Game.Id;
+                Game.OnCriticalHitsResolution(criticalHitsCommand);
+                Game.CommandPublisher.PublishCommand(criticalHitsCommand);
+            }
+        }
+
+        ProcessConsciousnessRollsForUnit(mech);
     }
 
     private UnitPhaseAccumulatedDamage GetAccumulatedDamage(IUnit unit)

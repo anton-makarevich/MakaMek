@@ -42,7 +42,6 @@ public interface IClientGame:IGame
     Guid? ServerGameId { get; }
     bool CanActivePlayerAct { get; }
     IPilotingSkillCalculator PilotingSkillCalculator { get; }
-    IConsciousnessCalculator ConsciousnessCalculator { get; }
     IHeatEffectsCalculator HeatEffectsCalculator { get; }
 
     /// <summary>

@@ -16,7 +16,9 @@ using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Map.Factories;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.PhysicalAttack;
 
-#pragma warning disable CA1502, CA1506, S3776
+// Pre-existing class coupling in this type, not introduced by this change. It is tracked in
+// #1714 together with the baseline-aware analyzer gate that will make this suppression unnecessary.
+#pragma warning disable CA1506
 
 namespace Sanet.MakaMek.Core.Models.Game;
 
@@ -86,6 +88,7 @@ public sealed class ClientGame : BaseGame, IDisposable, IClientGame
         return !_serverGameId.HasValue || command.GameOriginId == _serverGameId.Value;
     }
 
+#pragma warning disable CA1502, S3776 // pre-existing complexity of the command switch, tracked in #1714
     public override void HandleCommand(IGameCommand command)
     {
         if (!ShouldHandleCommand(command)) return;
@@ -231,6 +234,7 @@ public sealed class ClientGame : BaseGame, IDisposable, IClientGame
 
         RecordCommand(command);
     }
+#pragma warning restore CA1502, S3776
 
     protected override PlayerControlType? GetLocalPlayerControlType(Guid playerId)
     {

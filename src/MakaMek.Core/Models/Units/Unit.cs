@@ -17,7 +17,9 @@ using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Models.Units.Pilots;
 using Sanet.MakaMek.Map.Models;
 
-#pragma warning disable CA1502, CA1506, S3776
+// Pre-existing class coupling in this type, not introduced by this change. It is tracked in
+// #1714 together with the baseline-aware analyzer gate that will make this suppression unnecessary.
+#pragma warning disable CA1506
 
 namespace Sanet.MakaMek.Core.Models.Units;
 
@@ -342,7 +344,9 @@ public abstract class Unit : IUnit
 
         foreach (var weaponTarget in weaponTargets)
         {
-            var primaryAssignment = weaponTarget.Weapon.Assignments.FirstOrDefault();
+            var primaryAssignment = weaponTarget.Weapon.Assignments is { Count: > 0 } assignments
+                ? assignments[0]
+                : null;
             var weapon = primaryAssignment != null ?
                 GetMountedComponentAtLocation<Weapon>(primaryAssignment.Location, primaryAssignment.FirstSlot) :
                 null;
@@ -590,7 +594,9 @@ public abstract class Unit : IUnit
 
         foreach (var weaponTarget in weaponTargets)
         {
-            var primaryAssignment = weaponTarget.Weapon.Assignments.FirstOrDefault();
+            var primaryAssignment = weaponTarget.Weapon.Assignments is { Count: > 0 } assignments
+                ? assignments[0]
+                : null;
             if (primaryAssignment == null)
                 continue;
 
@@ -753,6 +759,7 @@ public abstract class Unit : IUnit
     /// Applies pre-calculated critical hits data to the unit
     /// </summary>
     /// <param name="criticalHitsData">Pre-calculated critical hits data from the server</param>
+#pragma warning disable S3776 // pre-existing complexity, tracked in #1714
     public void ApplyCriticalHits(List<LocationCriticalHitsData> criticalHitsData)
     {
         foreach (var locationData in criticalHitsData)
@@ -802,6 +809,7 @@ public abstract class Unit : IUnit
             AddEvent(new UiEvent(UiEventType.UnitDestroyed, Name));
         }
     }
+#pragma warning restore S3776
     
     // Different unit types will have different damage transfer patterns
     public abstract PartLocation? GetTransferLocation(PartLocation location);
@@ -948,7 +956,9 @@ public abstract class Unit : IUnit
     public void FireWeapon(ComponentData weaponData)
     {
         // Find the weapon using the location and slots from weaponData
-        var primaryAssignment = weaponData.Assignments.FirstOrDefault();
+        var primaryAssignment = weaponData.Assignments is { Count: > 0 } assignments
+            ? assignments[0]
+            : null;
         if (primaryAssignment == null) return;
 
         var weapon = GetMountedComponentAtLocation<Weapon>(

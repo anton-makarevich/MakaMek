@@ -6,12 +6,15 @@ using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Map.Models;
 using Sanet.MakaMek.Map.Models.Terrains;
 
-#pragma warning disable CA1502, CA1506, S3776
+// Pre-existing class coupling in this type, not introduced by this change. It is tracked in
+// #1714 together with the baseline-aware analyzer gate that will make this suppression unnecessary.
+#pragma warning disable CA1506
 
 namespace Sanet.MakaMek.Core.Models.Game.Rules;
 
 public class TotalWarfareRulesProvider : IRulesProvider
 {
+#pragma warning disable CA1502 // pre-existing complexity, tracked in #1714
     public Dictionary<PartLocation, int> GetStructureValues(int tonnage)
     {
         var structureValues = new Dictionary<PartLocation, int>();
@@ -195,6 +198,7 @@ public class TotalWarfareRulesProvider : IRulesProvider
 
         return structureValues;
     }
+#pragma warning restore CA1502
 
     public int GetAttackerMovementModifier(MovementType movementType)
     {

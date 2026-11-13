@@ -21,7 +21,6 @@ using Sanet.MakaMek.Core.Models.Units.Pilots;
 using Sanet.MakaMek.Core.Tests.Utils;
 using Sanet.MakaMek.Core.Utils;
 using Sanet.Localization;
-using Sanet.MakaMek.Map.Data;
 using Sanet.MakaMek.Map.Models;
 using Sanet.MakaMek.Map.Models.MovementCosts;
 using Sanet.MakaMek.Map.Models.Terrains;
@@ -54,7 +53,8 @@ public class PhysicalAttackResolutionPhaseTests : GamePhaseTestsBase
             Game,
             new PushDisplacementResolver(Game.RulesProvider, dominoEffectResolver),
             new ChargeDisplacementResolver(Game.RulesProvider, dominoEffectResolver),
-            new DfaDisplacementResolver(Game.RulesProvider, dominoEffectResolver));
+            new DfaDisplacementResolver(Game.RulesProvider, dominoEffectResolver),
+            MockDfaAttackResolver);
 
         Game.HandleCommand(CreateJoinCommand(_player1Id, "Player 1"));
         Game.HandleCommand(CreateJoinCommand(_player2Id, "Player 2"));
@@ -1743,7 +1743,7 @@ public class PhysicalAttackResolutionPhaseTests : GamePhaseTestsBase
         // Arrange
         SetMap();
         SetUpDfa(_player1Mech, _player2Mech);
-        MockPhysicalAttackResolver.ResolveDfa(Arg.Any<DfaAttackContext>())
+        MockDfaAttackResolver.ResolveDfa(Arg.Any<DfaAttackContext>())
             .Returns(DfaHit(_player2Mech.Id));
 
         // Act
@@ -1768,7 +1768,7 @@ public class PhysicalAttackResolutionPhaseTests : GamePhaseTestsBase
     {
         SetMap();
         SetUpDfa(_player1Mech, _player2Mech);
-        MockPhysicalAttackResolver.ResolveDfa(Arg.Any<DfaAttackContext>())
+        MockDfaAttackResolver.ResolveDfa(Arg.Any<DfaAttackContext>())
             .Returns(DfaHit(_player2Mech.Id));
 
         _sut.Enter();
@@ -1794,7 +1794,7 @@ public class PhysicalAttackResolutionPhaseTests : GamePhaseTestsBase
         // The jump runs from (5,2) through the approach hex to the target hex at (5,4): the hex on
         // the far side of that line, (5,5), is the first direction away from the movement origin.
         var expectedDestination = targetPosition.GetNeighbour(HexDirection.Bottom);
-        MockPhysicalAttackResolver.ResolveDfa(Arg.Any<DfaAttackContext>())
+        MockDfaAttackResolver.ResolveDfa(Arg.Any<DfaAttackContext>())
             .Returns(DfaMiss(_player2Mech.Id));
         StubDfaFall();
 
@@ -1826,7 +1826,7 @@ public class PhysicalAttackResolutionPhaseTests : GamePhaseTestsBase
         var blocker = CreateMech();
         blocker.Deploy(new HexPosition(ideal, HexDirection.Top), null);
         blockerOwner.AddUnit(blocker);
-        MockPhysicalAttackResolver.ResolveDfa(Arg.Any<DfaAttackContext>())
+        MockDfaAttackResolver.ResolveDfa(Arg.Any<DfaAttackContext>())
             .Returns(DfaMiss(_player2Mech.Id));
         StubDfaFall();
 
@@ -1851,7 +1851,7 @@ public class PhysicalAttackResolutionPhaseTests : GamePhaseTestsBase
                 null);
             blockerOwner.AddUnit(blocker);
         }
-        MockPhysicalAttackResolver.ResolveDfa(Arg.Any<DfaAttackContext>())
+        MockDfaAttackResolver.ResolveDfa(Arg.Any<DfaAttackContext>())
             .Returns(DfaMiss(_player2Mech.Id));
 
         _sut.Enter();
@@ -1864,10 +1864,11 @@ public class PhysicalAttackResolutionPhaseTests : GamePhaseTestsBase
     }
 
     [Fact]
-    public void Enter_DfaWhenTheTargetMovedAway_AutoFailsAndLandsInTheApproachHex()
+    public void Enter_DfaWhenTheTargetMovedAway_AutoFailsAndLandsInTheDeclaredTargetHex()
     {
         SetMap();
         SetUpDfa(_player1Mech, _player2Mech);
+        var declaredTarget = new HexCoordinates(5, 4);
         var oldPosition = _player2Mech.Position!;
         _player2Mech.Move(
             new MovementPath(
@@ -1884,8 +1885,11 @@ public class PhysicalAttackResolutionPhaseTests : GamePhaseTestsBase
         var resolution = PublishedCommands().OfType<PhysicalAttackResolutionCommand>()
             .ShouldHaveSingleItem();
         resolution.ResolutionData.Dfa!.Outcome.ShouldBe(DfaOutcome.AutoFail);
-        _player1Mech.Position!.Coordinates.ShouldBe(new HexCoordinates(5, 3));
-        MockPhysicalAttackResolver.DidNotReceiveWithAnyArgs().ResolveDfa(null!);
+        // The attacker committed to the declared target hex, so it lands there, not in its approach.
+        _player1Mech.Position!.Coordinates.ShouldBe(declaredTarget);
+        PublishedCommands().OfType<DisplaceUnitCommand>()
+            .ShouldContain(command => command.DisplacementReason == DisplacementReason.DfaAutoFailLanding);
+        MockDfaAttackResolver.DidNotReceiveWithAnyArgs().ResolveDfa(null!);
         PublishedCommands().OfType<MechFallCommand>().ShouldBeEmpty();
         MockPhaseManager.Received(1).GetNextPhase(PhaseNames.PhysicalAttackResolution, Game);
         _mockNextPhase.Received(1).Enter();
@@ -1905,7 +1909,7 @@ public class PhysicalAttackResolutionPhaseTests : GamePhaseTestsBase
             .ShouldHaveSingleItem();
         resolution.ResolutionData.Dfa!.Outcome.ShouldBe(DfaOutcome.Miss);
         _player1Mech.Position!.Coordinates.ShouldBe(new HexCoordinates(5, 4));
-        MockPhysicalAttackResolver.DidNotReceiveWithAnyArgs().ResolveDfa(null!);
+        MockDfaAttackResolver.DidNotReceiveWithAnyArgs().ResolveDfa(null!);
         MockFallProcessor.Received(1).ProcessMovementAttempt(
             _player1Mech, Arg.Any<DfaFallRollContext>(), Game, MovementType.Jump,
             Arg.Any<HexPosition?>());
