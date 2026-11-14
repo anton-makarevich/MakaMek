@@ -11,7 +11,10 @@ namespace Sanet.MakaMek.Core.Models.Game.Mechanics.PhysicalAttack;
 /// <see cref="TargetDestination"/> means the target does not move; the attacker still lands in the
 /// target's hex.
 /// </summary>
-/// <param name="TargetDestination">The hex the target is displaced to, if any.</param>
+/// <param name="TargetDestination">
+/// The hex the target is displaced to, or null when it does not move. A null destination with a
+/// surviving target means the displacement itself destroys the target.
+/// </param>
 /// <param name="AttackerDestination">The hex the attacker lands in.</param>
 /// <param name="LevelsFallen">How many standing levels the target drops.</param>
 /// <param name="TriggersAutomaticFall">
@@ -109,7 +112,8 @@ public class DfaDisplacementResolver(
 
         if (destination is null)
         {
-            // A blocked push leaves the target in place; the attacker still lands in its hex.
+            // A target that cannot be displaced is destroyed by the caller so the attacker can
+            // still land in its hex (Total Warfare, p. 150).
             return new DfaDisplacementResult(null, attackerDestination, 0, false);
         }
 

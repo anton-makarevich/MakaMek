@@ -423,8 +423,25 @@ public class PhysicalAttackResolutionPhase : GamePhase
 
         if (resolution.AttackResolution.IsHit)
         {
-            _ = PublishDfaResolution(item, presentTarget, resolution);
-            ApplyDfaHitDisplacement(item, presentTarget);
+            var displacement = _dfaDisplacementResolver.ResolveHit(
+                item.Attacker,
+                presentTarget,
+                item.StartCoordinates,
+                map,
+                AllUnits(),
+                Game.Id);
+
+            // A target that cannot be displaced is destroyed so the attacker can take its hex
+            // (Total Warfare, p. 150). A target already destroyed before the impact does not need
+            // this and does not move.
+            var destroyTarget = displacement is { TargetDestination: null }
+                                && !presentTarget.IsDestroyed;
+            _ = PublishDfaResolution(
+                item,
+                presentTarget,
+                resolution,
+                destroyTarget);
+            ApplyDfaHitDisplacement(item, presentTarget, displacement);
             ApplyDfaWaterEntryModifier(item.Attacker, map);
         }
         else
@@ -513,21 +530,34 @@ public class PhysicalAttackResolutionPhase : GamePhase
     /// Publishes an attack that could not resolve (the target left the declared hex, or the attacker
     /// is no longer at its approach hex) and grounds the attacker in the hex it committed to land in.
     /// The jump destination of a DFA is the target hex, so a failed attack never ends anywhere else;
-    /// an occupied hex is resolved through the displacement pipeline. No damage and no fall
-    /// (Total Warfare, p. 150).
+    /// an occupied hex is resolved through the displacement pipeline. If no legal landing remains,
+    /// the attacker is destroyed. No damage and no fall (Total Warfare, p. 150).
     /// </summary>
     private void ResolveDfaAutoFail(DfaQueueItem item, IUnit? target)
     {
+        var landing = Game.BattleMap is { } map
+            ? _dfaDisplacementResolver.ResolveLanding(
+                item.Attacker,
+                item.DeclaredTargetPosition,
+                map,
+                AllUnits(),
+                Game.Id)
+            : null;
+        var noLanding = landing is null || landing.IsOverlapUnresolved;
         PublishDfaResolution(
             item,
             target,
-            CreateDfaAutoResolution(item, DfaOutcome.AutoFail));
+            CreateDfaAutoResolution(
+                item,
+                noLanding ? DfaOutcome.AttackerDestroyedNoLanding : DfaOutcome.AutoFail));
 
-        var landing = ExecuteDfaLanding(
+        if (noLanding) return;
+
+        var appliedLanding = ExecuteDfaLanding(
             item.Attacker,
             item.DeclaredTargetPosition,
             DisplacementReason.DfaAutoFailLanding);
-        RollDominoEffects(landing?.DominoEffect);
+        RollDominoEffects(appliedLanding?.DominoEffect);
     }
 
     private static PhysicalAttackResolutionData CreateDfaAutoResolution(
@@ -548,7 +578,8 @@ public class PhysicalAttackResolutionPhase : GamePhase
     private PhysicalAttackResolutionData PublishDfaResolution(
         DfaQueueItem item,
         IUnit? target,
-        PhysicalAttackResolutionData resolution)
+        PhysicalAttackResolutionData resolution,
+        bool destroyTarget = false)
     {
         var targetDestroyedPartsBefore = target is null ? [] : GetDestroyedParts(target);
         var targetWasDestroyedBefore = target?.IsDestroyed == true;
@@ -567,6 +598,11 @@ public class PhysicalAttackResolutionPhase : GamePhase
 
         // The server transport does not loop commands back to the server game.
         Game.OnPhysicalAttackResolution(command);
+
+        // Damage is applied before displacement. If the push itself destroys the target, mark it
+        // now so the published metadata and every client agree that the target is gone.
+        if (destroyTarget && target is { IsDestroyed: false })
+            target.MarkDestroyed();
 
         resolution = AttachDestructionMetadata(
             resolution,
@@ -590,28 +626,18 @@ public class PhysicalAttackResolutionPhase : GamePhase
         return resolution;
     }
 
-    private void ApplyDfaHitDisplacement(DfaQueueItem item, IUnit target)
+    private void ApplyDfaHitDisplacement(
+        DfaQueueItem item,
+        IUnit target,
+        DfaDisplacementResult? displacement)
     {
-        if (Game.BattleMap is not { } map) return;
-
-        var displacement = _dfaDisplacementResolver.ResolveHit(
-            item.Attacker,
-            target,
-            item.StartCoordinates,
-            map,
-            AllUnits(),
-            Game.Id);
-
-        if (displacement is null)
-        {
-            var fallbackLanding = ExecuteDfaLanding(item.Attacker, item.ApproachCoordinates);
-            RollDominoEffects(fallbackLanding?.DominoEffect);
-            return;
-        }
+        if (displacement is null) return;
 
         ExecuteDominoCommands(displacement.DominoEffect);
 
-        if (displacement.TargetDestination is { } targetDestination)
+        // A destroyed target does not move. A target that could not be pushed was destroyed by
+        // PublishDfaResolution so the attacker can take its hex (Total Warfare, p. 150).
+        if (!target.IsDestroyed && displacement.TargetDestination is { } targetDestination)
         {
             ExecuteDisplacement(target, targetDestination, DisplacementReason.DfaTarget);
 
@@ -619,15 +645,9 @@ public class PhysicalAttackResolutionPhase : GamePhase
                 ResolveAutomaticFall(targetMech, displacement.LevelsFallen);
         }
 
-        // A blocked push leaves the target in place; the attacker cannot take its hex and lands in
-        // its approach hex instead (Total Warfare, p. 150).
-        var landingDesired = displacement.TargetDestination is null && !target.IsDestroyed
-            ? item.ApproachCoordinates
-            : displacement.AttackerDestination;
-
         var landing = ExecuteDfaLanding(
             item.Attacker,
-            landingDesired,
+            displacement.AttackerDestination,
             DisplacementReason.DfaAttackerLanding);
         RollDominoEffects(displacement.DominoEffect, landing?.DominoEffect);
     }
@@ -687,11 +707,13 @@ public class PhysicalAttackResolutionPhase : GamePhase
 
         if (landing.IsOverlapUnresolved)
         {
+            // The caller resolves an impossible landing as the attacker's destruction before
+            // publishing when it can know the outcome. Defensively leave it in place otherwise
+            // rather than stacking it on the occupant.
             Game.Logger.LogWarning(
                 "DFA attacker {AttackerName} could not resolve the occupied landing hex {Hex}",
                 attacker.Name,
                 desired.Coordinates);
-            GroundAttackerInPlace(attacker, reason);
             return landing;
         }
 
@@ -705,29 +727,6 @@ public class PhysicalAttackResolutionPhase : GamePhase
 
         foreach (var chainCommand in domino.Commands)
             Execute(new DisplaceUnitAction(chainCommand with { GameOriginId = Game.Id }, publish: true));
-    }
-
-    /// <summary>
-    /// A blocked landing leaves the attacker at its airborne approach position. Ground it there
-    /// when the hex is free, because the airborne level is only valid while the approach is
-    /// authoritative.
-    /// </summary>
-    private void GroundAttackerInPlace(IUnit attacker, DisplacementReason reason)
-    {
-        if (attacker.Position is not { AirborneLevel: not null } position) return;
-        var occupied = AllUnits().Any(unit =>
-            !ReferenceEquals(unit, attacker)
-            && unit is
-            {
-                IsDeployed: true,
-                IsDestroyed: false,
-                Position: not null,
-                IsAirborneDfaAttacker: false
-            }
-            && unit.Position.Coordinates == position.Coordinates);
-        if (occupied) return;
-
-        ExecuteDisplacement(attacker, position with { AirborneLevel = null }, reason);
     }
 
     private void RollDominoEffects(params DominoEffectResult?[] dominoes)

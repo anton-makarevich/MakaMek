@@ -316,16 +316,7 @@ public abstract class BaseGame : IGame
         var data = resolutionCommand.ResolutionData;
         var res = data.AttackResolution;
 
-        if (res is { IsHit: true, HitLocationsData: not null })
-        {
-            var targetUnit = _players
-                .SelectMany(p => p.Units)
-                .FirstOrDefault(u => u.Id == resolutionCommand.TargetId);
-
-            targetUnit?.ApplyDamage(
-                res.HitLocationsData.HitLocations,
-                res.DamageDirection ?? res.AttackDirection);
-        }
+        ApplyPhysicalAttackTargetConsequences(resolutionCommand, res);
 
         // A successful charge also damages the attacker. Apply it from the same resolution so the
         // server and every client compute the same state, and only once per resolution ID.
@@ -357,6 +348,25 @@ public abstract class BaseGame : IGame
                 .FirstOrDefault(u => u.Id == resolutionCommand.AttackerId)
                 ?.MarkDestroyed();
         }
+    }
+
+    private void ApplyPhysicalAttackTargetConsequences(
+        PhysicalAttackResolutionCommand command,
+        AttackResolutionData res)
+    {
+        var targetUnit = _players
+            .SelectMany(p => p.Units)
+            .FirstOrDefault(u => u.Id == command.TargetId);
+
+        if (res is { IsHit: true, HitLocationsData: not null })
+            targetUnit?.ApplyDamage(
+                res.HitLocationsData.HitLocations,
+                res.DamageDirection ?? res.AttackDirection);
+
+        // A DFA whose target cannot be displaced destroys that target outright (Total Warfare,
+        // p. 150). The server marks it before publishing; clients follow the resolution metadata.
+        if (res.UnitDestroyed)
+            targetUnit?.MarkDestroyed();
     }
 
     internal void OnMechFalling(MechFallCommand fallCommand)

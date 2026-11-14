@@ -1962,6 +1962,27 @@ public class PhysicalAttackResolutionPhaseTests : GamePhaseTestsBase
     }
 
     [Fact]
+    public void Enter_DfaHit_WhenTheTargetCannotBeDisplaced_DestroysTheTargetAndLandsInItsHex()
+    {
+        SetMap();
+        SetUpDfa(_player1Mech, _player2Mech);
+        foreach (var direction in HexDirectionExtensions.AllDirections)
+            Game.BattleMap!.AddHex(new Hex(TargetHex.GetNeighbour(direction), 3));
+        MockDfaAttackResolver.ResolveDfa(Arg.Any<DfaAttackContext>())
+            .Returns(DfaHit(_player2Mech.Id));
+
+        _sut.Enter();
+
+        _player2Mech.IsDestroyed.ShouldBeTrue();
+        _player1Mech.Position!.Coordinates.ShouldBe(TargetHex);
+        var resolution = PublishedCommands().OfType<PhysicalAttackResolutionCommand>().Single();
+        resolution.ResolutionData.Dfa!.Outcome.ShouldBe(DfaOutcome.Hit);
+        resolution.ResolutionData.AttackResolution.UnitDestroyed.ShouldBeTrue();
+        PublishedCommands().OfType<DisplaceUnitCommand>()
+            .ShouldNotContain(command => command.UnitId == _player2Mech.Id);
+    }
+
+    [Fact]
     public void Enter_DfaHit_WithAnOccupiedTargetDestination_RollsTheDominoPsr()
     {
         SetMap();
@@ -2018,11 +2039,12 @@ public class PhysicalAttackResolutionPhaseTests : GamePhaseTestsBase
 
         _sut.Enter();
 
+        _player1Mech.IsDestroyed.ShouldBeTrue();
         _player1Mech.Position!.Coordinates.ShouldBe(new HexCoordinates(5, 3));
-        _player1Mech.Position.AirborneLevel.ShouldBeNull();
+        PublishedCommands().OfType<PhysicalAttackResolutionCommand>().Single()
+            .ResolutionData.Dfa!.Outcome.ShouldBe(DfaOutcome.AttackerDestroyedNoLanding);
         PublishedCommands().OfType<DisplaceUnitCommand>()
-            .ShouldNotContain(command => command.UnitId == _player1Mech.Id
-                                         && command.ToCoordinates == declaredTarget.ToData());
+            .ShouldNotContain(command => command.UnitId == _player1Mech.Id);
     }
 
     [Fact]
