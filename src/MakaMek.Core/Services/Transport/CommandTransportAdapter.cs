@@ -1,15 +1,8 @@
 using System.Reactive.Subjects;
 using System.Text.Json;
-using System.Text.Json.Serialization.Metadata;
 using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Core.Data.Game.Commands;
-using Sanet.MakaMek.Core.Data.Serialization;
-using Sanet.MakaMek.Core.Data.Serialization.Converters;
-using Sanet.MakaMek.Core.Data.Units;
-using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Exceptions;
-using Sanet.MakaMek.Core.Models.Units;
-using Sanet.MakaMek.Map.Models;
 using Sanet.Transport;
 using Sanet.Transport.SignalR.Client.Publishers;
 
@@ -35,23 +28,6 @@ public partial class CommandTransportAdapter : ICommandTransportAdapter
     private readonly Dictionary<ITransportPublisher, ConnectionStatus> _publisherStatuses = new();
     private readonly BehaviorSubject<ConnectionStatus> _connectionStatus = new(ConnectionStatus.NotConnected);
     private bool _isInitialized;
-    private static readonly JsonSerializerOptions JsonSerializerOptions = new()
-    {
-        TypeInfoResolver = new CompositeJsonTypeInfoResolver(
-            new RollModifierTypeResolver(),
-            new PilotingSkillRollContextTypeResolver(),
-            new MovementCostTypeResolver(),
-            new DefaultJsonTypeInfoResolver()
-        ),
-        WriteIndented = true,
-        Converters = {
-            new EnumConverter<MakaMekComponent>(),
-            new EnumConverter<PartLocation>(),
-            new EnumConverter<MovementType>(),
-            new EnumConverter<UnitStatus>(),
-            new EnumConverter<WeightClass>()
-        }
-    };
     private readonly Lock _initLock = new();
     private readonly ILogger<CommandTransportAdapter> _logger;
     private bool _isDisposed;
@@ -352,11 +328,8 @@ public partial class CommandTransportAdapter : ICommandTransportAdapter
     /// </summary>
     /// <param name="command">The command to serialize</param>
     /// <returns>JSON representation of the command</returns>
-    private string SerializeCommand(IGameCommand command)
-    {
-        return JsonSerializer.Serialize(command, command.GetType(), JsonSerializerOptions);
-    }
-    
+    private static string SerializeCommand(IGameCommand command) => CommandJsonSerializer.Serialize(command);
+
     /// <summary>
     /// Deserializes a TransportMessage payload to an IGameCommand
     /// </summary>
@@ -365,29 +338,8 @@ public partial class CommandTransportAdapter : ICommandTransportAdapter
     /// <exception cref="UnknownCommandTypeException">Thrown when the command type is unknown</exception>
     /// <exception cref="System.Text.Json.JsonException">Thrown when the JSON is invalid</exception>
     /// <exception cref="InvalidOperationException">Thrown when deserialization fails or produces an invalid command</exception>
-    internal IGameCommand DeserializeCommand(TransportMessage message)
-    {
-        var commandType = CommandTypeRegistry.GetCommandType(message.MessageType);
-        if (commandType == null)
-        {
-            // Unknown command type - throw exception
-            throw new UnknownCommandTypeException(message.MessageType);
-        }
-        
-        try
-        {
-            if (JsonSerializer.Deserialize(message.Payload, commandType, JsonSerializerOptions) is not IGameCommand command)
-                throw new InvalidOperationException($"Failed to deserialize command of type {message.MessageType}");
-            command.GameOriginId = message.SourceId;
-            command.Timestamp = message.Timestamp;
-            return command;
-        }
-        catch (JsonException ex)
-        {
-            // Rethrow JSON deserialization errors
-            throw new JsonException($"Error deserializing command of type {message.MessageType}: {ex.Message}", ex);
-        }
-    }
+    internal IGameCommand DeserializeCommand(TransportMessage message) =>
+        CommandJsonSerializer.Deserialize(message);
     
     // Helper method to encapsulate the subscription logic including error handling
     private void SubscribePublisher(ITransportPublisher publisher, Action<IGameCommand, ITransportPublisher> onCommandReceived)
