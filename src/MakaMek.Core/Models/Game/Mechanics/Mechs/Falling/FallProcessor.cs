@@ -16,7 +16,8 @@ public class FallProcessor : IFallProcessor
 {
     private readonly IRulesProvider _rulesProvider;
     private readonly IPilotingSkillCalculator _pilotingSkillCalculator;
-    private readonly IFallingDamageCalculator _fallingDamageCalculator;
+    private readonly FallParametersResolver _fallParametersResolver;
+    private readonly FallingDamageResolver _fallingDamageResolver;
 
     /// <summary>
     /// Maps critical-hit component types to the PSR roll type they trigger.
@@ -34,11 +35,14 @@ public class FallProcessor : IFallProcessor
     public FallProcessor(
         IRulesProvider rulesProvider,
         IPilotingSkillCalculator pilotingSkillCalculator,
-        IFallingDamageCalculator fallingDamageCalculator)
+        IFallingDamageCalculator fallingDamageCalculator,
+        FallParametersResolver? fallParametersResolver = null,
+        FallingDamageResolver? fallingDamageResolver = null)
     {
         _rulesProvider = rulesProvider;
         _pilotingSkillCalculator = pilotingSkillCalculator;
-        _fallingDamageCalculator = fallingDamageCalculator;
+        _fallParametersResolver = fallParametersResolver ?? new FallParametersResolver();
+        _fallingDamageResolver = fallingDamageResolver ?? new FallingDamageResolver(fallingDamageCalculator);
     }
 
     public IEnumerable<MechFallCommand> ProcessPotentialFall(
@@ -124,95 +128,20 @@ public class FallProcessor : IFallProcessor
         foreach (var context in sortedContexts)
         {
             var requiresPsr = _rulesProvider.RequiresPilotingSkillRoll(context.RollType);
-            var isFallingNow = !requiresPsr; // Auto-fall when no PSR is required
+            var fallPsrData = requiresPsr ? EvaluateRoll(mech, context, game) : null;
 
-            PilotingSkillRollData? fallPsrData = null;
+            // Auto-fall when no PSR is required
+            var isFallingNow = !requiresPsr || fallPsrData?.IsSuccessful == false;
 
-            if (requiresPsr)
-            {
-                var psrBreakdown = _pilotingSkillCalculator.GetPsrBreakdown(mech, context, game);
-                fallPsrData = _pilotingSkillCalculator.EvaluateRoll(psrBreakdown, mech, context);
-                isFallingNow = !fallPsrData.IsSuccessful;
-            }
+            var parameters = _fallParametersResolver.Resolve(
+                mech, game, context, movementType, isFallingNow, fallPosition);
 
-            // Water depth of the hex where the fall happens (0 when the hex is dry or the surface is not Ground).
-            // For water entry the roll context carries the authoritative depth (it is built from the actual hex).
-            var waterDepth = context is EnteringDeepWaterRollContext deepWaterCtx
-                ? deepWaterCtx.WaterDepth
-                : ResolveWaterDepth(mech, game, fallPosition);
+            var pilotDamagePsr = isFallingNow
+                ? EvaluatePilotDamageRoll(mech, game, parameters.LevelsFallen)
+                : null;
 
-            PilotingSkillRollData? pilotDamagePsr = null;
-
-            // Determine levels fallen based on context and movement type
-            var levelsFallen = 0;
-            var wasJumping = movementType == MovementType.Jump;
-
-            if (isFallingNow)
-            {
-                // WaterTerrain.Height stores depth as negative integers (0 = shallow, -1 = depth 1, -2 = depth 2).
-                // EnteringDeepWaterRollContext.WaterDepth is already the positive depth value (-1 * water.Height).
-                // A fall that ends in a water hex drops the unit to the hex bottom, so for a water-entry
-                // fall levelsFallen equals the water depth, regardless of the movement type
-                // (walk, run or jump all fall the same levels).
-                if (context is EnteringDeepWaterRollContext waterCtx)
-                {
-                    levelsFallen = waterCtx.WaterDepth;
-                }
-                else if (context is BridgeCollapseRollContext bridgeCtx)
-                {
-                    // A collapsing bridge drops the unit from the bridge deck down to the hex bottom
-                    levelsFallen = bridgeCtx.BridgeHeight + waterDepth;
-                }
-                else if (context is SkidCheckRollContext)
-                {
-                    levelsFallen = 0;
-                    wasJumping = false;
-                }
-                else if (context is CliffFallRollContext cliffCtx)
-                {
-                    levelsFallen = cliffCtx.LevelsFallen;
-                    wasJumping = false;
-                }
-                else if (movementType == MovementType.Jump && waterDepth > 0)
-                {
-                    // A failed jump landing in a water hex drops the unit from the surface
-                    // to the hex bottom
-                    levelsFallen = waterDepth;
-                }
-
-                var pilotDamageContext = new PilotDamageFromFallRollContext(levelsFallen);
-                var pilotPsrBreakdown = _pilotingSkillCalculator.GetPsrBreakdown(mech, pilotDamageContext, game);
-
-                pilotDamagePsr = _pilotingSkillCalculator.EvaluateRoll(pilotPsrBreakdown, mech, pilotDamageContext);
-            }
-
-            FallingDamageData? fallingDamageData = null;
-            FallingDamageData? skidDamageData = null;
-
-            if (isFallingNow)
-            {
-                if (context is CliffFallRollContext cliffCtx2)
-                {
-                    fallingDamageData = _fallingDamageCalculator.CalculateFallingDamage(
-                        mech, levelsFallen, waterDepth,
-                        cliffCtx2.FacingDiceRoll, cliffCtx2.FacingAfterFall);
-                }
-                else
-                {
-                    fallingDamageData = _fallingDamageCalculator.CalculateFallingDamage(
-                        mech, levelsFallen, waterDepth);
-                }
-
-                if (context is SkidCheckRollContext skidCtx && skidCtx.SkidDistance > 0)
-                {
-                    skidDamageData = _fallingDamageCalculator.CalculateSkidDamage(
-                        mech,
-                        skidCtx.SkidDistance,
-                        fallingDamageData.FacingAfterFall,
-                        fallingDamageData.FacingDiceRoll,
-                        fallingDamageData.FallDirection);
-                }
-            }
+            var damage = _fallingDamageResolver.Resolve(
+                mech, context, isFallingNow, parameters.LevelsFallen, parameters.WaterDepth);
 
             var fallContextData = new FallContextData
             {
@@ -221,11 +150,11 @@ public class FallProcessor : IFallProcessor
                 IsFalling = isFallingNow,
                 PilotingSkillRoll = fallPsrData,
                 PilotDamagePilotingSkillRoll = pilotDamagePsr,
-                FallingDamageData = fallingDamageData,
-                LevelsFallen = levelsFallen,
-                WasJumping = wasJumping,
-                SkidDamageData = skidDamageData,
-                SkidDistance = context is SkidCheckRollContext skidCtx2 ? skidCtx2.SkidDistance : 0
+                FallingDamageData = damage.FallingDamage,
+                LevelsFallen = parameters.LevelsFallen,
+                WasJumping = parameters.WasJumping,
+                SkidDamageData = damage.SkidDamage,
+                SkidDistance = context is SkidCheckRollContext skidCtx ? skidCtx.SkidDistance : 0
             };
 
             results.Add(fallContextData);
@@ -236,20 +165,16 @@ public class FallProcessor : IFallProcessor
         return results;
     }
 
-    /// <summary>
-    /// Resolves the water depth of the hex where the fall happens.
-    /// Uses the explicit landing position when supplied (movement interrupts calculate the fall
-    /// before the unit moves), otherwise the mech's current position.
-    /// Depth only counts on a Ground surface: a unit on a bridge falls onto the deck, not into the water.
-    /// Returns 0 when the hex cannot be resolved or has no water.
-    /// </summary>
-    private int ResolveWaterDepth(Mech mech, IGame game, HexPosition? fallPosition)
+    private PilotingSkillRollData EvaluateRoll(Mech mech, PilotingSkillRollContext context, IGame game)
     {
-        var position = fallPosition ?? mech.Position;
-        if (position == null) return 0;
-        if (position.Surface != HexSurface.Ground) return 0;
+        var psrBreakdown = _pilotingSkillCalculator.GetPsrBreakdown(mech, context, game);
+        return _pilotingSkillCalculator.EvaluateRoll(psrBreakdown, mech, context);
+    }
 
-        var hex = game.BattleMap?.GetHex(position.Coordinates);
-        return hex?.GetWaterDepth() ?? 0;
+    private PilotingSkillRollData EvaluatePilotDamageRoll(Mech mech, IGame game, int levelsFallen)
+    {
+        var pilotDamageContext = new PilotDamageFromFallRollContext(levelsFallen);
+        var psrBreakdown = _pilotingSkillCalculator.GetPsrBreakdown(mech, pilotDamageContext, game);
+        return _pilotingSkillCalculator.EvaluateRoll(psrBreakdown, mech, pilotDamageContext);
     }
 }

@@ -6,9 +6,6 @@ using Sanet.MakaMek.Core.Events;
 using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers;
-using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Attack;
-using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Penalties.HeatPenalties;
-using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Penalties.MovementPenalties;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Models.Units.Components;
@@ -18,7 +15,7 @@ using Sanet.MakaMek.Map.Models;
 
 namespace Sanet.MakaMek.Core.Models.Units;
 
-public interface IUnit
+public interface IUnit : IUnitHeatPenalties
 {
     string Chassis { get; }
     string Model { get; }
@@ -88,10 +85,6 @@ public interface IUnit
     bool CanHavePartialCover { get; }
 
     int DamageReducedMovement { get; }
-    HeatMovementPenalty? MovementHeatPenalty { get; }
-    HeatRollModifier? AttackHeatPenalty { get; }
-    EngineHeatPenalty? EngineHeatPenalty { get; }
-    IReadOnlyList<RollModifier> MovementModifiers { get; }
     int AvailableWalkingPoints { get; }
     int AvailableRunningPoints { get; }
     int AvailableJumpingPoints { get; }
