@@ -114,30 +114,13 @@ public class TacticalEvaluator : ITacticalEvaluator
 
             if (viableWeapons.Count <= 0) continue;
 
-            // Determine which arc of the enemy would be hit (bonus for rear/side shots)
-            var targetArc = GetFiringArcFromPosition(target.Position, attackerPath.Destination.Coordinates);
-            var arcBonus = targetArc.GetArcMultiplier();
-            
-            // Calculate score for each configuration
-            var configScores = new List<WeaponConfigurationEvaluationData>();
-            foreach (var (config, weaponsForConfig) in viableWeapons)
-            {
-                var score = weaponsForConfig.Sum(w =>
-                    w.HitProbability * w.Weapon.Damage
-                ) * arcBonus;
-
-                configScores.Add(new WeaponConfigurationEvaluationData
-                {
-                    Configuration = config,
-                    Score = score,
-                    ViableWeapons = weaponsForConfig
-                });
-            }
-            
             var targetEvaluationData = new TargetEvaluationData
             {
                 TargetId = target.Id,
-                ConfigurationScores = configScores
+                ConfigurationScores = GetConfigurationScores(
+                    viableWeapons,
+                    target.Position,
+                    attackerPath.Destination)
             };
             
             results.Add(targetEvaluationData);
@@ -146,6 +129,33 @@ public class TacticalEvaluator : ITacticalEvaluator
 
         return results;
     }
+
+    /// <summary>
+    /// Scores every viable weapon configuration against a target, including the arc bonus.
+    /// </summary>
+    private static List<WeaponConfigurationEvaluationData> GetConfigurationScores(
+        IReadOnlyList<ConfigurationWeapons> viableWeapons,
+        HexPosition targetPosition,
+        HexPosition attackerDestination)
+    {
+        // Determine which arc of the enemy would be hit (bonus for rear/side shots)
+        var arcBonus = GetFiringArcFromPosition(targetPosition, attackerDestination.Coordinates).GetArcMultiplier();
+
+        return viableWeapons
+            .Select(configWeapons => new WeaponConfigurationEvaluationData
+            {
+                Configuration = configWeapons.Configuration,
+                Score = GetConfigurationScore(configWeapons.ViableWeapons) * arcBonus,
+                ViableWeapons = configWeapons.ViableWeapons
+            })
+            .ToList();
+    }
+
+    /// <summary>
+    /// Sums the expected damage of a configuration's viable weapons.
+    /// </summary>
+    private static double GetConfigurationScore(IReadOnlyList<WeaponEvaluationData> viableWeapons)
+        => viableWeapons.Sum(w => w.HitProbability * w.Weapon.Damage);
     
     /// <summary>
     /// Calculates the defensive threat index for a position.
@@ -161,72 +171,83 @@ public class TacticalEvaluator : ITacticalEvaluator
         int defenderHeight,
         bool defenderIsProne = false)
     {
-        var enemiesInRearArc = 0;
-        if (_game.BattleMap == null)
-            return new PathDefensiveScore(0, enemiesInRearArc);
+        var battleMap = _game.BattleMap;
+        if (battleMap == null)
+            return new PathDefensiveScore(0, 0);
 
         double defensiveIndex = 0;
-        var position = defenderPath.Destination; 
-        
+        var enemiesInRearArc = 0;
+        var position = defenderPath.Destination;
+
         foreach (var enemy in enemyUnits)
         {
-            if (enemy.Position == null)
+            var enemyPosition = enemy.Position;
+            if (enemyPosition == null)
                 continue;
-            
-            var enemyPath = enemy.MovementTaken ?? MovementPath.CreateSingleSegmentPath(enemy.Position);
 
             // Determine which arc of the friendly unit would be hit
-            var targetArc = GetFiringArcFromPosition(position, enemy.Position.Coordinates);
+            var targetArc = GetFiringArcFromPosition(position, enemyPosition.Coordinates);
             if (targetArc == FiringArc.Rear)
                 enemiesInRearArc++;
-            
-            // Check line of sight
-            if (!_game.BattleMap.GetLineOfSight(
-                    enemy.Position,
-                    position,
-                    enemy.Height,
-                    defenderHeight).HasLineOfSight)
-                continue;
 
-            var range = enemy.Position.Coordinates.DistanceTo(position.Coordinates);
-
-            // Retrieve enemy's available weapons directly (cached per unit)
-            var weapons = enemy.GetAvailableWeapons();
-            var arcMultiplier = targetArc.GetArcMultiplier();
-            
-            foreach (var weapon in weapons)
+            var enemyPath = enemy.MovementTaken ?? MovementPath.CreateSingleSegmentPath(enemyPosition);
+            foreach (var threatValue in GetWeaponThreats(
+                         battleMap, enemy, enemyPath, defenderPath, targetArc, defenderHeight, defenderIsProne))
             {
-                // Check if the weapon can fire at this range (minimum range penalty is handled by ToHitCalculator)
-                if (weapon.Range == null 
-                    || range > weapon.Range.LongRange)
-                    continue;
-                
-                // Check firing arc
-                var isInArc = enemy.Position.Coordinates.IsInWeaponFiringArc(position.Coordinates, weapon);
-                if (!isInArc)
-                    continue;
-
-                // Calculate hit probability using ToHitCalculator with full accuracy
-                // For defensive calculation, we're the target. A pending movement attack enemy
-                // (such as a DFA attacker) is at its current approach position; MovementTaken is
-                // still used for its movement type.
-                var hitProbability = CalculateHitProbability(enemy,
-                    enemyPath,
-                    enemy.Position,
-                    defenderPath,
-                    position,
-                    weapon,
-                    null,
-                    defenderHeight,
-                    defenderIsProne);
-                
-                // Calculate threat value
-                var threatValue = hitProbability * weapon.Damage * arcMultiplier;
                 defensiveIndex += threatValue;
             }
         }
 
         return new PathDefensiveScore(defensiveIndex, enemiesInRearArc);
+    }
+
+    /// <summary>
+    /// Yields the threat value of every enemy weapon that can effectively fire at the defended position.
+    /// </summary>
+    private IEnumerable<double> GetWeaponThreats(
+        IBattleMap battleMap,
+        IUnit enemy,
+        MovementPath enemyPath,
+        MovementPath defenderPath,
+        FiringArc targetArc,
+        int defenderHeight,
+        bool defenderIsProne)
+    {
+        var enemyPosition = enemy.Position;
+        if (enemyPosition == null
+            || !HasLineOfSight(battleMap, enemyPosition, defenderPath.Destination, enemy.Height, defenderHeight))
+            yield break;
+
+        var range = enemyPosition.Coordinates.DistanceTo(defenderPath.Destination.Coordinates);
+        var arcMultiplier = targetArc.GetArcMultiplier();
+
+        foreach (var weapon in enemy.GetAvailableWeapons())
+        {
+            // Check if the weapon can fire at this range (minimum range penalty is handled by ToHitCalculator)
+            if (!CanReachRange(weapon, range))
+                continue;
+
+            // Check firing arc
+            if (!enemyPosition.Coordinates.IsInWeaponFiringArc(defenderPath.Destination.Coordinates, weapon))
+                continue;
+
+            // Calculate hit probability using ToHitCalculator with full accuracy
+            // For defensive calculation, we're the target. A pending movement attack enemy
+            // (such as a DFA attacker) is at its current approach position; MovementTaken is
+            // still used for its movement type.
+            var hitProbability = CalculateHitProbability(enemy,
+                enemyPath,
+                enemyPosition,
+                defenderPath,
+                defenderPath.Destination,
+                weapon,
+                null,
+                defenderHeight,
+                defenderIsProne);
+
+            // Calculate threat value
+            yield return hitProbability * weapon.Damage * arcMultiplier;
+        }
     }
     
     /// <summary>
@@ -253,9 +274,9 @@ public class TacticalEvaluator : ITacticalEvaluator
     }
 
     /// <summary>
-    /// Evaluates all weapons against a target and returns a list of viable weapons with hit probabilities
+    /// Evaluates all weapons against a target and returns the viable weapons per weapon configuration
     /// </summary>
-    private Dictionary<WeaponConfiguration, List<WeaponEvaluationData>> EvaluateWeaponsForTarget(
+    private List<ConfigurationWeapons> EvaluateWeaponsForTarget(
         IUnit attacker,
         MovementPath attackerPath,
         HexPosition targetPosition,
@@ -266,75 +287,159 @@ public class TacticalEvaluator : ITacticalEvaluator
         int targetHeight,
         bool isTargetProne = false)
     {
-        if (_game.BattleMap == null)
+        var battleMap = _game.BattleMap;
+        if (battleMap == null)
             return [];
-
-        var configWeapons = new Dictionary<WeaponConfiguration, List<WeaponEvaluationData>>();
 
         // Check line of sight. Use the target's current position: for a pending DFA attacker that
         // is the airborne approach position, while MovementTaken still describes the full jump.
-        if (!_game.BattleMap.GetLineOfSight(attackerPath.Destination, targetPosition, attacker.Height, targetHeight).HasLineOfSight)
-            return configWeapons;
+        if (!HasLineOfSight(battleMap, attackerPath.Destination, targetPosition, attacker.Height, targetHeight))
+            return [];
 
         var distanceToTarget = attackerPath.Destination.Coordinates.DistanceTo(targetPosition.Coordinates);
+
+        var configurationWeapons = new List<ConfigurationWeapons>();
 
         // Evaluate weapons for each configuration
         foreach (var config in allConfigs)
         {
-            var facing = (HexDirection)config.Value;
-
-            var viableWeapons = new List<WeaponEvaluationData>();
-
-            foreach (var weapon in weapons)
-            {
-                // Check if the weapon can fire at this range
-                if (weapon.Range == null 
-                || distanceToTarget > weapon.Range.LongRange 
-                || weapon.FirstMountPart == null)
-                    continue;
-
-                // Check configuration applicability (using pre-computed lookup instead of per-call traversal)
-                if (config.Type != WeaponConfigurationType.None
-                    && (!partConfigTypes.TryGetValue(weapon.FirstMountPart, out var allowedTypes)
-                        || !allowedTypes.Contains(config.Type)))
-                    continue; 
-
-                // Check arc using resolved facing
-                var isInArc =
-                    attackerPath.Destination.Coordinates.IsInWeaponFiringArc(targetPosition.Coordinates, weapon,
-                        facing);
-                if (!isInArc)
-                    continue;
-
-                // Calculate hit probability with the configuration's facing
-                var hitProbability = CalculateHitProbability(attacker,
-                    attackerPath,
-                    attackerPath.Destination,
-                    targetPath,
-                    targetPosition,
-                    weapon,
-                    facing,
-                    targetHeight,
-                    isTargetProne);
-
-                if (hitProbability <= 0)
-                    continue;
-
-                viableWeapons.Add(new WeaponEvaluationData
-                {
-                    Weapon = weapon,
-                    HitProbability = hitProbability,
-                });
-            }
+            var viableWeapons = EvaluateConfiguration(attacker,
+                attackerPath,
+                targetPosition,
+                targetPath,
+                weapons,
+                config,
+                partConfigTypes,
+                distanceToTarget,
+                targetHeight,
+                isTargetProne);
 
             if (viableWeapons.Count > 0)
-            {
-                configWeapons[config] = viableWeapons;
-            }
+                configurationWeapons.Add(new ConfigurationWeapons(config, viableWeapons));
         }
 
-        return configWeapons;
+        return configurationWeapons;
     }
+
+    /// <summary>
+    /// Evaluates all weapons for a single weapon configuration and returns the viable ones.
+    /// </summary>
+    private List<WeaponEvaluationData> EvaluateConfiguration(
+        IUnit attacker,
+        MovementPath attackerPath,
+        HexPosition targetPosition,
+        MovementPath targetPath,
+        IReadOnlyList<Weapon> weapons,
+        WeaponConfiguration config,
+        IReadOnlyDictionary<UnitPart, HashSet<WeaponConfigurationType>> partConfigTypes,
+        int distanceToTarget,
+        int targetHeight,
+        bool isTargetProne)
+    {
+        var facing = (HexDirection)config.Value;
+        var viableWeapons = new List<WeaponEvaluationData>();
+
+        foreach (var weapon in weapons)
+        {
+            // Calculate hit probability with the configuration's facing
+            var evaluation = EvaluateWeapon(attacker,
+                attackerPath,
+                targetPosition,
+                targetPath,
+                weapon,
+                config,
+                facing,
+                partConfigTypes,
+                distanceToTarget,
+                targetHeight,
+                isTargetProne);
+
+            if (evaluation.HasValue)
+                viableWeapons.Add(evaluation.Value);
+        }
+
+        return viableWeapons;
+    }
+
+    /// <summary>
+    /// Evaluates a single weapon for a configuration, returning null when it cannot contribute.
+    /// </summary>
+    private WeaponEvaluationData? EvaluateWeapon(
+        IUnit attacker,
+        MovementPath attackerPath,
+        HexPosition targetPosition,
+        MovementPath targetPath,
+        Weapon weapon,
+        WeaponConfiguration config,
+        HexDirection facing,
+        IReadOnlyDictionary<UnitPart, HashSet<WeaponConfigurationType>> partConfigTypes,
+        int distanceToTarget,
+        int targetHeight,
+        bool isTargetProne)
+    {
+        // Check if the weapon can fire at this range
+        if (weapon.FirstMountPart == null || !CanReachRange(weapon, distanceToTarget))
+            return null;
+
+        // Check configuration applicability (using pre-computed lookup instead of per-call traversal)
+        if (!IsConfigurationApplicable(weapon.FirstMountPart, config, partConfigTypes))
+            return null;
+
+        // Check arc using resolved facing
+        if (!attackerPath.Destination.Coordinates.IsInWeaponFiringArc(targetPosition.Coordinates, weapon, facing))
+            return null;
+
+        var hitProbability = CalculateHitProbability(attacker,
+            attackerPath,
+            attackerPath.Destination,
+            targetPath,
+            targetPosition,
+            weapon,
+            facing,
+            targetHeight,
+            isTargetProne);
+
+        if (hitProbability <= 0)
+            return null;
+
+        return new WeaponEvaluationData
+        {
+            Weapon = weapon,
+            HitProbability = hitProbability,
+        };
+    }
+
+    /// <summary>
+    /// Checks whether a weapon can reach the given range.
+    /// </summary>
+    private static bool CanReachRange(Weapon weapon, int range)
+        => weapon.Range != null && range <= weapon.Range.LongRange;
+
+    /// <summary>
+    /// Checks whether a weapon's mounting part supports the given configuration.
+    /// </summary>
+    private static bool IsConfigurationApplicable(
+        UnitPart mountPart,
+        WeaponConfiguration config,
+        IReadOnlyDictionary<UnitPart, HashSet<WeaponConfigurationType>> partConfigTypes)
+    {
+        if (config.Type == WeaponConfigurationType.None)
+            return true;
+
+        return partConfigTypes.TryGetValue(mountPart, out var allowedTypes)
+               && allowedTypes.Contains(config.Type);
+    }
+
+    /// <summary>
+    /// Checks line of sight between two positions.
+    /// </summary>
+    private static bool HasLineOfSight(
+        IBattleMap battleMap,
+        HexPosition from,
+        HexPosition to,
+        int fromHeight,
+        int toHeight)
+        => battleMap.GetLineOfSight(from, to, fromHeight, toHeight).HasLineOfSight;
 
     /// <summary>
     /// Calculates hit probability for an enemy attacking the friendly unit at a hypothetical position.
@@ -403,4 +508,11 @@ public class TacticalEvaluator : ITacticalEvaluator
     /// </summary>
     private static FiringArc GetFiringArcFromPosition(HexPosition unitPosition, HexCoordinates attackerPosition)
         => unitPosition.Coordinates.GetFiringArc(attackerPosition, unitPosition.Facing);
+
+    /// <summary>
+    /// Viable weapons for a single weapon configuration.
+    /// </summary>
+    private sealed record ConfigurationWeapons(
+        WeaponConfiguration Configuration,
+        IReadOnlyList<WeaponEvaluationData> ViableWeapons);
 }
