@@ -1,7 +1,5 @@
-using System.Collections.Concurrent;
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
-using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Mechs.Falling;
@@ -19,12 +17,11 @@ namespace Sanet.MakaMek.Core.Models.Game;
 
 public class ServerGame : BaseGame, IDisposable
 {
-    private IGamePhase _currentPhase;
-    private List<IPlayer> _initiativeOrder = [];
-    private readonly ConcurrentDictionary<Guid, byte> _processedCommandKeys = new();
+    private IReadOnlyList<IPlayer> _initiativeOrder = BaseGame.NoPlayers;
+    private readonly ServerCommandProcessor _commandProcessor;
+    private readonly ServerPhaseCoordinator _phaseCoordinator;
 
     public bool IsAutoRoll { get; set; } = true;
-    private IPhaseManager PhaseManager { get; }
     public IDiceRoller DiceRoller { get; }
 
     public ServerGame(IRulesProvider rulesProvider,
@@ -55,8 +52,8 @@ public class ServerGame : BaseGame, IDisposable
         FallProcessor = fallProcessor;
         WeaponAttackResolver = weaponAttackResolver;
         PhysicalAttackResolver = physicalAttackResolver;
-        PhaseManager = phaseManager ?? new BattleTechPhaseManager();
-        _currentPhase = new StartPhase(this); // Starts in the StartPhase
+        _commandProcessor = new ServerCommandProcessor(this);
+        _phaseCoordinator = new ServerPhaseCoordinator(this, phaseManager);
     }
     
     public bool IsDisposed { get; private set; }
@@ -83,13 +80,7 @@ public class ServerGame : BaseGame, IDisposable
         BattleMap = map;
         
         // Create and publish a command to send the map to all clients
-        var mapCommand = new SetBattleMapCommand
-        {
-            GameOriginId = Id,
-            MapData = map.ToData()
-        };
-        
-        CommandPublisher.PublishCommand(mapCommand);
+        CommandPublisher.PublishCommand(ServerGameCommandFactory.SetBattleMap(Id, map));
     }
 
     /// <summary>
@@ -99,88 +90,27 @@ public class ServerGame : BaseGame, IDisposable
     /// </summary>
     public void TryStartGame()
     {
-        (_currentPhase as StartPhase)?.TryTransitionToNextPhase();
+        _phaseCoordinator.TryStartGame();
     }
     
     public void SetInitiativeOrder(IReadOnlyList<IPlayer> order)
     {
-        _initiativeOrder = order.ToList();
-    }
-
-    private void TransitionToPhase(IGamePhase newPhase)
-    {
-        if (_currentPhase is GamePhase currentGamePhase)
-        {
-            currentGamePhase.Exit();
-        }
-        _currentPhase = newPhase;
-        SetPhase(newPhase.Name);
-        _currentPhase.Enter();
+        _initiativeOrder = order;
     }
 
     public void TransitionToNextPhase(PhaseNames currentPhase)
     {
-        var nextPhase = PhaseManager.GetNextPhase(currentPhase, this);
-        TransitionToPhase(nextPhase);
+        _phaseCoordinator.TransitionToNextPhase(currentPhase);
     }
 
     public override void HandleCommand(IGameCommand command)
     {
-        if (command is not IClientCommand and not RequestGameLobbyStatusCommand) return;
-        if (!ShouldHandleCommand(command)) return;
-
-        // Check for duplicate commands using an idempotency key
-        if (command is IClientCommand { IdempotencyKey: not null } clientCommand)
-        {
-            if (!_processedCommandKeys.TryAdd(clientCommand.IdempotencyKey.Value,0))
-            {
-                // Duplicate command detected - send error response
-                Logger.LogWarning("Command {CommandType} (key: {IdempotencyKey}) was rejected - duplicate command",
-                    command.GetType().Name, clientCommand.IdempotencyKey.Value);
-                var errorCommand = new ErrorCommand
-                {
-                    GameOriginId = Id,
-                    IdempotencyKey = clientCommand.IdempotencyKey.Value,
-                    ErrorCode = ErrorCode.DuplicateCommand,
-                    Timestamp = DateTime.UtcNow
-                };
-                CommandPublisher.PublishCommand(errorCommand);
-                return;
-            }
-        }
-
-        var validationResult = ValidateCommand(command);
-        if (!validationResult.IsValid)
-        {
-            var failureIdempotencyKey = command is IClientCommand { IdempotencyKey: not null } failedClientCommand
-                ? failedClientCommand.IdempotencyKey.Value
-                : (Guid?)null;
-            Logger.LogWarning("Command {CommandType} (key: {IdempotencyKey}) was rejected - validation failed: {ErrorCode}",
-                command.GetType().Name,
-                failureIdempotencyKey?.ToString() ?? "none",
-                validationResult.ErrorCode ?? ErrorCode.UnknownError);
-            var errorCommand = new ErrorCommand
-            {
-                GameOriginId = Id,
-                IdempotencyKey = failureIdempotencyKey,
-                ErrorCode = validationResult.ErrorCode ?? ErrorCode.UnknownError,
-                Timestamp = DateTime.UtcNow
-            };
-            CommandPublisher.PublishCommand(errorCommand);
-            return;
-        }
-
-        // Handle PlayerLeftCommand before delegating to phase
-        if (command is PlayerLeftCommand playerLeftCommand)
-        {
-            OnPlayerLeft(playerLeftCommand);
-            RecordCommand(command);
-            return;
-        }
-
-        _currentPhase.HandleCommand(command);
-        RecordCommand(command);
+        _commandProcessor.Process(command);
     }
+
+    // Bridge used by the extracted collaborators, which are not derived from BaseGame.
+    internal void DispatchToPhase(IGameCommand command) => _phaseCoordinator.Dispatch(command);
+    internal void HandlePlayerLeft(PlayerLeftCommand command) => OnPlayerLeft(command);
 
     protected override PlayerControlType? GetLocalPlayerControlType(Guid playerId)
     {
@@ -203,14 +133,7 @@ public class ServerGame : BaseGame, IDisposable
         if (IsDisposed || IsGameOver) return;
 
         // Publish GameEndedCommand to all clients
-        var endCommand = new GameEndedCommand
-        {
-            GameOriginId = Id,
-            Reason = reason,
-            Timestamp = DateTime.UtcNow,
-            PlayerId = playerId
-        };
-        CommandPublisher.PublishCommand(endCommand);
+        CommandPublisher.PublishCommand(ServerGameCommandFactory.GameEnded(Id, reason, playerId));
 
         // Mark the game as over (will exit Start() loop)
         IsGameOver = true;
@@ -218,20 +141,7 @@ public class ServerGame : BaseGame, IDisposable
 
     public void SetActivePlayer(IPlayer? player, int unitsToMove)
     {
-        if (player != null)
-        {
-            PhaseStepState = new PhaseStepState(TurnPhase, player, unitsToMove);
-            CommandPublisher.PublishCommand(new ChangeActivePlayerCommand
-            {
-                GameOriginId = Id,
-                PlayerId = player.Id,
-                UnitsToPlay = unitsToMove
-            });
-        }
-        else
-        {
-            PhaseStepState = null;
-        }
+        _phaseCoordinator.SetActivePlayer(player, unitsToMove);
     }
 
     public void SetPhase(PhaseNames phase)
@@ -239,38 +149,20 @@ public class ServerGame : BaseGame, IDisposable
         TurnPhase = phase;
 
         // Clear processed command keys when phase changes
-        _processedCommandKeys.Clear();
+        _commandProcessor.ResetDuplicateTracking();
 
-        CommandPublisher.PublishCommand(new ChangePhaseCommand
-        {
-            GameOriginId = Id,
-            Phase = phase
-        });
+        CommandPublisher.PublishCommand(ServerGameCommandFactory.Phase(Id, phase));
     }
 
     public void IncrementTurn()
     {
         Turn++;
-        _initiativeOrder.Clear(); // Clear initiative order at the start of new turn
+        _initiativeOrder = BaseGame.NoPlayers; // Clear initiative order at the start of new turn
 
         // Send a turn increment command to all clients
-        CommandPublisher.PublishCommand(new TurnIncrementedCommand
-        {
-            GameOriginId = Id,
-            TurnNumber = Turn
-        });
+        CommandPublisher.PublishCommand(ServerGameCommandFactory.TurnIncremented(Id, Turn));
     }
 
-    public async Task Start()
-    {
-        // The game loop is driven by commands and phase transitions
-        // This method mainly keeps the server alive until disposed
-        while (!IsDisposed && !IsGameOver)
-        {
-            await Task.Delay(100); // Keep the task alive but idle
-        }
-    }
-    
     public void Dispose()
     {
         if (IsDisposed) return;
@@ -278,6 +170,6 @@ public class ServerGame : BaseGame, IDisposable
         IsGameOver = true; // Ensure the loop in Start() exits
         CommandPublisher.Unsubscribe(HandleCommand);
         DisposeCommandResources();
-        GC.SuppressFinalize(this);
     }
 }
+

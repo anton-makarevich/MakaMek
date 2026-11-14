@@ -688,15 +688,7 @@ public abstract class Unit : IUnit
             }
         }
         
-        UpdateDestroyedStatus();
-
-        // Invalidate cache since damage may have destroyed or disabled weapons
-        InvalidateAvailableWeaponsCache();
-
-        if (IsDestroyed)
-        {
-            AddEvent(new UiEvent(UiEventType.UnitDestroyed, Name));
-        }
+        OnDamageResolved();
     }
 
     /// <summary>
@@ -727,13 +719,7 @@ public abstract class Unit : IUnit
             }
         }
 
-        UpdateDestroyedStatus();
-        InvalidateAvailableWeaponsCache();
-
-        if (IsDestroyed)
-        {
-            AddEvent(new UiEvent(UiEventType.UnitDestroyed, Name));
-        }
+        OnDamageResolved();
     }
 
     /// <summary>
@@ -754,34 +740,53 @@ public abstract class Unit : IUnit
             }
 
             // Apply critical hits to specific components
-            if (locationData.HitComponents != null)
+            if (locationData.HitComponents == null) continue;
+            foreach (var componentHit in locationData.HitComponents)
             {
-                foreach (var componentHit in locationData.HitComponents)
-                {
-                    targetPart.CriticalHit(componentHit.Slot);
-                    if (componentHit.ExplosionDamage <= 0 
-                        || componentHit.ExplosionDamageDistribution.Length == 0) continue;
-                    // Trigger explosion event
-                    AddEvent(new UiEvent(UiEventType.Explosion, targetPart.Name));
-                    // Apply explosion damage if present and enabled
-                    foreach (var explosionDamage in componentHit.ExplosionDamageDistribution)
-                    {
-                        if (!_parts.TryGetValue(explosionDamage.Location, out var damagedPart) 
-                            || explosionDamage.StructureDamage <= 0) continue;
-
-                        // Explosion damage bypasses armor and only affects structure
-                        damagedPart.ApplyDamage(explosionDamage.StructureDamage, HitDirection.Front, true);
-
-                        // Track explosion damage in total phase damage
-                        TotalPhaseDamage += explosionDamage.StructureDamage;
-                    }
-                }
+                ApplyComponentCriticalHit(targetPart, componentHit);
             }
         }
 
+        OnDamageResolved();
+    }
+
+    private void ApplyComponentCriticalHit(UnitPart targetPart, ComponentHitData componentHit)
+    {
+        targetPart.CriticalHit(componentHit.Slot);
+        if (componentHit.ExplosionDamage <= 0
+            || componentHit.ExplosionDamageDistribution.Length == 0) return;
+
+        // Trigger explosion event
+        AddEvent(new UiEvent(UiEventType.Explosion, targetPart.Name));
+
+        // Apply explosion damage if present and enabled
+        foreach (var explosionDamage in componentHit.ExplosionDamageDistribution)
+        {
+            ApplyExplosionDamage(explosionDamage);
+        }
+    }
+
+    private void ApplyExplosionDamage(LocationDamageData explosionDamage)
+    {
+        if (!_parts.TryGetValue(explosionDamage.Location, out var damagedPart)
+            || explosionDamage.StructureDamage <= 0) return;
+
+        // Explosion damage bypasses armor and only affects structure
+        damagedPart.ApplyDamage(explosionDamage.StructureDamage, HitDirection.Front, true);
+
+        // Track explosion damage in total phase damage
+        TotalPhaseDamage += explosionDamage.StructureDamage;
+    }
+
+    /// <summary>
+    /// Refreshes the derived state after a damage flow: destroyed status, the weapon cache and
+    /// the destroy event.
+    /// </summary>
+    private void OnDamageResolved()
+    {
         UpdateDestroyedStatus();
 
-        // Invalidate cache since critical hits may have destroyed weapons or blown off parts
+        // Invalidate cache since damage may have destroyed or disabled weapons
         InvalidateAvailableWeaponsCache();
 
         if (IsDestroyed)

@@ -106,6 +106,21 @@ public abstract class BaseGame : IGame
     }
 
     /// <summary>
+    /// Allows the server-state broadcaster (a non-derived collaborator) to publish the
+    /// active-player step state while keeping the property setter protected.
+    /// </summary>
+    internal void SetPhaseStepState(PhaseStepState? state) => PhaseStepState = state;
+
+    internal void SetTurn(int turn) => Turn = turn;
+
+    internal void SetTurnPhase(PhaseNames phase) => TurnPhase = phase;
+
+    /// <summary>
+    /// Shared empty player collection so collaborators do not need their own backing field type.
+    /// </summary>
+    internal static readonly IReadOnlyList<IPlayer> NoPlayers = [];
+
+    /// <summary>
     /// Returns only players with at least one alive unit (i.e., those that can act)
     /// </summary>
     public IReadOnlyList<IPlayer> AlivePlayers => _players
@@ -532,7 +547,7 @@ public abstract class BaseGame : IGame
         }
     }
     
-    protected CommandValidationResult ValidateCommand(IGameCommand command)
+    protected internal CommandValidationResult ValidateCommand(IGameCommand command)
     {
         return command switch
         {
@@ -578,7 +593,7 @@ public abstract class BaseGame : IGame
             : CommandValidationResult.Invalid(ErrorCode.ValidationFailed);
     }
 
-    protected virtual bool ShouldHandleCommand(IGameCommand command)
+    protected internal virtual bool ShouldHandleCommand(IGameCommand command)
     {
         return command.GameOriginId != Id && command.GameOriginId != Guid.Empty;
     }
@@ -620,7 +635,7 @@ public abstract class BaseGame : IGame
             : CommandValidationResult.Valid();
     }
     
-    protected CommandValidationResult ValidateTurnIncrementedCommand(TurnIncrementedCommand command)
+    protected internal CommandValidationResult ValidateTurnIncrementedCommand(TurnIncrementedCommand command)
     {
         // Validate that the turn number is only incremented by 1
         return command.TurnNumber == Turn + 1
@@ -628,7 +643,7 @@ public abstract class BaseGame : IGame
             : CommandValidationResult.Invalid(ErrorCode.InvalidGameState);
     }
 
-    protected void RecordCommand(IGameCommand command)
+    protected internal void RecordCommand(IGameCommand command)
     {
         _commandLog.Add(command);
         _commandSubject.OnNext(command);
@@ -644,3 +659,4 @@ public abstract class BaseGame : IGame
 
     protected abstract PlayerControlType? GetLocalPlayerControlType(Guid playerId);
 }
+

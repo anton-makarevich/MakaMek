@@ -31,6 +31,7 @@ public sealed class ClientGame : BaseGame, IDisposable, IClientGame
     private bool _isDisposed;
     private readonly TimeSpan _ackTimeout;
     private readonly ConcurrentDictionary<Guid, PlayerControlType> _localPlayers = new();
+    private readonly ClientCommandApplier _commandApplier;
 
     public ClientGame(IRulesProvider rulesProvider,
         IMechFactory mechFactory,
@@ -53,7 +54,12 @@ public sealed class ClientGame : BaseGame, IDisposable, IClientGame
         _hashService = hashService;
         _serverGameId = serverGameId;
         _ackTimeout = TimeSpan.FromMilliseconds(ackTimeoutMilliseconds);
+        _commandApplier = new ClientCommandApplier(this);
     }
+
+    internal IBattleMapFactory MapFactory => _mapFactory;
+    internal HashSet<Guid> PlayersEndedTurn => _playersEndedTurn;
+    internal bool IsLocalPlayer(Guid playerId) => _localPlayers.ContainsKey(playerId);
 
     public IReadOnlyList<Guid> LocalPlayers => _localPlayers.Keys.ToList();
 
@@ -74,7 +80,7 @@ public sealed class ClientGame : BaseGame, IDisposable, IClientGame
     /// <inheritdoc />
     public event Action<ErrorCode>? CommandRejectedLocally;
 
-    protected override bool ShouldHandleCommand(IGameCommand command)
+    protected internal override bool ShouldHandleCommand(IGameCommand command)
     {
         if (!base.ShouldHandleCommand(command)) return false;
 
@@ -88,147 +94,11 @@ public sealed class ClientGame : BaseGame, IDisposable, IClientGame
     {
         if (!ShouldHandleCommand(command)) return;
 
-        // IMPORTANT: Complete pending commands BEFORE processing command-specific logic.
-        // This prevents race conditions where ActivePlayer changes trigger bot decision-making
-        // before '_pendingCommands' is cleared, causing CanActivePlayerAct to incorrectly return false.
-        // When we receive a re-broadcasted command, the server has already processed it successfully,
-        // so completing the pending task (removing from _pendingCommands) before applying state changes
-        // is semantically correct and ensures proper synchronization.
-        if (command is IClientCommand { IdempotencyKey: not null } clientCommand)
-        {
-            // Complete the pending task with success
-            CompletePendingCommand(clientCommand.IdempotencyKey.Value, true);
-        }
-
-        // Handle specific command types
-        switch (command)
-        {
-            case SetBattleMapCommand setBattleMapCommand:
-                // Create a new BattleMap from the received data
-                var battleMap = _mapFactory.CreateFromData(setBattleMapCommand.MapData);
-                SetBattleMap(battleMap);
-                break;
-            case JoinGameCommand joinGameCommand:
-                OnPlayerJoined(joinGameCommand);
-                break;
-            case UpdatePlayerStatusCommand statusCommand:
-                OnPlayerStatusUpdated(statusCommand);
-                break;
-            case TurnIncrementedCommand turnIncrementedCommand:
-                // Use the validation method from BaseGame
-                if (ValidateTurnIncrementedCommand(turnIncrementedCommand).IsValid)
-                {
-                    foreach (var alivePlayer in AlivePlayers)
-                    {
-                        OnTurnEnded(alivePlayer.Id);
-                    }
-                    Turn = turnIncrementedCommand.TurnNumber;
-                }
-                break;
-            case ChangePhaseCommand phaseCommand:
-                TurnPhase = phaseCommand.Phase;
-
-                // When entering the End phase, clear the players who ended turn
-                // Note: ActivePlayer is set when StartPhaseCommand is received to avoid race condition
-                if (phaseCommand.Phase == PhaseNames.End)
-                {
-                    _playersEndedTurn.Clear();
-                }
-                break;
-            case StartPhaseCommand startPhaseCommand:
-                // When the End phase is fully initialized on the server, set the first alive local player as active
-                // This ensures the server has completed phase initialization before bots start making decisions
-                if (startPhaseCommand.Phase == PhaseNames.End)
-                {
-                    var firstLocalPlayer = AlivePlayers.FirstOrDefault(p => _localPlayers.ContainsKey(p.Id));
-                    PhaseStepState = firstLocalPlayer != null 
-                        ? new PhaseStepState(TurnPhase, firstLocalPlayer, 0)
-                        : null;
-                }
-                break;
-            case ChangeActivePlayerCommand changeActivePlayerCommand:
-                var player = Players.FirstOrDefault(p => p.Id == changeActivePlayerCommand.PlayerId);
-                PhaseStepState = player != null 
-                    ? new PhaseStepState(TurnPhase, player, changeActivePlayerCommand.UnitsToPlay) 
-                    : null;
-                break;
-            case DeployUnitCommand deployUnitCommand:
-                OnDeployUnit(deployUnitCommand);
-                break;
-            case MoveUnitCommand moveUnitCommand:
-                OnMoveUnit(moveUnitCommand);
-                break;
-            case WeaponConfigurationCommand weaponConfigurationCommand:
-                OnWeaponConfiguration(weaponConfigurationCommand);
-                break;
-            case WeaponAttackDeclarationCommand weaponAttackDeclarationCommand:
-                OnWeaponsAttack(weaponAttackDeclarationCommand);
-                break;
-            case PhysicalAttackCommand physicalAttackCommand:
-                OnPhysicalAttack(physicalAttackCommand);
-                break;
-            case WeaponAttackResolutionCommand attackResolutionCommand:
-                OnWeaponsAttackResolution(attackResolutionCommand);
-                break;
-            case PhysicalAttackResolutionCommand physicalAttackResolutionCommand:
-                OnPhysicalAttackResolution(physicalAttackResolutionCommand);
-                break;
-            case MechFallCommand mechFallingCommand:
-                OnMechFalling(mechFallingCommand);
-                break;
-            case BridgeCollapsedCommand bridgeCollapsedCommand:
-                OnBridgeCollapsed(bridgeCollapsedCommand);
-                break;
-            case DisplaceUnitCommand displaceUnitCommand:
-                OnUnitDisplaced(displaceUnitCommand);
-                break;
-            case MechStandUpCommand mechStandedUpCommand:
-                OnMechStandUp(mechStandedUpCommand);
-                break;
-            case HeatUpdatedCommand heatUpdateCommand:
-                OnHeatUpdate(heatUpdateCommand);
-                break;
-            case TurnEndedCommand turnEndedCommand:
-                // Record that this player has ended their turn
-                _playersEndedTurn.Add(turnEndedCommand.PlayerId);
-                
-                // Set the next local player who hasn't ended their turn as active
-                var nextActivePlayer = AlivePlayers
-                    .Where(p => !_playersEndedTurn.Contains(p.Id))
-                    .FirstOrDefault(p => _localPlayers.ContainsKey(p.Id));
-
-                PhaseStepState = nextActivePlayer != null
-                    ? new PhaseStepState(TurnPhase, nextActivePlayer, 0)
-                    : null;
-                
-                break;
-            case PilotConsciousnessRollCommand consciousnessRollCommand:
-                OnPilotConsciousnessRoll(consciousnessRollCommand);
-                break;
-            case UnitShutdownCommand shutdownCommand:
-                OnUnitShutdown(shutdownCommand);
-                break;
-            case UnitStartupCommand restartCommand:
-                OnMechRestart(restartCommand);
-                break;
-            case AmmoExplosionCommand explosionCommand:
-                OnAmmoExplosion(explosionCommand);
-                break;
-            case CriticalHitsResolutionCommand criticalHitsCommand:
-                OnCriticalHitsResolution(criticalHitsCommand);
-                break;
-            case HullBreachCommand hullBreachCommand:
-                OnHullBreach(hullBreachCommand);
-                break;
-            case ErrorCommand errorCommand:
-                // Complete the pending task with failure
-                if (errorCommand.IdempotencyKey.HasValue)
-                    CompletePendingCommand(errorCommand.IdempotencyKey.Value, false);
-                break;
-        }
+        _commandApplier.Apply(command);
 
         RecordCommand(command);
     }
+
 
     protected override PlayerControlType? GetLocalPlayerControlType(Guid playerId)
     {
@@ -429,7 +299,7 @@ public sealed class ClientGame : BaseGame, IDisposable, IClientGame
     /// <summary>
     /// Completes a pending command task.
     /// </summary>
-    private void CompletePendingCommand(Guid idempotencyKey, bool success)
+    internal void CompletePendingCommand(Guid idempotencyKey, bool success)
     {
         if (_pendingCommands.TryRemove(idempotencyKey, out var pendingCommand))
         {
@@ -476,3 +346,5 @@ public sealed class ClientGame : BaseGame, IDisposable, IClientGame
         DisposeCommandResources();
     }
 }
+
+
