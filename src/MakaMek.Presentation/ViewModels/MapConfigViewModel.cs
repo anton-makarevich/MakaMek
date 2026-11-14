@@ -7,12 +7,9 @@ using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Core.Services;
 using Sanet.Localization;
 using Sanet.MakaMek.Map.Factories;
-using Sanet.MakaMek.Map.Generators;
 using Sanet.MakaMek.Map.Models;
-using System.Text.Json;
-using Sanet.MakaMek.Map.Data;
-using Sanet.MakaMek.Map.Models.Terrains;
 using Sanet.MakaMek.Map.Services;
+using Sanet.MakaMek.Presentation.ViewModels.Maps;
 using Sanet.MakaMek.Services;
 using Sanet.MVVM.Core.ViewModels;
 
@@ -27,16 +24,18 @@ public class MapConfigViewModel : BindableBase, IDisposable
     private int _forestCoverage = 20;
     private object? _previewImage;
     private CancellationTokenSource? _updateCts;
-    private readonly IMapPreviewRenderer _previewRenderer;
-    private readonly IBattleMapFactory _mapFactory;
-    private readonly IMapResourceProvider _mapResourceProvider;
-    private readonly IFileService _fileService;
+    private readonly MapGenerationService _mapGeneration;
+    private readonly AvailableMapsService _availableMaps;
     private readonly IDisposable? _previewSubscription;
     private readonly Subject<MapParameterChange> _mapParametersChanged = new();
     private readonly ILogger _logger;
-    private readonly IDispatcherService _dispatcherService;
     private readonly ILocalizationService _localizationService;
 
+    /// <summary>
+    /// Creates the map config screen. The trailing services are resolved by the composition root;
+    /// the per-source parameters are kept so existing construction sites stay source-compatible and
+    /// are only used to build the services when they are not injected.
+    /// </summary>
     public MapConfigViewModel(
         IMapPreviewRenderer previewRenderer,
         IBattleMapFactory mapFactory,
@@ -44,16 +43,22 @@ public class MapConfigViewModel : BindableBase, IDisposable
         IFileService fileService,
         ILogger logger,
         IDispatcherService dispatcherService,
-        ILocalizationService localizationService)
+        ILocalizationService localizationService,
+        MapGenerationService? mapGeneration = null,
+        AvailableMapsService? availableMaps = null)
     {
-        _previewRenderer = previewRenderer;
-        _mapFactory = mapFactory;
-        _mapResourceProvider = mapResourceProvider;
-        _fileService = fileService;
+        _mapGeneration = mapGeneration ?? new MapGenerationService(mapFactory, previewRenderer);
+        _availableMaps = availableMaps
+            ?? new AvailableMapsService(
+                mapResourceProvider,
+                mapFactory,
+                previewRenderer,
+                fileService,
+                dispatcherService,
+                logger);
         _logger = logger;
-        _dispatcherService = dispatcherService;
         _localizationService = localizationService;
-        
+
         LoadMapCommand = new AsyncCommand(LoadMap);
 
         // Subscribe with debouncing
@@ -316,46 +321,18 @@ public class MapConfigViewModel : BindableBase, IDisposable
     public IAsyncCommand ExportMapCommand => field ??= new AsyncCommand(async () =>
     {
         if (Map == null) return;
-        try
-        {
-            var data = Map.ToData();
-            var json = JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true });
-            await _fileService.SaveJsonFile(_localizationService.GetString("EditMap_ExportMapDialogTitle"), "map.json", json);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to export map");
-        }
+        await _availableMaps.ExportAsync(Map, _localizationService.GetString("EditMap_ExportMapDialogTitle"));
     });
 
     private async Task LoadMap()
     {
         try
         {
-            var (name, content) = await _fileService.OpenFile("Select Map File");
-            if (string.IsNullOrWhiteSpace(content))
+            var item = await _availableMaps.LoadFromFileAsync("Select Map File");
+            if (item is null)
             {
                 return;
             }
-
-            var mapData = JsonSerializer.Deserialize<BattleMapData>(content);
-            if (mapData?.HexData is not { Count: > 0 })
-            {
-                return;
-            }
-
-            var battleMap = _mapFactory.CreateFromData(mapData);
-
-            var mapName = string.IsNullOrWhiteSpace(name)
-                ? "Loaded Map"
-                : Path.GetFileNameWithoutExtension(name);
-
-            var item = new MapPreviewItem
-            {
-                Name = mapName,
-                Map = battleMap,
-                PreviewImage = await _previewRenderer.GeneratePreview(battleMap)
-            };
 
             var placeholder = AvailableMaps.OfType<LoadMapPlaceholder>().FirstOrDefault();
             if (placeholder is not null)
@@ -385,23 +362,15 @@ public class MapConfigViewModel : BindableBase, IDisposable
         ClearAvailableMaps();
         try
         {
-            var maps = await _mapResourceProvider.GetAvailableMapsAsync();
-            var tasks = new List<Task>();
+            var items = await _availableMaps.GetAvailableMapsAsync();
+            var tasks = new List<Task>(items.Count);
 
-            foreach (var (name, mapData) in maps)
+            foreach (var item in items)
             {
-                var battleMap = _mapFactory.CreateFromData(mapData);
-                var item = new MapPreviewItem
-                {
-                    Name = name,
-                    Map = battleMap,
-                    PreviewImage = null
-                };
-
                 AvailableMaps.Add(item);
 
                 // Create preview generation task
-                tasks.Add(GeneratePreviewAsync(item, battleMap));
+                tasks.Add(_availableMaps.RenderPreviewAsync(item));
             }
 
             // Execute all preview generation in parallel
@@ -427,23 +396,6 @@ public class MapConfigViewModel : BindableBase, IDisposable
         }
     }
 
-    /// <summary>
-    /// Generates a preview for a map item with error handling
-    /// </summary>
-    private async Task GeneratePreviewAsync(MapPreviewItem item, BattleMap battleMap)
-    {
-        try
-        {
-            var preview = await _previewRenderer.GeneratePreview(battleMap);
-            _dispatcherService.RunOnUIThread(() => item.PreviewImage = preview);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error generating preview for map '{MapName}'", item.Name);
-            // Leave PreviewImage as null on failure
-        }
-    }
-
     private async Task UpdateMap()
     {
         // Cancel any previous update operation
@@ -458,37 +410,14 @@ public class MapConfigViewModel : BindableBase, IDisposable
 
         try
         {
-            var builder = new MapGeneratorBuilder(MapWidth, MapHeight)
-                .WithBaseTerrain(new ClearTerrain());
-
-            if (ForestCoverage > 0)
-                builder = builder.WithForestPatches(ForestCoverage / 100.0, LightWoodsPercentage / 100.0);
-
-            if (RoughCoverage > 0)
-                builder = builder.WithTerrain<RoughTerrain>(RoughCoverage / 100.0);
-
-            if (HillCoverage > 0)
-                builder = builder.WithHills(HillCoverage / 100.0, MaxElevation);
-
-            if (LakeCoverage > 0)
-                builder = builder.WithLakes(LakeCoverage / 100.0, LakeMaxDepth);
-
-            if (RiverCount > 0)
-                builder = builder.WithRivers(RiverCount);
-
-            if (RoadCount > 0)
-                builder = builder.WithRoads(RoadCount);
-
-            var generator = builder.Build();
-
-            GeneratedMap = _mapFactory.GenerateMap(MapWidth, MapHeight, generator);
+            GeneratedMap = _mapGeneration.Generate(CreateGenerationSettings());
             NotifyPropertyChanged(nameof(Map));
 
             // Update preview image based on the generated map
             var oldPreview = _previewImage as IDisposable;
             if (GeneratedMap != null)
             {
-                var newPreview = await _previewRenderer.GeneratePreview(GeneratedMap, cancellationToken: token);
+                var newPreview = await _mapGeneration.RenderPreviewAsync(GeneratedMap, token);
 
                 // Only update if not canceled and preview was generated
                 if (!token.IsCancellationRequested && newPreview != null)
@@ -517,6 +446,19 @@ public class MapConfigViewModel : BindableBase, IDisposable
         }
     }
 
+    private MapGenerationSettings CreateGenerationSettings() => new(
+        MapWidth,
+        MapHeight,
+        ForestCoverage,
+        LightWoodsPercentage,
+        RoughCoverage,
+        HillCoverage,
+        MaxElevation,
+        LakeCoverage,
+        LakeMaxDepth,
+        RiverCount,
+        RoadCount);
+
     public void Dispose()
     {
         _updateCts?.Cancel();
@@ -527,7 +469,6 @@ public class MapConfigViewModel : BindableBase, IDisposable
         ClearAvailableMaps();
         _previewSubscription?.Dispose();
         _mapParametersChanged.Dispose();
-        GC.SuppressFinalize(this);
     }
 
     private void ClearAvailableMaps()

@@ -1,49 +1,62 @@
 using System.Collections.ObjectModel;
-using System.Text.Json;
 using System.Windows.Input;
 using AsyncAwaitBestPractices;
 using AsyncAwaitBestPractices.MVVM;
 using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Assets.Services;
 using Sanet.MakaMek.Bots.Models;
-using Sanet.MakaMek.Bots.Services;
 using Sanet.MakaMek.Core.Data.Game.Commands;
-using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Players;
 using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Factories;
 using Sanet.MakaMek.Core.Models.Game.Players;
-using Sanet.MakaMek.Services;
+using Sanet.MakaMek.Core.Services;
 using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Core.Utils;
+using Sanet.MakaMek.Presentation.ViewModels.Setup;
 using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
+using Sanet.MakaMek.Services;
 using Sanet.MVVM.Core.ViewModels;
 
 namespace Sanet.MakaMek.Presentation.ViewModels;
 
+/// <summary>
+/// Shared setup screen: the player lobby, the available-unit catalogue, the local client game and the
+/// join/ready commands. The workflow lives in <see cref="GameSetupSession"/>; this type forwards the
+/// derived screens' template hooks to it so the host and join view models only add their own
+/// transport-specific behaviour.
+/// </summary>
 public abstract class NewGameViewModel : BaseViewModel
 {
-    protected readonly ObservableCollection<PlayerViewModel> _players = [];
-    private IEnumerable<UnitData> _availableUnits = [];
-
+    private readonly GameSetupSession _session;
     protected readonly ICommandPublisher _commandPublisher;
-    private readonly IUnitsLoader _unitsLoader;
-    protected readonly IGameFactory _gameFactory;
     private readonly IDispatcherService _dispatcherService;
-    private readonly IFileCachingService _cachingService;
-    protected readonly IBotManager _botManager;
-    protected readonly IMechFactory _mechFactory;
     protected readonly ILogger _logger;
 
-    protected ClientGame? _localGame;
+    /// <summary>
+    /// The local player lobby, shared with the setup session.
+    /// </summary>
+    protected ObservableCollection<PlayerViewModel> _players => _session.Players;
+
+    /// <summary>
+    /// The local client game mirrored by the setup screen, or <c>null</c> before it is created.
+    /// </summary>
+    protected ClientGame? _localGame
+    {
+        get => _session.LocalGame;
+        set => _session.LocalGame = value;
+    }
 
     public ICommand? AddPlayerCommand { get; protected set; }
     public ICommand? AddBotCommand { get; protected set; }
     public ICommand RemovePlayerCommand { get; }
 
-    private const string DefaultPlayerCacheKey = "DefaultPlayer";
-
+    /// <summary>
+    /// Creates the setup screen. The trailing <paramref name="session"/> is resolved by the composition
+    /// root; the per-source parameters are kept so existing construction sites stay source-compatible
+    /// and are only used to build the session when it is not injected.
+    /// </summary>
     protected NewGameViewModel(IUnitsLoader unitsLoader,
         ICommandPublisher commandPublisher,
         IDispatcherService dispatcherService,
@@ -52,22 +65,46 @@ public abstract class NewGameViewModel : BaseViewModel
         IBotManager botManager,
         IMechFactory mechFactory,
         ILogger logger,
-        IImageService imageService)
+        IImageService imageService,
+        GameSetupSession? session = null)
     {
-        _unitsLoader = unitsLoader;
         _commandPublisher = commandPublisher;
         _dispatcherService = dispatcherService;
-        _gameFactory = gameFactory;
-        _cachingService = cachingService;
-        _botManager = botManager;
-        _mechFactory = mechFactory;
         _logger = logger;
+        _session = session
+            ?? new GameSetupSession(
+                unitsLoader,
+                dispatcherService,
+                gameFactory,
+                cachingService,
+                botManager,
+                mechFactory,
+                logger);
         ImageService = imageService;
 
-        RemovePlayerCommand = new AsyncCommand<PlayerViewModel?>(RemovePlayer);
+        RemovePlayerCommand = SetupCommands.CreateRemovePlayerCommand(RemovePlayer);
+        AddPlayerCommand = SetupCommands.CreatePlayerCommand(() => AddPlayer());
+        AddBotCommand = SetupCommands.CreatePlayerCommand(() => AddPlayer(controlType: PlayerControlType.Bot));
     }
 
     protected IDispatcherService DispatcherService => _dispatcherService;
+
+    /// <summary>
+    /// The number of players currently in the lobby.
+    /// </summary>
+    protected int PlayerCount => _players.Count;
+
+    /// <summary>
+    /// A materialised snapshot of the lobby players, safe to iterate without observing the
+    /// collection type.
+    /// </summary>
+    protected PlayerViewModel[] PlayerSnapshot => [.. _players];
+
+    /// <summary>
+    /// Runs a fire-and-forget operation, logging a failure through the screen logger.
+    /// </summary>
+    protected void RunInBackground(Func<Task> operation, string errorMessage) =>
+        operation().SafeFireAndForget(ex => _logger.LogError(ex, errorMessage));
 
     /// <summary>
     /// Image service the lobby unit cards load their preview from. Exposed so the views can
@@ -76,176 +113,95 @@ public abstract class NewGameViewModel : BaseViewModel
     public IImageService ImageService { get; }
 
     // Common command handlers with a template method pattern
-    internal void HandleServerCommand(IGameCommand command)
-    {
-        _dispatcherService.RunOnUIThread(async () =>
-        {
-            await HandleCommandInternal(command);
-        });
-    }
+    internal void HandleServerCommand(IGameCommand command) =>
+        _session.Dispatch(command, HandleCommandInternal);
 
     // Template method to be implemented by derived classes
     protected abstract Task HandleCommandInternal(IGameCommand command);
 
     /// <summary>
-    /// Creates the local <see cref="ClientGame"/> via <see cref="IGameFactory"/>, constructs a
-    /// <see cref="DecisionEngineProvider"/> for it, and initializes the <see cref="IBotManager"/>.
-    /// Any previously created local game is disposed first so the setup is safe to run repeatedly.
+    /// Creates the local <see cref="ClientGame"/> through the setup session, which also constructs a
+    /// <see cref="DecisionEngineProvider"/> for it and initializes the bot manager. Any previously
+    /// created local game is disposed first so the setup is safe to run repeatedly.
     /// </summary>
-    protected void CreateAndInitializeLocalGame(Guid? serverGameId = null, ICommandPublisher? publisherOverride = null)
-    {
-        if (_localGame != null)
-        {
-            _localGame.Dispose();
-            _localGame = null;
-        }
+    protected void CreateAndInitializeLocalGame(Guid? serverGameId = null, ICommandPublisher? publisherOverride = null) =>
+        _session.CreateAndInitializeLocalGame(publisherOverride ?? _commandPublisher, serverGameId);
 
-        var publisher = publisherOverride ?? _commandPublisher;
-        _localGame = _gameFactory.CreateClientGame(publisher, serverGameId);
-
-        var decisionEngineProvider = new DecisionEngineProvider(_localGame);
-        _botManager.Initialize(_localGame, decisionEngineProvider);
-    }
-
-    // Common player management
+    /// <summary>
+    /// Publishes the local player's join when this screen may publish commands.
+    /// </summary>
     protected void PublishJoinCommand(PlayerViewModel playerVm)
     {
-        if (!playerVm.IsLocalPlayer || !CanPublishCommands || _localGame == null) return;
+        if (!playerVm.IsLocalPlayer || !CanPublishCommands) return;
 
-        // Project UnitViewModel wrappers back to UnitData for the join command
-        var unitsData = playerVm.GetUnitsData();
-
-        // Create pilot assignments for each unit
-        var pilotAssignments = unitsData.Select(unit => 
-        {
-            var unitId = unit.Id ?? Guid.NewGuid();
-            return new PilotAssignmentData
-            {
-                UnitId = unitId,
-                PilotData = playerVm.GetPilotDataForUnit(unitId) ?? PilotData.CreateDefaultPilot("MechWarrior", "")
-            };
-        }).ToList();
-
-        if (playerVm.Player.ControlType == PlayerControlType.Bot)
-        {
-            var botSettings = playerVm.GetBotSettings();
-            _botManager.AddBot(playerVm.Player, botSettings);
-        }
-
-        _localGame.JoinGameWithUnits(playerVm.Player, unitsData, pilotAssignments);
+        _session.PublishJoinCommand(playerVm);
     }
 
+    /// <summary>
+    /// Publishes the local player's ready status when this screen may publish commands.
+    /// </summary>
     protected void PublishSetReadyCommand(PlayerViewModel playerVm)
     {
-        if (!playerVm.IsLocalPlayer || !CanPublishCommands || _localGame == null) return;
-        
-        var readyCommand = new UpdatePlayerStatusCommand
-        {
-            GameOriginId = _localGame.Id,
-            PlayerId = playerVm.Player.Id,
-            PlayerStatus = PlayerStatus.Ready
-        };
-        _localGame.SetPlayerReady(readyCommand);
+        if (!playerVm.IsLocalPlayer || !CanPublishCommands) return;
+
+        _session.PublishSetReadyCommand(playerVm);
     }
 
     /// <summary>
     /// Resolves the local player's data, falling back to a fresh default player.
     /// </summary>
-    protected PlayerData GetLocalPlayerData()
-    {
-        var localPlayer = _players.FirstOrDefault(p => p.IsLocalPlayer);
-        return localPlayer != null
-            ? new PlayerData
-            {
-                Id = localPlayer.Player.Id,
-                Name = localPlayer.Player.Name,
-                Tint = localPlayer.Player.Tint
-            }
-            : PlayerData.CreateDefault();
-    }
+    protected PlayerData GetLocalPlayerData() => _session.GetLocalPlayerData();
 
     // Common properties
     public ObservableCollection<PlayerViewModel> Players => _players;
-    
+
     internal ClientGame? LocalGame => _localGame;
+
+    /// <summary>
+    /// The shared setup session, used by the derived screens to wire their coordinators.
+    /// </summary>
+    protected GameSetupSession Session => _session;
 
     // Abstract/virtual properties to be implemented by derived classes
     public abstract bool CanPublishCommands { get; }
-    public abstract bool CanAddPlayer { get; }
+    public virtual bool CanAddPlayer => (IsConnectedReady || PlayerCount == 0) && PlayerCount < 4;
 
-    // Common utility methods
-    private string GetNextTint()
-    {
-        // Generate a vibrant, colorful random color
-        return GenerateVibrantColor();
-    }
-
-    private string GenerateVibrantColor()
-    {
-        // Use HSV color space to ensure vibrant, colorful colors
-        // Hue: 0-360 (full range for variety)
-        // Saturation: 0.6-1.0 (avoid grayish colors)
-        // Value/Brightness: 0.4-1.0 (avoid very dark colors but allow some darker ones for variety)
-        var random = Random.Shared;
-
-        var hue = random.NextDouble() * 360.0;
-        var saturation = 0.6 + (random.NextDouble() * 0.4); // 0.6-1.0
-        var value = 0.4 + (random.NextDouble() * 0.6); // 0.4-1.0
-
-        // Convert HSV to RGB
-        var rgb = HsvToRgb(hue, saturation, value);
-
-        // Convert RGB to hex
-        return $"#{rgb.Red:X2}{rgb.Green:X2}{rgb.Blue:X2}";
-    }
-
-    private static (int Red, int Green, int Blue) HsvToRgb(double hue, double saturation, double value)
-    {
-        var c = value * saturation;
-        var x = c * (1 - Math.Abs((hue / 60) % 2 - 1));
-        var m = value - c;
-
-        var rgbValues = hue switch
-        {
-            >= 0 and < 60 => (c, x, 0.0),
-            >= 60 and < 120 => (x, c, 0.0),
-            >= 120 and < 180 => (0.0, c, x),
-            >= 180 and < 240 => (0.0, x, c),
-            >= 240 and < 300 => (x, 0.0, c),
-            _ => (c, 0.0, x)
-        };
-
-        return (
-            (int)Math.Round((rgbValues.Item1 + m) * 255),
-            (int)Math.Round((rgbValues.Item2 + m) * 255),
-            (int)Math.Round((rgbValues.Item3 + m) * 255)
-        );
-    }
+    /// <summary>
+    /// Whether the screen is connected enough to add another player.
+    /// </summary>
+    protected virtual bool IsConnectedReady => true;
 
     // Common player creation logic with a template method pattern
     protected virtual Task AddPlayer(PlayerData? playerData = null, PlayerControlType controlType = PlayerControlType.Human)
     {
-        if (!CanAddPlayer) return Task.CompletedTask;
-        var isDefaultPlayer = playerData != null;
-
-        // Generate random 4-digit number for player name
-        playerData ??= PlayerData.CreateDefault() with { Tint = GetNextTint() };
-
-        // Create Local Player Object
-        var newPlayer = new Player(playerData.Value, controlType, Guid.NewGuid());
-
-        // Create Local ViewModel Wrapper with customizable callbacks
-        var playerViewModel = CreatePlayerViewModel(newPlayer, isDefaultPlayer);
-
-        // Add to Local UI Collection
-        _players.Add(playerViewModel);
+        var result = _session.AddPlayerAsync(playerData, controlType, CreatePlayerViewModel, CanAddPlayer);
         NotifyPropertyChanged(nameof(CanAddPlayer));
+        OnPlayersChanged();
+        return result;
+    }
 
-        return Task.CompletedTask;
+    /// <summary>
+    /// Hook for derived screens that expose player-dependent state.
+    /// </summary>
+    protected virtual void OnPlayersChanged()
+    {
     }
 
     // Template method for creating player view models with appropriate callbacks
-    protected abstract PlayerViewModel CreatePlayerViewModel(Player player, bool isDefaultPlayer = false);
+    protected virtual PlayerViewModel CreatePlayerViewModel(Player player, bool isDefaultPlayer = false) =>
+        new(
+            player,
+            isLocalPlayer: true,
+            PublishJoinCommand,
+            PublishSetReadyCommand,
+            ShowAvailableUnitsTable,
+            ShowUnitInfo,
+            OnPlayersChanged,
+            isDefaultPlayer
+                ? OnDefaultPlayerNameChanged
+                : null,
+            isDefaultPlayer,
+            () => IsConnectedReady);
 
     /// <summary>
     /// Removes a player from the game setup
@@ -254,64 +210,16 @@ public abstract class NewGameViewModel : BaseViewModel
     /// <returns>Task representing the async operation</returns>
     protected virtual Task RemovePlayer(PlayerViewModel? playerVm)
     {
-        if (!CanRemovePlayer(playerVm)) return Task.CompletedTask;
-
-        _players.Remove(playerVm!);
+        var result = _session.RemovePlayerAsync(playerVm);
         NotifyPropertyChanged(nameof(CanAddPlayer));
-        return Task.CompletedTask;
-    }
-    
-    private static bool CanRemovePlayer(PlayerViewModel? playerVm)
-    {
-        return playerVm?.IsRemovable ?? false;
-    }
-
-    /// <summary>
-    /// Loads or creates the default player from cache
-    /// </summary>
-    private async Task<PlayerData> LoadOrCreateDefaultPlayer()
-    {
-        try
-        {
-            var cachedData = await _cachingService.TryGetCachedFile(DefaultPlayerCacheKey);
-            if (cachedData != null)
-            {
-                var json = System.Text.Encoding.UTF8.GetString(cachedData);
-                return JsonSerializer.Deserialize<PlayerData>(json);
-            }
-        }
-        catch (Exception ex)
-        {
-            _localGame?.Logger.LogError(ex, "Error loading default player from cache");
-        }
-
-        // Create a new default player if the cache load failed
-        var defaultPlayerData = PlayerData.CreateDefault() with { Tint = GetNextTint() };
-        await SaveDefaultPlayer(defaultPlayerData);
-        return defaultPlayerData;
-    }
-
-    /// <summary>
-    /// Saves the default player to cache
-    /// </summary>
-    private async Task SaveDefaultPlayer(PlayerData playerData)
-    {
-        try
-        {
-            var json = JsonSerializer.Serialize(playerData);
-            var bytes = System.Text.Encoding.UTF8.GetBytes(json);
-            await _cachingService.SaveToCache(DefaultPlayerCacheKey, bytes);
-        }
-        catch (Exception ex)
-        {
-            _localGame?.Logger.LogError(ex, "Error saving default player to cache");
-        }
+        OnPlayersChanged();
+        return result;
     }
 
     public override void AttachHandlers()
     {
         base.AttachHandlers();
-        LoadAvailableUnits().SafeFireAndForget(ex => _logger.LogError(ex, "Error loading available units"));
+        _session.LoadAvailableUnitsAsync().SafeFireAndForget(ex => _logger.LogError(ex, "Error loading available units"));
 
         // Auto-add default player
         if (Players.Count == 0)
@@ -319,59 +227,27 @@ public abstract class NewGameViewModel : BaseViewModel
                 ex => _logger.LogError(ex, "Error adding default player")
                 );
     }
-    
-    private async Task LoadAvailableUnits()
-    {
-        _availableUnits = await _unitsLoader.LoadUnits();
-    }
 
     /// <summary>
     /// Adds the default player automatically when the view loads
     /// </summary>
-    private async Task AddDefaultPlayer()
-    {
-        if (!CanAddPlayer) return;
-
-        // Load or create the default player
-        var defaultPlayer = await LoadOrCreateDefaultPlayer();
-
-        await AddPlayer(defaultPlayer);
-    }
+    private Task AddDefaultPlayer() =>
+        _session.AddDefaultPlayerAsync(CreatePlayerViewModel, CanAddPlayer);
 
     /// <summary>
     /// Handles player name changes for the default player
     /// </summary>
-    protected async Task OnDefaultPlayerNameChanged(Player updatedPlayer)
-    {
-        // Save the updated player to the cache
-        await SaveDefaultPlayer(updatedPlayer.ToData());
-    }
+    protected Task OnDefaultPlayerNameChanged(Player updatedPlayer) =>
+        _session.SaveDefaultPlayerAsync(updatedPlayer.ToData());
 
-    public List<UnitData> AvailableUnits => _availableUnits.ToList();
+    public IReadOnlyList<UnitData> AvailableUnits => _session.AvailableUnits;
 
-    protected async Task ShowAvailableUnitsTable(PlayerViewModel playerVm)
-    {
-        if (!playerVm.CanAddUnit) return;
+    protected Task ShowAvailableUnitsTable(PlayerViewModel playerVm) =>
+        _session.ShowAvailableUnitsTableAsync(NavigationService, playerVm);
 
-        // Create a new ViewModel instance for the dialog
-        var tableViewModel = new AvailableUnitsTableViewModel(AvailableUnits, _mechFactory);
-        tableViewModel.SetNavigationService(NavigationService);
-
-        // Show the dialog and wait for a result
-        var result = await NavigationService.ShowViewModelForResultAsync<AvailableUnitsTableViewModel, UnitSelectionResult>(tableViewModel);
-
-        // If a unit was selected (not canceled), add it to the player
-        if (result.SelectedUnit.HasValue)
-        {
-            await playerVm.AddUnit(result.SelectedUnit.Value);
-        }
-    }
-
-    protected async Task<PilotEditResult?> ShowUnitInfo(UnitData unitData, PilotData? pilotData,
-        bool canEdit = false)
-    {
-        var infoViewModel = new UnitInfoViewModel(unitData, pilotData, _mechFactory, canEdit);
-        infoViewModel.SetNavigationService(NavigationService);
-        return await NavigationService.ShowViewModelForResultAsync<UnitInfoViewModel, PilotEditResult?>(infoViewModel);
-    }
+    protected Task<PilotEditResult?> ShowUnitInfo(UnitData unitData, PilotData? pilotData,
+        bool canEdit = false) =>
+        _session.ShowUnitInfoAsync(NavigationService, unitData, pilotData, canEdit);
 }
+
+

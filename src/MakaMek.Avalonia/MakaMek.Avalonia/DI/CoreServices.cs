@@ -28,6 +28,7 @@ using Sanet.MakaMek.Localization;
 using Sanet.MakaMek.Map.Factories;
 using Sanet.MakaMek.Map.Services;
 using Sanet.MakaMek.Presentation.ViewModels;
+using Sanet.MakaMek.Presentation.ViewModels.Settings;
 using Sanet.MakaMek.Services;
 using Sanet.MakaMek.Avalonia.Controls.Services;
 using Sanet.MakaMek.Services.Avalonia;
@@ -249,5 +250,16 @@ public static class CoreServices
         services.AddTransient<AboutViewModel>();
         services.AddTransient<AssetLoadingViewModel>();
         services.AddTransient<SettingsViewModel>();
+    }
+
+    /// <summary>
+    /// Settings-screen coordinators. Registered separately from the view model so the screen receives
+    /// them through constructor injection instead of building its collaborators.
+    /// </summary>
+    public static void RegisterSettingsServices(this IServiceCollection services)
+    {
+        services.AddTransient<HubSettingsService>();
+        services.AddTransient<AssetProviderSettingsService>();
+        services.AddTransient<AssetCacheService>();
     }
 }
