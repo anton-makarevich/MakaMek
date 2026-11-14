@@ -140,10 +140,21 @@ public abstract class Component : IManufacturedItem
 
         var staged = assignments.ToList();
         if (staged.Count == 0) return;
-        if (staged.Any(a => a is null))
+
+        ValidateAssignmentRanges(staged);
+        ValidateNoOverlapWithinGroups(staged);
+        ValidateNoOverlapWithExistingMounts(staged);
+        ValidateSlotCapacity(staged);
+
+        _slotAssignments.AddRange(staged);
+    }
+
+    private static void ValidateAssignmentRanges(List<CriticalSlotAssignment> assignments)
+    {
+        if (assignments.Any(a => a is null))
             throw new ArgumentException("Assignments cannot contain null entries.", nameof(assignments));
 
-        foreach (var assignment in staged)
+        foreach (var assignment in assignments)
         {
             if (assignment.UnitPart is null)
                 throw new ArgumentException("Assignment.UnitPart cannot be null.", nameof(assignments));
@@ -152,7 +163,10 @@ public abstract class Component : IManufacturedItem
             if (assignment.FirstSlot > assignment.UnitPart.TotalSlots - assignment.Length)
                 throw new ComponentException("Slot assignment exceeds available slots of the unit part.");
         }
+    }
 
+    private static void ValidateNoOverlapWithinGroups(List<CriticalSlotAssignment> staged)
+    {
         foreach (var group in staged.GroupBy(a => a.UnitPart))
         {
             var intervals = new List<(int Start, int End)>();
@@ -165,7 +179,10 @@ public abstract class Component : IManufacturedItem
                 intervals.Add((start, end));
             }
         }
+    }
 
+    private void ValidateNoOverlapWithExistingMounts(List<CriticalSlotAssignment> staged)
+    {
         foreach (var assignment in staged)
         {
             var start = assignment.FirstSlot;
@@ -175,7 +192,10 @@ public abstract class Component : IManufacturedItem
                     !(end < existing.FirstSlot || start > existing.FirstSlot + existing.Length - 1)))
                 throw new ComponentException("Assignment overlaps existing mounts on the same part.");
         }
+    }
 
+    private void ValidateSlotCapacity(List<CriticalSlotAssignment> staged)
+    {
         var totalUniqueSlots = _slotAssignments
             .SelectMany(assignment => assignment.Slots.Select(slot => (assignment.UnitPart, slot)))
             .Concat(staged.SelectMany(assignment => assignment.Slots.Select(slot => (assignment.UnitPart, slot))))
@@ -183,8 +203,6 @@ public abstract class Component : IManufacturedItem
             .Count();
         if (totalUniqueSlots > Size)
             throw new ComponentException($"Component {Name} requires {Size} slots.");
-
-        _slotAssignments.AddRange(staged);
     }
 
     public void UnMount()

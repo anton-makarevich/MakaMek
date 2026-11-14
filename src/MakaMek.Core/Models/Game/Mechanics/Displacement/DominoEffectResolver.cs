@@ -54,14 +54,7 @@ public class DominoEffectResolver(IDiceRoller diceRoller)
             .Where(unit => unit is { IsDeployed: true, Position: not null })
             .ToList();
 
-        var occupants = (request.Occupants ?? deployedUnits)
-            .Where(unit => unit.Id != enteringUnit.Id
-                           && unit.IsDeployed
-                           && unit.Position is not null
-                           && !unit.IsAirborneDfaAttacker
-                           && unit.Position.Coordinates == request.Destination)
-            .ToList();
-
+        var occupants = GetEnteringOccupants(request, enteringUnit, deployedUnits);
         if (occupants.Count == 0)
             return DominoEffectResult.NotRequired();
 
@@ -75,30 +68,51 @@ public class DominoEffectResolver(IDiceRoller diceRoller)
         if (request.ApplyEntryElevationRule && entryCheck.IsDeepDrop)
             return AccidentalFall(request.Destination, entryCheck.Surface);
 
+        return ResolveChain(request, map, deployedUnits, entryCheck, occupants);
+    }
+
+    private static List<IUnit> GetEnteringOccupants(
+        DominoEffectRequest request,
+        IUnit enteringUnit,
+        List<IUnit> deployedUnits) =>
+        (request.Occupants ?? deployedUnits)
+            .Where(unit => unit.Id != enteringUnit.Id
+                           && unit.IsDeployed
+                           && unit.Position is not null
+                           && !unit.IsAirborneDfaAttacker
+                           && unit.Position.Coordinates == request.Destination)
+            .ToList();
+
+    /// <summary>
+    /// Follows the chain link by link until it ends on an empty hex, and returns the displacements
+    /// far-to-near together with the units that owe a domino PSR.
+    /// </summary>
+    private DominoEffectResult ResolveChain(
+        DominoEffectRequest request,
+        IBattleMap map,
+        List<IUnit> deployedUnits,
+        ForcedEntryCheckResult entryCheck,
+        List<IUnit> occupants)
+    {
         var commands = new List<DisplaceUnitCommand>();
-        var psrCandidates = new List<IUnit> { enteringUnit };
+        var psrCandidates = new List<IUnit> { request.EnteringUnit };
         var falls = new List<DominoFall>();
 
-        var processed = new HashSet<Guid> { enteringUnit.Id };
+        var processed = new HashSet<Guid> { request.EnteringUnit.Id };
         var from = request.Destination;
-        var currentUnit = SelectOccupant(enteringUnit, occupants);
-        var iteration = 0;
+        var currentUnit = SelectOccupant(request.EnteringUnit, occupants);
 
-        while (true)
+        for (var iteration = 1; ; iteration++)
         {
-            if (++iteration > MaxDisplacementIterations)
+            if (iteration > MaxDisplacementIterations)
                 return StopChain(
                     DisplacementFailureReason.IterationLimit, from, currentUnit, entryCheck.Surface,
                     commands, psrCandidates, falls);
 
             processed.Add(currentUnit.Id);
 
-            var fromSurface = from == request.Destination && request.OriginSurface is { } overrideSurface
-                ? overrideSurface
-                : currentUnit.Position!.Surface;
-
             var to = from.GetNeighbour(request.Direction);
-            var step = ForcedEntryCheck.Check(currentUnit, map, from, fromSurface, to);
+            var step = ForcedEntryCheck.Check(currentUnit, map, from, ResolveFromSurface(from, request, currentUnit), to);
             if (!step.IsLegal)
                 return StopChain(
                     step.Failure!.Value, to, currentUnit, entryCheck.Surface,
@@ -110,25 +124,7 @@ public class DominoEffectResolver(IDiceRoller diceRoller)
             if (request.ApplyEntryElevationRule && nextOccupants.Count != 0 && step.IsDeepDrop)
                 return AccidentalFall(to, entryCheck.Surface);
 
-            commands.Add(new DisplaceUnitCommand
-            {
-                UnitId = currentUnit.Id,
-                FromCoordinates = from.ToData(),
-                ToCoordinates = to.ToData(),
-                NewFacing = (int)(currentUnit.Facing ?? currentUnit.Position!.Facing),
-                Surface = (int)step.Surface,
-                DisplacementReason = request.Reason,
-                GameOriginId = request.GameOriginId,
-                Timestamp = DateTime.UtcNow
-            });
-
-            if (psrCandidates.All(candidate => candidate.Id != currentUnit.Id))
-                psrCandidates.Add(currentUnit);
-
-            // A drop of two or more levels into an empty hex is not a step down: the displaced
-            // unit falls and takes normal falling damage after the displacement is applied.
-            if (-step.LevelDifference >= 2)
-                falls.Add(new DominoFall(currentUnit, -step.LevelDifference));
+            AppendDisplacement(commands, psrCandidates, falls, request, currentUnit, from, to, step);
 
             if (nextOccupants.Count == 0) break;
 
@@ -147,6 +143,45 @@ public class DominoEffectResolver(IDiceRoller diceRoller)
         {
             Falls = falls
         };
+    }
+
+    private static HexSurface ResolveFromSurface(
+        HexCoordinates from,
+        DominoEffectRequest request,
+        IUnit currentUnit) =>
+        from == request.Destination && request.OriginSurface is { } overrideSurface
+            ? overrideSurface
+            : currentUnit.Position!.Surface;
+
+    private static void AppendDisplacement(
+        List<DisplaceUnitCommand> commands,
+        List<IUnit> psrCandidates,
+        List<DominoFall> falls,
+        DominoEffectRequest request,
+        IUnit currentUnit,
+        HexCoordinates from,
+        HexCoordinates to,
+        ForcedEntryCheckResult step)
+    {
+        commands.Add(new DisplaceUnitCommand
+        {
+            UnitId = currentUnit.Id,
+            FromCoordinates = from.ToData(),
+            ToCoordinates = to.ToData(),
+            NewFacing = (int)(currentUnit.Facing ?? currentUnit.Position!.Facing),
+            Surface = (int)step.Surface,
+            DisplacementReason = request.Reason,
+            GameOriginId = request.GameOriginId,
+            Timestamp = DateTime.UtcNow
+        });
+
+        if (psrCandidates.All(candidate => candidate.Id != currentUnit.Id))
+            psrCandidates.Add(currentUnit);
+
+        // A drop of two or more levels into an empty hex is not a step down: the displaced
+        // unit falls and takes normal falling damage after the displacement is applied.
+        if (-step.LevelDifference >= 2)
+            falls.Add(new DominoFall(currentUnit, -step.LevelDifference));
     }
 
     private static DominoEffectResult Blocked(
