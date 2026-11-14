@@ -21,4 +21,7 @@ public static partial class GameLoggerExtensions
     
     [LoggerMessage(LogLevel.Information, "{UnitName} moving to {Position} using {MovementType} (Offensive: {OffensiveIndex:F1}, Defensive: {DefensiveIndex:F1}, EnemiesInRearArc: {EnemiesInRearArc})")]
     public static partial void LogUnitMovingToPositionUsingMovementTypeWithOffensiveDefensiveAndEnemiesInRearArc(this ILogger logger, string unitName, HexCoordinates position, MovementType movementType, double offensiveIndex, double defensiveIndex, int enemiesInRearArc);
+
+    [LoggerMessage(LogLevel.Error, "Failed to evaluate path to {Position}: {Message}")]
+    public static partial void LogFailedToEvaluatePath(this ILogger logger, HexCoordinates position, string message, Exception exception);
 }
