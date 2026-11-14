@@ -207,7 +207,7 @@
   <data name="ChargeOutcome_AutoFail" xml:space="preserve"><value>Auto-fail</value></data>
   <data name="Command_ChargeResolution_AutoFail" xml:space="preserve"><value>{0}'s {1} charge against {2} automatically fails (no damage, no to-hit roll, {3} hexes moved)</value></data>
   <data name="Command_ChargeResolution_Outcome" xml:space="preserve"><value>Charge: {0} ({1} hexes moved)</value></data>
-  <data name="Command_ChargeResolution_Replacement" xml:space="preserve"><value>Struck a replacement for {0}</value></data>
+  <data name="Command_ChargeResolution_Replacement" xml:space="preserve"><value>The declared target {0} was replaced</value></data>
   <data name="Command_ChargeResolution_AttackerCollision" xml:space="preserve"><value>{0} takes {1} collision damage</value></data>
   <data name="PhysicalAttackType_DFA" xml:space="preserve"><value>Death From Above</value></data>
   <data name="DfaOutcome_Hit" xml:space="preserve"><value>Hit</value></data>

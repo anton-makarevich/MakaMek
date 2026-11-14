@@ -363,16 +363,27 @@ public class PhysicalAttackResolutionPhaseTests : GamePhaseTestsBase
     }
 
     /// <summary>
-    /// A 'Mech making a Death From Above cannot be the target of a physical attack, so a charge
-    /// declared against it auto-fails. A failed charge never ends in the target hex: the attacker
-    /// is placed in a side hex of its forward arc (Total Warfare p.148-149).
+    /// An airborne Death From Above performer cannot be the target of a physical attack, so a
+    /// charge declared against it auto-fails. A failed charge never ends in the target hex: the
+    /// attacker is placed in a side hex of its forward arc (Total Warfare p.148-149). A performer
+    /// that has already landed is an ordinary target and no longer auto-fails the charge.
     /// </summary>
     [Fact]
     public void Enter_ChargeAutoFails_WhenTheDeclaredTargetPerformsDfa_AndMovesToASideHex()
     {
-        // Arrange
+        // Arrange: the declared target waits airborne above the committed hex, so it cannot be the
+        // subject of the charge (Total Warfare p.148-149).
         SetMap();
         SetUpCharge(_player1Mech, _player2Mech);
+        var approach = new HexPosition(TargetHex, HexDirection.Top, AirborneLevel: 4);
+        _player2Mech.Move(
+            new MovementPath([new PathSegment(
+                new HexPosition(new HexCoordinates(5, 2), HexDirection.Bottom),
+                approach,
+                [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])], MovementType.Jump),
+            null,
+            true,
+            approach);
         Declare(_player2Mech, _player1Mech, PhysicalAttackType.DFA);
         CommandPublisher.ClearReceivedCalls();
 
@@ -381,7 +392,7 @@ public class PhysicalAttackResolutionPhaseTests : GamePhaseTestsBase
 
         // Assert
         var resolution = PublishedCommands().OfType<PhysicalAttackResolutionCommand>()
-            .ShouldHaveSingleItem();
+            .Single(command => command.ResolutionData.AttackType == PhysicalAttackType.Charge);
         resolution.ResolutionData.Charge!.Outcome.ShouldBe(ChargeOutcome.AutoFail);
         resolution.ResolutionData.AttackResolution.IsHit.ShouldBeFalse();
         resolution.ResolutionData.PsrRequirements.ShouldBeEmpty();

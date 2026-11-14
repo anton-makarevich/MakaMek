@@ -211,13 +211,16 @@ instead of being resolved.
   `TargetPerformingDisplacementAttack` restriction, and another Charge or DFA is rejected by
   `MovementAttackDeclarationValidator`.
 * **Charge resolution (issue [#1706](https://github.com/anton-makarevich/MakaMek/issues/1706)):**
-  `ChargeTargetSelector` applies the immunity at resolution time too. A pending-DFA 'Mech is never
-  the declared target and never a replacement target, so when it is the only occupant of the
-  committed destination hex the charge automatically fails: no to-hit roll, no damage and no charge
+  `ChargeTargetSelector` applies the immunity at resolution time too, using the same
+  `IsAirborneDfaAttacker` predicate. An airborne pending-DFA 'Mech is never the declared target and
+  never a replacement target, so when it is the only airborne occupant of the committed destination
+  hex the charge automatically fails: no to-hit roll, no damage and no charge
   PSRs. A failed charge never ends in the target hex (Total Warfare p. 148): the attacker is placed
   in the hex to the right or left of its forward arc, exactly like a rolled miss, whether the hex is
   empty or still holds a grounded unit. The DFA performer is **airborne**, so it is not a ground
-  occupant: it does not count for stacking, and cannot be displaced while it is in the air.
+  occupant: it does not count for stacking, and cannot be displaced while it is in the air. A
+  performer that has already landed is a grounded unit and a legal target, declared or replacement
+  (§3.1: the immunity ends when it lands).
 * **Airborne stacking exemption in every displacement path:** `IsAirborneDfaAttacker`
   (`HasPendingMovementAttack` + `IsDfa` + an `AirborneLevel` on the position) is excluded from the
   occupant checks of `ChargeDisplacementResolver`, `PushDisplacementResolver` and the shared

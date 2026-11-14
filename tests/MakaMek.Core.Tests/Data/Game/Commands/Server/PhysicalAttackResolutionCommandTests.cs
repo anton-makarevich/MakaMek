@@ -356,7 +356,7 @@ public class PhysicalAttackResolutionCommandTests
         var result = sut.Render(_localizationService, _game);
 
         // Assert
-        result.ShouldContain($"Struck a replacement for {_target.Model}");
+        result.ShouldContain($"The declared target {_target.Model} was replaced");
     }
 
     [Fact]
@@ -384,7 +384,7 @@ public class PhysicalAttackResolutionCommandTests
         var result = sut.Render(_localizationService, _game);
 
         // Assert
-        result.ShouldContain($"Struck a replacement for {originalTargetId}");
+        result.ShouldContain($"The declared target {originalTargetId} was replaced");
     }
 
     [Fact]
