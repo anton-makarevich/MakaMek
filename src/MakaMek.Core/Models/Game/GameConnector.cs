@@ -133,103 +133,27 @@ public class GameConnector : IGameConnector
         }
 
         ITransportPublisher? publisher = null;
-        string? successfulSessionToken = null;
-        Guid? successfulDeviceSessionId = null;
+        RelayConnectionResult? connection = null;
         try
         {
-            var joinResult = await _relayRoomClient.Join(roomCode, sessionToken, cancellationToken);
-            if (!joinResult.Success || joinResult.SessionToken is null)
+            var relayConnector = new RelayRoomConnector(
+                _relayRoomClient, _relayPublisherFactory, _commandPublisher.Adapter, _logger);
+            connection = await relayConnector.ConnectAsync(
+                roomCode, sessionToken, relayOptions, cancellationToken);
+
+            if (connection.Error is { } joinError)
             {
-                OnlineError = joinResult.Error
-                    ?? new RelayClientError(
-                        RelayClientErrorCode.Unknown,
-                        "The relay did not return the values required to join.");
+                OnlineError = joinError;
                 return;
             }
 
-            // One hub serves rooms for many games, so a room is only ours when it carries our
-            // title and a real host game instance to attribute the host's commands to.
-            var gameInfo = joinResult.GameInfo;
-            if (gameInfo is null
-                || gameInfo.HostId == Guid.Empty
-                || !string.Equals(gameInfo.Id, RelayGameInfoFactory.GameTitle, StringComparison.Ordinal))
-            {
-                OnlineError = new RelayClientError(
-                    RelayClientErrorCode.Unknown,
-                    "The room was not created by a compatible MakaMek game.");
-                _logger.LogWarning(
-                    "Refusing relay room {RoomCode}: it reported game {GameId} hosted by {HostGameId}",
-                    roomCode,
-                    gameInfo?.Id,
-                    gameInfo?.HostId);
-                if (joinResult.DeviceSessionId is { } refusedDeviceId)
-                    await RemoveRelayMembership(roomCode, joinResult.SessionToken, refusedDeviceId);
-                return;
-            }
-
-            successfulSessionToken = joinResult.SessionToken;
-            successfulDeviceSessionId = joinResult.DeviceSessionId;
-
-            var baseUrl = relayOptions.BaseUrl;
-            var hubUrl = RelayHubDefaults.BuildHubUrl(baseUrl);
-
-            var ticketResult = await _relayRoomClient.GetRelayTicket(
-                roomCode,
-                joinResult.SessionToken,
-                cancellationToken,
-                relayOptions);
-            if (!ticketResult.Success || string.IsNullOrWhiteSpace(ticketResult.Ticket))
-            {
-                OnlineError = ticketResult.Error
-                    ?? new RelayClientError(
-                        RelayClientErrorCode.Unknown,
-                        "The relay did not issue a relay ticket for the joining session.");
-                if (joinResult.DeviceSessionId is { } joinedDeviceId)
-                    await RemoveRelayMembership(roomCode, joinResult.SessionToken, joinedDeviceId);
-                return;
-            }
-
-            publisher = await _relayPublisherFactory.Create(
-                new RelayPublisherOptions
-                {
-                    HubUrl = hubUrl,
-                    RoomCode = roomCode,
-                    RelayTicket = ticketResult.Ticket
-                },
-                cancellationToken);
-
-            // Throw if cancelled; the cancellation catch block below is the single
-            // owner of publisher removal and RemoveRelayMembership cleanup
-            cancellationToken.ThrowIfCancellationRequested();
-
-            var adapter = _commandPublisher.Adapter;
-            // Remove only the previously owned relay publisher; other flows' publishers
-            // (e.g. the shared local RxTransportPublisher) must stay registered.
-            await _relayPublisher.RemoveAndDisposeAsync(adapter, _logger);
-            _relayPublisher = null;
-            adapter.AddPublisher(publisher);
-            adapter.RegisterDisconnectHandler(OnRelayHostDisconnected);
-
-            _relayPublisher = publisher;
-            _roomCode = roomCode;
-            _sessionToken = joinResult.SessionToken;
-            _deviceSessionId = joinResult.DeviceSessionId;
-
-            ConnectedHostGameId = gameInfo.HostId;
-            IsConnected = true;
-            _forwarder?.Start(_commandPublisher.Adapter);
-            _logger.LogInformation(
-                "Joined relay room {RoomCode} for game {GameId} {GameVersion}, connected to host game {HostGameId}",
-                roomCode,
-                gameInfo.Id,
-                gameInfo.Version,
-                gameInfo.HostId);
+            publisher = connection.Publisher;
+            await InstallRelayPublisher(publisher!, roomCode, connection);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             await publisher.RemoveAndDisposeAsync(_commandPublisher.Adapter, _logger);
-            if (successfulSessionToken != null && successfulDeviceSessionId != null)
-                await RemoveRelayMembership(roomCode, successfulSessionToken, successfulDeviceSessionId.Value);
+            await RemoveRelayMembershipIfJoined(roomCode, connection?.SessionToken, connection?.DeviceSessionId);
             throw;
         }
         catch (Exception)
@@ -238,9 +162,46 @@ public class GameConnector : IGameConnector
                 RelayClientErrorCode.NetworkError,
                 "Failed to connect the client to the relay.");
             await publisher.RemoveAndDisposeAsync(_commandPublisher.Adapter, _logger);
-            if (successfulSessionToken != null && successfulDeviceSessionId != null)
-                await RemoveRelayMembership(roomCode, successfulSessionToken, successfulDeviceSessionId.Value);
+            await RemoveRelayMembershipIfJoined(roomCode, connection?.SessionToken, connection?.DeviceSessionId);
         }
+    }
+
+    private async Task InstallRelayPublisher(
+        ITransportPublisher publisher,
+        string roomCode,
+        RelayConnectionResult connection)
+    {
+        var adapter = _commandPublisher.Adapter;
+        // Remove only the previously owned relay publisher; other flows' publishers
+        // (e.g. the shared local RxTransportPublisher) must stay registered.
+        await _relayPublisher.RemoveAndDisposeAsync(adapter, _logger);
+        _relayPublisher = null;
+        adapter.AddPublisher(publisher);
+        adapter.RegisterDisconnectHandler(OnRelayHostDisconnected);
+
+        _relayPublisher = publisher;
+        _roomCode = roomCode;
+        _sessionToken = connection.SessionToken;
+        _deviceSessionId = connection.DeviceSessionId;
+
+        ConnectedHostGameId = connection.HostGameId;
+        IsConnected = true;
+        _forwarder?.Start(adapter);
+        _logger.LogInformation(
+            "Joined relay room {RoomCode} for game {GameId} {GameVersion}, connected to host game {HostGameId}",
+            roomCode,
+            connection.GameId,
+            connection.Version,
+            connection.HostGameId);
+    }
+
+    private async Task RemoveRelayMembershipIfJoined(
+        string roomCode,
+        string? sessionToken,
+        Guid? deviceSessionId)
+    {
+        if (sessionToken is null || deviceSessionId is not { } deviceId) return;
+        await RemoveRelayMembership(roomCode, sessionToken, deviceId);
     }
 
     /// <summary>
