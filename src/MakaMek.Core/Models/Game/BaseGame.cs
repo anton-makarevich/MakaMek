@@ -297,7 +297,9 @@ public abstract class BaseGame : IGame
         // Apply damage only if we have hit locations
         if (res.HitLocationsData is not null)
         {
-            targetUnit.ApplyDamage(res.HitLocationsData.HitLocations, res.AttackDirection);
+            targetUnit.ApplyDamage(
+                res.HitLocationsData.HitLocations,
+                res.DamageDirection ?? res.AttackDirection);
         }
 
         // Apply external heat on hit
@@ -320,7 +322,9 @@ public abstract class BaseGame : IGame
                 .SelectMany(p => p.Units)
                 .FirstOrDefault(u => u.Id == resolutionCommand.TargetId);
 
-            targetUnit?.ApplyDamage(res.HitLocationsData.HitLocations, res.AttackDirection);
+            targetUnit?.ApplyDamage(
+                res.HitLocationsData.HitLocations,
+                res.DamageDirection ?? res.AttackDirection);
         }
 
         // A successful charge also damages the attacker. Apply it from the same resolution so the

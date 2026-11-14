@@ -33,7 +33,15 @@ public record DfaDisplacementResult(
 /// </summary>
 /// <param name="Coordinates">The destination coordinates.</param>
 /// <param name="Surface">The resolved surface (ground or a bridge deck).</param>
-public record DfaMissDisplacementCandidate(HexCoordinates Coordinates, HexSurface Surface);
+/// <param name="LevelsFallen">How many standing levels the target drops.</param>
+/// <param name="TriggersAutomaticFall">
+/// Whether the drop exceeds the deepest displacement drop that does not force a fall.
+/// </param>
+public record DfaMissDisplacementCandidate(
+    HexCoordinates Coordinates,
+    HexSurface Surface,
+    int LevelsFallen = 0,
+    bool TriggersAutomaticFall = false);
 
 /// <summary>
 /// Where a DFA attacker lands, and the domino chain that may have to run before it can.
@@ -140,7 +148,6 @@ public class DfaDisplacementResolver(
     {
         var allDirections = targetPosition.Coordinates.GetDirectionsByAlignmentAwayFrom(startCoordinates);
         var idealDirection = allDirections[0];
-        var maxDrop = rulesProvider.GetMaxDisplacementDropWithoutAutomaticFall();
 
         foreach (var direction in allDirections)
         {
@@ -170,9 +177,6 @@ public class DfaDisplacementResolver(
                 targetPosition.Surface,
                 candidate);
             if (!entry.IsLegal) continue;
-
-            var levelsFallen = GetLevelsFallen(map, targetPosition, candidate, entry.Surface);
-            if (levelsFallen > maxDrop) continue;
 
             return new TargetDestination(candidate, entry.Surface, null);
         }
@@ -253,9 +257,11 @@ public class DfaDisplacementResolver(
 
             var levelsFallen = GetLevelsFallen(
                 map, targetPosition, candidate, entry.Surface);
-            if (levelsFallen > maxDrop) continue;
-
-            return new DfaMissDisplacementCandidate(candidate, entry.Surface);
+            return new DfaMissDisplacementCandidate(
+                candidate,
+                entry.Surface,
+                levelsFallen,
+                levelsFallen > maxDrop);
         }
 
         return null;

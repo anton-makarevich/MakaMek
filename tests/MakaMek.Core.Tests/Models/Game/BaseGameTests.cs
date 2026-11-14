@@ -384,6 +384,74 @@ public sealed class BaseGameTests : BaseGame
     }
 
     [Fact]
+    public void OnPhysicalAttackResolution_WithARearDamageDirection_AppliesDamageToRearArmor()
+    {
+        // Arrange: a prone target hit by a DFA from the front still takes rear-column damage.
+        var attackerPlayerId = Guid.NewGuid();
+        var attackerUnitData = MechFactoryTests.CreateDummyMechData();
+        attackerUnitData.Id = Guid.NewGuid();
+        OnPlayerJoined(new JoinGameCommand
+        {
+            PlayerId = attackerPlayerId,
+            PlayerName = "Attacker",
+            GameOriginId = Guid.NewGuid(),
+            Units = [attackerUnitData],
+            Tint = "#FF0000",
+            PilotAssignments = []
+        });
+        var attackerMech = Players.First(p => p.Id == attackerPlayerId).Units[0];
+
+        var targetPlayerId = Guid.NewGuid();
+        var targetUnitData = MechFactoryTests.CreateDummyMechData();
+        targetUnitData.Id = Guid.NewGuid();
+        OnPlayerJoined(new JoinGameCommand
+        {
+            PlayerId = targetPlayerId,
+            PlayerName = "Target",
+            GameOriginId = Guid.NewGuid(),
+            Units = [targetUnitData],
+            Tint = "#00FF00",
+            PilotAssignments = []
+        });
+        var targetMech = (Mech)Players.First(p => p.Id == targetPlayerId).Units[0];
+        targetMech.SetProne(HexDirection.Top);
+        var torso = (Torso)targetMech.Parts[PartLocation.CenterTorso];
+        var frontBefore = torso.CurrentArmor;
+        var rearBefore = torso.CurrentRearArmor;
+
+        var command = new PhysicalAttackResolutionCommand
+        {
+            ResolutionId = Guid.NewGuid(),
+            GameOriginId = Id,
+            PlayerId = attackerPlayerId,
+            AttackerId = attackerMech.Id,
+            TargetId = targetMech.Id,
+            ResolutionData = new PhysicalAttackResolutionData(
+                PhysicalAttackType.DFA,
+                null,
+                5,
+                new AttackResolutionData(
+                    7,
+                    [new DiceResult(3), new DiceResult(4)],
+                    true,
+                    HitDirection.Front,
+                    0,
+                    new AttackHitLocationsData(
+                        [CreateHitDataForLocation(PartLocation.CenterTorso, 5)], 5, [], 0),
+                    DamageDirection: HitDirection.Rear),
+                [],
+                Dfa: new DfaResolutionData(DfaOutcome.Hit, OriginalTargetId: targetMech.Id))
+        };
+
+        // Act
+        OnPhysicalAttackResolution(command);
+
+        // Assert
+        torso.CurrentRearArmor.ShouldBe(rearBefore - 5);
+        torso.CurrentArmor.ShouldBe(frontBefore);
+    }
+
+    [Fact]
     public void OnWeaponsAttack_ShouldHandleMultipleTargets()
     {
         // Arrange

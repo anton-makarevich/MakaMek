@@ -637,6 +637,7 @@ public class PhysicalAttackCalculatorTests
             .ShouldHaveSingleItem().Value.ShouldBe(-2);
     }
 
+    [Fact]
     public void GetMovementAttackModifierBreakdown_ForDfa_AddsRelativePiloting()
     {
         // Arrange

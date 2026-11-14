@@ -36,14 +36,16 @@ internal static class PhysicalAttackRolls
         List<DiceResult> attackRoll,
         bool isHit,
         HitDirection attackDirection,
-        AttackHitLocationsData? hitLocationsData) =>
+        AttackHitLocationsData? hitLocationsData,
+        HitDirection? damageDirection = null) =>
         new(
             toHitNumber,
             attackRoll,
             isHit,
             attackDirection,
             ExternalHeat: 0,
-            HitLocationsData: hitLocationsData);
+            HitLocationsData: hitLocationsData,
+            DamageDirection: damageDirection);
 
     /// <summary>
     /// Follows the damage transfer chain of an already destroyed location, as the weapon

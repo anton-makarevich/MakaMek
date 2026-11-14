@@ -11,4 +11,5 @@ public record AttackResolutionData(
     int ExternalHeat,
     AttackHitLocationsData? HitLocationsData = null,
     List<PartLocation>? DestroyedParts = null,
-    bool UnitDestroyed = false);
+    bool UnitDestroyed = false,
+    HitDirection? DamageDirection = null);

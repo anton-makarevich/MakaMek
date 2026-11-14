@@ -53,7 +53,9 @@ public class DfaAttackResolverTests
             new DiceResult(3),
             new DiceResult(4));
         var target = CreateUnit(20, TargetPosition());
-        var attacker = CreateUnit(35, new HexPosition(new HexCoordinates(0, 2), HexDirection.Top));
+        // The attacker approaches from the front arc while the jump origin stays in the rear arc,
+        // so the test proves the direction comes from StartCoordinates, not the attacker's position.
+        var attacker = CreateUnit(35, new HexPosition(new HexCoordinates(0, -1), HexDirection.Top));
 
         // Act
         var result = _sut.ResolveDfa(new DfaAttackContext
@@ -62,7 +64,7 @@ public class DfaAttackResolverTests
             Target = target,
             Map = _map,
             StartCoordinates = new HexCoordinates(0, 2),
-            ApproachCoordinates = new HexPosition(new HexCoordinates(0, 1), HexDirection.Top)
+            ApproachCoordinates = new HexPosition(new HexCoordinates(0, -1), HexDirection.Top)
         });
 
         // Assert: 35 tons deal ceil(35 × 3 / 10) = 11 in three clusters (5+5+1).
@@ -135,6 +137,36 @@ public class DfaAttackResolverTests
             .ShouldAllBe(hit => hit.InitialLocation == expected);
         result.Dfa.TargetHitLocations.HitLocations
             .ShouldAllBe(hit => hit.LocationRoll.Sum() == 7);
+    }
+
+    [Fact]
+    public void ResolveDfa_AgainstAProneTarget_KeepsTheAttackDirectionButDealsRearDamage()
+    {
+        _toHitCalculator.GetDfaToHitNumber(Arg.Any<IUnit>(), Arg.Any<IUnit>(), Arg.Any<IBattleMap>())
+            .Returns(7);
+        QueueRoll2D6(3, 4);
+        QueueRoll2D6(3, 4);
+        QueueRoll2D6(3, 4);
+        QueueRoll2D6(3, 4);
+        UseQueuedRoll2D6();
+        _diceRoller.RollD6().Returns(new DiceResult(1), new DiceResult(2));
+        var target = CreateUnit(20, TargetPosition());
+        target.Status.Returns(UnitStatus.Prone);
+        var attacker = CreateUnit(35, new HexPosition(new HexCoordinates(0, -2), HexDirection.Top));
+
+        var result = _sut.ResolveDfa(new DfaAttackContext
+        {
+            Attacker = attacker,
+            Target = target,
+            Map = _map,
+            StartCoordinates = new HexCoordinates(0, -2),
+            ApproachCoordinates = new HexPosition(new HexCoordinates(0, -1), HexDirection.Top)
+        });
+
+        // The jump origin is in front of the target, so the rendered direction stays Front...
+        result.AttackResolution.AttackDirection.ShouldBe(HitDirection.Front);
+        // ...but a prone target always takes damage on the rear column.
+        result.AttackResolution.DamageDirection.ShouldBe(HitDirection.Rear);
     }
 
     private static readonly HexCoordinates TargetCoordinates = new(0, 0);

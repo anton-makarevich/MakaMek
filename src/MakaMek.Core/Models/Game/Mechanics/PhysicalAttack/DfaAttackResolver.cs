@@ -63,6 +63,7 @@ public class DfaAttackResolver(
         }
 
         var attackDirection = context.Target.GetAttackDirectionFrom(context.StartCoordinates);
+        var targetIsProne = context.Target.Status.HasFlag(UnitStatus.Prone);
         var targetDamage = rulesProvider.GetDfaDamage(context.Attacker.Tonnage);
         var targetHitLocations = ResolveTargetDamage(
             context.Target,
@@ -83,7 +84,12 @@ public class DfaAttackResolver(
             null,
             targetDamage,
             PhysicalAttackRolls.CreateAttackResolution(
-                toHitNumber, attackRoll, isHit: true, attackDirection, targetHitLocations),
+                toHitNumber,
+                attackRoll,
+                isHit: true,
+                attackDirection,
+                targetHitLocations,
+                damageDirection: targetIsProne ? HitDirection.Rear : null),
             psrRequirements,
             Dfa: new DfaResolutionData(
                 DfaOutcome.Hit,

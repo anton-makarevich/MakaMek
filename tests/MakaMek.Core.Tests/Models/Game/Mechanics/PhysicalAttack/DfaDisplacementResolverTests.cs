@@ -85,6 +85,24 @@ public class DfaDisplacementResolverTests
     }
 
     [Fact]
+    public void ResolveHit_WhenTheIdealHexIsMoreThanTwoLevelsLower_DisplacesTheTargetAndTriggersAutomaticFall()
+    {
+        var map = CreateMap();
+        var ideal = new HexCoordinates(5, 6);
+        map.AddHex(new Hex(ideal, -3));
+        var attacker = CreateMech(new HexPosition(new HexCoordinates(5, 4), HexDirection.Top));
+        var target = CreateMech(new HexPosition(TargetCoordinates, HexDirection.Top));
+
+        var result = _sut.ResolveHit(
+            attacker, target, StartCoordinates, map, [attacker, target], Guid.NewGuid());
+
+        result.ShouldNotBeNull();
+        result.TargetDestination!.Coordinates.ShouldBe(ideal);
+        result.LevelsFallen.ShouldBe(3);
+        result.TriggersAutomaticFall.ShouldBeTrue();
+    }
+
+    [Fact]
     public void ResolveHit_WhenTheIdealHexIsOccupied_ResolvesTheDominoChain()
     {
         var map = CreateMap();
@@ -165,6 +183,29 @@ public class DfaDisplacementResolverTests
         // An airborne pending-DFA unit is not a ground occupant (Total Warfare, p. 149).
         candidate.ShouldNotBeNull();
         candidate.Coordinates.ShouldBe(approach);
+    }
+
+    [Fact]
+    public void ResolveMiss_WhenOnlyADeepDropHexIsAvailable_ReturnsItAndFlagsTheFall()
+    {
+        var map = CreateMap();
+        var target = CreateMech(new HexPosition(TargetCoordinates, HexDirection.Top));
+        var deepDrop = new HexCoordinates(5, 6);
+        map.AddHex(new Hex(deepDrop, -3));
+        var occupants = new List<IUnit> { target };
+        foreach (var direction in HexDirectionExtensions.AllDirections)
+        {
+            var neighbour = TargetCoordinates.GetNeighbour(direction);
+            if (neighbour == deepDrop) continue;
+            occupants.Add(CreateMech(new HexPosition(neighbour, HexDirection.Top)));
+        }
+
+        var candidate = _sut.ResolveMiss(target, StartCoordinates, map, occupants);
+
+        candidate.ShouldNotBeNull();
+        candidate.Coordinates.ShouldBe(deepDrop);
+        candidate.LevelsFallen.ShouldBe(3);
+        candidate.TriggersAutomaticFall.ShouldBeTrue();
     }
 
     [Fact]

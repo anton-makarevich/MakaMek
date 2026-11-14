@@ -7,6 +7,7 @@ using Sanet.MakaMek.Core.Data.Game.Mechanics.PhysicalAttacks;
 using Sanet.MakaMek.Core.Data.Game.Mechanics.PilotingSkillRollContexts;
 using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.Displacement;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Movement;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Movement.Actions;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.PhysicalAttack;
@@ -14,6 +15,7 @@ using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Map.Models;
+using Sanet.MakaMek.Map.Models.Terrains;
 
 // Pre-existing class coupling in this type, not introduced by this change. It is tracked in
 // #1714 together with the baseline-aware analyzer gate that will make this suppression unnecessary.
@@ -421,7 +423,7 @@ public class PhysicalAttackResolutionPhase : GamePhase
 
         if (resolution.AttackResolution.IsHit)
         {
-            resolution = PublishDfaResolution(item, presentTarget, resolution);
+            _ = PublishDfaResolution(item, presentTarget, resolution);
             ApplyDfaHitDisplacement(item, presentTarget);
             ApplyDfaWaterEntryModifier(item.Attacker, map);
         }
@@ -467,7 +469,10 @@ public class PhysicalAttackResolutionPhase : GamePhase
             PublishDfaResolution(item, target, resolution);
             if (target.Position is { } destroyedTargetPosition)
             {
-                ExecuteDfaLanding(item.Attacker, destroyedTargetPosition);
+                var landing = ExecuteDfaLanding(
+                    item.Attacker,
+                    LandingWithAttackerFacing(item.Attacker, destroyedTargetPosition));
+                RollDominoEffects(landing?.DominoEffect);
                 ApplyDfaFall(item.Attacker);
             }
             return;
@@ -518,10 +523,11 @@ public class PhysicalAttackResolutionPhase : GamePhase
             target,
             CreateDfaAutoResolution(item, DfaOutcome.AutoFail));
 
-        ExecuteDfaLanding(
+        var landing = ExecuteDfaLanding(
             item.Attacker,
             item.DeclaredTargetPosition,
             DisplacementReason.DfaAutoFailLanding);
+        RollDominoEffects(landing?.DominoEffect);
     }
 
     private static PhysicalAttackResolutionData CreateDfaAutoResolution(
@@ -576,7 +582,10 @@ public class PhysicalAttackResolutionPhase : GamePhase
         }
 
         if (resolution.Dfa?.AttackerLegHitLocations is { } attackerLegs)
-            ApplyDamageConsequences(item.Attacker, attackerLegs);
+            ApplyDamageConsequences(
+                item.Attacker,
+                attackerLegs,
+                resolution.Dfa.AttackerDestroyedParts);
 
         return resolution;
     }
@@ -595,15 +604,12 @@ public class PhysicalAttackResolutionPhase : GamePhase
 
         if (displacement is null)
         {
-            ExecuteDfaLanding(item.Attacker, item.ApproachCoordinates);
+            var fallbackLanding = ExecuteDfaLanding(item.Attacker, item.ApproachCoordinates);
+            RollDominoEffects(fallbackLanding?.DominoEffect);
             return;
         }
 
-        if (displacement.DominoEffect is { HasDisplacements: true } domino)
-        {
-            foreach (var chainCommand in domino.Commands)
-                Execute(new DisplaceUnitAction(chainCommand with { GameOriginId = Game.Id }, publish: true));
-        }
+        ExecuteDominoCommands(displacement.DominoEffect);
 
         if (displacement.TargetDestination is { } targetDestination)
         {
@@ -619,10 +625,11 @@ public class PhysicalAttackResolutionPhase : GamePhase
             ? item.ApproachCoordinates
             : displacement.AttackerDestination;
 
-        ExecuteDfaLanding(
+        var landing = ExecuteDfaLanding(
             item.Attacker,
             landingDesired,
             DisplacementReason.DfaAttackerLanding);
+        RollDominoEffects(displacement.DominoEffect, landing?.DominoEffect);
     }
 
     /// <summary>
@@ -645,7 +652,13 @@ public class PhysicalAttackResolutionPhase : GamePhase
                 reason);
         }
 
-        ExecuteDfaLanding(attacker, targetPosition);
+        if (candidate.TriggersAutomaticFall && target is Mech targetMech)
+            ResolveAutomaticFall(targetMech, candidate.LevelsFallen);
+
+        var landing = ExecuteDfaLanding(
+            attacker,
+            LandingWithAttackerFacing(attacker, targetPosition));
+        RollDominoEffects(landing?.DominoEffect);
         ApplyDfaFall(attacker);
     }
 
@@ -653,13 +666,14 @@ public class PhysicalAttackResolutionPhase : GamePhase
     /// Moves the attacker to a landing hex through the displacement pipeline, resolving an
     /// occupied hex with the shared domino effect and the charge side-hex fallback.
     /// </summary>
-    private void ExecuteDfaLanding(
+    private DfaLandingResult? ExecuteDfaLanding(
         IUnit attacker,
         HexPosition desired,
         DisplacementReason reason = DisplacementReason.DfaMissLanding)
     {
-        if (Game.BattleMap is not { } map) return;
+        if (Game.BattleMap is not { } map) return null;
 
+        desired = ResolveLandingSurface(desired);
         var landing = _dfaDisplacementResolver.ResolveLanding(
             attacker,
             desired,
@@ -667,22 +681,75 @@ public class PhysicalAttackResolutionPhase : GamePhase
             AllUnits(),
             Game.Id);
 
-        if (landing is null) return;
+        if (landing is null) return null;
 
-        if (landing.DominoEffect is { HasDisplacements: true } domino)
-        {
-            foreach (var chainCommand in domino.Commands)
-                Execute(new DisplaceUnitAction(chainCommand with { GameOriginId = Game.Id }, publish: true));
-        }
+        ExecuteDominoCommands(landing.DominoEffect);
 
         if (landing.IsOverlapUnresolved)
+        {
             Game.Logger.LogWarning(
                 "DFA attacker {AttackerName} could not resolve the occupied landing hex {Hex}",
                 attacker.Name,
                 desired.Coordinates);
+            GroundAttackerInPlace(attacker, reason);
+            return landing;
+        }
 
         ExecuteDisplacement(attacker, landing.Destination, reason);
+        return landing;
     }
+
+    private void ExecuteDominoCommands(DominoEffectResult? domino)
+    {
+        if (domino is not { HasDisplacements: true }) return;
+
+        foreach (var chainCommand in domino.Commands)
+            Execute(new DisplaceUnitAction(chainCommand with { GameOriginId = Game.Id }, publish: true));
+    }
+
+    /// <summary>
+    /// A blocked landing leaves the attacker at its airborne approach position. Ground it there
+    /// when the hex is free, because the airborne level is only valid while the approach is
+    /// authoritative.
+    /// </summary>
+    private void GroundAttackerInPlace(IUnit attacker, DisplacementReason reason)
+    {
+        if (attacker.Position is not { AirborneLevel: not null } position) return;
+        var occupied = AllUnits().Any(unit =>
+            !ReferenceEquals(unit, attacker)
+            && unit is
+            {
+                IsDeployed: true,
+                IsDestroyed: false,
+                Position: not null,
+                IsAirborneDfaAttacker: false
+            }
+            && unit.Position.Coordinates == position.Coordinates);
+        if (occupied) return;
+
+        ExecuteDisplacement(attacker, position with { AirborneLevel = null }, reason);
+    }
+
+    private void RollDominoEffects(params DominoEffectResult?[] dominoes)
+    {
+        foreach (var domino in dominoes)
+        {
+            if (domino is not { HasDisplacements: true }) continue;
+            Execute(new DominoEffectRollAction(
+                domino.PsrCandidates, Game.FallProcessor, domino.Falls));
+        }
+    }
+
+    private static HexPosition LandingWithAttackerFacing(IUnit attacker, HexPosition landing) =>
+        attacker.Position is { } position
+            ? landing with { Facing = position.Facing }
+            : landing;
+
+    private HexPosition ResolveLandingSurface(HexPosition landing) =>
+        landing.Surface == HexSurface.Bridge
+        && Game.BattleMap?.GetHex(landing.Coordinates)?.HasTerrain(MakaMekTerrains.Bridge) != true
+            ? landing with { Surface = HexSurface.Ground }
+            : landing;
 
     /// <summary>
     /// The miss fall: two levels, every hit location rear, no initial piloting skill roll
@@ -1222,9 +1289,13 @@ public class PhysicalAttackResolutionPhase : GamePhase
                 accumulated.DestroyedParts.ToList(),
                 accumulated.RollContexts).ToList();
 
-            // A unit makes at most one fall, and makes no further roll once it falls.
-            if (fallCommands.Count != 0)
-                ApplyFallConsequences(mech, fallCommands[0]);
+            // A unit makes at most one fall, and makes no further roll once it falls. Apply the
+            // successful rolls before it so the actual fall command is not dropped.
+            foreach (var fallCommand in fallCommands)
+            {
+                ApplyFallConsequences(mech, fallCommand);
+                if (fallCommand.DamageData is not null) break;
+            }
         }
 
         _accumulatedDamage.Clear();
