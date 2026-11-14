@@ -214,6 +214,7 @@
   <data name="DfaOutcome_Miss" xml:space="preserve"><value>Miss</value></data>
   <data name="DfaOutcome_AutoFail" xml:space="preserve"><value>Auto-fail</value></data>
   <data name="DfaOutcome_AttackerDestroyedNoLanding" xml:space="preserve"><value>Attacker destroyed (no landing hex)</value></data>
+  <data name="Command_DfaResolution_Replacement" xml:space="preserve"><value>Knocked out a replacement for {0}</value></data>
   <data name="Command_DfaResolution_Outcome" xml:space="preserve"><value>Death From Above: {0}</value></data>
   <data name="Command_DfaResolution_AutoFail" xml:space="preserve"><value>{0}'s {1} Death From Above against {2} automatically fails</value></data>
   <data name="Command_DfaResolution_AttackerDestroyed" xml:space="preserve"><value>{0}'s {1} is destroyed: no legal landing hex remains after the Death From Above miss</value></data>
@@ -290,6 +291,7 @@
   <data name="Modifier_ChargeImpact" xml:space="preserve"><value>Charge Impact: +{0}</value></data>
   <data name="Modifier_RelativePiloting" xml:space="preserve"><value>Relative Piloting ({0} vs {1}): {2:+#;-#;0}</value></data>
   <data name="Modifier_ChargeReplacementTarget" xml:space="preserve"><value>Replacement Target: +{0}</value></data>
+  <data name="Modifier_DfaReplacementTarget" xml:space="preserve"><value>Replacement Target: +{0}</value></data>
   <data name="WeaponRestriction_NotAvailable" xml:space="preserve"><value>Weapon not available</value></data>
   <data name="WeaponRestriction_Underwater" xml:space="preserve"><value>Cannot fire underwater</value></data>
   <data name="WeaponRestriction_PartialCoverLegs" xml:space="preserve"><value>Cannot fire leg weapons while in partial cover</value></data>

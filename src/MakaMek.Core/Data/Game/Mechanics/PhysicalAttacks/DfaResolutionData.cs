@@ -16,10 +16,12 @@ namespace Sanet.MakaMek.Core.Data.Game.Mechanics.PhysicalAttacks;
 /// <param name="OriginalTargetId">The unit the DFA was declared against.</param>
 /// <param name="AttackerDestroyedParts">Parts of the attacker destroyed by its own leg damage.</param>
 /// <param name="AttackerUnitDestroyed">Whether the resolution destroyed the attacker.</param>
+/// <param name="IsReplacementTarget">Whether the resolved target replaced the originally declared one.</param>
 public record DfaResolutionData(
     DfaOutcome Outcome,
     AttackHitLocationsData? TargetHitLocations = null,
     AttackHitLocationsData? AttackerLegHitLocations = null,
     Guid OriginalTargetId = default,
     IReadOnlyList<PartLocation>? AttackerDestroyedParts = null,
-    bool AttackerUnitDestroyed = false);
+    bool AttackerUnitDestroyed = false,
+    bool IsReplacementTarget = false);

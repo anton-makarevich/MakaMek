@@ -1895,6 +1895,64 @@ public class PhysicalAttackResolutionPhaseTests : GamePhaseTestsBase
     }
 
     [Fact]
+    public void Enter_DfaWhenTheTargetMovedAway_ResolvesAgainstAReplacementTargetAtPlusOne()
+    {
+        SetMap();
+        SetUpDfa(_player1Mech, _player2Mech);
+        MoveTargetAway();
+        var replacement = CreateMech();
+        ((Player)Game.Players[1]).AddUnit(replacement);
+        replacement.Deploy(new HexPosition(TargetHex, HexDirection.Top), null);
+        MockDfaAttackResolver.ResolveDfa(Arg.Any<DfaAttackContext>())
+            .Returns(call =>
+            {
+                var context = call.Arg<DfaAttackContext>();
+                var hit = DfaHit(context.Target.Id);
+                return hit with
+                {
+                    Dfa = hit.Dfa! with
+                    {
+                        OriginalTargetId = context.OriginalTargetId,
+                        IsReplacementTarget = context.IsReplacementTarget
+                    }
+                };
+            });
+
+        _sut.Enter();
+
+        MockDfaAttackResolver.Received(1).ResolveDfa(Arg.Is<DfaAttackContext>(context =>
+            context.Target == replacement
+            && context.IsReplacementTarget
+            && context.OriginalTargetId == _player2Mech.Id));
+        var resolution = PublishedCommands().OfType<PhysicalAttackResolutionCommand>()
+            .ShouldHaveSingleItem();
+        resolution.TargetId.ShouldBe(replacement.Id);
+        resolution.ResolutionData.Dfa!.IsReplacementTarget.ShouldBeTrue();
+        resolution.ResolutionData.Dfa.OriginalTargetId.ShouldBe(_player2Mech.Id);
+        PublishedCommands().OfType<DisplaceUnitCommand>()
+            .ShouldContain(command => command.UnitId == replacement.Id
+                                      && command.DisplacementReason == DisplacementReason.DfaTarget);
+    }
+
+    [Fact]
+    public void Enter_DfaHit_WhenTheImpactDestroysTheAttacker_DoesNotMoveTheTargetOrLand()
+    {
+        SetMap();
+        SetUpDfa(_player1Mech, _player2Mech);
+        MockDfaAttackResolver.ResolveDfa(Arg.Any<DfaAttackContext>())
+            .Returns(DfaHitWithLethalAttackerDamage(_player2Mech.Id, _player1Mech));
+
+        _sut.Enter();
+
+        // Total Warfare p. 150: the target is pushed only when neither unit was destroyed.
+        _player1Mech.IsDestroyed.ShouldBeTrue();
+        _player2Mech.Position!.Coordinates.ShouldBe(TargetHex);
+        PublishedCommands().OfType<DisplaceUnitCommand>()
+            .ShouldNotContain(command => command.UnitId == _player2Mech.Id
+                                        || command.UnitId == _player1Mech.Id);
+    }
+
+    [Fact]
     public void Enter_DfaAgainstADestroyedTarget_LandsAndFallsIntoItsHex()
     {
         SetMap();
@@ -2025,12 +2083,13 @@ public class PhysicalAttackResolutionPhaseTests : GamePhaseTestsBase
 
         // The declared target hex is occupied and the domino's first link is blocked by a
         // three-level rise, but the side hexes are free. A DFA lands in the committed target hex
-        // and has no side-hex fallback, so the attacker has no legal landing.
+        // and has no side-hex fallback, so the attacker has no legal landing. The occupant is
+        // friendly, so it cannot become a replacement target.
         Game.BattleMap!.AddHex(new Hex(declaredTarget.GetNeighbour(HexDirection.Bottom), 3));
-        var blockerOwner = (Player)Game.Players[1];
+        var occupantOwner = (Player)Game.Players[0];
         var occupant = CreateMech();
         occupant.Deploy(new HexPosition(declaredTarget, HexDirection.Top), null);
-        blockerOwner.AddUnit(occupant);
+        occupantOwner.AddUnit(occupant);
 
         _sut.Enter();
 
@@ -2080,17 +2139,19 @@ public class PhysicalAttackResolutionPhaseTests : GamePhaseTestsBase
         MoveTargetAway();
 
         // The declared target hex is occupied, the domino's first link is blocked by a three-level
-        // rise, and both side hexes are occupied, so no legal landing remains.
+        // rise, and both side hexes are occupied, so no legal landing remains. The occupant is
+        // friendly, so it cannot become a replacement target.
         Game.BattleMap!.AddHex(new Hex(declaredTarget.GetNeighbour(HexDirection.Bottom), 3));
-        var blockerOwner = (Player)Game.Players[1];
+        var occupantOwner = (Player)Game.Players[0];
         var occupant = CreateMech();
         occupant.Deploy(new HexPosition(declaredTarget, HexDirection.Top), null);
-        blockerOwner.AddUnit(occupant);
+        occupantOwner.AddUnit(occupant);
+        var sideBlockerOwner = (Player)Game.Players[1];
         foreach (var side in new[] { HexDirection.Top.Rotate(1), HexDirection.Top.Rotate(-1) })
         {
             var blocker = CreateMech();
             blocker.Deploy(new HexPosition(declaredTarget.GetNeighbour(side), HexDirection.Top), null);
-            blockerOwner.AddUnit(blocker);
+            sideBlockerOwner.AddUnit(blocker);
         }
 
         _sut.Enter();
@@ -2314,6 +2375,20 @@ public class PhysicalAttackResolutionPhaseTests : GamePhaseTestsBase
             AttackerLimbs = [],
             TargetId = target.Id
         });
+    }
+
+    private static PhysicalAttackResolutionData DfaHitWithLethalAttackerDamage(Guid targetId, IUnit attacker)
+    {
+        var torso = attacker.Parts[PartLocation.CenterTorso];
+        var totalDamage = torso.CurrentArmor + torso.CurrentStructure;
+        var attackerDamage = new AttackHitLocationsData(
+            [new LocationHitData(
+                [new LocationDamageData(
+                    PartLocation.CenterTorso, torso.CurrentArmor, torso.CurrentStructure, true)],
+                [], [1], PartLocation.CenterTorso)],
+            totalDamage, [], 0);
+        var hit = DfaHit(targetId);
+        return hit with { Dfa = hit.Dfa! with { AttackerLegHitLocations = attackerDamage } };
     }
 
     private static PhysicalAttackResolutionData DfaHit(Guid targetId)

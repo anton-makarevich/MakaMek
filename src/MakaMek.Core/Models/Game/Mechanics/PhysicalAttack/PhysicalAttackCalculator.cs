@@ -177,15 +177,32 @@ public class PhysicalAttackCalculator : IPhysicalAttackCalculator
         GetChargeModifierBreakdown(attacker, target, map, isReplacementTarget).Total;
 
     /// <inheritdoc />
-    public PhysicalAttackBreakdown GetDfaModifierBreakdown(IUnit attacker, IUnit target, IBattleMap map)
+    public PhysicalAttackBreakdown GetDfaModifierBreakdown(
+        IUnit attacker,
+        IUnit target,
+        IBattleMap map,
+        bool isReplacementTarget = false)
     {
         var scenario = PhysicalAttackScenario.FromUnits(attacker, target, PhysicalAttackType.DFA);
-        return GetMovementAttackModifierBreakdown(scenario, map);
+        var breakdown = GetMovementAttackModifierBreakdown(scenario, map);
+        if (!isReplacementTarget) return breakdown;
+
+        return breakdown with
+        {
+            OtherModifiers =
+            [
+                .. breakdown.OtherModifiers,
+                new DfaReplacementTargetModifier
+                {
+                    Value = DfaReplacementTargetModifier.DefaultValue
+                }
+            ]
+        };
     }
 
     /// <inheritdoc />
-    public int GetDfaToHitNumber(IUnit attacker, IUnit target, IBattleMap map) =>
-        GetDfaModifierBreakdown(attacker, target, map).Total;
+    public int GetDfaToHitNumber(IUnit attacker, IUnit target, IBattleMap map, bool isReplacementTarget = false) =>
+        GetDfaModifierBreakdown(attacker, target, map, isReplacementTarget).Total;
 
     /// <summary>
     /// A push adds +2 for each damaged shoulder actuator across the attacker's arms. It is not a

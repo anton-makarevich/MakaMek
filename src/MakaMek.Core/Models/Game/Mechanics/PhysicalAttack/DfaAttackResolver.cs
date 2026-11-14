@@ -40,7 +40,11 @@ public class DfaAttackResolver(
         var toHitNumber = toHitCalculator.GetDfaToHitNumber(
             context.Attacker,
             context.Target,
-            context.Map);
+            context.Map,
+            context.IsReplacementTarget);
+        var originalTargetId = context.OriginalTargetId == Guid.Empty
+            ? context.Target.Id
+            : context.OriginalTargetId;
 
         var attackRoll = diceRoller.Roll2D6();
         var isHit = attackRoll.Sum(d => d.Result) >= toHitNumber;
@@ -59,7 +63,8 @@ public class DfaAttackResolver(
                 psrRequirements,
                 Dfa: new DfaResolutionData(
                     DfaOutcome.Miss,
-                    OriginalTargetId: context.Target.Id));
+                    OriginalTargetId: originalTargetId,
+                    IsReplacementTarget: context.IsReplacementTarget));
         }
 
         var attackDirection = context.Target.GetAttackDirectionFrom(context.StartCoordinates);
@@ -95,7 +100,8 @@ public class DfaAttackResolver(
                 DfaOutcome.Hit,
                 targetHitLocations,
                 attackerLegHitLocations,
-                context.Target.Id));
+                originalTargetId,
+                IsReplacementTarget: context.IsReplacementTarget));
     }
 
     /// <summary>

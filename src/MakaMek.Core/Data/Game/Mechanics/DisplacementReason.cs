@@ -25,7 +25,7 @@ public enum DisplacementReason
     /// <summary>A missed charge placed the charging unit in a side hex of its forward arc.</summary>
     ChargeMiss,
 
-    /// <summary>A successful Death From Above displaced its target one hex along the jump line.</summary>
+    /// <summary>A Death From Above displaced its target one hex along the jump line, on a hit or a miss.</summary>
     DfaTarget,
 
     /// <summary>The Death From Above attacker landed in the target's vacated hex.</summary>
@@ -38,9 +38,11 @@ public enum DisplacementReason
     DfaAutoFailLanding,
 
     /// <summary>
-    /// The unit occupying the Death From Above landing hex is knocked out by the landing itself. The
-    /// landing is the attack, so this is the first displacement the attack causes and not a domino
-    /// effect; the units displaced after it as the stacking limit cascades keep <see cref="DominoEffect"/>.
+    /// A unit is forced out of the hex where the Death From Above attacker grounds because the
+    /// landing exceeds the stacking limit there (Total Warfare p. 57, p. 152). This is the first
+    /// link of the domino chain, not the attack itself: the DFA displaces its target with
+    /// <see cref="DfaTarget"/>, and the target hex is normally vacated before the attacker lands.
+    /// The reason therefore labels a stacking displacement, not a direct effect of the attack.
     /// </summary>
     DfaLandingOccupant
 }

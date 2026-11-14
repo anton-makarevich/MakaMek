@@ -141,17 +141,26 @@ is added.
   between the approach hex and the target hex (a Level 0 hex may jump onto a Level 3 hill, Total
   Warfare p. 149). The landing completes the jump rather than displacing the attacker, and the
   landing position is grounded, so its level is the hex's level (p. 149-150).
+* **Target displaced before resolution:** an earlier attack of the phase can displace, destroy or
+  fell the declared target. If another enemy 'Mech stands in the committed target hex, the DFA
+  resolves against it as a **replacement target at +1 to hit**; with no valid unit there the attack
+  automatically fails and the attacker lands in the declared hex without damage or a fall (Total
+  Warfare, Initiative and Displacement). A unit performing a Death From Above is immune to physical
+  attacks until it lands (p. 149) and is never a replacement.
 * **Displacement reasons:** the first displacement an attack causes carries the attack's own reason —
-  the hit's push is `DfaTarget`, the attacker grounding is `DfaAttackerLanding`, `DfaMissLanding` or
-  `DfaAutoFailLanding`, and a unit knocked out of the landing hex is `DfaLandingOccupant`. A
-  **domino effect** begins only when a displacement enters an occupied hex and the stacking limit is
-  exceeded (Total Warfare p. 57, p. 152); only the links after the first are domino effects.
+  the target push is `DfaTarget` (on a hit or a miss), and the attacker grounding is
+  `DfaAttackerLanding`, `DfaMissLanding` or `DfaAutoFailLanding`. A **domino effect** begins only when
+  a displacement enters an occupied hex and the stacking limit is exceeded (Total Warfare p. 57,
+  p. 152); only the links after the first are domino effects.
 * **Landing-hex occupant:** with one 'Mech per hex, the hit pushes the target one hex away and the
-  miss moves it to an adjacent hex of its choice, so the landing hex is empty by the time the
-  attacker grounds (p. 150). It holds a unit only when the target was not displaced (an auto-fail):
-  the attacker lands anyway, and its impact knocks that occupant out one hex — the first displacement
-  the landing causes, not a domino. A domino starts only if the knocked-out unit enters an occupied
-  hex.
+  miss moves it to an adjacent hex, so the landing hex is empty by the time the attacker grounds
+  (p. 150). It still holds a unit when the declared target left and no enemy replacement exists (an
+  auto-fail, e.g. a friendly unit in the committed hex): the landing exceeds the stacking limit and
+  forces that occupant out as the **first domino link**, labelled `DfaLandingOccupant`. This is a
+  stacking displacement, not a direct effect of the attack; the links after it are `DominoEffect`.
+* **Attacker destroyed on impact:** the target is pushed only when neither unit was destroyed by the
+  attack (p. 150). An attacker destroyed by its own leg damage does not land and does not move the
+  target; a destroyed unit is removed rather than grounding in the target hex.
 * **Serialization / reconstruction:** `Unit.ToData` exports the airborne position through the
   optional `HexPositionData.AirborneLevel`; the declaration itself is not exported. `MechFactory`
   and `CloneUnit` do not restore the position, so a reconstructed unit is undeployed and never

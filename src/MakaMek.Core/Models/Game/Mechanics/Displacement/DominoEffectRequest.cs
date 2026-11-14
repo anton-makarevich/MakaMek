@@ -29,9 +29,9 @@ public sealed record DominoEffectRequest
 
     /// <summary>
     /// The reason for the first displacement this request calculates — the unit forced out of
-    /// <see cref="Destination"/> — when the action itself causes it directly, as a Death From Above
-    /// landing knocks the occupant out. Every later link keeps <see cref="Reason"/>. When omitted,
-    /// the first link is a domino link too and uses <see cref="Reason"/>.
+    /// <see cref="Destination"/> — when it differs from <see cref="Reason"/>. Every later link keeps
+    /// <see cref="Reason"/>. When omitted, the first link is a domino link too and uses
+    /// <see cref="Reason"/>.
     /// </summary>
     public DisplacementReason? FirstLinkDisplacementReason { get; init; }
 

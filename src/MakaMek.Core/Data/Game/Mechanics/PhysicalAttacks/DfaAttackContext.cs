@@ -27,4 +27,14 @@ public record DfaAttackContext
 
     /// <summary>The hex the airborne attacker waits in before the attack resolves.</summary>
     public required HexPosition ApproachCoordinates { get; init; }
+
+    /// <summary>
+    /// Whether <see cref="Target"/> replaced the originally declared one because the declared target
+    /// left the hex before the attack resolved. A replacement target is attacked at +1 to hit
+    /// (Total Warfare, Initiative and Displacement).
+    /// </summary>
+    public bool IsReplacementTarget { get; init; }
+
+    /// <summary>The unit the DFA was declared against, even when <see cref="Target"/> replaced it.</summary>
+    public Guid OriginalTargetId { get; init; }
 }

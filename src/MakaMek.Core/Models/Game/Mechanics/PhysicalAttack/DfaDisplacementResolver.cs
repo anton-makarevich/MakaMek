@@ -51,8 +51,9 @@ public record DfaMissDisplacementCandidate(
 /// </summary>
 /// <param name="Destination">The final landing position.</param>
 /// <param name="DominoEffect">
-/// The chain that vacates the landing hex, if any. Its first link is the landing knocking the occupant
-/// out — a direct effect of the attack, not a domino — and the links after it, if any, are domino effects.
+/// The chain that vacates the landing hex, if any. Its first link is the occupant forced out
+/// because the landing exceeds the stacking limit there (a domino link, not a direct effect of
+/// the attack); the links after it are the rest of the chain.
 /// </param>
 /// <param name="IsOverlapUnresolved">
 /// True when the landing hex is occupied and the chain could not vacate it.
@@ -283,10 +284,10 @@ public class DfaDisplacementResolver(
     /// <para>
     /// Only an occupant of the hex has to move: the hit pushes the target away and the miss moves it
     /// to an adjacent hex, so the hex is normally empty by the time the attacker grounds. When a unit
-    /// is still there, the landing knocks it out one hex as the first displacement of the attack — a
-    /// direct effect, not a domino — and a domino starts only if that hex is occupied too. A DFA has
-    /// no side-hex fallback (that is the charge miss rule), so a blocked chain leaves the overlap
-    /// unresolved for the caller to treat as no legal landing (Total Warfare, p. 150).
+    /// is still there, the landing exceeds the stacking limit and forces that unit out as the first
+    /// domino link (Total Warfare p. 57, p. 152). A DFA has no side-hex fallback (that is the charge
+    /// miss rule), so a blocked chain leaves the overlap unresolved for the caller to treat as no
+    /// legal landing (Total Warfare, p. 150).
     /// </para>
     /// </summary>
     public DfaLandingResult? ResolveLanding(
@@ -323,8 +324,8 @@ public class DfaDisplacementResolver(
                 ApplyEntryElevationRule = true,
                 EnteringEntryIsGuaranteed = true,
                 DestinationSurface = desired.Surface,
-                // The landing is the attack, so the unit it knocks out of the hex is the first
-                // displacement the attack causes; a domino only starts from the next link.
+                // The occupant is forced out because the landing exceeds the stacking limit; it is
+                // the first domino link, not a direct effect of the attack.
                 FirstLinkDisplacementReason = DisplacementReason.DfaLandingOccupant
             },
             map,

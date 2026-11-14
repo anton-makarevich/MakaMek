@@ -541,6 +541,22 @@ public class PhysicalAttackResolutionCommandTests
         result.ShouldContain("Death From Above: Miss");
     }
 
+    [Fact]
+    public void Render_DfaReplacement_NamesTheOriginalTarget()
+    {
+        var sut = CreateDfaCommand(
+            new DfaResolutionData(
+                DfaOutcome.Miss,
+                OriginalTargetId: _target.Id,
+                IsReplacementTarget: true),
+            new AttackResolutionData(
+                7, [new DiceResult(2), new DiceResult(2)], false, HitDirection.Front, 0));
+
+        var result = sut.Render(_localizationService, _game);
+
+        result.ShouldContain($"Knocked out a replacement for {_target.Model}");
+    }
+
     private PhysicalAttackResolutionCommand CreateDfaCommand(
         DfaResolutionData dfa,
         AttackResolutionData resolution) => new()

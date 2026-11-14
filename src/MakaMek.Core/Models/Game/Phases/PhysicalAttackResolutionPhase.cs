@@ -383,49 +383,60 @@ public class PhysicalAttackResolutionPhase : GamePhase
     }
 
     /// <summary>
-    /// Resolves a Death From Above: the auto-fail checks, the no-roll miss paths, the to-hit roll
-    /// and then either the hit consequences or the miss's automatic target displacement.
+    /// Resolves a Death From Above: the auto-fail checks, the target selection, the no-roll miss
+    /// paths, the to-hit roll and then either the hit consequences or the miss's automatic target
+    /// displacement.
     /// </summary>
     private void ResolveDfa(DfaQueueItem item)
     {
         if (Game.BattleMap is not { } map) return;
         if (item.Attacker.IsDestroyed) return;
 
-        var target = AllUnits().FirstOrDefault(u => u.Id == item.DeclaredTargetId);
-
-        if (IsDfaAutoFail(item, target))
+        var declaredTarget = AllUnits().FirstOrDefault(u => u.Id == item.DeclaredTargetId);
+        if (!IsAttackerAtApproach(item))
         {
-            ResolveDfaAutoFail(item, target);
+            ResolveDfaAutoFail(item, declaredTarget);
             return;
         }
 
-        // The null-forgiving target is safe after IsDfaAutoFail returned false.
-        var presentTarget = target!;
+        // An earlier attack of the phase can displace, destroy or fell the declared target. Another
+        // enemy Mech standing in the committed hex then becomes the replacement target and is
+        // attacked at +1; with no valid unit there the attack automatically fails (Total Warfare,
+        // Initiative and Displacement).
+        var isReplacement = !IsInDeclaredTargetHex(declaredTarget, item.DeclaredTargetPosition);
+        var target = isReplacement ? FindDfaReplacementTarget(item) : declaredTarget;
+        if (target is null)
+        {
+            ResolveDfaAutoFail(item, declaredTarget);
+            return;
+        }
 
         // A target destroyed in place does not move and does not resolve a displacement; the
         // attacker falls into its hex (Total Warfare, p. 150). A prone, shutdown or unconscious
         // attacker also resolves as a miss without a to-hit roll; a fall does not cancel the
         // pending DFA (docs/rules/physical-attacks.md section 3.1).
-        if (presentTarget.IsDestroyed || IsDfaAutoMiss(item.Attacker))
+        if (target.IsDestroyed || IsDfaAutoMiss(item.Attacker))
         {
-            ResolveDfaMiss(item, presentTarget, CreateDfaAutoResolution(item, DfaOutcome.Miss));
+            ResolveDfaMiss(item, target, CreateDfaAutoResolution(item, DfaOutcome.Miss, isReplacement));
             return;
         }
 
         var resolution = _dfaAttackResolver.ResolveDfa(new DfaAttackContext
         {
             Attacker = item.Attacker,
-            Target = presentTarget,
+            Target = target,
             Map = map,
             StartCoordinates = item.StartCoordinates,
-            ApproachCoordinates = item.ApproachCoordinates
+            ApproachCoordinates = item.ApproachCoordinates,
+            IsReplacementTarget = isReplacement,
+            OriginalTargetId = item.DeclaredTargetId
         });
 
         if (resolution.AttackResolution.IsHit)
         {
             var displacement = _dfaDisplacementResolver.ResolveHit(
                 item.Attacker,
-                presentTarget,
+                target,
                 item.StartCoordinates,
                 map,
                 AllUnits(),
@@ -435,32 +446,49 @@ public class PhysicalAttackResolutionPhase : GamePhase
             // (Total Warfare, p. 150). A target already destroyed before the impact does not need
             // this and does not move.
             var destroyTarget = displacement is { TargetDestination: null }
-                                && !presentTarget.IsDestroyed;
+                                && !target.IsDestroyed;
             _ = PublishDfaResolution(
                 item,
-                presentTarget,
+                target,
                 resolution,
                 destroyTarget);
-            ApplyDfaHitDisplacement(item, presentTarget, displacement);
+            ApplyDfaHitDisplacement(item, target, displacement);
             ApplyDfaWaterEntryModifier(item.Attacker, map);
         }
         else
         {
             // A miss is published by ResolveDfaMiss once the zero-candidate outcome is known.
-            ResolveDfaMiss(item, presentTarget, resolution);
+            ResolveDfaMiss(item, target, resolution);
         }
     }
 
-    private static bool IsDfaAutoFail(DfaQueueItem item, IUnit? target)
-    {
-        var attackerAtApproach = item.Attacker.Position is { } attackerPosition
-                                 && attackerPosition.Coordinates == item.ApproachCoordinates.Coordinates;
-        var targetInPlace = target?.Position is { } targetPosition
-                            && targetPosition.Coordinates == item.DeclaredTargetPosition.Coordinates
-                            && targetPosition.Surface == item.DeclaredTargetPosition.Surface;
+    private static bool IsAttackerAtApproach(DfaQueueItem item) =>
+        item.Attacker.Position is { } position
+        && position.Coordinates == item.ApproachCoordinates.Coordinates;
 
-        return !attackerAtApproach || target is null || !targetInPlace;
-    }
+    private static bool IsInDeclaredTargetHex(IUnit? target, HexPosition declaredPosition) =>
+        target?.Position is { } position
+        && position.Coordinates == declaredPosition.Coordinates
+        && position.Surface == declaredPosition.Surface;
+
+    /// <summary>
+    /// The enemy Mech that becomes the attack's target when the declared one left the committed
+    /// hex before the attack resolved (Total Warfare, Initiative and Displacement). A unit
+    /// performing a Death From Above is immune to physical attacks until it lands (p. 149), so it
+    /// cannot be a replacement.
+    /// </summary>
+    private IUnit? FindDfaReplacementTarget(DfaQueueItem item) =>
+        AllUnits().FirstOrDefault(unit =>
+            unit.Id != item.DeclaredTargetId
+            && !ReferenceEquals(unit, item.Attacker)
+            && unit is Mech { IsDestroyed: false, Position: not null }
+            && !unit.DeclaredPhysicalAttack.IsDfa()
+            && unit.Position?.Coordinates == item.DeclaredTargetPosition.Coordinates
+            && unit.Position.Surface == item.DeclaredTargetPosition.Surface
+            && IsEnemy(unit, item.Attacker));
+
+    private static bool IsEnemy(IUnit unit, IUnit attacker) =>
+        attacker.Owner is null || unit.Owner is null || unit.Owner != attacker.Owner;
 
     private static bool IsDfaAutoMiss(IUnit attacker) =>
         attacker.IsShutdown
@@ -562,14 +590,18 @@ public class PhysicalAttackResolutionPhase : GamePhase
 
     private static PhysicalAttackResolutionData CreateDfaAutoResolution(
         DfaQueueItem item,
-        DfaOutcome outcome) =>
+        DfaOutcome outcome,
+        bool isReplacementTarget = false) =>
         new(
             PhysicalAttackType.DFA,
             null,
             0,
             new AttackResolutionData(0, [], false, HitDirection.Front, 0),
             [],
-            Dfa: new DfaResolutionData(outcome, OriginalTargetId: item.DeclaredTargetId));
+            Dfa: new DfaResolutionData(
+                outcome,
+                OriginalTargetId: item.DeclaredTargetId,
+                IsReplacementTarget: isReplacementTarget));
 
     /// <summary>
     /// Applies the DFA's damage, destruction metadata and piloting skill rolls, publishing the
@@ -634,9 +666,12 @@ public class PhysicalAttackResolutionPhase : GamePhase
         if (displacement is null) return;
 
         // A target destroyed by the impact does not move, so the displacement plan prepared for it
-        // is discarded: its domino must not move other units or roll their PSRs
-        // (Total Warfare, p. 150).
-        var targetMoves = !target.IsDestroyed && displacement.TargetDestination is not null;
+        // is discarded: its domino must not move other units or roll their PSRs. The target is also
+        // not pushed when the impact destroyed the attacker (Total Warfare, p. 150).
+        var attackerDestroyed = item.Attacker.IsDestroyed;
+        var targetMoves = !target.IsDestroyed
+                          && !attackerDestroyed
+                          && displacement.TargetDestination is not null;
         if (targetMoves)
         {
             ExecuteDominoCommands(displacement.DominoEffect);
@@ -648,6 +683,9 @@ public class PhysicalAttackResolutionPhase : GamePhase
             if (displacement.TriggersAutomaticFall && target is Mech targetMech)
                 ResolveAutomaticFall(targetMech, displacement.LevelsFallen);
         }
+
+        // A destroyed attacker is removed from the board instead of grounding in the target hex.
+        if (attackerDestroyed) return;
 
         var landing = ExecuteDfaLanding(
             item.Attacker,

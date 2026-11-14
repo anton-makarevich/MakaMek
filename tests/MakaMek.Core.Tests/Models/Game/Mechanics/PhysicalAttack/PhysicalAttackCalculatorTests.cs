@@ -640,6 +640,26 @@ public class PhysicalAttackCalculatorTests
     }
 
     [Fact]
+    public void GetDfaModifierBreakdown_AddsOneForAReplacementTarget()
+    {
+        // Arrange
+        var (attacker, target) = CreateUnits(
+            new HexPosition(2, 2, HexDirection.Bottom),
+            new HexPosition(2, 3, HexDirection.Bottom));
+        var map = CreateMap();
+
+        // Act
+        var original = _sut.GetDfaToHitNumber(attacker, target, map, isReplacementTarget: false);
+        var replacement = _sut.GetDfaToHitNumber(attacker, target, map, isReplacementTarget: true);
+        var result = _sut.GetDfaModifierBreakdown(attacker, target, map, isReplacementTarget: true);
+
+        // Assert
+        replacement.ShouldBe(original + 1);
+        result.OtherModifiers.OfType<DfaReplacementTargetModifier>().ShouldHaveSingleItem()
+            .Value.ShouldBe(1);
+    }
+
+    [Fact]
     public void GetMovementAttackModifierBreakdown_ForDfa_AddsRelativePiloting()
     {
         // Arrange

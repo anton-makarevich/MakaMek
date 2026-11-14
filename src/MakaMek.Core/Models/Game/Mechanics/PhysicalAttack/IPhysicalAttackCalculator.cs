@@ -89,11 +89,16 @@ public interface IPhysicalAttackCalculator
     /// <param name="attacker">The jumping unit.</param>
     /// <param name="target">The unit in the target hex.</param>
     /// <param name="map">The battle map.</param>
-    PhysicalAttackBreakdown GetDfaModifierBreakdown(IUnit attacker, IUnit target, IBattleMap map);
+    /// <param name="isReplacementTarget">Whether the target replaced the originally declared one.</param>
+    PhysicalAttackBreakdown GetDfaModifierBreakdown(
+        IUnit attacker,
+        IUnit target,
+        IBattleMap map,
+        bool isReplacementTarget = false);
 
     /// <summary>
     /// Gets the total Death From Above to-hit number from the current unit state.
     /// Pure preview: mutates no unit, map or game state.
     /// </summary>
-    int GetDfaToHitNumber(IUnit attacker, IUnit target, IBattleMap map);
+    int GetDfaToHitNumber(IUnit attacker, IUnit target, IBattleMap map, bool isReplacementTarget = false);
 }

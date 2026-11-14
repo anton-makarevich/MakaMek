@@ -59,6 +59,9 @@ public record struct PhysicalAttackResolutionCommand : IGameCommand
         if (ResolutionData.Dfa is { } dfa)
             AppendDfaOutcome(stringBuilder, localizationService, dfa);
 
+        if (ResolutionData.Dfa is { IsReplacementTarget: true } dfaReplacement)
+            AppendDfaReplacement(stringBuilder, localizationService, game, dfaReplacement);
+
         if (ResolutionData.Charge is { } charge)
             AppendChargeOutcome(stringBuilder, localizationService, game, charge);
 
@@ -159,6 +162,20 @@ public record struct PhysicalAttackResolutionCommand : IGameCommand
         stringBuilder.AppendFormat(
             localizationService.GetString("Command_ChargeResolution_Replacement"),
             originalTarget?.Model ?? charge.OriginalTargetId.ToString()).AppendLine();
+    }
+
+    private static void AppendDfaReplacement(
+        StringBuilder stringBuilder,
+        ILocalizationService localizationService,
+        IGame game,
+        DfaResolutionData dfa)
+    {
+        var originalTarget = game.Players
+            .SelectMany(p => p.Units)
+            .FirstOrDefault(u => u.Id == dfa.OriginalTargetId);
+        stringBuilder.AppendFormat(
+            localizationService.GetString("Command_DfaResolution_Replacement"),
+            originalTarget?.Model ?? dfa.OriginalTargetId.ToString()).AppendLine();
     }
 
     /// <summary>
