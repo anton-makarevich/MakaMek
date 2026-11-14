@@ -183,23 +183,44 @@ public class GameManager : IGameManager
         OnlineError = null;
 
         // Lock the currently active relay room before resetting state
-        var lockSucceeded = await LockOnlineRoom(cancellationToken);
-        if (!lockSucceeded)
-        {
-            OnlineError = new RelayClientError(
-                RelayClientErrorCode.Unknown,
-                "Failed to lock the currently active relay room.");
-            return;
-        }
+        if (!await TryLockActiveRelayRoom(cancellationToken)) return;
 
         RoomCode = null;
 
         // Reset before initializing new lobby (also clears any stale relay publisher)
         await ResetForNewGame();
 
+        var relayOptions = await GetRelayOptionsForHostingAsync();
+        if (relayOptions is null) return;
+
+        // The server game must exist before the relay room is created so the host
+        // game id can be reported to the Hub and shared with joiners.
+        CreateServerGameAndSetupLogging();
+
+        await HostRelayRoomAsync(_serverGame!.Id, relayOptions, cancellationToken);
+    }
+
+    /// <summary>
+    /// Locks the room of a previous hosting session so it stops accepting joins. A failed lock
+    /// keeps the publisher and session state intact so a later cleanup can retry it.
+    /// </summary>
+    private async Task<bool> TryLockActiveRelayRoom(CancellationToken cancellationToken)
+    {
+        if (await LockOnlineRoom(cancellationToken)) return true;
+
+        OnlineError = new RelayClientError(
+            RelayClientErrorCode.Unknown,
+            "Failed to lock the currently active relay room.");
+        return false;
+    }
+
+    /// <summary>
+    /// Reads the hub configuration pinned for the whole room lifecycle. Create, Ready, Lock and
+    /// the publisher all target the hub that was selected when hosting began.
+    /// </summary>
+    private async Task<RelayClientOptions?> GetRelayOptionsForHostingAsync()
+    {
         // Wait for persisted hub configuration before reading the active values below.
-        // This configuration is pinned for the whole room lifecycle below so Create, Ready,
-        // Lock and the publisher all target the hub that was selected when hosting began.
         var relayOptions = _relayHubConfigurationProvider is null
             ? null
             : await _relayHubConfigurationProvider.GetActiveOptions();
@@ -213,15 +234,22 @@ public class GameManager : IGameManager
             OnlineError = new RelayClientError(
                 RelayClientErrorCode.ConfigurationError,
                 "Relay hosting is not configured on this platform.");
-            return;
+            return null;
         }
 
-        // The server game must exist before the relay room is created so the host
-        // game id can be reported to the Hub and shared with joiners.
-        CreateServerGameAndSetupLogging();
-        var gameId = _serverGame!.Id;
+        return relayOptions;
+    }
 
-        var createResult = await _relayRoomClient.Create(
+    /// <summary>
+    /// Creates the relay room and connects the host publisher to it. The room is disposed when
+    /// the relay does not report the identity required to share it with joiners.
+    /// </summary>
+    private async Task HostRelayRoomAsync(
+        Guid gameId,
+        RelayClientOptions relayOptions,
+        CancellationToken cancellationToken)
+    {
+        var createResult = await _relayRoomClient!.Create(
             RelayGameInfoFactory.Create(gameId),
             cancellationToken,
             relayOptions);
@@ -246,67 +274,61 @@ public class GameManager : IGameManager
             return;
         }
 
+        if (!await ConnectRelayPublisherAsync(
+                createResult.RoomCode,
+                createResult.SessionToken,
+                relayOptions,
+                cancellationToken))
+            return;
+
+        RoomCode = createResult.RoomCode;
+        _onlineSessionToken = createResult.SessionToken;
+        _onlineRelayOptions = relayOptions;
+        _logger.LogInformation(
+            "Hosted relay room {RoomCode} for game {GameId} {GameVersion}; relay publisher connected",
+            createResult.RoomCode,
+            createResult.GameInfo.HostId,
+            createResult.GameInfo.Version);
+    }
+
+    /// <summary>
+    /// Connects the host publisher to the created room and confirms the room as ready, cleaning up
+    /// the partial session on failure or cancellation so nothing is left orphaned. Returns false
+    /// when the session was cleaned up instead of completed.
+    /// </summary>
+    private async Task<bool> ConnectRelayPublisherAsync(
+        string roomCode,
+        string sessionToken,
+        RelayClientOptions relayOptions,
+        CancellationToken cancellationToken)
+    {
         ITransportPublisher? publisher = null;
         try
         {
-            var baseUrl = relayOptions.BaseUrl;
-            var hubUrl = RelayHubDefaults.BuildHubUrl(baseUrl);
-
-            var ticketResult = await _relayRoomClient.GetRelayTicket(
-                createResult.RoomCode,
-                createResult.SessionToken,
-                cancellationToken,
-                relayOptions);
-            if (!ticketResult.Success || string.IsNullOrWhiteSpace(ticketResult.Ticket))
+            var ticket = await GetRelayTicketAsync(roomCode, sessionToken, relayOptions, cancellationToken);
+            if (ticket is null)
             {
-                OnlineError = ticketResult.Error
-                    ?? new RelayClientError(
-                        RelayClientErrorCode.Unknown,
-                        "The relay did not issue a relay ticket for the host session.");
-                await LockRelayRoomAndCleanup(createResult.RoomCode, createResult.SessionToken, publisher, relayOptions);
-                return;
+                await LockRelayRoomAndCleanup(roomCode, sessionToken, publisher, relayOptions);
+                return false;
             }
 
-            publisher = await _relayPublisherFactory.Create(
-                new RelayPublisherOptions
-                {
-                    HubUrl = hubUrl,
-                    RoomCode = createResult.RoomCode,
-                    RelayTicket = ticketResult.Ticket
-                },
+            publisher = await _relayPublisherFactory!.Create(
+                relayOptions.CreatePublisherOptions(roomCode, ticket),
                 cancellationToken);
 
             _commandPublisher.Adapter.AddPublisher(publisher);
             _onlineRelayPublisher = publisher;
             _forwarder?.Start(_commandPublisher.Adapter);
 
-            var readyResult = await _relayRoomClient.Ready(
-                createResult.RoomCode,
-                createResult.SessionToken,
-                cancellationToken,
-                relayOptions);
-            if (!readyResult.Success)
-            {
-                OnlineError = readyResult.Error
-                    ?? new RelayClientError(
-                        RelayClientErrorCode.Unknown,
-                        "The relay did not confirm the room as ready.");
-                await LockRelayRoomAndCleanup(createResult.RoomCode, createResult.SessionToken, publisher, relayOptions);
-                return;
-            }
+            if (await MarkRelayRoomReadyAsync(roomCode, sessionToken, relayOptions, cancellationToken))
+                return true;
 
-            RoomCode = createResult.RoomCode;
-            _onlineSessionToken = createResult.SessionToken;
-            _onlineRelayOptions = relayOptions;
-            _logger.LogInformation(
-                "Hosted relay room {RoomCode} for game {GameId} {GameVersion}; relay publisher connected",
-                createResult.RoomCode,
-                createResult.GameInfo.HostId,
-                createResult.GameInfo.Version);
+            await LockRelayRoomAndCleanup(roomCode, sessionToken, publisher, relayOptions);
+            return false;
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
-            await LockRelayRoomAndCleanup(createResult.RoomCode, createResult.SessionToken, publisher, relayOptions);
+            await LockRelayRoomAndCleanup(roomCode, sessionToken, publisher, relayOptions);
             throw;
         }
         catch (Exception)
@@ -314,8 +336,49 @@ public class GameManager : IGameManager
             OnlineError = new RelayClientError(
                 RelayClientErrorCode.Unknown,
                 "Failed to connect the host to the relay.");
-            await LockRelayRoomAndCleanup(createResult.RoomCode, createResult.SessionToken, publisher, relayOptions);
+            await LockRelayRoomAndCleanup(roomCode, sessionToken, publisher, relayOptions);
+            return false;
         }
+    }
+
+    private async Task<string?> GetRelayTicketAsync(
+        string roomCode,
+        string sessionToken,
+        RelayClientOptions relayOptions,
+        CancellationToken cancellationToken)
+    {
+        var ticketResult = await _relayRoomClient!.GetRelayTicket(
+            roomCode,
+            sessionToken,
+            cancellationToken,
+            relayOptions);
+        if (ticketResult.Success && !string.IsNullOrWhiteSpace(ticketResult.Ticket)) return ticketResult.Ticket;
+
+        OnlineError = ticketResult.Error
+            ?? new RelayClientError(
+                RelayClientErrorCode.Unknown,
+                "The relay did not issue a relay ticket for the host session.");
+        return null;
+    }
+
+    private async Task<bool> MarkRelayRoomReadyAsync(
+        string roomCode,
+        string sessionToken,
+        RelayClientOptions relayOptions,
+        CancellationToken cancellationToken)
+    {
+        var readyResult = await _relayRoomClient!.Ready(
+            roomCode,
+            sessionToken,
+            cancellationToken,
+            relayOptions);
+        if (readyResult.Success) return true;
+
+        OnlineError = readyResult.Error
+            ?? new RelayClientError(
+                RelayClientErrorCode.Unknown,
+                "The relay did not confirm the room as ready.");
+        return false;
     }
 
     private void CreateServerGameAndSetupLogging()
