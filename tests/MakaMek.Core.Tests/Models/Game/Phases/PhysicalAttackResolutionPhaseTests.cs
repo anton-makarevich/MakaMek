@@ -2089,6 +2089,53 @@ public class PhysicalAttackResolutionPhaseTests : GamePhaseTestsBase
     }
 
     [Fact]
+    public void Enter_DfaHit_WhenTheTargetCannotBeDisplacedAndTheImpactDestroysTheAttacker_KeepsTheTarget()
+    {
+        SetMap();
+        SetUpDfa(_player1Mech, _player2Mech);
+        foreach (var direction in HexDirectionExtensions.AllDirections)
+            Game.BattleMap!.AddHex(new Hex(TargetHex.GetNeighbour(direction), 3));
+        MockDfaAttackResolver.ResolveDfa(Arg.Any<DfaAttackContext>())
+            .Returns(DfaHitWithLethalAttackerDamage(_player2Mech.Id, _player1Mech));
+
+        _sut.Enter();
+
+        // The blocked destination only destroys the target to vacate the hex for the attacker. An
+        // attacker destroyed by the impact never lands, so the target stays where it is
+        // (Total Warfare, p. 150: the target is pushed only when neither unit was destroyed).
+        _player1Mech.IsDestroyed.ShouldBeTrue();
+        _player2Mech.IsDestroyed.ShouldBeFalse();
+        _player2Mech.Position!.Coordinates.ShouldBe(TargetHex);
+        var resolution = PublishedCommands().OfType<PhysicalAttackResolutionCommand>().Single();
+        resolution.ResolutionData.AttackResolution.UnitDestroyed.ShouldBeFalse();
+        PublishedCommands().OfType<DfaLandingCommand>().ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void Enter_DfaWhenTheTargetMovedAway_UsesALandedDfaPerformerAsTheReplacementTarget()
+    {
+        SetMap();
+        SetUpDfa(_player1Mech, _player2Mech);
+        MoveTargetAway();
+
+        // A DFA performer that already landed is an ordinary grounded occupant: its immunity ends
+        // with the landing (Total Warfare, p. 149), so it can be the replacement target.
+        var landedDfaPerformer = CreateMech();
+        ((Player)Game.Players[1]).AddUnit(landedDfaPerformer);
+        landedDfaPerformer.Deploy(new HexPosition(TargetHex, HexDirection.Top), null);
+        Declare(landedDfaPerformer, _player1Mech, PhysicalAttackType.DFA);
+        MockDfaAttackResolver.ResolveDfa(Arg.Any<DfaAttackContext>())
+            .Returns(DfaHit(landedDfaPerformer.Id));
+
+        _sut.Enter();
+
+        MockDfaAttackResolver.Received(1).ResolveDfa(Arg.Is<DfaAttackContext>(context =>
+            context.Target == landedDfaPerformer
+            && context.IsReplacementTarget
+            && context.OriginalTargetId == _player2Mech.Id));
+    }
+
+    [Fact]
     public void Enter_DfaHit_WithAnOccupiedTargetDestination_RollsTheDominoPsr()
     {
         SetMap();

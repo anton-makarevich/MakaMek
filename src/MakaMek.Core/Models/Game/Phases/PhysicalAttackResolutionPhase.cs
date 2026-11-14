@@ -474,14 +474,15 @@ public class PhysicalAttackResolutionPhase : GamePhase
     /// The enemy Mech that becomes the attack's target when the declared one left the committed
     /// hex before the attack resolved (Total Warfare, Initiative and Displacement). A unit
     /// performing a Death From Above is immune to physical attacks until it lands (p. 149), so it
-    /// cannot be a replacement.
+    /// cannot be a replacement while it is airborne; once it has landed its immunity has ended and
+    /// it is an ordinary occupant of the hex.
     /// </summary>
     private IUnit? FindDfaReplacementTarget(DfaQueueItem item) =>
         AllUnits().FirstOrDefault(unit =>
             unit.Id != item.DeclaredTargetId
             && !ReferenceEquals(unit, item.Attacker)
             && unit is Mech { IsDestroyed: false, Position: not null }
-            && !unit.DeclaredPhysicalAttack.IsDfa()
+            && !unit.IsAirborneDfaAttacker
             && unit.Position?.Coordinates == item.DeclaredTargetPosition.Coordinates
             && unit.Position.Surface == item.DeclaredTargetPosition.Surface
             && IsEnemy(unit, item.Attacker));
@@ -618,9 +619,12 @@ public class PhysicalAttackResolutionPhase : GamePhase
         // The server transport does not loop commands back to the server game.
         Game.OnPhysicalAttackResolution(command);
 
-        // Damage is applied before displacement. If the push itself destroys the target, mark it
-        // now so the published metadata and every client agree that the target is gone.
-        if (destroyTarget && target is { IsDestroyed: false })
+        // Damage is applied before displacement. If the blocked destination destroys the target,
+        // mark it now so the published metadata and every client agree that the target is gone.
+        // The target is only destroyed to vacate the hex for the attacker: when the impact
+        // destroyed the attacker it never lands, so the target keeps its post-impact state
+        // (Total Warfare, p. 150).
+        if (destroyTarget && target is { IsDestroyed: false } && !item.Attacker.IsDestroyed)
             target.MarkDestroyed();
 
         resolution = AttachDestructionMetadata(

@@ -554,7 +554,7 @@ public class PhysicalAttackResolutionCommandTests
 
         var result = sut.Render(_localizationService, _game);
 
-        result.ShouldContain($"Knocked out a replacement for {_target.Model}");
+        result.ShouldContain($"The declared target {_target.Model} was replaced");
     }
 
     private PhysicalAttackResolutionCommand CreateDfaCommand(

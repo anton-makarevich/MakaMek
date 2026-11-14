@@ -133,7 +133,8 @@ is added.
   two-level rear fall, and an auto-fail lands it in the declared target hex (the jump destination)
   without damage or a fall.
   The attacker always lands in the target hex: if a successful DFA's target cannot be displaced,
-  the target is destroyed; if a missed DFA's target cannot be displaced, the attacker is destroyed.
+  the target is destroyed so the hex frees up — unless the impact destroyed the attacker first,
+  which then never lands; if a missed DFA's target cannot be displaced, the attacker is destroyed.
   The declaration itself remains turn-scoped and is cleared by `ResetTurnState` at the end of the
   turn.
 * **Landing entry:** the landing hex is not a forced entry. The jump into the target hex was
@@ -147,7 +148,8 @@ is added.
   resolves against it as a **replacement target at +1 to hit**; with no valid unit there the attack
   automatically fails and the attacker lands in the declared hex without damage or a fall (Total
   Warfare, Initiative and Displacement). A unit performing a Death From Above is immune to physical
-  attacks until it lands (p. 149) and is never a replacement.
+  attacks until it lands (p. 149), so only an airborne performer is excluded as a replacement; a
+  performer that has already landed is an ordinary grounded occupant and may be the replacement.
 * **Landing is a jump completion:** the attacker already recorded the full jump path, including the
   final leg into the target hex, during the Movement Phase; it only waits in the approach hex. The
   physical phase completes that move with a `DfaLandingCommand` (`DfaLandingKind`: attacker landing,

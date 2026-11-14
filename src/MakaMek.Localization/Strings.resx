@@ -214,7 +214,7 @@
   <data name="DfaOutcome_Miss" xml:space="preserve"><value>Miss</value></data>
   <data name="DfaOutcome_AutoFail" xml:space="preserve"><value>Auto-fail</value></data>
   <data name="DfaOutcome_AttackerDestroyedNoLanding" xml:space="preserve"><value>Attacker destroyed (no landing hex)</value></data>
-  <data name="Command_DfaResolution_Replacement" xml:space="preserve"><value>Knocked out a replacement for {0}</value></data>
+  <data name="Command_DfaResolution_Replacement" xml:space="preserve"><value>The declared target {0} was replaced</value></data>
   <data name="DfaLandingKind_AttackerLanding" xml:space="preserve"><value>Death From Above</value></data>
   <data name="DfaLandingKind_MissLanding" xml:space="preserve"><value>Death From Above miss</value></data>
   <data name="DfaLandingKind_AutoFailLanding" xml:space="preserve"><value>Death From Above auto-fail</value></data>
