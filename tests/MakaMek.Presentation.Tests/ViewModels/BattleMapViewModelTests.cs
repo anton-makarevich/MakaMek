@@ -4600,6 +4600,7 @@ public class BattleMapViewModelTests
     /// A client game whose acknowledgement timeout expires almost immediately, so a command that
     /// is never acknowledged raises CommandTimedOut without the test waiting ten seconds.
     /// </summary>
+
     private ClientGame CreateClientGameWithShortAckTimeout() =>
         new(new TotalWarfareRulesProvider(),
             _mechFactory,

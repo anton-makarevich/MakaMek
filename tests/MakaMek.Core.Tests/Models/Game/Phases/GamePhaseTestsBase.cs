@@ -37,6 +37,7 @@ public abstract class GamePhaseTestsBase
     protected readonly IHeatEffectsCalculator MockHeatEffectsCalculator = Substitute.For<IHeatEffectsCalculator>();
     protected readonly IPilotingSkillCalculator MockPilotingSkillCalculator= Substitute.For<IPilotingSkillCalculator>();
     protected readonly IPhysicalAttackResolver MockPhysicalAttackResolver = Substitute.For<IPhysicalAttackResolver>();
+    protected readonly IDfaAttackResolver MockDfaAttackResolver = Substitute.For<IDfaAttackResolver>();
     private static readonly IBattleMapFactory BattleMapFactory = new BattleMapFactory();
     
     private readonly IMechFactory _mechFactory = new MechFactory(

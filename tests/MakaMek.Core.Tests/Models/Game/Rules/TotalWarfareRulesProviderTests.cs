@@ -522,8 +522,21 @@ public class TotalWarfareRulesProviderTests
     }
 
     [Theory]
+    [InlineData(HitDirection.Front)]
+    [InlineData(HitDirection.Rear)]
+    [InlineData(HitDirection.Left)]
+    [InlineData(HitDirection.Right)]
+    public void GetPhysicalAttackHitLocation_ForADfa_UsesThePunchTable(HitDirection direction)
+    {
+        for (var roll = 1; roll <= 6; roll++)
+        {
+            _sut.GetPhysicalAttackHitLocation(PhysicalAttackType.DFA, roll, direction)
+                .ShouldBe(_sut.GetPunchHitLocation(roll, direction));
+        }
+    }
+
+    [Theory]
     [InlineData(PhysicalAttackType.Push)]
-    [InlineData(PhysicalAttackType.DFA)]
     public void GetPhysicalAttackHitLocation_UnsupportedAttackType_ThrowsNotSupportedException(
         PhysicalAttackType attackType)
     {
@@ -1819,5 +1832,41 @@ public class TotalWarfareRulesProviderTests
         var result = _sut.GetProneTargetModifier(distance);
 
         result.ShouldBe(expectedModifier);
+    }
+
+    [Fact]
+    public void GetDfaFallConstants_ShouldMatchTotalWarfare()
+    {
+        _sut.GetDfaFallLevels().ShouldBe(2);
+        _sut.GetDfaFallFacingRoll().ShouldBe(4);
+        _sut.GetAttackDirectionAfterFall(4).ShouldBe(HitDirection.Rear);
+        _sut.RequiresPilotingSkillRoll(PilotingSkillRollType.DfaFall).ShouldBeFalse();
+    }
+
+    [Fact]
+    public void DfaPsrModifiers_ShouldBePlusTwoAndPlusFour()
+    {
+        _sut.GetPilotingSkillRollModifier(PilotingSkillRollType.DfaTargetImpact).ShouldBe(2);
+        _sut.GetPilotingSkillRollModifier(PilotingSkillRollType.DfaAttackerImpact).ShouldBe(4);
+    }
+
+    [Fact]
+    public void GetPhysicalAttackPsrRequirements_ForADfaMiss_ShouldBeEmpty()
+    {
+        _sut.GetPhysicalAttackPsrRequirements(PhysicalAttackType.DFA, false).ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void GetPhysicalAttackPsrRequirements_ForADfaHit_ShouldRequireBothRolls()
+    {
+        _sut.GetPhysicalAttackPsrRequirements(PhysicalAttackType.DFA, true).ShouldBe(
+        [
+            new PhysicalAttackPsrRequirement(
+                PhysicalAttackParticipant.Target,
+                PilotingSkillRollType.DfaTargetImpact),
+            new PhysicalAttackPsrRequirement(
+                PhysicalAttackParticipant.Attacker,
+                PilotingSkillRollType.DfaAttackerImpact)
+        ]);
     }
 }

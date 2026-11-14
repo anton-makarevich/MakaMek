@@ -103,5 +103,10 @@ public enum PilotingSkillRollType
     /// <summary>
     /// PSR required of a 'Mech displaced by a domino effect (Total Warfare, p. 151-153).
     /// </summary>
-    DominoEffect
+    DominoEffect,
+
+    /// <summary>
+    /// Automatic two-level rear fall after a missed Death From Above (Total Warfare, p. 150).
+    /// </summary>
+    DfaFall
 }

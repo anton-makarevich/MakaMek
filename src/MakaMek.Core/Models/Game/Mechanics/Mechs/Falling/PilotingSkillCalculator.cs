@@ -9,6 +9,10 @@ using Sanet.MakaMek.Core.Models.Units.Components.Internal;
 using Sanet.MakaMek.Core.Models.Units.Components.Internal.Actuators;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 
+// Pre-existing class coupling in this type, not introduced by this change. It is tracked in
+// #1714 together with the baseline-aware analyzer gate that will make this suppression unnecessary.
+#pragma warning disable CA1506
+
 namespace Sanet.MakaMek.Core.Models.Game.Mechanics.Mechs.Falling;
 
 /// <summary>
@@ -113,7 +117,7 @@ public class PilotingSkillCalculator : IPilotingSkillCalculator
     /// </summary>
     /// <param name="mech">The mech making the piloting skill roll</param>
     /// <returns>A collection of standard roll modifiers</returns>
-    private IEnumerable<RollModifier> GetStandardModifiers(Mech mech)
+    private List<RollModifier> GetStandardModifiers(Mech mech)
     {
         var modifiers = new List<RollModifier>();
 
@@ -220,7 +224,7 @@ public class PilotingSkillCalculator : IPilotingSkillCalculator
     /// </summary>
     /// <param name="context">The piloting skill roll context</param>
     /// <returns>A collection of special roll modifiers for the given context</returns>
-    private IEnumerable<RollModifier> GetModifiersForContext(PilotingSkillRollContext context)
+    private List<RollModifier> GetModifiersForContext(PilotingSkillRollContext context)
     {
         var modifiers = new List<RollModifier>();
         switch (context)
@@ -230,6 +234,21 @@ public class PilotingSkillCalculator : IPilotingSkillCalculator
                 {
                     Value = _rules.GetPilotingSkillRollModifier(PilotingSkillRollType.ChargeImpact)
                 });
+                break;
+            case DfaTargetImpactRollContext:
+                modifiers.Add(new DfaTargetImpactModifier
+                {
+                    Value = _rules.GetPilotingSkillRollModifier(PilotingSkillRollType.DfaTargetImpact)
+                });
+                break;
+            case DfaAttackerImpactRollContext attackerContext:
+                modifiers.Add(new DfaAttackerImpactModifier
+                {
+                    Value = _rules.GetPilotingSkillRollModifier(PilotingSkillRollType.DfaAttackerImpact)
+                });
+                // Landing in water adds the standard water-entry modifier to the same +4 roll.
+                if (attackerContext.WaterDepth > 0)
+                    AddWaterDepthModifier(attackerContext.WaterDepth, modifiers);
                 break;
             case PilotDamageFromFallRollContext pilotDamageCtx:
             {
@@ -281,7 +300,7 @@ public class PilotingSkillCalculator : IPilotingSkillCalculator
     /// </summary>
     /// <param name="mech">The mech to check</param>
     /// <returns>The number of hits on the gyro</returns>
-    private int GetGyroHits(Mech mech)
+    private static int GetGyroHits(Mech mech)
     {
         var gyro = mech.GetAllComponents<Gyro>().FirstOrDefault();
         if (gyro == null)

@@ -85,6 +85,18 @@ public interface IRulesProvider
     int GetDfaAttackerDamage(int attackerTonnage);
 
     /// <summary>
+    /// Gets the number of levels a missed Death From Above automatically falls: two (Total
+    /// Warfare, p. 150).
+    /// </summary>
+    int GetDfaFallLevels();
+
+    /// <summary>
+    /// Gets the fixed facing roll used for the fall after a missed Death From Above. The roll maps
+    /// to the rear column, so every hit location of the fall is rear (Total Warfare, p. 150).
+    /// </summary>
+    int GetDfaFallFacingRoll();
+
+    /// <summary>
     /// Gets the piloting skill roll requirements a physical attack creates.
     /// A successful kick requires the target to roll; a missed kick requires the attacker to roll.
     /// </summary>

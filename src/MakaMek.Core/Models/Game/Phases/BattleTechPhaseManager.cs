@@ -32,7 +32,13 @@ public class BattleTechPhaseManager : IPhaseManager
             PhaseNames.PhysicalAttack => new PhysicalAttackResolutionPhase(
                 game,
                 new PushDisplacementResolver(game.RulesProvider, dominoEffectResolver),
-                new ChargeDisplacementResolver(game.RulesProvider, dominoEffectResolver)),
+                new ChargeDisplacementResolver(game.RulesProvider, dominoEffectResolver),
+                new DfaDisplacementResolver(game.RulesProvider, dominoEffectResolver),
+                new DfaAttackResolver(
+                    game.PhysicalAttackCalculator,
+                    game.DiceRoller,
+                    game.RulesProvider,
+                    game.DamageTransferCalculator)),
             PhaseNames.PhysicalAttackResolution => new HeatPhase(game),
             PhaseNames.Heat => new EndPhase(game),
             PhaseNames.End => new InitiativePhase(game),

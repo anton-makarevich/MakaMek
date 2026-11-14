@@ -4284,4 +4284,5 @@ public class ClientGameTests
             Arg.Is<Exception?>(e => e == null),
             Arg.Any<Func<object, Exception?, string>>());
     }
+
 }

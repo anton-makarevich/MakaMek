@@ -77,7 +77,7 @@ public class PhysicalAttackResolver : IPhysicalAttackResolver
                 context.AttackType,
                 context.AttackerLimb,
                 damage,
-                CreateAttackResolution(toHitNumber, attackRoll, isHit: false, HitDirection.Front, null),
+                PhysicalAttackRolls.CreateAttackResolution(toHitNumber, attackRoll, isHit: false, HitDirection.Front, null),
                 psrRequirements);
         }
 
@@ -91,7 +91,7 @@ public class PhysicalAttackResolver : IPhysicalAttackResolver
                 context.AttackType,
                 context.AttackerLimb,
                 damage,
-                CreateAttackResolution(toHitNumber, attackRoll, isHit: true, attackDirection, null),
+                PhysicalAttackRolls.CreateAttackResolution(toHitNumber, attackRoll, isHit: true, attackDirection, null),
                 psrRequirements);
         }
 
@@ -100,7 +100,7 @@ public class PhysicalAttackResolver : IPhysicalAttackResolver
             context.AttackType,
             locationRoll.Result,
             attackDirection);
-        var hitLocation = ResolveTransferLocation(context.Target, rolledLocation);
+        var hitLocation = PhysicalAttackRolls.ResolveTransferLocation(context.Target, rolledLocation);
 
         var damageData = _damageTransferCalculator.CalculateStructureDamage(
             context.Target,
@@ -124,7 +124,7 @@ public class PhysicalAttackResolver : IPhysicalAttackResolver
             context.AttackType,
             context.AttackerLimb,
             damage,
-            CreateAttackResolution(toHitNumber, attackRoll, isHit: true, attackDirection, hitLocationsData),
+            PhysicalAttackRolls.CreateAttackResolution(toHitNumber, attackRoll, isHit: true, attackDirection, hitLocationsData),
             psrRequirements);
     }
 
@@ -163,7 +163,7 @@ public class PhysicalAttackResolver : IPhysicalAttackResolver
                 PhysicalAttackType.Charge,
                 null,
                 0,
-                CreateAttackResolution(toHitNumber, attackRoll, isHit: false, HitDirection.Front, null),
+                PhysicalAttackRolls.CreateAttackResolution(toHitNumber, attackRoll, isHit: false, HitDirection.Front, null),
                 psrRequirements,
                 charge);
         }
@@ -190,7 +190,7 @@ public class PhysicalAttackResolver : IPhysicalAttackResolver
             PhysicalAttackType.Charge,
             null,
             targetDamage,
-            CreateAttackResolution(toHitNumber, attackRoll, isHit: true, targetDirection, targetHitLocations),
+            PhysicalAttackRolls.CreateAttackResolution(toHitNumber, attackRoll, isHit: true, targetDirection, targetHitLocations),
             psrRequirements,
             charge);
     }
@@ -210,13 +210,13 @@ public class PhysicalAttackResolver : IPhysicalAttackResolver
         var hitLocations = new List<LocationHitData>();
         var totalDamage = 0;
 
-        foreach (var groupDamage in SplitIntoFivePointGroups(damage))
+        foreach (var groupDamage in PhysicalAttackRolls.SplitIntoFivePointGroups(damage))
         {
             var locationRoll = _diceRoller.Roll2D6();
             var rolledLocation = _rulesProvider.GetHitLocation(
                 locationRoll.Sum(d => d.Result),
                 direction);
-            var hitLocation = ResolveTransferLocation(unit, rolledLocation);
+            var hitLocation = PhysicalAttackRolls.ResolveTransferLocation(unit, rolledLocation);
 
             var damageData = _damageTransferCalculator.CalculateStructureDamage(
                 unit,
@@ -234,58 +234,6 @@ public class PhysicalAttackResolver : IPhysicalAttackResolver
         }
 
         return new AttackHitLocationsData(hitLocations, totalDamage, [], 0);
-    }
-
-    private static IEnumerable<int> SplitIntoFivePointGroups(int damage)
-    {
-        while (damage > 5)
-        {
-            yield return 5;
-            damage -= 5;
-        }
-
-        if (damage > 0) yield return damage;
-    }
-
-    /// <summary>
-    /// Builds the weapon-shaped payload that the standard damage pipeline consumes. A physical
-    /// attack generates no heat, has no cluster roll or missiles, and a miss is always reported as
-    /// coming from the front. Isolating the adapter here documents the boundary instead of
-    /// scattering weapon-only values through the resolver.
-    /// </summary>
-    private static AttackResolutionData CreateAttackResolution(
-        int toHitNumber,
-        List<DiceResult> attackRoll,
-        bool isHit,
-        HitDirection attackDirection,
-        AttackHitLocationsData? hitLocationsData) =>
-        new(
-            toHitNumber,
-            attackRoll,
-            isHit,
-            attackDirection,
-            ExternalHeat: 0,
-            HitLocationsData: hitLocationsData);
-
-    /// <summary>
-    /// Follows the damage transfer chain of an already destroyed location, as the weapon
-    /// resolver does, so a hit on a blown off limb lands on the next intact location.
-    /// </summary>
-    private static PartLocation ResolveTransferLocation(IUnit target, PartLocation rolledLocation)
-    {
-        var hitLocation = rolledLocation;
-        var visited = new HashSet<PartLocation> { rolledLocation };
-
-        while (target.Parts.TryGetValue(hitLocation, out var part) && part.IsDestroyed)
-        {
-            var nextLocation = part.GetNextTransferLocation();
-            if (nextLocation == null || !visited.Add(nextLocation.Value))
-                break;
-
-            hitLocation = nextLocation.Value;
-        }
-
-        return hitLocation;
     }
 
     private static void ValidateLimb(PhysicalAttackDefinition definition, PartLocation limb)

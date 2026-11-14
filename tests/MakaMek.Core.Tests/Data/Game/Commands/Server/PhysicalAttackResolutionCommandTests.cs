@@ -424,6 +424,136 @@ public class PhysicalAttackResolutionCommandTests
         result.ShouldContain($"{_attacker.Model} has been destroyed!");
     }
 
+    [Fact]
+    public void Render_DfaAutoFail_IsReportedAsAnAutomaticFailure()
+    {
+        var sut = CreateDfaCommand(
+            new DfaResolutionData(DfaOutcome.AutoFail, OriginalTargetId: _target.Id),
+            new AttackResolutionData(0, [], false, HitDirection.Front, 0));
+
+        var result = sut.Render(_localizationService, _game);
+
+        result.ShouldContain("automatically fails");
+    }
+
+    [Fact]
+    public void Render_DfaAutoFail_WhenTheTargetIsNoLongerInTheGame_UsesTheOriginalTargetId()
+    {
+        var dfa = new DfaResolutionData(DfaOutcome.AutoFail, OriginalTargetId: _target.Id);
+        var sut = CreateDfaCommand(
+            dfa,
+            new AttackResolutionData(0, [], false, HitDirection.Front, 0)) with
+        {
+            TargetId = Guid.NewGuid()
+        };
+
+        var result = sut.Render(_localizationService, _game);
+
+        result.ShouldContain($"against {_target.Id} automatically fails");
+    }
+
+    [Fact]
+    public void Render_DfaDestroyedAttacker_ExplainsWhyItWasDestroyed()
+    {
+        var sut = CreateDfaCommand(
+            new DfaResolutionData(DfaOutcome.AttackerDestroyedNoLanding, OriginalTargetId: _target.Id),
+            new AttackResolutionData(0, [], false, HitDirection.Front, 0));
+
+        var result = sut.Render(_localizationService, _game);
+
+        result.ShouldContain("no legal landing hex");
+    }
+
+    [Fact]
+    public void Render_DfaHit_ListsTheOutcomeAndTheAttackerLegDamage()
+    {
+        var resolution = new AttackResolutionData(
+            7,
+            [new DiceResult(4), new DiceResult(4)],
+            true,
+            HitDirection.Rear,
+            0,
+            new AttackHitLocationsData(
+                [new LocationHitData([new LocationDamageData(PartLocation.CenterTorso, 5, 0, false)], [], [1],
+                    PartLocation.CenterTorso)],
+                5, [], 0));
+        var dfa = new DfaResolutionData(
+            DfaOutcome.Hit,
+            resolution.HitLocationsData,
+            new AttackHitLocationsData(
+                [new LocationHitData([new LocationDamageData(PartLocation.LeftLeg, 4, 0, false)], [], [1],
+                    PartLocation.LeftLeg)],
+                4, [], 0),
+            _target.Id);
+        var sut = CreateDfaCommand(dfa, resolution);
+
+        var result = sut.Render(_localizationService, _game);
+
+        result.ShouldContain("Death From Above: Hit");
+        result.ShouldContain($"{_attacker.Model} takes 4 leg damage");
+    }
+
+    [Fact]
+    public void Render_DfaHit_WhenTheAttackerLostPartsAndWasDestroyed_ListsBoth()
+    {
+        var resolution = new AttackResolutionData(
+            7,
+            [new DiceResult(4), new DiceResult(4)],
+            true,
+            HitDirection.Rear,
+            0,
+            new AttackHitLocationsData(
+                [new LocationHitData([new LocationDamageData(PartLocation.CenterTorso, 5, 0, false)], [], [1],
+                    PartLocation.CenterTorso)],
+                5, [], 0));
+        var attackerLegs = new AttackHitLocationsData(
+            [new LocationHitData(
+                [new LocationDamageData(PartLocation.LeftLeg, 4, 0, false)], [], [1], PartLocation.LeftLeg)],
+            4, [], 0);
+        var dfa = new DfaResolutionData(
+            DfaOutcome.Hit,
+            resolution.HitLocationsData,
+            attackerLegs,
+            _target.Id)
+        {
+            AttackerDestroyedParts = [PartLocation.LeftLeg],
+            AttackerUnitDestroyed = true
+        };
+        var sut = CreateDfaCommand(dfa, resolution);
+
+        var result = sut.Render(_localizationService, _game);
+
+        result.ShouldContain("Destroyed parts:");
+        result.ShouldContain("- Left Leg destroyed");
+        result.ShouldContain($"{_attacker.Model} has been destroyed!");
+    }
+
+    [Fact]
+    public void Render_DfaMiss_ListsTheOutcome()
+    {
+        var sut = CreateDfaCommand(
+            new DfaResolutionData(DfaOutcome.Miss, OriginalTargetId: _target.Id),
+            new AttackResolutionData(
+                7, [new DiceResult(2), new DiceResult(2)], false, HitDirection.Front, 0));
+
+        var result = sut.Render(_localizationService, _game);
+
+        result.ShouldContain("Death From Above: Miss");
+    }
+
+    private PhysicalAttackResolutionCommand CreateDfaCommand(
+        DfaResolutionData dfa,
+        AttackResolutionData resolution) => new()
+    {
+        ResolutionId = Guid.NewGuid(),
+        GameOriginId = Guid.NewGuid(),
+        PlayerId = _player1.Id,
+        AttackerId = _attacker.Id,
+        TargetId = _target.Id,
+        ResolutionData = new PhysicalAttackResolutionData(
+            PhysicalAttackType.DFA, null, 5, resolution, [], Dfa: dfa)
+    };
+
     private static AttackResolutionData ChargeHitResolution() =>
         new(7,
             [new DiceResult(4), new DiceResult(4)],

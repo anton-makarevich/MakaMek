@@ -210,6 +210,16 @@
   <data name="Command_ChargeResolution_Replacement" xml:space="preserve"><value>Struck a replacement for {0}</value></data>
   <data name="Command_ChargeResolution_AttackerCollision" xml:space="preserve"><value>{0} takes {1} collision damage</value></data>
   <data name="PhysicalAttackType_DFA" xml:space="preserve"><value>Death From Above</value></data>
+  <data name="DfaOutcome_Hit" xml:space="preserve"><value>Hit</value></data>
+  <data name="DfaOutcome_Miss" xml:space="preserve"><value>Miss</value></data>
+  <data name="DfaOutcome_AutoFail" xml:space="preserve"><value>Auto-fail</value></data>
+  <data name="DfaOutcome_AttackerDestroyedNoLanding" xml:space="preserve"><value>Attacker destroyed (no landing hex)</value></data>
+  <data name="Command_DfaResolution_Outcome" xml:space="preserve"><value>Death From Above: {0}</value></data>
+  <data name="Command_DfaResolution_AutoFail" xml:space="preserve"><value>{0}'s {1} Death From Above against {2} automatically fails</value></data>
+  <data name="Command_DfaResolution_AttackerDestroyed" xml:space="preserve"><value>{0}'s {1} is destroyed: no legal landing hex remains after the Death From Above miss</value></data>
+  <data name="Command_DfaResolution_AttackerLegDamage" xml:space="preserve"><value>{0} takes {1} leg damage</value></data>
+  <data name="Modifier_DfaTargetImpact" xml:space="preserve"><value>DFA Target Impact: +{0}</value></data>
+  <data name="Modifier_DfaAttackerImpact" xml:space="preserve"><value>DFA Attacker Impact: +{0}</value></data>
   <data name="PhysicalAttack_BothArms" xml:space="preserve"><value>Both Arms</value></data>
   <data name="PhysicalAttack_NoOptions" xml:space="preserve"><value>This unit has no physical attack options</value></data>
   <data name="PhysicalAttackDeclaration_Title" xml:space="preserve"><value>Physical attack</value></data>
