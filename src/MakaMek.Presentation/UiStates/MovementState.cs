@@ -175,85 +175,145 @@ public class MovementState : IUiState, IPhysicalAttackDeclarationState
         int remainingMp)
     {
         var candidates = new Dictionary<IUnit, MovementAttackCandidate>();
-        if (_selectedUnit == null
-            || _selectedPath == null
-            || Game?.BattleMap is not { } map
-            || Game.PhaseStepState?.ActivePlayer is not { } activePlayer
-            || movementType.GetMovementAttackType() is not { } attackType)
-            return candidates;
+        if (!TryCreateCandidateSearch(movementType, remainingMp, out var search)) return candidates;
 
         var allUnits = GetAllUnits();
-        var potentialTargets = allUnits.Where(unit =>
-                unit is Mech { IsDestroyed: false, Position: not null }
-                && unit.Owner?.Id != activePlayer.Id
-                && unit is { HasPendingMovementAttack: false }
-                && (unit.HasMoved || unit.IsShutdown || unit.Pilot is { IsConscious: false }))
-            .ToList();
-        if (potentialTargets.Count == 0) return candidates;
-
-        var startPosition = _selectedPath.Destination;
-        var canMoveBackward = _selectedUnit.CanMoveBackward(movementType);
-
-        foreach (var target in potentialTargets)
+        foreach (var target in FilterPotentialTargets(allUnits, search.ActivePlayerId))
         {
-            var targetCoordinates = target.Position!.Coordinates;
-            var prohibited = _prohibitedHexes
-                .Where(coordinates => coordinates != targetCoordinates)
-                .ToHashSet();
-
-            var reachability = map.GetReachableHexesForPosition(
-                startPosition,
-                remainingMp,
-                canMoveBackward,
-                movementType,
-                prohibited,
-                _friendlyUnitsCoordinates,
-                _selectedUnit.Height,
-                _selectedUnit.MaxLevelChangeForward,
-                _selectedUnit.MaxLevelChangeBackward);
-
-            var paths = map.GetPathsToHexWithAllFacings(
-                startPosition,
-                targetCoordinates,
-                movementType,
-                remainingMp,
-                reachability,
-                _selectedUnit.Height,
-                _selectedUnit.MaxLevelChangeForward,
-                _selectedUnit.MaxLevelChangeBackward,
-                prohibited,
-                targetSurface: target.Position.Surface,
-                approachWaypointOffset: Game.RulesProvider.GetDfaAirborneBaseOffset());
-            if (paths.Count == 0) continue;
-
-            MovementAttackCandidate? cheapest = null;
-            foreach (var path in paths.Values)
-            {
-                var fullPath = _selectedPath.Append(path);
-                var declaration = new PhysicalAttackDeclarationData
-                {
-                    AttackType = attackType,
-                    AttackerLimbs = [],
-                    TargetId = target.Id
-                };
-
-                var validation = Game.MovementAttackDeclarationValidator.Validate(
-                    _selectedUnit,
-                    fullPath.ToData(),
-                    movementType,
-                    declaration,
-                    allUnits,
-                    map);
-                if (!validation.IsValid || validation.Declaration is not { } validated) continue;
-
-                if (cheapest == null || path.TotalCost < cheapest.Path.TotalCost)
-                    cheapest = new MovementAttackCandidate(target, path, validated);
-            }
-
-            if (cheapest != null) candidates[target] = cheapest;
+            var candidate = BuildMovementAttackCandidate(target, search, allUnits);
+            if (candidate != null) candidates[target] = candidate;
         }
 
         return candidates;
+    }
+
+    /// <summary>
+    /// Captures the fixed inputs of a candidate search, or returns <c>false</c> when the state is not
+    /// ready to search (no selected unit or path, no map, no active player, or a non-attacking move).
+    /// </summary>
+    private bool TryCreateCandidateSearch(
+        MovementType movementType,
+        int remainingMp,
+        out MovementAttackSearch search)
+    {
+        search = default;
+        if (_selectedUnit is not { } unit
+            || _selectedPath is not { } path
+            || Game?.BattleMap is not { } map
+            || Game.PhaseStepState?.ActivePlayer is not { } activePlayer
+            || movementType.GetMovementAttackType() is not { } attackType)
+        {
+            return false;
+        }
+
+        search = new MovementAttackSearch(
+            unit,
+            path,
+            map,
+            activePlayer.Id,
+            movementType,
+            attackType,
+            remainingMp,
+            unit.CanMoveBackward(movementType));
+        return true;
+    }
+
+    /// <summary>
+    /// Live enemy Mechs that have finished acting this turn and are not already mid-attack.
+    /// </summary>
+    private static List<IUnit> FilterPotentialTargets(IReadOnlyList<IUnit> allUnits, Guid? activePlayerId) =>
+        allUnits.Where(unit =>
+                unit is Mech { IsDestroyed: false, Position: not null }
+                && unit.Owner?.Id != activePlayerId
+                && unit is { HasPendingMovementAttack: false }
+                && (unit.HasMoved || unit.IsShutdown || unit.Pilot is { IsConscious: false }))
+            .ToList();
+
+    /// <summary>
+    /// The cheapest continuation path from the current path state that reaches <paramref name="target"/>
+    /// and passes the shared declaration validator, or <c>null</c> when no path qualifies.
+    /// </summary>
+    private MovementAttackCandidate? BuildMovementAttackCandidate(
+        IUnit target,
+        in MovementAttackSearch search,
+        IReadOnlyList<IUnit> allUnits)
+    {
+        var paths = FindPathsToTarget(target, search);
+        if (paths.Count == 0) return null;
+
+        MovementAttackCandidate? cheapest = null;
+        foreach (var path in paths.Values)
+        {
+            var validated = ValidateCandidatePath(target, path, search, allUnits);
+            if (validated == null) continue;
+
+            if (cheapest == null || path.TotalCost < cheapest.Path.TotalCost)
+                cheapest = new MovementAttackCandidate(target, path, validated);
+        }
+
+        return cheapest;
+    }
+
+    /// <summary>
+    /// All facings the unit can take to reach <paramref name="target"/> from the current path state.
+    /// </summary>
+    private IReadOnlyDictionary<HexDirection, MovementPath> FindPathsToTarget(
+        IUnit target,
+        in MovementAttackSearch search)
+    {
+        var targetCoordinates = target.Position!.Coordinates;
+        var prohibited = _prohibitedHexes
+            .Where(coordinates => coordinates != targetCoordinates)
+            .ToHashSet();
+
+        var reachability = search.Map.GetReachableHexesForPosition(
+            search.StartPosition,
+            search.RemainingMp,
+            search.CanMoveBackward,
+            search.MovementType,
+            prohibited,
+            _friendlyUnitsCoordinates,
+            search.Unit.Height,
+            search.Unit.MaxLevelChangeForward,
+            search.Unit.MaxLevelChangeBackward);
+
+        return search.Map.GetPathsToHexWithAllFacings(
+            search.StartPosition,
+            targetCoordinates,
+            search.MovementType,
+            search.RemainingMp,
+            reachability,
+            search.Unit.Height,
+            search.Unit.MaxLevelChangeForward,
+            search.Unit.MaxLevelChangeBackward,
+            prohibited,
+            targetSurface: target.Position.Surface,
+            approachWaypointOffset: Game!.RulesProvider.GetDfaAirborneBaseOffset());
+    }
+
+    private PhysicalAttackDeclarationData? ValidateCandidatePath(
+        IUnit target,
+        MovementPath path,
+        in MovementAttackSearch search,
+        IReadOnlyList<IUnit> allUnits)
+    {
+        var fullPath = search.CurrentPath.Append(path);
+        var declaration = new PhysicalAttackDeclarationData
+        {
+            AttackType = search.AttackType,
+            AttackerLimbs = [],
+            TargetId = target.Id
+        };
+
+        var validation = Game!.MovementAttackDeclarationValidator.Validate(
+            search.Unit,
+            fullPath.ToData(),
+            search.MovementType,
+            declaration,
+            allUnits,
+            search.Map);
+
+        return !validation.IsValid || validation.Declaration is not { } validated ? null : validated;
     }
 
     private List<IUnit> GetAllUnits() =>
@@ -1058,41 +1118,7 @@ public class MovementState : IUiState, IPhysicalAttackDeclarationState
     {
         lock (_stateLock)
         {
-            var activePlayerId = Game?.PhaseStepState?.ActivePlayer.Id;
-            if (_selectedUnit == null)
-            {
-                // Selection may have been cleared by a state refresh; adopt the fallen unit if it is known
-                var fallenUnit = _viewModel.Units.FirstOrDefault(u => u.Id == unitId);
-                if (fallenUnit == null)
-                {
-                    Game?.Logger.LogWarning(
-                        "ResumeMovementAfterFall: unit {UnitId} not found among alive units", unitId);
-                    return;
-                }
-                if (fallenUnit.Owner?.Id != activePlayerId)
-                {
-                    Game?.Logger.LogWarning(
-                        "Resume movement after fall ignored: unit {UnitId} is not controlled by the active player", unitId);
-                    return;
-                }
-                _selectedUnit = fallenUnit;
-                _builder.SetUnit(fallenUnit);
-            }
-            else if (_selectedUnit.Id != unitId)
-            {
-                Game?.Logger.LogWarning(
-                    "Resume movement after fall ignored: command unit {CommandUnit} does not match movement state's selected unit {StateUnit}",
-                    unitId,
-                    _selectedUnit.Id);
-                return;
-            }
-
-            if (_selectedUnit.Owner?.Id != activePlayerId)
-            {
-                Game?.Logger.LogWarning(
-                    "Resume movement after fall ignored: unit {UnitId} is not controlled by the active player", unitId);
-                return;
-            }
+            if (!TryAdoptFallenUnit(unitId)) return;
 
             if (_selectedUnit is not Mech mech)
             {
@@ -1103,34 +1129,11 @@ public class MovementState : IUiState, IPhysicalAttackDeclarationState
 
             if (mech.Position == null || !mech.IsProne)
             {
-                Game?.Logger.LogWarning(
-                    "Resume movement after fall: unit {UnitId} is {Reason}, ending movement",
-                    unitId,
-                    mech.Position == null ? "not positioned" : "not prone");
-                if (mech.Position != null)
-                {
-                    _builder.SetUnit(_selectedUnit);
-                    _builder.SetMovementPath(MovementPath.CreateSingleSegmentPath(mech.Position));
-                }
-                CompleteMovement();
+                CompleteMovementAfterFailedFall(mech, unitId);
                 return;
             }
 
-            if (_selectedPath == null)
-            {
-                // The fall was processed by a state that lost its movement path (e.g. recreated after a
-                // phase-step update). Rebuild it at the mech's current position.
-                Game?.Logger.LogWarning(
-                    "Resume movement after fall: no movement path in state for unit {UnitId}, rebuilding at current position",
-                    unitId);
-                _selectedPath = MovementPath.CreateSingleSegmentPath(
-                    mech.Position,
-                    mech.MovementTaken?.MovementType ?? MovementType.Walk);
-            }
-            else
-            {
-                _selectedPath = MovementPath.CreateSingleSegmentPath(mech.Position, _selectedPath.MovementType);
-            }
+            _selectedPath = RebuildPathAtCurrentPosition(mech, unitId);
 
             if (!mech.CanStandup())
             {
@@ -1141,10 +1144,93 @@ public class MovementState : IUiState, IPhysicalAttackDeclarationState
             }
 
             _deferredMovementUnitId = unitId;
-            
+
             TransitionTo(new SelectingMovementTypeStep(this));
             _viewModel.NotifySelectedUnitChanged();
         }
+    }
+
+    /// <summary>
+    /// Makes the fallen unit the selected one. Selection may have been cleared by a state refresh, in
+    /// which case the fallen unit is adopted when it belongs to the active player. Returns
+    /// <c>false</c> when the command cannot be resumed, after logging why.
+    /// </summary>
+    private bool TryAdoptFallenUnit(Guid unitId)
+    {
+        var activePlayerId = Game?.PhaseStepState?.ActivePlayer.Id;
+
+        if (_selectedUnit == null)
+        {
+            var fallenUnit = _viewModel.Units.FirstOrDefault(u => u.Id == unitId);
+            if (fallenUnit == null)
+            {
+                Game?.Logger.LogWarning(
+                    "ResumeMovementAfterFall: unit {UnitId} not found among alive units", unitId);
+                return false;
+            }
+
+            if (fallenUnit.Owner?.Id != activePlayerId)
+            {
+                Game?.Logger.LogWarning(
+                    "Resume movement after fall ignored: unit {UnitId} is not controlled by the active player", unitId);
+                return false;
+            }
+
+            _selectedUnit = fallenUnit;
+            _builder.SetUnit(fallenUnit);
+        }
+        else if (_selectedUnit.Id != unitId)
+        {
+            Game?.Logger.LogWarning(
+                "Resume movement after fall ignored: command unit {CommandUnit} does not match movement state's selected unit {StateUnit}",
+                unitId,
+                _selectedUnit.Id);
+            return false;
+        }
+
+        if (_selectedUnit.Owner?.Id == activePlayerId) return true;
+
+        Game?.Logger.LogWarning(
+            "Resume movement after fall ignored: unit {UnitId} is not controlled by the active player", unitId);
+        return false;
+    }
+
+    /// <summary>
+    /// The fall left the unit standing (or off the map): submit the current position and end movement.
+    /// </summary>
+    private void CompleteMovementAfterFailedFall(Mech mech, Guid unitId)
+    {
+        Game?.Logger.LogWarning(
+            "Resume movement after fall: unit {UnitId} is {Reason}, ending movement",
+            unitId,
+            mech.Position == null ? "not positioned" : "not prone");
+
+        if (mech.Position != null)
+        {
+            _builder.SetUnit(_selectedUnit);
+            _builder.SetMovementPath(MovementPath.CreateSingleSegmentPath(mech.Position));
+        }
+
+        CompleteMovement();
+    }
+
+    /// <summary>
+    /// Rebuilds the path as a single segment at the mech's current position. A missing path means the
+    /// fall was processed by a state that lost it (e.g. recreated after a phase-step update), so the
+    /// movement type comes from the unit's own movement instead.
+    /// </summary>
+    private MovementPath RebuildPathAtCurrentPosition(Mech mech, Guid unitId)
+    {
+        if (_selectedPath != null)
+            return MovementPath.CreateSingleSegmentPath(mech.Position!, _selectedPath.MovementType);
+
+        Game?.Logger.LogWarning(
+            "Resume movement after fall: no movement path in state for unit {UnitId}, rebuilding at current position",
+            unitId);
+
+        return MovementPath.CreateSingleSegmentPath(
+            mech.Position!,
+            mech.MovementTaken?.MovementType ?? MovementType.Walk);
     }
 
     // New method to handle prone facing change
@@ -1435,4 +1521,20 @@ public class MovementState : IUiState, IPhysicalAttackDeclarationState
         IUnit Target,
         MovementPath Path,
         PhysicalAttackDeclarationData Declaration);
+
+    /// <summary>
+    /// The fixed inputs of one candidate search, captured so the per-target steps stay small.
+    /// </summary>
+    private readonly record struct MovementAttackSearch(
+        IUnit Unit,
+        MovementPath CurrentPath,
+        IBattleMap Map,
+        Guid? ActivePlayerId,
+        MovementType MovementType,
+        PhysicalAttackType AttackType,
+        int RemainingMp,
+        bool CanMoveBackward)
+    {
+        public HexPosition StartPosition => CurrentPath.Destination;
+    }
 }

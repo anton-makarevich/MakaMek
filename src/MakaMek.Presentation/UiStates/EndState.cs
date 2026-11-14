@@ -72,45 +72,58 @@ public class EndState : IUiState
 
     public IEnumerable<StateAction> GetAvailableActions()
     {
+        var selectedUnit = SelectedUnit;
+        if (!CanShowActionsFor(selectedUnit)) return [];
+
+        return BuildUnitActions(selectedUnit!);
+    }
+
+    /// <summary>
+    /// Actions are only offered for a live unit of the active player while the game is running.
+    /// </summary>
+    private bool CanShowActionsFor(IUnit? unit)
+    {
+        if (_viewModel.IsGameOver || !IsActivePlayer || _viewModel.Game == null) return false;
+
+        return unit != null && !unit.IsDestroyed && IsActivePlayersUnit(unit);
+    }
+
+    private bool IsActivePlayersUnit(IUnit unit) =>
+        unit.Owner?.Id == _viewModel.Game?.PhaseStepState?.ActivePlayer?.Id;
+
+    private List<StateAction> BuildUnitActions(IUnit unit)
+    {
         var actions = new List<StateAction>();
 
-        if (_viewModel.IsGameOver || !IsActivePlayer || _viewModel.Game == null || SelectedUnit == null)
-            return actions;
-
-        // Only show actions for units belonging to the active player
-        var selectedUnit = SelectedUnit;
-        var activePlayer = _viewModel.Game.PhaseStepState?.ActivePlayer;
-
-        if (selectedUnit.Owner?.Id == activePlayer?.Id && !selectedUnit.IsDestroyed)
+        // A running unit can shut down; a shutdown Mech can try to start up instead.
+        if (!unit.IsShutdown)
         {
-            // Show shutdown action for non-shutdown units
-            if (!selectedUnit.IsShutdown)
-            {
-                actions.Add(new StateAction(
-                    _localizationService.GetString("Action_Shutdown"),
-                    true,
-                    () => ExecuteShutdownAction(selectedUnit)));
-            }
-
-            // Show startup action for shutdown mechs
-            if (selectedUnit.IsShutdown && selectedUnit is Mech mech)
-            {
-                var canStartup = CanStartupUnit(mech);
-                if (canStartup.canStartup)
-                {
-                    var actionText = canStartup.probability < 100
-                        ? $"{_localizationService.GetString("Action_Startup")} ({canStartup.probability:F0}%)"
-                        : _localizationService.GetString("Action_Startup");
-
-                    actions.Add(new StateAction(
-                        actionText,
-                        true,
-                        () => ExecuteStartupAction(selectedUnit)));
-                }
-            }
+            actions.Add(CreateShutdownAction(unit));
+            return actions;
         }
 
+        if (unit is not Mech mech) return actions;
+
+        var startup = CanStartupUnit(mech);
+        if (!startup.canStartup) return actions;
+
+        actions.Add(CreateStartupAction(unit, startup.probability));
         return actions;
+    }
+
+    private StateAction CreateShutdownAction(IUnit unit) =>
+        new(
+            _localizationService.GetString("Action_Shutdown"),
+            true,
+            () => ExecuteShutdownAction(unit));
+
+    private StateAction CreateStartupAction(IUnit unit, double probability)
+    {
+        var actionText = probability < 100
+            ? $"{_localizationService.GetString("Action_Startup")} ({probability:F0}%)"
+            : _localizationService.GetString("Action_Startup");
+
+        return new StateAction(actionText, true, () => ExecuteStartupAction(unit));
     }
 
     private void ExecuteShutdownAction(IUnit unit)
