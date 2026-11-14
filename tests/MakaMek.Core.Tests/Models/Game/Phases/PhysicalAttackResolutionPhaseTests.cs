@@ -2167,6 +2167,65 @@ public class PhysicalAttackResolutionPhaseTests : GamePhaseTestsBase
     }
 
     [Fact]
+    public void Enter_DfaHit_WhenTheTargetDropsMoreThanTwoLevels_TriggersItsAutomaticFall()
+    {
+        SetMap();
+        // The push destination (the attacker's hex) is three levels below the target hex.
+        Game.BattleMap!.AddHex(new Hex(AttackerHex, -3));
+        SetUpDfa(_player1Mech, _player2Mech);
+        MockDfaAttackResolver.ResolveDfa(Arg.Any<DfaAttackContext>())
+            .Returns(DfaHit(_player2Mech.Id));
+        MockFallProcessor.ProcessMovementAttempt(
+                _player2Mech,
+                Arg.Any<CliffFallRollContext>(),
+                Game,
+                Arg.Any<MovementType>(),
+                Arg.Any<HexPosition?>())
+            .Returns(new FallContextData
+            {
+                UnitId = _player2Mech.Id,
+                GameId = Game.Id,
+                IsFalling = false
+            });
+        DiceRoller.RollD6().Returns(new DiceResult(1));
+
+        _sut.Enter();
+
+        _player2Mech.Position!.Coordinates.ShouldBe(AttackerHex);
+        MockFallProcessor.Received(1).ProcessMovementAttempt(
+            _player2Mech,
+            Arg.Is<CliffFallRollContext>(context => context.LevelsFallen == 3),
+            Game,
+            Arg.Any<MovementType>(),
+            Arg.Any<HexPosition?>());
+    }
+
+    [Fact]
+    public void Enter_DfaHit_WhenTheAttackerLandsInWater_AddsTheWaterDepthToItsImpactPsr()
+    {
+        SetMap();
+        // The attacker grounds in the target's hex, which is Depth 1 water at the same hex level.
+        var waterHex = new Hex(TargetHex);
+        waterHex.AddTerrain(new WaterTerrain(-1));
+        Game.BattleMap!.AddHex(waterHex);
+        SetUpDfa(_player1Mech, _player2Mech);
+        MockDfaAttackResolver.ResolveDfa(Arg.Any<DfaAttackContext>())
+            .Returns(DfaHit(_player2Mech.Id));
+
+        _sut.Enter();
+
+        _player1Mech.Position!.Coordinates.ShouldBe(TargetHex);
+        _player1Mech.Position.Surface.ShouldBe(HexSurface.Ground);
+        MockFallProcessor.Received(1).ProcessPotentialFall(
+            _player1Mech, Game, Arg.Any<List<ComponentHitData>>(), Arg.Any<List<PartLocation>?>(),
+            Arg.Is<IReadOnlyList<PilotingSkillRollContext>?>(contexts =>
+                contexts != null
+                && contexts.Count == 1
+                && contexts[0] is DfaAttackerImpactRollContext
+                && ((DfaAttackerImpactRollContext)contexts[0]).WaterDepth == 1));
+    }
+
+    [Fact]
     public void Enter_EndOfPhasePsr_AppliesAFallThatFollowsASuccessfulPsr()
     {
         SetMap();

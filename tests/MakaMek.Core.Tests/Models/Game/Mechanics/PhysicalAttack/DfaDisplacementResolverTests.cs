@@ -120,6 +120,51 @@ public class DfaDisplacementResolverTests
     }
 
     [Fact]
+    public void ResolveHit_WhenTheIdealHexIsOccupiedButTheDominoIsBlocked_FallsBackToAnOpenHex()
+    {
+        var map = CreateMap();
+        var ideal = new HexCoordinates(5, 6);
+        // The domino's first link would climb three levels, so it cannot vacate the ideal hex.
+        map.AddHex(new Hex(ideal.GetNeighbour(HexDirection.Bottom), 3));
+        var attacker = CreateMech(new HexPosition(new HexCoordinates(5, 4), HexDirection.Top));
+        var target = CreateMech(new HexPosition(TargetCoordinates, HexDirection.Top));
+        var occupant = CreateMech(new HexPosition(ideal, HexDirection.Top));
+
+        var result = _sut.ResolveHit(
+            attacker, target, StartCoordinates, map, [attacker, target, occupant], Guid.NewGuid());
+
+        result.ShouldNotBeNull();
+        result.TargetDestination!.Coordinates.ShouldNotBe(ideal);
+        result.TargetDestination.Coordinates.DistanceTo(TargetCoordinates).ShouldBe(1);
+        result.DominoEffect.ShouldBeNull();
+        result.AttackerDestination.Coordinates.ShouldBe(TargetCoordinates);
+    }
+
+    [Fact]
+    public void ResolveHit_WhenTheIdealHexIsOffMapAndTheClosestHexIsOccupied_SkipsTheOccupant()
+    {
+        var map = CreateMap();
+        var targetCoordinates = new HexCoordinates(5, 1);
+        var attacker = CreateMech(new HexPosition(new HexCoordinates(5, 2), HexDirection.Top));
+        var target = CreateMech(new HexPosition(targetCoordinates, HexDirection.Top));
+        // The push away from (5,3) is towards (5,0), off the map. The best hexes still on the map
+        // that follow it are the bottom pair; make the first of them occupied.
+        var occupiedFallback = targetCoordinates.GetNeighbour(HexDirection.BottomRight);
+        var occupant = CreateMech(new HexPosition(occupiedFallback, HexDirection.Top));
+
+        var result = _sut.ResolveHit(
+            attacker, target, new HexCoordinates(5, 3), map,
+            [attacker, target, occupant], Guid.NewGuid());
+
+        // A fallback hex must be genuinely open: the occupant is not displaced from it.
+        result.ShouldNotBeNull();
+        result.TargetDestination!.Coordinates.ShouldNotBe(occupiedFallback);
+        result.TargetDestination.Coordinates.ShouldBe(
+            targetCoordinates.GetNeighbour(HexDirection.BottomLeft));
+        result.DominoEffect.ShouldBeNull();
+    }
+
+    [Fact]
     public void ResolveHit_WhenTheTargetIsDestroyed_LeavesItInPlaceAndLandsTheAttackerInItsHex()
     {
         var map = CreateMap();

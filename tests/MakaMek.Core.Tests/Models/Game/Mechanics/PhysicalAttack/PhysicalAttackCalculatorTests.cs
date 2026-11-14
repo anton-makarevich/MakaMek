@@ -612,6 +612,8 @@ public class PhysicalAttackCalculatorTests
         breakdown.TerrainModifiers.ShouldBeEmpty();
         breakdown.Total.ShouldBe(4);
         _sut.GetDfaToHitNumber(attacker, target, map).ShouldBe(4);
+        // The generic overload used by the attack preview dispatches DFA to the same calculation.
+        _sut.GetToHitNumber(attacker, target, PhysicalAttackType.DFA, map).ShouldBe(4);
     }
 
     [Fact]
