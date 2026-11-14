@@ -34,6 +34,15 @@ public static class HexExtensions
             return hex.Level - (hex.GetWaterDepth() ?? 0);
         }
 
+        /// <summary>
+        /// Total line-of-sight intervening factor contributed by the terrain in this hex.
+        /// The line of sight is blocked once the sum along the path reaches 3.
+        /// </summary>
+        public int GetInterveningFactor()
+        {
+            return hex.GetTerrains().Sum(t => t.InterveningFactor);
+        }
+
         public int GetGroundElevationChange(Hex fromHex)
         {
             return hex.GetBottomLevel() - fromHex.GetBottomLevel();

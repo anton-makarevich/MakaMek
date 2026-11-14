@@ -162,8 +162,7 @@ public record HexCoordinates
         }
 
         var result = new List<LineOfSightSegment>();
-        var current = this;
-        result.Add(new LineOfSightSegment(current));
+        result.Add(new LineOfSightSegment(this));
 
         // Get the direction vector in cube coordinates
         var dx = target.X - X;
@@ -174,40 +173,52 @@ public record HexCoordinates
         var leftDir = (mainDir + 5) % 6;  // Counter-clockwise
         var rightDir = (mainDir + 1) % 6;  // Clockwise
 
+        var current = this;
         while (!current.Equals(target))
         {
             // Check the three possible next hexes (left, center, right)
             var (next, additional, areEqual) = GetNextHexInLine(current, target, mainDir, leftDir, rightDir);
 
-            if (additional != null)
-            {
-                if (areEqual)
-                {
-                    // When options are equal, create one segment with both hexes
-                    result.Add(new LineOfSightSegment(next, additional));
-                }
-                else
-                {
-                    // When options are not equal, create two separate segments
-                    var nextSegment = new LineOfSightSegment(next);
-                    var additionalSegment = new LineOfSightSegment(additional);
-                    if (!result.Contains(nextSegment))
-                        result.Add(new LineOfSightSegment(next));
-                    if (!result.Contains(additionalSegment))
-                        result.Add(new LineOfSightSegment(additional));
-                }
-            }
-            else
-            {
-                var nextSegment = new LineOfSightSegment(next);
-                if (!result.Contains(nextSegment))
-                    result.Add(new LineOfSightSegment(next));
-            }
+            AppendSegment(result, next, additional, areEqual);
 
             current = next;
         }
 
         return result;
+    }
+
+    /// <summary>
+    /// Appends the segment(s) resolved for one step of the line, skipping hexes already on the path.
+    /// </summary>
+    private static void AppendSegment(
+        List<LineOfSightSegment> result,
+        HexCoordinates next,
+        HexCoordinates? additional,
+        bool areEqual)
+    {
+        if (additional == null)
+        {
+            AddSegmentIfMissing(result, next);
+            return;
+        }
+
+        if (areEqual)
+        {
+            // When options are equal, create one segment with both hexes
+            result.Add(new LineOfSightSegment(next, additional));
+            return;
+        }
+
+        // When options are not equal, create two separate segments
+        AddSegmentIfMissing(result, next);
+        AddSegmentIfMissing(result, additional);
+    }
+
+    private static void AddSegmentIfMissing(List<LineOfSightSegment> result, HexCoordinates coordinates)
+    {
+        var segment = new LineOfSightSegment(coordinates);
+        if (!result.Contains(segment))
+            result.Add(new LineOfSightSegment(coordinates));
     }
 
     private (HexCoordinates next, HexCoordinates? additional, bool areEqual) GetNextHexInLine(HexCoordinates current, HexCoordinates target, int mainDir, int leftDir, int rightDir)
