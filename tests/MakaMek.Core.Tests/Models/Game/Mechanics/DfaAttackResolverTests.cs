@@ -140,6 +140,79 @@ public class DfaAttackResolverTests
     }
 
     [Fact]
+    public void ResolveDfa_WithAReplacementTarget_KeepsTheOriginalTargetId()
+    {
+        // Arrange
+        var originalTargetId = Guid.NewGuid();
+        _toHitCalculator.GetDfaToHitNumber(
+                Arg.Any<IUnit>(), Arg.Any<IUnit>(), Arg.Any<IBattleMap>(), isReplacementTarget: true)
+            .Returns(7);
+        SetHitRoll(3, 4);
+        _diceRoller.RollD6().Returns(
+            new DiceResult(1),
+            new DiceResult(2),
+            new DiceResult(3),
+            new DiceResult(4));
+        var target = CreateUnit(20, TargetPosition());
+        var attacker = CreateUnit(35, new HexPosition(new HexCoordinates(0, 1), HexDirection.Top));
+
+        // Act
+        var result = _sut.ResolveDfa(new DfaAttackContext
+        {
+            Attacker = attacker,
+            Target = target,
+            Map = _map,
+            StartCoordinates = new HexCoordinates(0, 2),
+            ApproachCoordinates = new HexPosition(new HexCoordinates(0, 1), HexDirection.Top),
+            IsReplacementTarget = true,
+            OriginalTargetId = originalTargetId
+        });
+
+        // Assert: the resolution reports the declared target, not the unit that replaced it.
+        result.Dfa!.Outcome.ShouldBe(DfaOutcome.Hit);
+        result.Dfa.OriginalTargetId.ShouldBe(originalTargetId);
+        result.Dfa.IsReplacementTarget.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void ResolveDfa_WhenTheAttackerHasNoPosition_Throws()
+    {
+        // Arrange: an undeployed attacker cannot measure an attack direction.
+        var attacker = CreateUnit(35, new HexPosition(new HexCoordinates(0, 1), HexDirection.Top));
+        attacker.Position.Returns((HexPosition?)null);
+        var target = CreateUnit(20, TargetPosition());
+
+        // Act & Assert
+        Should.Throw<InvalidOperationException>(() => _sut.ResolveDfa(new DfaAttackContext
+        {
+            Attacker = attacker,
+            Target = target,
+            Map = _map,
+            StartCoordinates = new HexCoordinates(0, 2),
+            ApproachCoordinates = new HexPosition(new HexCoordinates(0, 1), HexDirection.Top)
+        }));
+    }
+
+    [Fact]
+    public void ResolveDfa_WhenTheTargetHasNoPosition_Throws()
+    {
+        // Arrange: an undeployed target cannot be hit.
+        var attacker = CreateUnit(35, new HexPosition(new HexCoordinates(0, 1), HexDirection.Top));
+        var target = CreateUnit(20, TargetPosition());
+        target.Position.Returns((HexPosition?)null);
+
+        // Act & Assert
+        Should.Throw<InvalidOperationException>(() => _sut.ResolveDfa(new DfaAttackContext
+        {
+            Attacker = attacker,
+            Target = target,
+            Map = _map,
+            StartCoordinates = new HexCoordinates(0, 2),
+            ApproachCoordinates = new HexPosition(new HexCoordinates(0, 1), HexDirection.Top)
+        }));
+    }
+
+    [Fact]
     public void ResolveDfa_AgainstAProneTarget_KeepsTheAttackDirectionButDealsRearDamage()
     {
         _toHitCalculator.GetDfaToHitNumber(Arg.Any<IUnit>(), Arg.Any<IUnit>(), Arg.Any<IBattleMap>())

@@ -878,6 +878,46 @@ public class UnitExtensionsTests
         result.ShouldBe(HitDirection.Front);
     }
 
+    [Fact]
+    public void GetAttackDirectionFrom_WhenTheOriginIsInTheLeftArc_ReturnsLeft()
+    {
+        // Arrange
+        var target = CreateUnitAt(new HexCoordinates(0, 0), HexDirection.Top);
+
+        // Act
+        var result = target.GetAttackDirectionFrom(new HexCoordinates(-2, 0));
+
+        // Assert
+        result.ShouldBe(HitDirection.Left);
+    }
+
+    [Fact]
+    public void GetAttackDirectionFrom_WhenTheOriginIsTheUnitsOwnHex_ReturnsFront()
+    {
+        // Arrange: an attack cannot come from the target's own hex.
+        var target = CreateUnitAt(new HexCoordinates(0, 0), HexDirection.Top);
+
+        // Act
+        var result = target.GetAttackDirectionFrom(new HexCoordinates(0, 0));
+
+        // Assert
+        result.ShouldBe(HitDirection.Front);
+    }
+
+    [Fact]
+    public void GetAttackDirectionFrom_WhenTheUnitHasNoPosition_ReturnsFront()
+    {
+        // Arrange
+        var target = Substitute.For<IUnit>();
+        target.Position.Returns((HexPosition?)null);
+
+        // Act
+        var result = target.GetAttackDirectionFrom(new HexCoordinates(0, 0));
+
+        // Assert
+        result.ShouldBe(HitDirection.Front);
+    }
+
     private static IUnit CreateUnitAt(HexCoordinates coordinates, HexDirection facing)
     {
         var unit = Substitute.For<IUnit>();

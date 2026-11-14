@@ -585,6 +585,35 @@ public class PhysicalAttackCalculatorTests
     }
 
     [Fact]
+    public void GetToHitNumber_ForADfaScenario_IncludesTheRelativePilotingModifier()
+    {
+        // Arrange
+        _rules.GetAttackerMovementModifier(MovementType.Jump).Returns(3);
+        var attackerPosition = new HexPosition(new HexCoordinates(2, 2), HexDirection.Top);
+        var targetPosition = new HexPosition(new HexCoordinates(2, 3), HexDirection.Bottom);
+        var (attacker, target) = CreateUnits(
+            attackerPosition,
+            targetPosition,
+            MovementPath.CreateSingleSegmentPath(attackerPosition, MovementType.Jump),
+            pilot: new MechWarrior("John", "Doe", gunnery: 4, piloting: 3));
+        target.Pilot.Returns(new MechWarrior("Jane", "Roe", gunnery: 4, piloting: 5));
+        target.MovementTaken.Returns((MovementPath?)null);
+        var map = CreateMap();
+        var scenario = PhysicalAttackScenario.FromUnits(attacker, target, PhysicalAttackType.DFA);
+
+        // Act
+        var toHitNumber = _sut.GetToHitNumber(scenario, map);
+        var movementBreakdown = _sut.GetMovementAttackModifierBreakdown(scenario, map);
+
+        // Assert: the scenario overload dispatches a DFA to the movement-attack calculation.
+        toHitNumber.ShouldBe(movementBreakdown.Total);
+        movementBreakdown.OtherModifiers.OfType<RelativePilotingModifier>()
+            .ShouldHaveSingleItem().Value.ShouldBe(-2);
+        _sut.GetModifierBreakdown(scenario, map).OtherModifiers
+            .OfType<RelativePilotingModifier>().ShouldBeEmpty();
+    }
+
+    [Fact]
     public void GetDfaModifierBreakdown_IncludesRelativePilotingAndJumpButNoTerrain()
     {
         // Arrange

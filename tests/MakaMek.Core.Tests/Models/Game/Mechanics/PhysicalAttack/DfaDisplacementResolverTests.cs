@@ -182,6 +182,46 @@ public class DfaDisplacementResolverTests
     }
 
     [Fact]
+    public void ResolveHit_WhenTheAttackerHasNoPosition_ReturnsNull()
+    {
+        var map = CreateMap();
+        var attacker = CreateMech(new HexPosition(new HexCoordinates(5, 4), HexDirection.Top));
+        attacker.RemoveFromBoard();
+        var target = CreateMech(new HexPosition(TargetCoordinates, HexDirection.Top));
+
+        var result = _sut.ResolveHit(
+            attacker, target, StartCoordinates, map, [attacker, target], Guid.NewGuid());
+
+        result.ShouldBeNull();
+    }
+
+    [Fact]
+    public void ResolveHit_WhenTheTargetHasNoPosition_ReturnsNull()
+    {
+        var map = CreateMap();
+        var attacker = CreateMech(new HexPosition(new HexCoordinates(5, 4), HexDirection.Top));
+        var target = CreateMech(new HexPosition(TargetCoordinates, HexDirection.Top));
+        target.RemoveFromBoard();
+
+        var result = _sut.ResolveHit(
+            attacker, target, StartCoordinates, map, [attacker, target], Guid.NewGuid());
+
+        result.ShouldBeNull();
+    }
+
+    [Fact]
+    public void ResolveMiss_WhenTheTargetHasNoPosition_ReturnsNull()
+    {
+        var map = CreateMap();
+        var target = CreateMech(new HexPosition(TargetCoordinates, HexDirection.Top));
+        target.RemoveFromBoard();
+
+        var candidate = _sut.ResolveMiss(target, StartCoordinates, map, [target]);
+
+        candidate.ShouldBeNull();
+    }
+
+    [Fact]
     public void ResolveMiss_PicksTheFirstFreeHexAwayFromTheJumpOrigin()
     {
         var map = CreateMap();
@@ -283,6 +323,33 @@ public class DfaDisplacementResolverTests
         result.Destination.Coordinates.ShouldBe(new HexCoordinates(5, 5));
         result.Destination.AirborneLevel.ShouldBeNull();
         result.DominoEffect.ShouldBeNull();
+    }
+
+    [Fact]
+    public void ResolveLanding_WhenTheAttackerHasNoPosition_ReturnsNull()
+    {
+        var map = CreateMap();
+        var attacker = CreateMech(new HexPosition(new HexCoordinates(5, 4), HexDirection.Top));
+        attacker.RemoveFromBoard();
+
+        var result = _sut.ResolveLanding(
+            attacker, new HexPosition(new HexCoordinates(5, 5), HexDirection.Top), StartCoordinates, map,
+            [attacker]);
+
+        result.ShouldBeNull();
+    }
+
+    [Fact]
+    public void ResolveLanding_WhenTheLandingHexIsOffTheMap_ReturnsNull()
+    {
+        var map = CreateMap();
+        var attacker = CreateMech(new HexPosition(new HexCoordinates(5, 4), HexDirection.Top, AirborneLevel: 4));
+
+        var result = _sut.ResolveLanding(
+            attacker, new HexPosition(new HexCoordinates(-1, -1), HexDirection.Top), StartCoordinates, map,
+            [attacker]);
+
+        result.ShouldBeNull();
     }
 
     [Fact]

@@ -89,6 +89,18 @@ public class MovementPathExtensionsTests
     }
 
     [Fact]
+    public void GetDfaLandingPosition_ReturnsNull_WhenPathHasNoTranslation()
+    {
+        var path = new MovementPath(new List<PathSegment>
+        {
+            new(new HexPosition(0, 0, HexDirection.Top),
+                new HexPosition(0, 0, HexDirection.TopRight), [])
+        }, MovementType.Jump);
+
+        path.GetDfaLandingPosition(Substitute.For<IBattleMap>()).ShouldBeNull();
+    }
+
+    [Fact]
     public void GetDfaLandingPosition_KeepsTheBridgeDeck_WhenItStillExists()
     {
         var path = JumpToBridgePath();

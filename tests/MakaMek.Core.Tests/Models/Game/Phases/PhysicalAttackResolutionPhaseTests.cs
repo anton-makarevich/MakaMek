@@ -1867,6 +1867,26 @@ public class PhysicalAttackResolutionPhaseTests : GamePhaseTestsBase
     }
 
     [Fact]
+    public void Enter_DfaByAProneAttacker_AutoMissesWithoutAToHitRoll()
+    {
+        SetMap();
+        SetUpDfa(_player1Mech, _player2Mech);
+        _player1Mech.SetProne();
+        var targetPosition = _player2Mech.Position!.Coordinates;
+        StubDfaFall();
+
+        _sut.Enter();
+
+        var resolution = PublishedCommands().OfType<PhysicalAttackResolutionCommand>()
+            .ShouldHaveSingleItem();
+        resolution.ResolutionData.Dfa!.Outcome.ShouldBe(DfaOutcome.Miss);
+        // A prone attacker cannot aim the jump: the miss resolves with no to-hit roll.
+        MockDfaAttackResolver.DidNotReceiveWithAnyArgs().ResolveDfa(null!);
+        _player2Mech.Position!.Coordinates.ShouldNotBe(targetPosition);
+        _player1Mech.Position!.Coordinates.ShouldBe(targetPosition);
+    }
+
+    [Fact]
     public void Enter_DfaWhenTheTargetMovedAway_AutoFailsAndLandsInTheDeclaredTargetHex()
     {
         SetMap();
@@ -1897,6 +1917,29 @@ public class PhysicalAttackResolutionPhaseTests : GamePhaseTestsBase
         PublishedCommands().OfType<MechFallCommand>().ShouldBeEmpty();
         MockPhaseManager.Received(1).GetNextPhase(PhaseNames.PhysicalAttackResolution, Game);
         _mockNextPhase.Received(1).Enter();
+    }
+
+    [Fact]
+    public void Enter_DfaWhenTheAttackerWasDisplacedFromItsApproach_AutoFailsAndLandsInTheDeclaredTargetHex()
+    {
+        SetMap();
+        SetUpDfa(_player1Mech, _player2Mech);
+        MoveTargetAway();
+        // An earlier attack of the phase can push the jumping 'Mech out of the approach hex after
+        // the queue snapshot, so the attack fails without a roll.
+        _player1Mech.Displace(new HexPosition(new HexCoordinates(5, 6), HexDirection.Top), null);
+
+        _sut.Enter();
+
+        var resolution = PublishedCommands().OfType<PhysicalAttackResolutionCommand>()
+            .ShouldHaveSingleItem();
+        resolution.ResolutionData.Dfa!.Outcome.ShouldBe(DfaOutcome.AutoFail);
+        // The committed jump destination still grounds the attacker in the declared target hex.
+        _player1Mech.Position!.Coordinates.ShouldBe(TargetHex);
+        PublishedCommands().OfType<DfaLandingCommand>()
+            .ShouldHaveSingleItem()
+            .LandingKind.ShouldBe(DfaLandingKind.AutoFailLanding);
+        MockDfaAttackResolver.DidNotReceiveWithAnyArgs().ResolveDfa(null!);
     }
 
     [Fact]
