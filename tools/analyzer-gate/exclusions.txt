@@ -42,3 +42,6 @@ src/MakaMek.Presentation/ViewModels/BattleMapViewModel.cs:CA1506:BattleMapViewMo
 # bindings. Scoping the entry to this declaration keeps every other method in the file subject
 # to the CA1502 threshold.
 src/MakaMek.Presentation/ViewModels/BattleMapViewModel.cs:CA1502:ProcessCommand
+#
+# temporary: type coupling fixed by #1717 in this stack
+src/MakaMek.Core/Models/Game/GameManager.cs:CA1506:GameManager
