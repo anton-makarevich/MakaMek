@@ -3,9 +3,6 @@ using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Map.Models;
 
-// Pre-existing class coupling in this type, not introduced by this change. It is tracked in
-// #1714 together with the baseline-aware analyzer gate that will make this suppression unnecessary.
-#pragma warning disable CA1506
 
 namespace Sanet.MakaMek.Core.Models.Units;
 

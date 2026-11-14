@@ -32,6 +32,7 @@
 using System.Diagnostics;
 using System.Formats.Tar;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 
 namespace AnalyzerGate;
 
@@ -49,6 +50,12 @@ internal static class Program
         "src/MakaMek.Localization/",
         "src/MakaMek.Bots/"
     ];
+
+    // Rules whose message carries the measured value ("coupled with '75' types",
+    // "complexity of '26'", "Cognitive Complexity from 26"). For these, a finding only counts
+    // as new when the measured value got worse than the baseline, not when it improved.
+    private static readonly HashSet<string> MetricRules =
+        new(StringComparer.Ordinal) { "CA1501", "CA1502", "CA1505", "CA1506", "S3776" };
 
     private static int Main(string[] args)
     {
@@ -450,26 +457,49 @@ internal static class Program
 
     private static (List<Finding> New, int Baselined) Subtract(List<Finding> current, List<Finding> baseline)
     {
-        var remaining = new Dictionary<string, int>(StringComparer.Ordinal);
+        var baselineMetrics = new Dictionary<string, int>(StringComparer.Ordinal);
+        var baselineCounts = new Dictionary<string, int>(StringComparer.Ordinal);
         foreach (var finding in baseline)
         {
-            remaining[finding.Key] = remaining.GetValueOrDefault(finding.Key) + 1;
-        }
-
-        var newFindings = new List<Finding>();
-        foreach (var finding in current)
-        {
-            if (remaining.GetValueOrDefault(finding.Key) > 0)
+            if (finding.HasMetric)
             {
-                remaining[finding.Key]--;
+                baselineMetrics[finding.Key] =
+                    Math.Max(baselineMetrics.GetValueOrDefault(finding.Key), finding.Metric);
             }
             else
             {
-                newFindings.Add(finding);
+                baselineCounts[finding.Key] = baselineCounts.GetValueOrDefault(finding.Key) + 1;
             }
         }
 
-        return (newFindings, current.Count - newFindings.Count);
+        var newFindings = new List<Finding>();
+        var baselined = 0;
+        foreach (var finding in current)
+        {
+            if (finding.HasMetric)
+            {
+                // A metric finding is new only when it is missing from the baseline or got worse.
+                if (baselineMetrics.TryGetValue(finding.Key, out var baselineMetric)
+                    && finding.Metric <= baselineMetric)
+                {
+                    baselined++;
+                    continue;
+                }
+                newFindings.Add(finding);
+                continue;
+            }
+
+            if (baselineCounts.GetValueOrDefault(finding.Key) > 0)
+            {
+                baselineCounts[finding.Key]--;
+                baselined++;
+                continue;
+            }
+
+            newFindings.Add(finding);
+        }
+
+        return (newFindings, baselined);
     }
 
     private static string Relativize(string path)
@@ -543,7 +573,18 @@ internal static class Program
 
     private sealed record Finding(string File, int Line, string Rule, string Message)
     {
-        public string Key => $"{File}\u0001{Rule}\u0001{Message}";
+        public bool HasMetric => MetricRules.Contains(Rule);
+
+        public int Metric
+        {
+            get
+            {
+                var match = Regex.Match(Message, @"\d+");
+                return match.Success && int.TryParse(match.Value, out var value) ? value : int.MaxValue;
+            }
+        }
+
+        public string Key => $"{File}\u0001{Rule}\u0001{Regex.Replace(Message, @"\d+", "#")}";
     }
 
     private sealed record ProcessResult(int ExitCode, string StandardOutput, string StandardError);
