@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Bots.Data;
 using Sanet.MakaMek.Bots.Exceptions;
+using Sanet.MakaMek.Bots.Models.Evaluation;
 using Sanet.MakaMek.Bots.Models.Logger;
 using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
@@ -19,15 +20,25 @@ public class WeaponsEngine : IBotDecisionEngine
 {
     private readonly IClientGame _clientGame;
     private readonly ITacticalEvaluator _tacticalEvaluator;
+    private readonly IWeaponSelectionEvaluator _weaponSelection;
 
-    // TODO: move all the params like that into config
-    // Higher values make the bot more conservative with ammo
-    private const double AmmoConservationFactor = 3d;
-    
+    /// <summary>
+    /// Creates the engine with the default weapons evaluation graph. Prefer the constructor that
+    /// takes explicit <see cref="WeaponsEvaluationComponents"/> when composing the bot.
+    /// </summary>
     public WeaponsEngine(IClientGame clientGame, ITacticalEvaluator tacticalEvaluator)
+        : this(clientGame, tacticalEvaluator, WeaponsEvaluationComponents.CreateDefault(clientGame))
+    {
+    }
+
+    public WeaponsEngine(
+        IClientGame clientGame,
+        ITacticalEvaluator tacticalEvaluator,
+        WeaponsEvaluationComponents components)
     {
         _clientGame = clientGame;
         _tacticalEvaluator = tacticalEvaluator;
+        _weaponSelection = components.WeaponSelection;
     }
 
     public async Task MakeDecision(IPlayer player, ITurnState? turnState = null, BotSettings settings = default)
@@ -113,7 +124,7 @@ public class WeaponsEngine : IBotDecisionEngine
             _clientGame.Logger.LogSelectedTargetWithScore(target.Name, bestOption.ConfigScore.Score);
 
             // Configuration is applied (or not needed), select weapons and declare attack
-            var weaponTargets = SelectWeapons(attacker, bestOption.ConfigScore)
+            var weaponTargets = _weaponSelection.SelectWeapons(attacker, bestOption.ConfigScore)
                 .Select(evaluation => new WeaponTargetData
             {
                 Weapon = evaluation.Weapon.ToData(),
@@ -185,61 +196,6 @@ public class WeaponsEngine : IBotDecisionEngine
         };
 
         await _clientGame.ConfigureUnitWeapons(command);
-    }
-
-    private List<WeaponEvaluationData> SelectWeapons(IUnit attacker, WeaponConfigurationEvaluationData configEvaluationData)
-    {
-        var initialProjectedHeat = attacker.GetProjectedHeatValue(_clientGame.RulesProvider);
-        var heatDissipation = attacker.HeatDissipation;
-        var heatThreshold = GetHeatSelectionThreshold();
-
-        var sortedWeapons = configEvaluationData.ViableWeapons
-            .Where(w => w.HitProbability > 0)
-            .OrderByDescending(w => w.HitProbability)
-            .ThenByDescending(w => w.Weapon.Damage)
-            .ToList();
-
-        if (sortedWeapons.Count == 0)
-            return [];
-
-        var selectedWeapons = new List<WeaponEvaluationData>();
-        var selectedHeat = 0;
-
-        foreach (var evaluation in sortedWeapons)
-        {
-            var nextSelectedHeat = selectedHeat + evaluation.Weapon.Heat;
-            if (initialProjectedHeat + nextSelectedHeat - heatDissipation > heatThreshold)
-                continue;
-
-            if (IsFiringWeaponJustified(attacker, evaluation))
-            {
-                selectedWeapons.Add(evaluation);
-                selectedHeat = nextSelectedHeat;
-            }
-        }
-
-        return selectedWeapons;
-    }
-
-    private static bool IsFiringWeaponJustified(IUnit attacker, WeaponEvaluationData evaluation)
-    {
-        if (!evaluation.Weapon.RequiresAmmo)
-            return true;
-
-        var remainingShots = attacker.GetRemainingAmmoShots(evaluation.Weapon);
-        if (remainingShots <= 0)
-            return false;
-
-        var requiredHitProbability = AmmoConservationFactor / (remainingShots + AmmoConservationFactor);
-        requiredHitProbability = Math.Clamp(requiredHitProbability, 0d, 1d);
-
-        return evaluation.HitProbability >= requiredHitProbability;
-    }
-
-    private static int GetHeatSelectionThreshold()
-    {
-        // TODO: Calculate based on risk assessment (hit probability, damage, and heat penalty risks).
-        return 5;
     }
 }
 
