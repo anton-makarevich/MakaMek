@@ -872,9 +872,15 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
     {
         if (PhysicalAttackIndicators is not { Count: > 0 }) return;
 
-        // A charge declared against one unit can resolve against another unit that replaced it in
-        // the target hex. The badge belongs to the declared target, so match that instead.
-        var indicatorTargetId = command.ResolutionData.Charge?.OriginalTargetId ?? command.TargetId;
+        // A charge or a DFA declared against one unit can resolve against another unit that
+        // replaced it in the target hex. The badge belongs to the declared target, so match that
+        // instead; Charge and Dfa are mutually exclusive.
+        var originalTargetId = command.ResolutionData.Charge?.OriginalTargetId;
+        if (originalTargetId is null
+            && command.ResolutionData.Dfa is { IsReplacementTarget: true } dfaResolution)
+            originalTargetId = dfaResolution.OriginalTargetId;
+
+        var indicatorTargetId = originalTargetId ?? command.TargetId;
 
         var index = PhysicalAttackIndicators.FindIndex(indicator =>
             indicator.AttackerId == command.AttackerId

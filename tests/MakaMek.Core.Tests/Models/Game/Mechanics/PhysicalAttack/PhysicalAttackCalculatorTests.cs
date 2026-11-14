@@ -605,12 +605,39 @@ public class PhysicalAttackCalculatorTests
         var toHitNumber = _sut.GetToHitNumber(scenario, map);
         var movementBreakdown = _sut.GetMovementAttackModifierBreakdown(scenario, map);
 
-        // Assert: the scenario overload dispatches a DFA to the movement-attack calculation.
+        // Assert: the scenario dispatch routes a DFA through the movement-attack calculation, so
+        // the public breakdown and the to-hit number always agree.
         toHitNumber.ShouldBe(movementBreakdown.Total);
         movementBreakdown.OtherModifiers.OfType<RelativePilotingModifier>()
             .ShouldHaveSingleItem().Value.ShouldBe(-2);
-        _sut.GetModifierBreakdown(scenario, map).OtherModifiers
-            .OfType<RelativePilotingModifier>().ShouldBeEmpty();
+        var scenarioBreakdown = _sut.GetModifierBreakdown(scenario, map);
+        scenarioBreakdown.Total.ShouldBe(toHitNumber);
+        scenarioBreakdown.OtherModifiers.OfType<RelativePilotingModifier>()
+            .ShouldHaveSingleItem().Value.ShouldBe(-2);
+    }
+
+    [Fact]
+    public void GetModifierBreakdown_ForAChargeScenario_IncludesTheRelativePilotingModifier()
+    {
+        // Arrange
+        var attackerPosition = new HexPosition(new HexCoordinates(2, 2), HexDirection.Top);
+        var targetPosition = new HexPosition(new HexCoordinates(2, 3), HexDirection.Bottom);
+        var (attacker, target) = CreateUnits(
+            attackerPosition,
+            targetPosition,
+            pilot: new MechWarrior("John", "Doe", gunnery: 4, piloting: 3));
+        target.Pilot.Returns(new MechWarrior("Jane", "Roe", gunnery: 4, piloting: 5));
+        var map = CreateMap();
+        var scenario = PhysicalAttackScenario.FromUnits(attacker, target, PhysicalAttackType.Charge);
+
+        // Act
+        var breakdown = _sut.GetModifierBreakdown(scenario, map);
+
+        // Assert: the preview breakdown matches the to-hit number the charge resolves against.
+        breakdown.OtherModifiers.OfType<RelativePilotingModifier>()
+            .ShouldHaveSingleItem().Value.ShouldBe(-2);
+        breakdown.Total.ShouldBe(_sut.GetToHitNumber(scenario, map));
+        breakdown.Total.ShouldBe(_sut.GetChargeToHitNumber(attacker, target, map, isReplacementTarget: false));
     }
 
     [Fact]
