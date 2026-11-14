@@ -1,7 +1,5 @@
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
-using System.Security.Cryptography;
-using System.Text;
 using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Assets.Models.Terrains;
 using Sanet.MakaMek.Map.Models;
@@ -11,12 +9,17 @@ using Sanet.MakaMek.Assets.Services.PackageReaders;
 namespace Sanet.MakaMek.Assets.Services;
 
 /// <summary>
-/// Service for caching and retrieving terrain assets from MMTX packages
+/// Service for caching and retrieving terrain assets from MMTX packages.
+/// Owns the cache state and its lifetime; terrain → image mapping is delegated to
+/// <see cref="ITerrainImageResolver"/>, cache bookkeeping to <see cref="TerrainAssetCache"/>
+/// and package loading to <see cref="TerrainPackageLoader"/>.
 /// </summary>
 public class TerrainCachingService : PackageCacheCore<TerrainCachingService.TerrainCacheState>, ITerrainAssetService
 {
     private readonly ILogger<TerrainCachingService> _logger;
-    private readonly MmtxTerrainPackageReader _packageReader = new();
+    private readonly ITerrainImageResolver _imageResolver;
+    private readonly TerrainAssetCache _assetCache;
+    private readonly TerrainPackageLoader _packageLoader;
 
     /// <summary>
     /// Snapshot of all cached terrain data.
@@ -34,13 +37,41 @@ public class TerrainCachingService : PackageCacheCore<TerrainCachingService.Terr
         public readonly ConcurrentDictionary<string, ImmutableSortedSet<int>> VariantCache = new();
     }
 
+    /// <summary>
+    /// Initializes a new instance of TerrainCachingService using the default stateless collaborators.
+    /// </summary>
+    /// <param name="streamProviders">Collection of stream providers to load terrain from</param>
+    /// <param name="loggerFactory">Logger factory for logging</param>
+    /// <param name="lazyProviders">Optional async factory for lazily resolving providers on first access</param>
     public TerrainCachingService(
         IEnumerable<IResourceStreamProvider> streamProviders,
         ILoggerFactory loggerFactory,
         Func<Task<IReadOnlyList<IResourceStreamProvider>>>? lazyProviders = null)
+        : this(streamProviders, loggerFactory, lazyProviders, new TerrainImageResolver(), new TerrainAssetCache())
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of TerrainCachingService with explicit collaborators.
+    /// The composition root uses this overload so the resolver and cache are shared.
+    /// </summary>
+    /// <param name="streamProviders">Collection of stream providers to load terrain from</param>
+    /// <param name="loggerFactory">Logger factory for logging</param>
+    /// <param name="lazyProviders">Optional async factory for lazily resolving providers on first access</param>
+    /// <param name="imageResolver">Maps terrain requests to package asset coordinates</param>
+    /// <param name="assetCache">Cache bookkeeping for images, variants and packages</param>
+    public TerrainCachingService(
+        IEnumerable<IResourceStreamProvider> streamProviders,
+        ILoggerFactory loggerFactory,
+        Func<Task<IReadOnlyList<IResourceStreamProvider>>>? lazyProviders,
+        ITerrainImageResolver imageResolver,
+        TerrainAssetCache assetCache)
         : base(streamProviders)
     {
         _logger = loggerFactory.CreateLogger<TerrainCachingService>();
+        _imageResolver = imageResolver;
+        _assetCache = assetCache;
+        _packageLoader = new TerrainPackageLoader(new MmtxTerrainPackageReader(), assetCache);
         if (lazyProviders is not null)
             SetLazyProviders(lazyProviders);
     }
@@ -69,28 +100,14 @@ public class TerrainCachingService : PackageCacheCore<TerrainCachingService.Terr
     public async Task<byte[]?> GetBaseBiomeImage(string biomeId, int? variant = null)
     {
         var state = await EnsureInitialized();
-
-        var variants = GetAvailableVariants(state, biomeId, TerrainAssetType.Base, "base");
-        if (variants.Count == 0) return null;
-
-        var selectedVariant = variant ?? SelectRandomVariant(variants, biomeId, "base", 0);
-        var cacheKey = GetCacheKey(biomeId, TerrainAssetType.Base, "base", selectedVariant);
-
-        return state.ImageCache.GetValueOrDefault(cacheKey);
+        return _assetCache.GetImage(state, biomeId, _imageResolver.ResolveBase(variant));
     }
 
     /// <inheritdoc />
     public async Task<byte[]?> GetTerrainOverlayImage(string biomeId, string terrainType, int? variant = null)
     {
         var state = await EnsureInitialized();
-
-        var variants = GetAvailableVariants(state, biomeId, TerrainAssetType.Overlay, terrainType);
-        if (variants.Count == 0) return null;
-
-        var selectedVariant = variant ?? SelectRandomVariant(variants, biomeId, terrainType, 0);
-        var cacheKey = GetCacheKey(biomeId, TerrainAssetType.Overlay, terrainType, selectedVariant);
-
-        return state.ImageCache.GetValueOrDefault(cacheKey);
+        return _assetCache.GetImage(state, biomeId, _imageResolver.ResolveOverlay(terrainType, variant));
     }
 
     /// <inheritdoc />
@@ -98,61 +115,29 @@ public class TerrainCachingService : PackageCacheCore<TerrainCachingService.Terr
     {
         var state = await EnsureInitialized();
 
-        if (edgeType is not (TerrainAssetType.EdgeTop or TerrainAssetType.EdgeBottom))
-            return null;
-
-        var directionName = ((int)direction).ToString();
-        var variants = GetAvailableVariants(state, biomeId, edgeType, directionName);
-        if (variants.Count == 0) return null;
-
-        // Use hex coordinates for deterministic variant selection
-        var selectedVariant = SelectRandomVariant(variants, biomeId, directionName, coordinates.Q + coordinates.R * 31);
-        var cacheKey = GetCacheKey(biomeId, edgeType, directionName, selectedVariant);
-
-        return state.ImageCache.GetValueOrDefault(cacheKey);
+        var request = _imageResolver.ResolveEdge(direction, edgeType, coordinates);
+        return request is null ? null : _assetCache.GetImage(state, biomeId, request.Value);
     }
 
     /// <inheritdoc />
     public async Task<byte[]?> GetWaterTextureImage(string biomeId, CanonicalBitmaskResult canonicalBitmask)
     {
-        return await GetBitmaskTexture(biomeId, canonicalBitmask, TerrainAssetType.Water);
+        var state = await EnsureInitialized();
+        return _assetCache.GetImage(state, biomeId, _imageResolver.ResolveWaterTexture(canonicalBitmask));
     }
 
     /// <inheritdoc />
     public async Task<byte[]?> GetRoadTextureImage(string biomeId, CanonicalBitmaskResult canonicalBitmask)
     {
-        return await GetBitmaskTexture(biomeId, canonicalBitmask, TerrainAssetType.Road);
-    }
-
-    private async Task<byte[]?> GetBitmaskTexture(string biomeId, CanonicalBitmaskResult canonicalBitmask, TerrainAssetType assetType)
-    {
         var state = await EnsureInitialized();
-
-        // Convert canonical mask to 6-digit binary string (e.g., mask 1 → "000001")
-        var bitmaskName = Convert.ToString(canonicalBitmask.CanonicalMask, 2).PadLeft(6, '0');
-
-        var variants = GetAvailableVariants(state, biomeId, assetType, bitmaskName);
-        if (variants.Count == 0) return null;
-
-        var selectedVariant = SelectRandomVariant(variants, biomeId, bitmaskName, 0);
-        var cacheKey = GetCacheKey(biomeId, assetType, bitmaskName, selectedVariant);
-
-        return state.ImageCache.GetValueOrDefault(cacheKey);
+        return _assetCache.GetImage(state, biomeId, _imageResolver.ResolveRoadTexture(canonicalBitmask));
     }
 
     /// <inheritdoc />
     public async Task<IReadOnlyList<int>> GetAvailableVariants(string biomeId, TerrainAssetType assetType, string assetName)
     {
         var state = await EnsureInitialized();
-        return GetAvailableVariants(state, biomeId, assetType, assetName);
-    }
-
-    private static IReadOnlyList<int> GetAvailableVariants(TerrainCacheState state, string biomeId, TerrainAssetType assetType, string assetName)
-    {
-        var variantKey = GetVariantKey(biomeId, assetType, assetName);
-        return state.VariantCache.TryGetValue(variantKey, out var variants)
-            ? variants
-            : Array.Empty<int>();
+        return _assetCache.GetVariants(state, biomeId, assetType, assetName);
     }
 
     /// <inheritdoc />
@@ -160,9 +145,10 @@ public class TerrainCachingService : PackageCacheCore<TerrainCachingService.Terr
     {
         try
         {
-            var package = await _packageReader.Read(mmtxStream);
-            AddPackageToCache(package, CurrentState, null);
-            return package.Manifest;
+            var (manifest, replacedExistingBiome) = await _packageLoader.Load(
+                mmtxStream, CurrentState, providerId: null, onDuplicateAsset: LogDuplicateAsset);
+            LogDuplicateBiomeIfReplaced(replacedExistingBiome, manifest.Id);
+            return manifest;
         }
         catch (Exception ex)
         {
@@ -179,91 +165,23 @@ public class TerrainCachingService : PackageCacheCore<TerrainCachingService.Terr
         TerrainCacheState state,
         CancellationToken cancellationToken = default)
     {
-        var package = await _packageReader.Read(stream, cancellationToken);
-        AddPackageToCache(package, state, provider.Id);
+        var (manifest, replacedExistingBiome) = await _packageLoader.Load(
+            stream, state, provider.Id, LogDuplicateAsset, cancellationToken);
+        LogDuplicateBiomeIfReplaced(replacedExistingBiome, manifest.Id);
         _logger.LogInformation("Loaded terrain biome '{BiomeId}' version {Version}",
-            package.Manifest.Id, package.Manifest.Version);
+            manifest.Id, manifest.Version);
     }
 
-    /// <summary>
-    /// Adds a parsed terrain package (manifest + assets) to the cache, applying the shared
-    /// duplicate policy: a package from a provider lower in the list overwrites an earlier one.
-    /// </summary>
-    private void AddPackageToCache(TerrainPackage package, TerrainCacheState state, string? providerId)
+    private void LogDuplicateBiomeIfReplaced(bool replacedExistingBiome, string biomeId)
     {
-        // Serialize the entire merge — duplicate detection, remove and all inserts — so a
-        // duplicate biome is replaced by one complete package instead of an interleaved
-        // mixture when multiple callers merge into the same state concurrently.
-        lock (state.SyncRoot)
+        if (replacedExistingBiome)
         {
-            // Apply the shared duplicate policy: a package from a provider lower in the list
-            // replaces the earlier one entirely, so remove the previous biome's assets first.
-            if (state.BiomeManifests.ContainsKey(package.Manifest.Id))
-            {
-                _logger.LogWarning("Duplicate terrain biome '{BiomeId}' found; replacing previously loaded assets",
-                    package.Manifest.Id);
-                RemoveBiomeAssets(state, package.Manifest.Id);
-            }
-
-            state.BiomeManifests[package.Manifest.Id] = package.Manifest;
-            if (!string.IsNullOrEmpty(providerId))
-                state.ResourceOwnership[package.Manifest.Id] = providerId;
-            else
-                state.ResourceOwnership.TryRemove(package.Manifest.Id, out _);
-
-            foreach (var asset in package.Assets)
-            {
-                var cacheKey = GetCacheKey(package.Manifest.Id, asset.AssetType, asset.AssetName, asset.Variant);
-                TryCache(state.ImageCache, cacheKey, asset.Image);
-
-                // Track variants
-                var variantKey = GetVariantKey(package.Manifest.Id, asset.AssetType, asset.AssetName);
-                state.VariantCache.AddOrUpdate(
-                    variantKey,
-                    _ => ImmutableSortedSet.Create(asset.Variant),
-                    (_, set) => set.Add(asset.Variant));
-            }
+            _logger.LogWarning("Duplicate terrain biome '{BiomeId}' found; replacing previously loaded assets",
+                biomeId);
         }
     }
 
-    private static void RemoveBiomeAssets(TerrainCacheState state, string biomeId)
-    {
-        var prefix = $"{biomeId}/";
-        foreach (var key in state.ImageCache.Keys.Where(k => k.StartsWith(prefix, StringComparison.Ordinal)).ToList())
-        {
-            state.ImageCache.TryRemove(key, out _);
-        }
-        foreach (var key in state.VariantCache.Keys.Where(k => k.StartsWith(prefix, StringComparison.Ordinal)).ToList())
-        {
-            state.VariantCache.TryRemove(key, out _);
-        }
-    }
-
-    private static string GetCacheKey(string biomeId, TerrainAssetType assetType, string assetName, int variant)
-    {
-        return $"{biomeId}/{assetType}/{assetName}/{variant}";
-    }
-
-    private static string GetVariantKey(string biomeId, TerrainAssetType assetType, string assetName)
-    {
-        return $"{biomeId}/{assetType}/{assetName}";
-    }
-
-    /// <summary>
-    /// Selects a variant deterministically based on a seed value
-    /// Uses hash-based selection for consistent results across sessions
-    /// </summary>
-    private static int SelectRandomVariant(IReadOnlyList<int> variants, string biomeId, string assetName, int seed)
-    {
-        if (variants.Count == 0) return 0;
-        if (variants.Count == 1) return variants[0];
-
-        // Combine biome, asset name, and seed for deterministic selection
-        var combined = $"{biomeId}-{assetName}-{seed}";
-        var hash = SHA256.HashData(Encoding.UTF8.GetBytes(combined));
-        var hashValue = BitConverter.ToUInt32(hash, 0);
-
-        var index = (int)(hashValue % (uint)variants.Count);
-        return variants[index];
-    }
+    private void LogDuplicateAsset(string cacheKey) =>
+        _logger.LogWarning("Duplicate {ResourceKind} '{Key}' found; overwriting with the value from a lower provider",
+            ResourceKind, cacheKey);
 }

@@ -63,6 +63,10 @@ public static class CoreServices
             });
         });
 
+        // Terrain cache collaborators — stateless, so one instance serves every consumer.
+        services.AddSingleton<TerrainAssetCache>();
+        services.AddSingleton<ITerrainImageResolver, TerrainImageResolver>();
+
         // Terrain caching service — same lazy pattern as units above.
         services.AddSingleton<ITerrainAssetService>(sp =>
         {
@@ -74,7 +78,9 @@ public static class CoreServices
             {
                 var configs = await configProvider.GetActiveProviders(AssetType.Hexes);
                 return providerFactory.CreateAll(configs);
-            });
+            },
+            sp.GetRequiredService<ITerrainImageResolver>(),
+            sp.GetRequiredService<TerrainAssetCache>());
         });
 
         // Register both image services
