@@ -97,6 +97,13 @@ public interface IRulesProvider
     int GetDfaFallFacingRoll();
 
     /// <summary>
+    /// Gets the to-hit modifier a Death From Above receives when it resolves against a replacement
+    /// target instead of the originally declared one: +1 (Total Warfare, Initiative and
+    /// Displacement).
+    /// </summary>
+    int GetDfaReplacementTargetModifier();
+
+    /// <summary>
     /// Gets the piloting skill roll requirements a physical attack creates.
     /// A successful kick requires the target to roll; a missed kick requires the attacker to roll.
     /// </summary>

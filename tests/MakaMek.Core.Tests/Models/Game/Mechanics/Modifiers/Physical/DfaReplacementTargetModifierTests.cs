@@ -21,7 +21,7 @@ public class DfaReplacementTargetModifierTests
         // Arrange
         var sut = new DfaReplacementTargetModifier
         {
-            Value = DfaReplacementTargetModifier.DefaultValue
+            Value = 1
         };
 
         // Act

@@ -323,6 +323,9 @@ public class TotalWarfareRulesProvider : IRulesProvider
     /// <inheritdoc />
     public int GetDfaFallFacingRoll() => 4;
 
+    /// <inheritdoc />
+    public int GetDfaReplacementTargetModifier() => 1;
+
     /// <summary>
     /// A kick forces the target to make a piloting skill roll when it hits and the attacker to
     /// make one when it misses (Total Warfare, p. 146). A push forces the target to roll when it
@@ -436,9 +439,9 @@ public class TotalWarfareRulesProvider : IRulesProvider
         };
     }
 
-    public int GetTerrainToHitModifier(MakaMekTerrains terrainId)
+    public int GetTerrainToHitModifier(MakaMekTerrains terrainType)
     {
-        return terrainId switch
+        return terrainType switch
         {
             MakaMekTerrains.LightWoods => 1,
             MakaMekTerrains.HeavyWoods => 2,

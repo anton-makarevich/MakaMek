@@ -1844,6 +1844,12 @@ public class TotalWarfareRulesProviderTests
     }
 
     [Fact]
+    public void GetDfaReplacementTargetModifier_ReturnsOne()
+    {
+        _sut.GetDfaReplacementTargetModifier().ShouldBe(1);
+    }
+
+    [Fact]
     public void DfaPsrModifiers_ShouldBePlusTwoAndPlusFour()
     {
         _sut.GetPilotingSkillRollModifier(PilotingSkillRollType.DfaTargetImpact).ShouldBe(2);

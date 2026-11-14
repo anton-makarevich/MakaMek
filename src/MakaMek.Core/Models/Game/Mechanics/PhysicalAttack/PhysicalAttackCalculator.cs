@@ -194,7 +194,7 @@ public class PhysicalAttackCalculator : IPhysicalAttackCalculator
                 .. breakdown.OtherModifiers,
                 new DfaReplacementTargetModifier
                 {
-                    Value = DfaReplacementTargetModifier.DefaultValue
+                    Value = _rules.GetDfaReplacementTargetModifier()
                 }
             ]
         };

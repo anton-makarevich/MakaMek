@@ -643,6 +643,7 @@ public class PhysicalAttackCalculatorTests
     public void GetDfaModifierBreakdown_AddsOneForAReplacementTarget()
     {
         // Arrange
+        _rules.GetDfaReplacementTargetModifier().Returns(1);
         var (attacker, target) = CreateUnits(
             new HexPosition(2, 2, HexDirection.Bottom),
             new HexPosition(2, 3, HexDirection.Bottom));
