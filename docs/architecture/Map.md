@@ -5,6 +5,8 @@ The Map module implements the core logic for the game's hex-based battle map. It
 
 `BattleMap` is a thin hex-store façade with an unchanged public API. Movement and visibility algorithms live in dedicated collaborators under `Pathfinding/`; map serialization lives in `Data/`. The split keeps the public surface stable while allowing each algorithm to be understood, tested, and changed on its own.
 
+The façade also carries a coupling budget: it stays below the `CA1506` threshold (40 coupled types), and `MapArchitectureTests` guards the two edges that matter — the Map assembly must not depend on Core, Presentation, Bots or the Avalonia/UI layers, and `BattleMap` must not depend on `Generators`. New traversal or query behaviour belongs in a collaborator rather than back on `BattleMap`.
+
 ---
 
 ## Main Components
