@@ -22,6 +22,7 @@ public class RoadPathGenerator
     private readonly HashSet<HexCoordinates> _existingRoadHexes = [];
     private readonly HashSet<HexCoordinates>? _existingWaterHexes;
     private readonly Func<HexCoordinates, int>? _levelLookup;
+    private readonly PathWalker _pathWalker;
 
     public RoadPathGenerator(
         int width,
@@ -40,6 +41,7 @@ public class RoadPathGenerator
         _random = random ?? new Random();
         _existingWaterHexes = existingWaterHexes;
         _levelLookup = levelLookup;
+        _pathWalker = new PathWalker(width, height);
     }
 
     public Dictionary<HexCoordinates, int> GenerateRoads(int roadCount)
@@ -61,46 +63,44 @@ public class RoadPathGenerator
 
     private HashSet<HexCoordinates> GenerateSingleRoad()
     {
-        var road = new HashSet<HexCoordinates>();
-
         var startHex = PickRandomEdgeStart();
-        road.Add(startHex);
         _existingRoadHexes.Add(startHex);
 
-        var queue = new Queue<(HexCoordinates Hex, HexDirection Direction)>();
-        var initialDirection = startHex.GetDirectionToward(GetCenterHexCoordinate(), _random);
-        queue.Enqueue((startHex, initialDirection));
-
-        while (queue.Count > 0)
+        // Direction each hex was entered by; the next hex prefers continuing straight.
+        var straightDirections = new Dictionary<HexCoordinates, HexDirection>
         {
-            var (hex, straightDirection) = queue.Dequeue();
-            var hexLevel = _levelLookup?.Invoke(hex);
+            [startHex] = startHex.GetDirectionToward(GetCenterHexCoordinate(), _random)
+        };
 
-            foreach (var candidate in HexDirectionExtensions.AllDirections)
-            {
-                var targetHex = hex.GetNeighbour(candidate);
+        return _pathWalker.Flood(
+            startHex,
+            (current, candidate) => TryExtendRoad(current, candidate, straightDirections));
+    }
 
-                if (targetHex.Q < 1 || targetHex.Q > _width ||
-                    targetHex.R < 1 || targetHex.R > _height)
-                    continue;
+    /// <summary>
+    /// Decides whether the road branches into a candidate hex: it must be new, within the
+    /// elevation limit, and win its per-direction probability roll.
+    /// </summary>
+    private bool TryExtendRoad(
+        HexCoordinates current,
+        HexCoordinates candidate,
+        Dictionary<HexCoordinates, HexDirection> straightDirections)
+    {
+        if (_existingRoadHexes.Contains(candidate))
+            return false;
 
-                if (road.Contains(targetHex) || _existingRoadHexes.Contains(targetHex))
-                    continue;
+        var hexLevel = _levelLookup?.Invoke(current);
+        if (hexLevel != null && Math.Abs(_levelLookup!(candidate) - hexLevel.Value) > MaxPassableLevelDifference)
+            return false;
 
-                if (hexLevel != null && Math.Abs(_levelLookup!(targetHex) - hexLevel.Value) > MaxPassableLevelDifference)
-                    continue;
+        var direction = current.GetDirectionToNeighbour(candidate);
+        var probability = GetProbabilityForDirection(direction, straightDirections[current]);
+        if (_random.Next(100) >= probability)
+            return false;
 
-                var probability = GetProbabilityForDirection(candidate, straightDirection);
-                if (_random.Next(100) >= probability)
-                    continue;
-
-                road.Add(targetHex);
-                _existingRoadHexes.Add(targetHex);
-                queue.Enqueue((targetHex, candidate));
-            }
-        }
-
-        return road;
+        _existingRoadHexes.Add(candidate);
+        straightDirections[candidate] = direction;
+        return true;
     }
 
     private static int GetProbabilityForDirection(HexDirection candidate, HexDirection straightDirection)

@@ -1,22 +1,60 @@
 using Sanet.MakaMek.Map.Data;
-using Sanet.MakaMek.Map.Exceptions;
 using Sanet.MakaMek.Map.Models.MovementCosts;
+using Sanet.MakaMek.Map.Pathfinding;
 
 namespace Sanet.MakaMek.Map.Models;
 
 /// <summary>
-/// Represents the game battle map, managing hexes and providing pathfinding capabilities
+/// Represents the game battle map, managing hexes and providing pathfinding capabilities.
+/// The map itself is a thin hex store: pathfinding, reachability and line-of-sight work is
+/// delegated to the dedicated collaborators in <see cref="Pathfinding"/>.
 /// </summary>
-public class BattleMap(int width, int height, string biome = "makamek.biomes.grasslands") : IBattleMap
+public class BattleMap : IBattleMap
 {
-    private readonly Dictionary<HexCoordinates, Hex> _hexes = new();
-    private readonly LineOfSightCache _losCache = new();
-    private readonly MovementPathCache _movementPathCache = new();
-    private readonly MovementPathCache _movementLongPathCache = new();
+    private const string DefaultBiome = "makamek.biomes.grasslands";
 
-    public int Width { get; } = width;
-    public int Height { get; } = height;
-    public string Biome { get; } = biome;
+    private readonly HexGrid _grid;
+    private readonly LineOfSightCache _losCache;
+    private readonly MovementPathCache _movementPathCache;
+    private readonly MovementPathCache _movementLongPathCache;
+    private readonly HexPathfinder _pathfinder;
+    private readonly HexReachabilityCalculator _reachability;
+    private readonly LineOfSightCalculator _lineOfSight;
+
+    /// <summary>
+    /// Creates a battle map with the default map collaborators.
+    /// </summary>
+    public BattleMap(int width, int height, string biome = DefaultBiome)
+        : this(
+            new HexGrid(width, height, biome),
+            new HexMovementRules(),
+            new LineOfSightCache(),
+            new MovementPathCache(),
+            new MovementPathCache())
+    {
+    }
+
+    internal BattleMap(
+        HexGrid grid,
+        IHexMovementRules movementRules,
+        LineOfSightCache losCache,
+        MovementPathCache movementPathCache,
+        MovementPathCache movementLongPathCache)
+    {
+        _grid = grid;
+        _losCache = losCache;
+        _movementPathCache = movementPathCache;
+        _movementLongPathCache = movementLongPathCache;
+        _pathfinder = new HexPathfinder(grid, movementRules);
+        _reachability = new HexReachabilityCalculator(grid, movementRules);
+        _lineOfSight = new LineOfSightCalculator(grid, losCache);
+    }
+
+    public int Width => _grid.Width;
+
+    public int Height => _grid.Height;
+
+    public string Biome => _grid.Biome;
 
     /// <summary>
     /// Adds a hex to the map. Throws HexOutsideOfMapBoundariesException if hex coordinates are outside map boundaries.
@@ -24,19 +62,12 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
     /// </summary>
     public void AddHex(Hex hex)
     {
-        if (hex.Coordinates.Q < 1 || hex.Coordinates.Q >= Width +1 ||
-            hex.Coordinates.R < 1 || hex.Coordinates.R >= Height +1)
-        {
-            throw new HexOutsideOfMapBoundariesException(hex.Coordinates, Width, Height);
-        }
-
-        hex.Biome = Biome;
-        _hexes[hex.Coordinates] = hex;
+        _grid.AddHex(hex);
     }
 
     public Hex? GetHex(HexCoordinates coordinates)
     {
-        return _hexes.GetValueOrDefault(coordinates);
+        return _grid.GetHex(coordinates);
     }
 
     /// <summary>
@@ -57,241 +88,21 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
             return FindJumpPath(start, target, maxMovementPoints, approachWaypointOffset);
         }
 
-        return FindPathCore(pathFindingMode, start, target, movementType, maxMovementPoints, prohibitedHexes, unitHeight, maxLevelChange);
-    }
-
-    /// <summary>
-    /// Creates a turning path when start and target are in the same hex
-    /// </summary>
-    private static MovementPath? CreateTurningPath(HexPosition start, HexPosition target, int maxMovementPoints, MovementType movementType)
-    {
-        var turningSteps = start.GetTurningSteps(target.Facing).ToList();
-        if (turningSteps.Count > maxMovementPoints)
-            return null;
-
-        var segments = new List<PathSegment>();
-
-        if (turningSteps.Count == 0)
-        {
-            segments.Add(new PathSegment(start, target, [], ElevationChange: 0));
-        }
-        else
-        {
-            var currentPos = start;
-            foreach (var step in turningSteps)
-            {
-                segments.Add(new PathSegment(currentPos, step, [new RotationMovementCost { FromFacing = currentPos.Facing, ToFacing = step.Facing, Value = 1 }], ElevationChange: 0));
-                currentPos = step;
-            }
-        }
-
-        return new MovementPath(segments, movementType);
-    }
-
-    /// <summary>
-    /// Converts a list of hex positions to path segments
-    /// </summary>
-    private List<PathSegment> ConvertPathToSegments(List<HexPosition> path)
-    {
-        var segments = new List<PathSegment>();
-        for (var i = 0; i < path.Count - 1; i++)
-        {
-            var from = path[i];
-            var to = path[i + 1];
-            IReadOnlyList<MovementCost> costs;
-            var elevationChange = 0;
-
-            // If coordinates changed, it's a movement
-            if (from.Coordinates != to.Coordinates)
-            {
-                var hex = GetHex(to.Coordinates) ?? throw new WrongHexException(to.Coordinates, "Hex not found");
-                var fromHex = GetHex(from.Coordinates) ?? throw new WrongHexException(from.Coordinates, "Hex not found");
-                elevationChange = hex.GetElevationChange(fromHex, from.Surface, to.Surface);
-                var levelCost = Math.Abs(elevationChange);
-
-                var costList = new List<MovementCost>();
-                costList.AddRange(hex.GetEnterMovementCost(fromHex, from.Surface, to.Surface));
-                if (levelCost > 0)
-                {
-                    costList.Add(new ElevationChangeMovementCost { ElevationDelta = elevationChange, Value = levelCost });
-                }
-                costs = costList;
-            }
-            else
-            {
-                // Turn segment (same coordinates, different facing)
-                costs = [new RotationMovementCost { FromFacing = from.Facing, ToFacing = to.Facing, Value = 1 }];
-            }
-
-            segments.Add(new PathSegment(from, to, costs, ElevationChange: elevationChange));
-        }
-        return segments;
-    }
-
-    private readonly record struct PathfindingState(
-        HexPosition Position,
-        List<HexPosition> Path,
-        int Cost,
-        int HexesTraveled
-    );
-
-    private MovementPath? FindPathCore(
-        PathFindingMode mode,
-        HexPosition start,
-        HexPosition target,
-        MovementType movementType,
-        int maxMovementPoints,
-        IReadOnlySet<HexCoordinates>? prohibitedHexes,
-        int unitHeight,
-        int? maxLevelChange)
-    {
-        prohibitedHexes ??= new HashSet<HexCoordinates>();
-        var useCache = prohibitedHexes.Count == 0;
-
-        var cache = mode == PathFindingMode.Shortest
+        var cache = pathFindingMode == PathFindingMode.Shortest
             ? _movementPathCache
             : _movementLongPathCache;
 
-        if (useCache)
-        {
-            var cachedPath = cache.Get(start, target, false, maxLevelChange, unitHeight);
-            if (cachedPath != null)
-            {
-                if (cachedPath.TotalCost <= maxMovementPoints)
-                    return cachedPath;
-                if (mode == PathFindingMode.Shortest)
-                    return null;
-            }
-        }
+        var request = new PathRequest(
+            pathFindingMode,
+            start,
+            target,
+            movementType,
+            maxMovementPoints,
+            unitHeight,
+            prohibitedHexes,
+            maxLevelChange);
 
-        if (start.Coordinates == target.Coordinates)
-        {
-            if (start.Surface != target.Surface)
-                return null;
-            var path = CreateTurningPath(start, target, maxMovementPoints, movementType);
-            if (path != null && useCache) cache.Add(path, unitHeight);
-            return path;
-        }
-
-        MovementPath? bestPath = null;
-        var bestHexesTraveled = 0;
-
-        var frontier = new PriorityQueue<PathfindingState, (int, int)>();
-        var visited = new Dictionary<HexPosition, (int cost, int hexes)>();
-
-        frontier.Enqueue(new PathfindingState(start, [start], 0, 0), (0, 0));
-        visited[start] = (0, 0);
-
-        while (frontier.Count > 0)
-        {
-            var current = frontier.Dequeue();
-
-            if (current.Position == target)
-            {
-                var segments = ConvertPathToSegments(current.Path);
-                var candidatePath = new MovementPath(segments, movementType, maxLevelChange);
-
-                if (mode == PathFindingMode.Shortest)
-                {
-                    if (useCache) _movementPathCache.Add(candidatePath, unitHeight);
-                    return candidatePath;
-                }
-
-                if (candidatePath.HexesTraveled > bestHexesTraveled)
-                {
-                    bestPath = candidatePath;
-                    bestHexesTraveled = candidatePath.HexesTraveled;
-                }
-
-                continue;
-            }
-
-            foreach (var nextCoord in current.Position.Coordinates.GetAllNeighbours())
-            {
-                var hex = GetHex(nextCoord);
-                if (hex == null || prohibitedHexes.Contains(nextCoord))
-                    continue;
-
-                var currentHex = GetHex(current.Position.Coordinates);
-                if (currentHex == null) continue;
-
-                var requiredFacing = current.Position.Coordinates.GetDirectionToNeighbour(nextCoord);
-
-                var turningSteps = current.Position.GetTurningSteps(requiredFacing).ToList();
-                var turningCost = turningSteps.Count;
-
-                foreach (var toSurface in hex.GetHexSurfaces())
-                {
-                    if (toSurface == HexSurface.Ground && hex.GetBridgeHeight() != null
-                        && !hex.CanStandOnGround(unitHeight)) continue;
-
-                    if (toSurface == HexSurface.Bridge && currentHex.GetRoadOrPavedTerrain() == null
-                        && hex.CanStandOnGround(unitHeight)) continue;
-
-                    var elevationChange = hex.GetElevationChange(currentHex, current.Position.Surface, toSurface);
-                    var levelCost = Math.Abs(elevationChange);
-
-                    if (levelCost > maxLevelChange)
-                        continue;
-
-                    var nextPos = new HexPosition(nextCoord, requiredFacing, toSurface);
-                    var newPath = new List<HexPosition>(current.Path);
-                    newPath.AddRange(turningSteps);
-                    newPath.Add(nextPos);
-
-                    var totalCost = current.Cost + hex.GetEnterMovementCost(currentHex, current.Position.Surface, toSurface).Sum(c => c.Value) + turningCost + levelCost;
-                    var isNewCoord = current.Path.All(p => p.Coordinates != nextCoord);
-                    var newHexesTraveled = current.HexesTraveled + (isNewCoord ? 1 : 0);
-
-                    if (totalCost > maxMovementPoints)
-                        continue;
-
-                    if (visited.TryGetValue(nextPos, out var visitedState))
-                    {
-                        if (mode == PathFindingMode.Shortest)
-                        {
-                            if (visitedState.cost <= totalCost)
-                                continue;
-                        }
-                        else
-                        {
-                            if (visitedState.cost <= totalCost && visitedState.hexes >= newHexesTraveled)
-                                continue;
-                        }
-                    }
-
-                    visited[nextPos] = (totalCost, newHexesTraveled);
-
-                    if (nextCoord == target.Coordinates && requiredFacing != target.Facing)
-                    {
-                        var finalTurningSteps = nextPos.GetTurningSteps(target.Facing).ToList();
-                        var finalCost = totalCost + finalTurningSteps.Count;
-                        if (finalCost > maxMovementPoints) continue;
-                        newPath.AddRange(finalTurningSteps);
-                        var finalPriority = mode == PathFindingMode.Shortest
-                            ? (finalCost, 0)
-                            : (-newHexesTraveled, 0);
-                        frontier.Enqueue(new PathfindingState(new HexPosition(nextCoord, target.Facing, toSurface), newPath, finalCost, newHexesTraveled), finalPriority);
-                    }
-                    else
-                    {
-                        var priority = mode == PathFindingMode.Shortest
-                            ? (totalCost + nextCoord.DistanceTo(target.Coordinates), 0)
-                            : (-newHexesTraveled, nextCoord.DistanceTo(target.Coordinates));
-                        frontier.Enqueue(new PathfindingState(nextPos, newPath, totalCost, newHexesTraveled), priority);
-                    }
-                }
-            }
-        }
-
-        if (mode == PathFindingMode.Longest)
-        {
-            if (bestPath != null && useCache)
-                _movementLongPathCache.Add(bestPath, unitHeight);
-            return bestPath;
-        }
-
-        return null;
+        return _pathfinder.Find(request, cache);
     }
 
     /// <summary>
@@ -306,74 +117,7 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
         IReadOnlySet<HexCoordinates>? prohibitedHexes = null,
         int? maxLevelChange = null)
     {
-        var visited = new Dictionary<HexPosition, int>();
-        var bestCosts = new Dictionary<(HexCoordinates, HexSurface), int>();
-        var toVisit = new Queue<HexPosition>();
-        prohibitedHexes ??= new HashSet<HexCoordinates>();
-
-        visited[start] = 0;
-        bestCosts[(start.Coordinates, start.Surface)] = 0;
-        toVisit.Enqueue(start);
-
-        while (toVisit.Count > 0)
-        {
-            var current = toVisit.Dequeue();
-            var currentCost = visited[current];
-
-            // For each adjacent hex
-            foreach (var neighborCoord in current.Coordinates.GetAllNeighbours())
-            {
-                // Skip if hex doesn't exist on a map or is prohibited
-                var neighborHex = GetHex(neighborCoord);
-                if (neighborHex == null || prohibitedHexes.Contains(neighborCoord))
-                    continue;
-
-                var currentHex = GetHex(current.Coordinates);
-                if (currentHex == null) continue;
-
-                // Get the required facing to move to this hex
-                var requiredFacing = current.Coordinates.GetDirectionToNeighbour(neighborCoord);
-
-                // Calculate turning cost from current facing
-                var turningCost = current.GetTurningCost(requiredFacing);
-
-                // Branch on destination surface — physical possibility filter only.
-                foreach (var toSurface in neighborHex.GetHexSurfaces())
-                {
-                    if (toSurface == HexSurface.Ground && neighborHex.GetBridgeHeight() != null
-                        && !neighborHex.CanStandOnGround(unitHeight)) continue;
-
-                    if (toSurface == HexSurface.Bridge && currentHex.GetRoadOrPavedTerrain() == null
-                        && neighborHex.CanStandOnGround(unitHeight)) continue;
-
-                    var levelCost = Math.Abs(neighborHex.GetElevationChange(currentHex, current.Surface, toSurface));
-
-                    if (levelCost > maxLevelChange)
-                        continue;
-
-                    var totalCost = currentCost + neighborHex.GetEnterMovementCost(currentHex, current.Surface, toSurface).Sum(c => c.Value) + turningCost + levelCost;
-
-                    if (totalCost > maxMovementPoints)
-                        continue;
-
-                    var neighborPos = new HexPosition(neighborCoord, requiredFacing, toSurface);
-
-                    if (visited.TryGetValue(neighborPos, out var visitedCost) && totalCost >= visitedCost)
-                        continue;
-
-                    visited[neighborPos] = totalCost;
-                    if (!bestCosts.TryGetValue((neighborCoord, toSurface), out var bestCost) || totalCost < bestCost)
-                    {
-                        bestCosts[(neighborCoord, toSurface)] = totalCost;
-                    }
-
-                    toVisit.Enqueue(neighborPos);
-                }
-            }
-        }
-
-        return bestCosts
-            .Select(v => new HexReachabilityData(v.Key.Item1, v.Key.Item2, v.Value));
+        return _reachability.GetReachable(start, maxMovementPoints, unitHeight, prohibitedHexes, maxLevelChange);
     }
 
     /// <summary>
@@ -386,48 +130,7 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
         IReadOnlySet<HexCoordinates>? prohibitedHexes = null,
         HexSurface startSurface = HexSurface.Ground)
     {
-        prohibitedHexes ??= new HashSet<HexCoordinates>();
-        var startHex = GetHex(start);
-        if (startHex == null || movementPoints <= 0)
-            return [];
-
-        var ceiling = startHex.GetStandingLevel(startSurface) + movementPoints;
-
-        // A destination is reachable when a legal path of geometric length exists. Prohibited
-        // hexes only block destinations: a jump passes over them.
-        var distances = new Dictionary<HexCoordinates, int> { [start] = 0 };
-        var toVisit = new Queue<HexCoordinates>();
-        toVisit.Enqueue(start);
-
-        while (toVisit.Count > 0)
-        {
-            var current = toVisit.Dequeue();
-            var currentDistance = distances[current];
-            if (currentDistance >= movementPoints) continue;
-
-            foreach (var neighbor in current.GetAllNeighbours())
-            {
-                if (distances.ContainsKey(neighbor) || !IsOnMap(neighbor)) continue;
-
-                var neighborHex = GetHex(neighbor);
-                if (neighborHex == null || neighborHex.GetReferenceLevel() > ceiling) continue;
-
-                distances[neighbor] = currentDistance + 1;
-                toVisit.Enqueue(neighbor);
-            }
-        }
-
-        return
-        [
-            .. distances
-                .Where(pair => pair.Key != start
-                               && !prohibitedHexes.Contains(pair.Key)
-                               && pair.Value == start.DistanceTo(pair.Key))
-                .Select(pair => new HexReachabilityData(
-                    pair.Key,
-                    GetHex(pair.Key)!.GetHighestSurface(),
-                    pair.Value))
-        ];
+        return _reachability.GetJumpReachable(start, movementPoints, prohibitedHexes, startSurface);
     }
 
     /// <summary>
@@ -459,217 +162,25 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
     /// endpoint is never treated as submerged.</param>
     /// <param name="toBaseLevel">Absolute base level of the target when it is airborne. When supplied,
     /// it replaces the surface standing level and the endpoint is never treated as submerged.</param>
-    public LineOfSightResult GetLineOfSight(HexCoordinates from, HexCoordinates to, int attackHeight, int targetHeight = 0, HexSurface? fromSurface = null, HexSurface? toSurface = null, int? fromBaseLevel = null, int? toBaseLevel = null)
+    public LineOfSightResult GetLineOfSight(HexCoordinates from, HexCoordinates to, int attackHeight,
+        int targetHeight = 0, HexSurface? fromSurface = null, HexSurface? toSurface = null,
+        int? fromBaseLevel = null, int? toBaseLevel = null)
     {
-        var isFromOnMap = IsOnMap(from);
-        var isToOnMap = IsOnMap(to);
-        
-        if (!isFromOnMap || !isToOnMap)
-            return LineOfSightResult.Blocked(
-                from: from, to: to,
-                blockingHex: isFromOnMap ? to : from,
-                reason: LineOfSightBlockReason.InvalidCoordinates);
-
-        var fromHex = GetHex(from);
-        var toHex = GetHex(to);
-
-        if (fromHex == null || toHex == null)
-            return LineOfSightResult.Blocked(
-                from: from, to: to,
-                blockingHex: fromHex == null ? from : to);
-
-        // Compute submersion and standing levels using the surface-aware helper. An absolute base
-        // level (an airborne position) overrides the standing level and can never be submerged.
-        var (attackerStandingLevel, attackerSubmerged) = fromHex.GetLosEndpointInfo(fromSurface, attackHeight);
-        var (targetStandingLevel, targetSubmerged) = toHex.GetLosEndpointInfo(toSurface, targetHeight);
-        var attackerLosLevel = attackerStandingLevel + attackHeight;
-        var targetLosLevel = targetStandingLevel + targetHeight;
-
-        if (fromBaseLevel is { } attackerBaseLevel)
-        {
-            attackerLosLevel = attackerBaseLevel + attackHeight;
-            attackerSubmerged = false;
-        }
-
-        if (toBaseLevel is { } targetBaseLevel)
-        {
-            targetLosLevel = targetBaseLevel + targetHeight;
-            targetSubmerged = false;
-        }
-        
-        if (attackerSubmerged != targetSubmerged)
-        {
-            return LineOfSightResult.Blocked(
-                from: from, to: to,
-                blockingHex: attackerSubmerged ? from : to,
-                reason: LineOfSightBlockReason.WaterSubmersion);
-        }
-        
-        // The same hex — always has LOS, no intervening path
-        if (from == to)
-            return LineOfSightResult.Unblocked(from: from, to: to,
-                attackerLosLevel: attackerLosLevel, targetLosLevel: targetLosLevel,
-                hexPath: [CreateTargetHexInfo()]);
-
-        // Get all hexes along the line, resolving any divided line segments
-        var hexLine = ResolveHexesAlongTheLine(from, to);
-
-        // Remove the first and last hex (attacker and target positions)
-        hexLine = hexLine.Skip(1).SkipLast(1).ToList();
-
-        if (hexLine.Count == 0)
-            return LineOfSightResult.Unblocked(from: from, to: to,
-                attackerLosLevel: attackerLosLevel, targetLosLevel: targetLosLevel,
-                hexPath: [CreateTargetHexInfo()]);
-
-        var distance = 1;
-        var totalDistance = hexLine.Count + 1;
-        var totalInterveningFactor = 0;
-        var hexPath = new List<LineOfSightHexInfo>();
-
-        foreach (var coordinates in hexLine)
-        {
-            var hex = GetHex(coordinates);
-            if (hex == null)
-                return new LineOfSightResult
-                {
-                    From = from, To = to,
-                    AttackerLosLevel = attackerLosLevel, TargetLosLevel = targetLosLevel,
-                    HasLineOfSight = false,
-                    HexPath = hexPath,
-                    BlockingHexCoordinates = coordinates,
-                    BlockReason = LineOfSightBlockReason.InvalidCoordinates,
-                    TotalInterveningFactor = totalInterveningFactor
-                };
-
-            var interpolatedLosHeight = InterpolateHeight(
-                attackerLosLevel,
-                targetLosLevel,
-                distance,
-                totalDistance);
-            
-            // Only terrain whose ceiling reaches the LOS line contributes an intervening factor
-            var contribution = 0;
-            if (hex.GetCeiling() >= interpolatedLosHeight)
-                contribution = hex.GetTerrains().Sum(t => t.InterveningFactor);
-
-            hexPath.Add(new LineOfSightHexInfo
-            {
-                Hex = hex,
-                InterpolatedLosHeight = interpolatedLosHeight,
-                InterveningFactor = contribution
-            });
-
-            // Elevation check: hex base level blocks the LOS line entirely
-            if (hex.GetBottomLevel() >= interpolatedLosHeight)
-                return new LineOfSightResult
-                {
-                    From = from, To = to,
-                    AttackerLosLevel = attackerLosLevel, TargetLosLevel = targetLosLevel,
-                    HasLineOfSight = false,
-                    HexPath = hexPath,
-                    BlockingHexCoordinates = coordinates,
-                    BlockReason = LineOfSightBlockReason.Elevation,
-                    TotalInterveningFactor = totalInterveningFactor
-                };
-
-            totalInterveningFactor += contribution;
-
-            // Terrain intervening factor threshold check
-            if (totalInterveningFactor >= 3)
-                return new LineOfSightResult
-                {
-                    From = from, To = to,
-                    AttackerLosLevel = attackerLosLevel, TargetLosLevel = targetLosLevel,
-                    HasLineOfSight = false,
-                    HexPath = hexPath,
-                    BlockingHexCoordinates = coordinates,
-                    BlockReason = LineOfSightBlockReason.InterveningTerrain,
-                    TotalInterveningFactor = totalInterveningFactor
-                };
-
-            distance++;
-        }
-
-        // Add the target hex to the path with its contribution
-        hexPath.Add(CreateTargetHexInfo());
-
-        return new LineOfSightResult
-        {
-            From = from, To = to,
-            AttackerLosLevel = attackerLosLevel, TargetLosLevel = targetLosLevel,
-            HasLineOfSight = true,
-            HexPath = hexPath,
-            TotalInterveningFactor = totalInterveningFactor // target contribution is not added here as target hex doesn't block the LOS
-        };
-        
-        LineOfSightHexInfo CreateTargetHexInfo() => new()
-        {
-            Hex = toHex,
-            InterpolatedLosHeight = targetLosLevel,
-            InterveningFactor = toHex.GetCeiling() >= targetLosLevel
-                ? toHex.GetTerrains().Sum(t => t.InterveningFactor)
-                : 0
-        };
-    }
-
-    private List<HexCoordinates> ResolveHexesAlongTheLine(HexCoordinates from, HexCoordinates to)
-    {
-        // Check cache first
-        if (_losCache.TryGetPath(from, to, out var cachedPath))
-        {
-            return cachedPath!;
-        }
-
-        // Get all possible segments in the line of sight
-        var segments = from.LineTo(to);
-        
-        // If no divided segments, just return the main options
-        if (segments.All(s => s.SecondOption == null))
-        {
-            var path = segments.Select(s => s.MainOption).ToList();
-            _losCache.AddPath(from, to, path);
-            return path;
-        }
-
-        // Calculate intervening factors only for the divided segments
-        var dividedSegments = segments.Where(s => s.SecondOption != null).ToList();
-        var mainOptionsFactor = dividedSegments
-            .Sum(s => GetHex(s.MainOption)?.GetTerrains().Sum(t => t.InterveningFactor) ?? 0);
-
-        var secondaryOptionsFactor = dividedSegments
-            .Sum(s => GetHex(s.SecondOption!)?.GetTerrains().Sum(t => t.InterveningFactor) ?? 0);
-
-        // Choose whether to use secondary options based on which gives the better defense
-        var useSecondaryOptions = secondaryOptionsFactor > mainOptionsFactor;
-
-        // Build the final path using the chosen option for divided segments
-        var resolvedPath = segments.Select(s => 
-            dividedSegments.Contains(s) && useSecondaryOptions 
-                ? s.SecondOption! 
-                : s.MainOption).ToList();
-
-        // Cache the resolved path
-        _losCache.AddPath(from, to, resolvedPath);
-
-        return resolvedPath;
+        return _lineOfSight.Get(from, to, attackHeight, targetHeight, fromSurface, toSurface, fromBaseLevel, toBaseLevel);
     }
 
     /// <summary>
-    /// Interpolate height between two points for LOS calculation
+    /// Converts a list of hex positions to path segments. Kept on the map as the façade for the
+    /// pathfinder's segment builder.
     /// </summary>
-    private static double InterpolateHeight(int startHeight, int endHeight, int currentDistance, int totalDistance)
+    private List<PathSegment> ConvertPathToSegments(List<HexPosition> path)
     {
-        if (totalDistance == 0)
-            return startHeight;
-
-        var t = (double)currentDistance / totalDistance;
-        return startHeight + (endHeight - startHeight) * t;
+        return _pathfinder.ConvertPathToSegments(path);
     }
 
     public IEnumerable<Hex> GetHexes()
     {
-        return _hexes.Values;
+        return _grid.GetHexes();
     }
 
     /// <summary>
@@ -680,8 +191,8 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
     {
         return new BattleMapData
         {
-            Biome = Biome,
-            HexData = GetHexes().Select(hex => hex.ToData()).ToList()
+            Biome = _grid.Biome,
+            HexData = _grid.GetHexes().Select(hex => hex.ToData()).ToList()
         };
     }
 
@@ -884,20 +395,12 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
 
     public IEnumerable<HexCoordinates> GetAffectedCoordinates(HexCoordinates changedCoord)
     {
-        if (IsOnMap(changedCoord))
-            yield return changedCoord;
-
-        foreach (var neighbor in changedCoord.GetAllNeighbours())
-        {
-            if (IsOnMap(neighbor))
-                yield return neighbor;
-        }
+        return _grid.GetAffectedCoordinates(changedCoord);
     }
 
     public bool IsOnMap(HexCoordinates coordinates)
     {
-        return coordinates.Q >= 1 && coordinates.Q <= Width &&
-               coordinates.R >= 1 && coordinates.R <= Height;
+        return _grid.IsOnMap(coordinates);
     }
 
     /// <summary>
@@ -912,20 +415,20 @@ public class BattleMap(int width, int height, string biome = "makamek.biomes.gra
             return [];
 
         var edges = new List<HexEdge>(6);
-        
+
         foreach (var direction in HexDirectionExtensions.AllDirections)
         {
             var neighborCoords = coordinates.GetNeighbour(direction);
             var neighborHex = GetHex(neighborCoords);
-            
+
             // If neighbor doesn't exist (map boundary), treat as elevation difference 0
-            var elevationDifference = neighborHex != null 
-                ? hex.GetLevelDifference(neighborHex) 
+            var elevationDifference = neighborHex != null
+                ? hex.GetLevelDifference(neighborHex)
                 : 0;
-            
+
             edges.Add(new HexEdge(coordinates, direction, elevationDifference));
         }
-        
+
         return edges;
     }
 }
