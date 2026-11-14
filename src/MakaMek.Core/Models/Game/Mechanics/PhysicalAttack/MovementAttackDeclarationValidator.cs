@@ -54,17 +54,12 @@ public class MovementAttackDeclarationValidator : IMovementAttackDeclarationVali
         if (movementPath.Start.Coordinates != attacker.Position!.Coordinates) return Invalid();
 
         var targetPosition = target!.Position!;
-        var enteringSegment = FindEnteringSegment(movementPath);
-        if (movementPath.Destination.Coordinates != targetPosition.Coordinates
-            || movementPath.Destination.Surface != targetPosition.Surface
-            || !EntersTargetHex(movementPath, movementType, map)
-            || declaration.AttackType == PhysicalAttackType.Charge
-            && !IsChargeAllowed(attacker, target, enteringSegment, targetPosition, map)
-            || declaration.AttackType == PhysicalAttackType.DFA
-            && !IsDfaAllowed(attacker, target, targetPosition, map)
-            || movementPath.TotalCost > attacker.GetMovementPoints(movementType)
-            || PhysicalAttackDisplacementBudget.IsReserved(target.Id, allUnits))
+        if (!EndsInTargetHex(movementPath, targetPosition)) return Invalid();
+        if (!EntersTargetHex(movementPath, movementType, map)) return Invalid();
+        if (!IsAttackAllowedForMovement(declaration.AttackType, attacker, target, movementPath, targetPosition, map))
             return Invalid();
+        if (movementPath.TotalCost > attacker.GetMovementPoints(movementType)) return Invalid();
+        if (PhysicalAttackDisplacementBudget.IsReserved(target.Id, allUnits)) return Invalid();
 
         var hexesMoved = CountHexesMovedBeforeTarget(attacker, movementPath, targetPosition.Coordinates);
         return MovementAttackDeclarationValidation.Valid(declaration with
@@ -76,6 +71,33 @@ public class MovementAttackDeclarationValidator : IMovementAttackDeclarationVali
 
     private static MovementAttackDeclarationValidation Invalid() =>
         MovementAttackDeclarationValidation.Invalid(ErrorCode.ValidationFailed);
+
+    /// <summary>
+    /// The move has to finish in the target's hex on the target's surface.
+    /// </summary>
+    private static bool EndsInTargetHex(MovementPath path, HexPosition targetPosition) =>
+        path.Destination.Coordinates == targetPosition.Coordinates
+        && path.Destination.Surface == targetPosition.Surface;
+
+    /// <summary>
+    /// Applies the attack-specific movement rules: a Charge has to follow the Same Level
+    /// restriction and enter the target hex from the front, while a DFA has to clear the target's
+    /// height and stay above the water line.
+    /// </summary>
+    private static bool IsAttackAllowedForMovement(
+        PhysicalAttackType attackType,
+        IUnit attacker,
+        IUnit target,
+        MovementPath path,
+        HexPosition targetPosition,
+        IBattleMap map) =>
+        attackType switch
+        {
+            PhysicalAttackType.Charge =>
+                IsChargeAllowed(attacker, target, FindEnteringSegment(path), targetPosition, map),
+            PhysicalAttackType.DFA => IsDfaAllowed(attacker, target, targetPosition, map),
+            _ => true
+        };
 
     private static bool IsValidAttacker(IUnit attacker) =>
         attacker is Mech { IsDestroyed: false, IsShutdown: false, IsProne: false, Position: not null }
