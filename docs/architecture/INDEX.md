@@ -7,7 +7,7 @@ Architectural designs for core game modules, network protocol, AI bot subsystems
 | Document | Summary |
 |----------|---------|
 | [Game.md](Game.md) | Core game loop, state machine, and GameManager responsibilities |
-| [Map.md](Map.md) | Hex-grid map representation, coordinate systems, and terrain integration |
+| [Map.md](Map.md) | Hex-grid map representation, pathfinding/LOS collaborators, coordinate systems, and terrain integration |
 | [Units.md](Units.md) | Unit model, component structure, equipment, and damage tracking |
 | [Components.md](Components.md) | Unit part/component system, slot management, and critical hit allocation |
 | [UiStates.md](UiStates.md) | UI state machine, phase-driven screen transitions, and input handling |
