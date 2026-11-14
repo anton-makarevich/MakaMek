@@ -47,12 +47,15 @@ public record DfaMissDisplacementCandidate(
     bool TriggersAutomaticFall = false);
 
 /// <summary>
-/// Where a DFA attacker lands, and the domino chain that may have to run before it can.
+/// Where a DFA attacker lands, and the chain that may have to run before it can.
 /// </summary>
 /// <param name="Destination">The final landing position.</param>
-/// <param name="DominoEffect">The chain that vacates the landing hex, if any.</param>
+/// <param name="DominoEffect">
+/// The chain that vacates the landing hex, if any. Its first link is the landing knocking the occupant
+/// out — a direct effect of the attack, not a domino — and the links after it, if any, are domino effects.
+/// </param>
 /// <param name="IsOverlapUnresolved">
-/// True when the landing hex is occupied and the domino effect could not vacate it.
+/// True when the landing hex is occupied and the chain could not vacate it.
 /// </param>
 public record DfaLandingResult(
     HexPosition Destination,
@@ -278,10 +281,12 @@ public class DfaDisplacementResolver(
     /// forced entry and neither the climb limit nor the accidental-fall-from-above rule applies to
     /// it. The landing position is grounded (no airborne level), so its level is the hex's level.
     /// <para>
-    /// Only an occupant of the hex has to be displaced: it is forced out through the shared domino
-    /// effect. A DFA has no side-hex fallback (that is the charge miss rule), so a blocked chain
-    /// leaves the overlap unresolved for the caller to treat as no legal landing
-    /// (Total Warfare, p. 150).
+    /// Only an occupant of the hex has to move: the hit pushes the target away and the miss moves it
+    /// to an adjacent hex, so the hex is normally empty by the time the attacker grounds. When a unit
+    /// is still there, the landing knocks it out one hex as the first displacement of the attack — a
+    /// direct effect, not a domino — and a domino starts only if that hex is occupied too. A DFA has
+    /// no side-hex fallback (that is the charge miss rule), so a blocked chain leaves the overlap
+    /// unresolved for the caller to treat as no legal landing (Total Warfare, p. 150).
     /// </para>
     /// </summary>
     public DfaLandingResult? ResolveLanding(
@@ -300,8 +305,8 @@ public class DfaDisplacementResolver(
         if (occupants.Count == 0)
             return new DfaLandingResult(desired with { AirborneLevel = null });
 
-        // The domino direction is the landing line; falling back to the attacker's facing keeps a
-        // deterministic order for a landing in its own approach hex.
+        // The forced-displacement direction is the landing line; falling back to the attacker's
+        // facing keeps a deterministic order for a landing in its own approach hex.
         var direction = desired.Coordinates == attackerPosition.Coordinates
             ? attackerPosition.Facing
             : desired.Coordinates.GetDirectionAwayFrom(attackerPosition.Coordinates);
@@ -317,7 +322,10 @@ public class DfaDisplacementResolver(
                 Occupants = occupants,
                 ApplyEntryElevationRule = true,
                 EnteringEntryIsGuaranteed = true,
-                DestinationSurface = desired.Surface
+                DestinationSurface = desired.Surface,
+                // The landing is the attack, so the unit it knocks out of the hex is the first
+                // displacement the attack causes; a domino only starts from the next link.
+                FirstLinkDisplacementReason = DisplacementReason.DfaLandingOccupant
             },
             map,
             allUnits);

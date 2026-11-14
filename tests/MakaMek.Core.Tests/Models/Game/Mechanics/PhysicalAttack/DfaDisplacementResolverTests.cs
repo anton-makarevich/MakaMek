@@ -1,4 +1,5 @@
 using NSubstitute;
+using Sanet.MakaMek.Core.Data.Game.Mechanics;
 using Sanet.MakaMek.Core.Data.Game.Mechanics.PhysicalAttacks;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Dice;
@@ -284,7 +285,7 @@ public class DfaDisplacementResolverTests
     }
 
     [Fact]
-    public void ResolveLanding_WhenTheHexIsOccupied_RunsTheDominoEffect()
+    public void ResolveLanding_WhenTheHexIsOccupied_ForcesTheOccupantOut()
     {
         var map = CreateMap();
         var attacker = CreateMech(new HexPosition(new HexCoordinates(5, 4), HexDirection.Top, AirborneLevel: 4));
@@ -299,6 +300,9 @@ public class DfaDisplacementResolverTests
         result.ShouldNotBeNull();
         result.DominoEffect.ShouldNotBeNull().HasDisplacements.ShouldBeTrue();
         result.Destination.Coordinates.ShouldBe(new HexCoordinates(5, 5));
+        // The landing is the attack, so knocking the occupant out is its first displacement.
+        result.DominoEffect!.Commands.ShouldHaveSingleItem().DisplacementReason
+            .ShouldBe(DisplacementReason.DfaLandingOccupant);
     }
 
     [Fact]
@@ -322,6 +326,8 @@ public class DfaDisplacementResolverTests
         result.Destination.AirborneLevel.ShouldBeNull();
         result.DominoEffect.ShouldNotBeNull().HasDisplacements.ShouldBeTrue();
         result.DominoEffect!.Commands.ShouldHaveSingleItem().UnitId.ShouldBe(occupant.Id);
+        // The landing is the attack, so knocking the occupant out is its first displacement.
+        result.DominoEffect.Commands[0].DisplacementReason.ShouldBe(DisplacementReason.DfaLandingOccupant);
     }
 
     [Fact]
@@ -343,10 +349,11 @@ public class DfaDisplacementResolverTests
         result.Destination.AirborneLevel.ShouldBeNull();
         result.DominoEffect.ShouldNotBeNull().HasDisplacements.ShouldBeTrue();
         result.DominoEffect!.Commands.ShouldHaveSingleItem().UnitId.ShouldBe(occupant.Id);
+        result.DominoEffect.Commands[0].DisplacementReason.ShouldBe(DisplacementReason.DfaLandingOccupant);
     }
 
     [Fact]
-    public void ResolveLanding_WhenTheDominoIsBlocked_ReportsAnUnresolvedOverlap()
+    public void ResolveLanding_WhenTheOccupantCannotBeForcedOut_ReportsAnUnresolvedOverlap()
     {
         var map = CreateMap();
         var attackerPosition = new HexPosition(new HexCoordinates(5, 5), HexDirection.Top, AirborneLevel: 4);

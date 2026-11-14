@@ -19,7 +19,21 @@ public sealed record DominoEffectRequest
     /// <summary>The direction the chain continues, opposite the hexside the entering unit came through.</summary>
     public required HexDirection Direction { get; init; }
 
+    /// <summary>
+    /// The reason stamped on the domino links: each is caused by the preceding displacement into an
+    /// occupied hex, so it is a domino effect regardless of what started the chain (Total Warfare
+    /// p. 57, p. 152). See <see cref="FirstLinkDisplacementReason"/> for a first displacement that is
+    /// a direct consequence of the action rather than a domino link.
+    /// </summary>
     public required DisplacementReason Reason { get; init; }
+
+    /// <summary>
+    /// The reason for the first displacement this request calculates — the unit forced out of
+    /// <see cref="Destination"/> — when the action itself causes it directly, as a Death From Above
+    /// landing knocks the occupant out. Every later link keeps <see cref="Reason"/>. When omitted,
+    /// the first link is a domino link too and uses <see cref="Reason"/>.
+    /// </summary>
+    public DisplacementReason? FirstLinkDisplacementReason { get; init; }
 
     public required Guid GameOriginId { get; init; }
 

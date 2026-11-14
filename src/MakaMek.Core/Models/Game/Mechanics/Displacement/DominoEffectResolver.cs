@@ -154,7 +154,7 @@ public class DominoEffectResolver(IDiceRoller diceRoller)
                 ToCoordinates = to.ToData(),
                 NewFacing = (int)(currentUnit.Facing ?? currentUnit.Position!.Facing),
                 Surface = (int)step.Surface,
-                DisplacementReason = request.Reason,
+                DisplacementReason = GetLinkReason(request, commands.Count),
                 GameOriginId = request.GameOriginId,
                 Timestamp = DateTime.UtcNow
             });
@@ -209,6 +209,15 @@ public class DominoEffectResolver(IDiceRoller diceRoller)
         ForcedEntryCheckResult step,
         List<IUnit> nextOccupants) =>
         request.ApplyEntryElevationRule && nextOccupants.Count != 0 && step.IsDeepDrop;
+
+    /// <summary>
+    /// Commands are collected nearest-first, so the link count identifies the first one, which can be
+    /// the direct effect of the action instead of a domino link. Later links are the domino cascade.
+    /// </summary>
+    private static DisplacementReason GetLinkReason(DominoEffectRequest request, int commandsAdded) =>
+        commandsAdded == 0
+            ? request.FirstLinkDisplacementReason ?? request.Reason
+            : request.Reason;
 
     /// <summary>
     /// Ends the chain at the link <paramref name="blockedUnit"/> cannot take. When nothing has moved

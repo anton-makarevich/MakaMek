@@ -139,9 +139,19 @@ is added.
   validated at declaration (jump MP and clearance, §3.2), so neither the single-hex climb limit nor
   the accidental-fall-from-above rule applies to the attacker, whatever the elevation difference
   between the approach hex and the target hex (a Level 0 hex may jump onto a Level 3 hill, Total
-  Warfare p. 149). Only a unit still occupying the landing hex is displaced, through the shared
-  domino effect; the landing position itself is grounded, so its level is the hex's level
-  (p. 149-150).
+  Warfare p. 149). The landing completes the jump rather than displacing the attacker, and the
+  landing position is grounded, so its level is the hex's level (p. 149-150).
+* **Displacement reasons:** the first displacement an attack causes carries the attack's own reason —
+  the hit's push is `DfaTarget`, the attacker grounding is `DfaAttackerLanding`, `DfaMissLanding` or
+  `DfaAutoFailLanding`, and a unit knocked out of the landing hex is `DfaLandingOccupant`. A
+  **domino effect** begins only when a displacement enters an occupied hex and the stacking limit is
+  exceeded (Total Warfare p. 57, p. 152); only the links after the first are domino effects.
+* **Landing-hex occupant:** with one 'Mech per hex, the hit pushes the target one hex away and the
+  miss moves it to an adjacent hex of its choice, so the landing hex is empty by the time the
+  attacker grounds (p. 150). It holds a unit only when the target was not displaced (an auto-fail):
+  the attacker lands anyway, and its impact knocks that occupant out one hex — the first displacement
+  the landing causes, not a domino. A domino starts only if the knocked-out unit enters an occupied
+  hex.
 * **Serialization / reconstruction:** `Unit.ToData` exports the airborne position through the
   optional `HexPositionData.AirborneLevel`; the declaration itself is not exported. `MechFactory`
   and `CloneUnit` do not restore the position, so a reconstructed unit is undeployed and never

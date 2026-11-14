@@ -170,6 +170,25 @@ public class DominoEffectResolverTests
     }
 
     [Fact]
+    public void Resolve_FirstLinkDisplacementReason_AppliesToTheFirstLinkOnly()
+    {
+        var map = CreateFlatMap();
+        var entering = UnitAt(SourceHex);
+        var first = UnitAt(DestinationHex);
+        var second = UnitAt(FirstChainHex);
+
+        var result = _sut.Resolve(
+            Request(entering, firstLinkDisplacementReason: DisplacementReason.DfaLandingOccupant),
+            map,
+            [entering, first, second]);
+
+        result.Outcome.ShouldBe(DominoEffectOutcome.Resolved);
+        // Far-to-near, so the last command is the first link: the direct effect of the action.
+        result.Commands.Select(command => command.DisplacementReason)
+            .ShouldBe([DisplacementReason.DominoEffect, DisplacementReason.DfaLandingOccupant]);
+    }
+
+    [Fact]
     public void Resolve_OffMapChainEnd_BlocksTheWholeChain()
     {
         var map = new BattleMap(30, 30);
@@ -505,12 +524,14 @@ public class DominoEffectResolverTests
         bool applyEntryElevationRule = true,
         HexCoordinates? destination = null,
         bool enteringEntryIsGuaranteed = false,
-        HexSurface destinationSurface = HexSurface.Ground) => new()
+        HexSurface destinationSurface = HexSurface.Ground,
+        DisplacementReason? firstLinkDisplacementReason = null) => new()
     {
         EnteringUnit = entering,
         Destination = destination ?? DestinationHex,
         Direction = ChainDirection,
         Reason = DisplacementReason.DominoEffect,
+        FirstLinkDisplacementReason = firstLinkDisplacementReason,
         GameOriginId = _gameId,
         Occupants = occupants?.Where(occupant => occupant.Id != entering.Id).ToList(),
         ApplyEntryElevationRule = applyEntryElevationRule,
