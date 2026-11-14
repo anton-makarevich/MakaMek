@@ -31,19 +31,21 @@ public static class HexCoordinatesExtensions
             var dy = coordinates.Y - origin.Y;
             var dz = coordinates.Z - origin.Z;
 
-            return HexDirectionExtensions.AllDirections
-                .Select(direction =>
-                {
-                    var neighbour = coordinates.GetNeighbour(direction);
-                    var dot = dx * (neighbour.X - coordinates.X)
-                              + dy * (neighbour.Y - coordinates.Y)
-                              + dz * (neighbour.Z - coordinates.Z);
-                    return (Direction: direction, Alignment: dot);
-                })
-                .OrderByDescending(candidate => candidate.Alignment)
-                .ThenBy(candidate => (int)candidate.Direction)
-                .Select(candidate => candidate.Direction)
-                .ToList();
+            return
+            [
+                .. HexDirectionExtensions.AllDirections
+                    .Select(direction =>
+                    {
+                        var neighbour = coordinates.GetNeighbour(direction);
+                        var dot = dx * (neighbour.X - coordinates.X)
+                                  + dy * (neighbour.Y - coordinates.Y)
+                                  + dz * (neighbour.Z - coordinates.Z);
+                        return (Direction: direction, Alignment: dot);
+                    })
+                    .OrderByDescending(candidate => candidate.Alignment)
+                    .ThenBy(candidate => (int)candidate.Direction)
+                    .Select(candidate => candidate.Direction)
+            ];
         }
     }
 }

@@ -293,6 +293,7 @@ public class DfaDisplacementResolver(
     public DfaLandingResult? ResolveLanding(
         IUnit attacker,
         HexPosition desired,
+        HexCoordinates jumpOrigin,
         IBattleMap map,
         IEnumerable<IUnit> units,
         Guid gameOriginId = default)
@@ -306,11 +307,12 @@ public class DfaDisplacementResolver(
         if (occupants.Count == 0)
             return new DfaLandingResult(desired with { AirborneLevel = null });
 
-        // The forced-displacement direction is the landing line; falling back to the attacker's
-        // facing keeps a deterministic order for a landing in its own approach hex.
-        var direction = desired.Coordinates == attackerPosition.Coordinates
+        // The forced-displacement direction is the landing line, measured from the hex where the
+        // jump started (Total Warfare, p. 150); falling back to the attacker's facing keeps a
+        // deterministic order for a landing in its own jump-origin hex.
+        var direction = desired.Coordinates == jumpOrigin
             ? attackerPosition.Facing
-            : desired.Coordinates.GetDirectionAwayFrom(attackerPosition.Coordinates);
+            : desired.Coordinates.GetDirectionAwayFrom(jumpOrigin);
 
         var domino = dominoEffectResolver.Resolve(
             new DominoEffectRequest

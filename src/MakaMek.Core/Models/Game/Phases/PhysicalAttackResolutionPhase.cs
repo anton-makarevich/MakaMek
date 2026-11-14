@@ -716,11 +716,15 @@ public class PhysicalAttackResolutionPhase : GamePhase
     private DfaLandingResult? ResolveDfaLanding(IUnit attacker)
     {
         if (Game.BattleMap is not { } map) return null;
-        if (attacker.MovementTaken?.GetDfaLandingPosition(map) is not { } landing) return null;
+        if (attacker.MovementTaken is not { } movement) return null;
+        if (movement.GetDfaLandingPosition(map) is not { } landing) return null;
 
+        // The forced-displacement direction of an occupied landing hex is measured from the hex
+        // where the jump started, not from the airborne approach hex (Total Warfare, p. 150).
         return _dfaDisplacementResolver.ResolveLanding(
             attacker,
             landing,
+            movement.Start.Coordinates,
             map,
             AllUnits(),
             Game.Id);

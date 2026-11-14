@@ -276,7 +276,8 @@ public class DfaDisplacementResolverTests
         var attacker = CreateMech(new HexPosition(new HexCoordinates(5, 4), HexDirection.Top, AirborneLevel: 4));
 
         var result = _sut.ResolveLanding(
-            attacker, new HexPosition(new HexCoordinates(5, 5), HexDirection.Top), map, [attacker]);
+            attacker, new HexPosition(new HexCoordinates(5, 5), HexDirection.Top), StartCoordinates, map,
+            [attacker]);
 
         result.ShouldNotBeNull();
         result.Destination.Coordinates.ShouldBe(new HexCoordinates(5, 5));
@@ -294,6 +295,7 @@ public class DfaDisplacementResolverTests
         var result = _sut.ResolveLanding(
             attacker,
             new HexPosition(new HexCoordinates(5, 5), HexDirection.Top),
+            StartCoordinates,
             map,
             [attacker, occupant]);
 
@@ -303,6 +305,30 @@ public class DfaDisplacementResolverTests
         // The landing is the attack, so knocking the occupant out is its first displacement.
         result.DominoEffect!.Commands.ShouldHaveSingleItem().DisplacementReason
             .ShouldBe(DisplacementReason.DfaLandingOccupant);
+    }
+
+    [Fact]
+    public void ResolveLanding_WhenTheHexIsOccupied_ForcesTheOccupantAwayFromTheJumpOrigin()
+    {
+        var map = CreateMap();
+        // The jump runs (4,3) -> approach (5,4) -> landing (5,5). Measured from the approach hex
+        // the occupant would be forced south to (5,6); measured from the jump origin it is forced
+        // south-east to (6,5) (Total Warfare, p. 150).
+        var attacker = CreateMech(new HexPosition(new HexCoordinates(5, 4), HexDirection.Top, AirborneLevel: 4));
+        var occupant = CreateMech(new HexPosition(new HexCoordinates(5, 5), HexDirection.Top));
+
+        var result = _sut.ResolveLanding(
+            attacker,
+            new HexPosition(new HexCoordinates(5, 5), HexDirection.Top),
+            new HexCoordinates(4, 3),
+            map,
+            [attacker, occupant]);
+
+        result.ShouldNotBeNull();
+        result.DominoEffect.ShouldNotBeNull().HasDisplacements.ShouldBeTrue();
+        var displacement = result.DominoEffect!.Commands.ShouldHaveSingleItem();
+        displacement.UnitId.ShouldBe(occupant.Id);
+        displacement.ToCoordinates.ShouldBe(new HexCoordinates(6, 5).ToData());
     }
 
     [Fact]
@@ -317,7 +343,7 @@ public class DfaDisplacementResolverTests
         var occupant = CreateMech(new HexPosition(landing, HexDirection.Top));
 
         var result = _sut.ResolveLanding(
-            attacker, new HexPosition(landing, HexDirection.Top), map, [attacker, occupant]);
+            attacker, new HexPosition(landing, HexDirection.Top), StartCoordinates, map, [attacker, occupant]);
 
         result.ShouldNotBeNull();
         result.IsOverlapUnresolved.ShouldBeFalse();
@@ -342,7 +368,7 @@ public class DfaDisplacementResolverTests
         var occupant = CreateMech(new HexPosition(landing, HexDirection.Top));
 
         var result = _sut.ResolveLanding(
-            attacker, new HexPosition(landing, HexDirection.Top), map, [attacker, occupant]);
+            attacker, new HexPosition(landing, HexDirection.Top), StartCoordinates, map, [attacker, occupant]);
 
         result.ShouldNotBeNull();
         result.IsOverlapUnresolved.ShouldBeFalse();
@@ -365,7 +391,7 @@ public class DfaDisplacementResolverTests
         map.AddHex(new Hex(new HexCoordinates(5, 4), 3));
 
         var result = _sut.ResolveLanding(
-            attacker, attackerPosition, map, [attacker, occupant]);
+            attacker, attackerPosition, new HexCoordinates(5, 6), map, [attacker, occupant]);
 
         result.ShouldNotBeNull();
         result.Destination.Coordinates.ShouldBe(new HexCoordinates(5, 5));

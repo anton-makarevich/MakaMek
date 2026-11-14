@@ -164,7 +164,9 @@ is added.
   miss moves it to an adjacent hex, so the landing hex is empty by the time the attacker grounds
   (p. 150). It still holds a unit when the declared target left and no enemy replacement exists (an
   auto-fail, e.g. a friendly unit in the committed hex): the landing exceeds the stacking limit and
-  forces that occupant out as the **first domino link**, labelled `DfaLandingOccupant`. This is a
+  forces that occupant out as the **first domino link**, labelled `DfaLandingOccupant`. The push
+  follows the jump line, measured from the jump origin (`MovementTaken.Start`) rather than the
+  airborne approach hex, matching the attack direction of the target push (p. 150). This is a
   stacking displacement, not a direct effect of the attack; the links after it are `DominoEffect`.
 * **Attacker destroyed on impact:** the target is pushed only when neither unit was destroyed by the
   attack (p. 150). An attacker destroyed by its own leg damage does not land and does not move the
