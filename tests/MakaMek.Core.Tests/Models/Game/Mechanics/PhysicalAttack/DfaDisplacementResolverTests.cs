@@ -302,6 +302,50 @@ public class DfaDisplacementResolverTests
     }
 
     [Fact]
+    public void ResolveLanding_WhenTheLandingHexIsAboveTheClimbLimit_StillLandsAndDisplacesTheOccupant()
+    {
+        var map = CreateMap();
+        var landing = new HexCoordinates(5, 5);
+        map.AddHex(new Hex(landing, 3));
+        // The jump into a Level 3 hex is legal with enough Jump MP (Total Warfare p. 149), so the
+        // landing is not a forced climb from the Level 0 approach hex.
+        var attacker = CreateMech(new HexPosition(new HexCoordinates(5, 4), HexDirection.Top, AirborneLevel: 5));
+        var occupant = CreateMech(new HexPosition(landing, HexDirection.Top));
+
+        var result = _sut.ResolveLanding(
+            attacker, new HexPosition(landing, HexDirection.Top), map, [attacker, occupant]);
+
+        result.ShouldNotBeNull();
+        result.IsOverlapUnresolved.ShouldBeFalse();
+        result.Destination.Coordinates.ShouldBe(landing);
+        result.Destination.Surface.ShouldBe(HexSurface.Ground);
+        result.Destination.AirborneLevel.ShouldBeNull();
+        result.DominoEffect.ShouldNotBeNull().HasDisplacements.ShouldBeTrue();
+        result.DominoEffect!.Commands.ShouldHaveSingleItem().UnitId.ShouldBe(occupant.Id);
+    }
+
+    [Fact]
+    public void ResolveLanding_WhenTheApproachHexIsHigher_DoesNotFallFromAbove()
+    {
+        var map = CreateMap();
+        var landing = new HexCoordinates(5, 5);
+        map.AddHex(new Hex(new HexCoordinates(5, 4), 2));
+        // The attacker descends from the air, not from the approach hex's ground level, so a drop of
+        // two or more levels is not an accidental fall from above onto the occupant.
+        var attacker = CreateMech(new HexPosition(new HexCoordinates(5, 4), HexDirection.Top, AirborneLevel: 4));
+        var occupant = CreateMech(new HexPosition(landing, HexDirection.Top));
+
+        var result = _sut.ResolveLanding(
+            attacker, new HexPosition(landing, HexDirection.Top), map, [attacker, occupant]);
+
+        result.ShouldNotBeNull();
+        result.IsOverlapUnresolved.ShouldBeFalse();
+        result.Destination.AirborneLevel.ShouldBeNull();
+        result.DominoEffect.ShouldNotBeNull().HasDisplacements.ShouldBeTrue();
+        result.DominoEffect!.Commands.ShouldHaveSingleItem().UnitId.ShouldBe(occupant.Id);
+    }
+
+    [Fact]
     public void ResolveLanding_WhenTheDominoIsBlocked_ReportsAnUnresolvedOverlap()
     {
         var map = CreateMap();

@@ -82,6 +82,40 @@ public class DominoEffectResolverTests
     }
 
     [Fact]
+    public void Resolve_GuaranteedEnteringEntry_IgnoresAnAscentAboveTheClimbLimit()
+    {
+        var map = CreateFlatMap();
+        map.AddHex(new Hex(DestinationHex, 3));
+        var entering = UnitAt(SourceHex);
+        var occupant = UnitAt(DestinationHex);
+
+        var result = _sut.Resolve(
+            Request(entering, enteringEntryIsGuaranteed: true), map, [entering, occupant]);
+
+        result.Outcome.ShouldBe(DominoEffectOutcome.Resolved);
+        result.Failure.ShouldBeNull();
+        result.Commands.ShouldHaveSingleItem().UnitId.ShouldBe(occupant.Id);
+    }
+
+    [Fact]
+    public void Resolve_GuaranteedEnteringEntry_DoesNotTurnTheEntryIntoAnAccidentalFall()
+    {
+        var map = CreateFlatMap();
+        map.AddHex(new Hex(SourceHex, 2));
+        var entering = UnitAt(SourceHex);
+        var occupant = UnitAt(DestinationHex);
+
+        var result = _sut.Resolve(
+            Request(entering, enteringEntryIsGuaranteed: true, destinationSurface: HexSurface.Bridge),
+            map,
+            [entering, occupant]);
+
+        result.Outcome.ShouldBe(DominoEffectOutcome.Resolved);
+        result.Commands.ShouldHaveSingleItem().UnitId.ShouldBe(occupant.Id);
+        result.EnteringSurface.ShouldBe(HexSurface.Bridge);
+    }
+
+    [Fact]
     public void Resolve_UnoccupiedDestination_ReturnsNotRequired()
     {
         var map = CreateFlatMap();
@@ -469,7 +503,9 @@ public class DominoEffectResolverTests
         IUnit entering,
         IReadOnlyList<IUnit>? occupants = null,
         bool applyEntryElevationRule = true,
-        HexCoordinates? destination = null) => new()
+        HexCoordinates? destination = null,
+        bool enteringEntryIsGuaranteed = false,
+        HexSurface destinationSurface = HexSurface.Ground) => new()
     {
         EnteringUnit = entering,
         Destination = destination ?? DestinationHex,
@@ -477,7 +513,9 @@ public class DominoEffectResolverTests
         Reason = DisplacementReason.DominoEffect,
         GameOriginId = _gameId,
         Occupants = occupants?.Where(occupant => occupant.Id != entering.Id).ToList(),
-        ApplyEntryElevationRule = applyEntryElevationRule
+        ApplyEntryElevationRule = applyEntryElevationRule,
+        EnteringEntryIsGuaranteed = enteringEntryIsGuaranteed,
+        DestinationSurface = destinationSurface
     };
 
     private static IUnit UnitAt(

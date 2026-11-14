@@ -273,10 +273,16 @@ public class DfaDisplacementResolver(
     }
 
     /// <summary>
-    /// Resolves the hex where the attacker grounds. An empty hex is used as is. An occupied hex
-    /// runs the domino effect; a DFA has no side-hex fallback (that is the charge miss rule), so a
-    /// blocked chain leaves the overlap unresolved for the caller to treat as no legal landing
+    /// Resolves the hex where the attacker grounds. The attacker always lands in it: its jump into
+    /// the declared target hex was validated when the attack was declared, so the landing is not a
+    /// forced entry and neither the climb limit nor the accidental-fall-from-above rule applies to
+    /// it. The landing position is grounded (no airborne level), so its level is the hex's level.
+    /// <para>
+    /// Only an occupant of the hex has to be displaced: it is forced out through the shared domino
+    /// effect. A DFA has no side-hex fallback (that is the charge miss rule), so a blocked chain
+    /// leaves the overlap unresolved for the caller to treat as no legal landing
     /// (Total Warfare, p. 150).
+    /// </para>
     /// </summary>
     public DfaLandingResult? ResolveLanding(
         IUnit attacker,
@@ -309,15 +315,15 @@ public class DfaDisplacementResolver(
                 Reason = DisplacementReason.DominoEffect,
                 GameOriginId = gameOriginId,
                 Occupants = occupants,
-                ApplyEntryElevationRule = true
+                ApplyEntryElevationRule = true,
+                EnteringEntryIsGuaranteed = true,
+                DestinationSurface = desired.Surface
             },
             map,
             allUnits);
 
         if (domino.HasDisplacements)
-            return new DfaLandingResult(
-                desired with { Surface = domino.EnteringSurface, AirborneLevel = null },
-                domino);
+            return new DfaLandingResult(desired with { AirborneLevel = null }, domino);
 
         return new DfaLandingResult(
             desired with { AirborneLevel = null },

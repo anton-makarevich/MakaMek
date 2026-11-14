@@ -65,16 +65,55 @@ public class DominoEffectResolver(IDiceRoller diceRoller)
         if (occupants.Count == 0)
             return DominoEffectResult.NotRequired();
 
-        var originSurface = request.OriginSurface ?? enteringPosition.Surface;
+        var (enteringSurface, entryFailure) = ResolveEnteringEntry(request, map, enteringPosition);
+        if (entryFailure is not null) return entryFailure;
+
+        return ResolveChain(request, map, deployedUnits, occupants, enteringSurface);
+    }
+
+    /// <summary>
+    /// Resolves the surface the entering unit occupies in the destination, or the result that
+    /// replaces the chain when it cannot enter or when the entry is an accidental fall from above.
+    /// </summary>
+    private static (HexSurface Surface, DominoEffectResult? Failure) ResolveEnteringEntry(
+        DominoEffectRequest request,
+        IBattleMap map,
+        HexPosition enteringPosition)
+    {
+        // The entering unit's entry was validated by the action that produced it (a jump landing),
+        // so only the occupants are checked: no climb limit and no accidental fall from above apply
+        // to the entering unit itself.
+        if (request.EnteringEntryIsGuaranteed)
+            return (request.DestinationSurface, null);
+
         var entryCheck = ForcedEntryCheck.Check(
-            enteringUnit, map, enteringPosition.Coordinates, originSurface, request.Destination);
+            request.EnteringUnit,
+            map,
+            enteringPosition.Coordinates,
+            request.OriginSurface ?? enteringPosition.Surface,
+            request.Destination);
 
         if (!entryCheck.IsLegal)
-            return Blocked(entryCheck.Failure!.Value, request.Destination, entryCheck.Surface);
+            return (entryCheck.Surface,
+                Blocked(entryCheck.Failure!.Value, request.Destination, entryCheck.Surface));
 
-        if (request.ApplyEntryElevationRule && entryCheck.IsDeepDrop)
-            return AccidentalFall(request.Destination, entryCheck.Surface);
+        return request.ApplyEntryElevationRule && entryCheck.IsDeepDrop
+            ? (entryCheck.Surface, AccidentalFall(request.Destination, entryCheck.Surface))
+            : (entryCheck.Surface, null);
+    }
 
+    /// <summary>
+    /// Walks the occupied hexes from <see cref="DominoEffectRequest.Destination"/> along
+    /// <see cref="DominoEffectRequest.Direction"/>, forcing one unit out of each hex.
+    /// </summary>
+    private DominoEffectResult ResolveChain(
+        DominoEffectRequest request,
+        IBattleMap map,
+        IReadOnlyList<IUnit> deployedUnits,
+        IReadOnlyList<IUnit> occupants,
+        HexSurface enteringSurface)
+    {
+        var enteringUnit = request.EnteringUnit;
         var commands = new List<DisplaceUnitCommand>();
         var psrCandidates = new List<IUnit> { enteringUnit };
         var falls = new List<DominoFall>();
@@ -88,27 +127,25 @@ public class DominoEffectResolver(IDiceRoller diceRoller)
         {
             if (++iteration > MaxDisplacementIterations)
                 return StopChain(
-                    DisplacementFailureReason.IterationLimit, from, currentUnit, entryCheck.Surface,
+                    DisplacementFailureReason.IterationLimit, from, currentUnit, enteringSurface,
                     commands, psrCandidates, falls);
 
             processed.Add(currentUnit.Id);
 
-            var fromSurface = from == request.Destination && request.OriginSurface is { } overrideSurface
-                ? overrideSurface
-                : currentUnit.Position!.Surface;
+            var fromSurface = GetFromSurface(request, from, currentUnit);
 
             var to = from.GetNeighbour(request.Direction);
             var step = ForcedEntryCheck.Check(currentUnit, map, from, fromSurface, to);
             if (!step.IsLegal)
                 return StopChain(
-                    step.Failure!.Value, to, currentUnit, entryCheck.Surface,
+                    step.Failure!.Value, to, currentUnit, enteringSurface,
                     commands, psrCandidates, falls);
 
             // Only an occupied destination turns a deep drop into an accidental fall from above:
             // an empty destination simply drops the unit to the lower level.
             var nextOccupants = GetOccupants(deployedUnits, to, processed);
-            if (request.ApplyEntryElevationRule && nextOccupants.Count != 0 && step.IsDeepDrop)
-                return AccidentalFall(to, entryCheck.Surface);
+            if (IsAccidentalFall(request, step, nextOccupants))
+                return AccidentalFall(to, enteringSurface);
 
             commands.Add(new DisplaceUnitCommand
             {
@@ -143,7 +180,7 @@ public class DominoEffectResolver(IDiceRoller diceRoller)
             DominoEffectOutcome.Resolved,
             commands,
             psrCandidates,
-            entryCheck.Surface)
+            enteringSurface)
         {
             Falls = falls
         };
@@ -154,6 +191,24 @@ public class DominoEffectResolver(IDiceRoller diceRoller)
         HexCoordinates? at,
         HexSurface enteringSurface = HexSurface.Ground) =>
         new(DominoEffectOutcome.Blocked, [], [], enteringSurface, reason, at);
+
+    /// <summary>
+    /// The surface the current link starts from. The request-wide override applies to the first
+    /// link only; every later link starts from the surface its unit actually occupies.
+    /// </summary>
+    private static HexSurface GetFromSurface(
+        DominoEffectRequest request,
+        HexCoordinates from,
+        IUnit currentUnit) =>
+        from == request.Destination && request.OriginSurface is { } overrideSurface
+            ? overrideSurface
+            : currentUnit.Position!.Surface;
+
+    private static bool IsAccidentalFall(
+        DominoEffectRequest request,
+        ForcedEntryCheckResult step,
+        List<IUnit> nextOccupants) =>
+        request.ApplyEntryElevationRule && nextOccupants.Count != 0 && step.IsDeepDrop;
 
     /// <summary>
     /// Ends the chain at the link <paramref name="blockedUnit"/> cannot take. When nothing has moved

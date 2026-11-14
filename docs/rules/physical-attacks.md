@@ -135,6 +135,13 @@ is added.
   the target is destroyed; if a missed DFA's target cannot be displaced, the attacker is destroyed.
   The declaration itself remains turn-scoped and is cleared by `ResetTurnState` at the end of the
   turn.
+* **Landing entry:** the landing hex is not a forced entry. The jump into the target hex was
+  validated at declaration (jump MP and clearance, §3.2), so neither the single-hex climb limit nor
+  the accidental-fall-from-above rule applies to the attacker, whatever the elevation difference
+  between the approach hex and the target hex (a Level 0 hex may jump onto a Level 3 hill, Total
+  Warfare p. 149). Only a unit still occupying the landing hex is displaced, through the shared
+  domino effect; the landing position itself is grounded, so its level is the hex's level
+  (p. 149-150).
 * **Serialization / reconstruction:** `Unit.ToData` exports the airborne position through the
   optional `HexPositionData.AirborneLevel`; the declaration itself is not exported. `MechFactory`
   and `CloneUnit` do not restore the position, so a reconstructed unit is undeployed and never

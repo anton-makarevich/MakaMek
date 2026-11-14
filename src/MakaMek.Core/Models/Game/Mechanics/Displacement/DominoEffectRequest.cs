@@ -41,4 +41,20 @@ public sealed record DominoEffectRequest
     /// from above (bridge collapse drops every unit together, so no unit falls onto another).
     /// </summary>
     public bool ApplyEntryElevationRule { get; init; } = true;
+
+    /// <summary>
+    /// True when the action that moves the entering unit already guarantees it may occupy
+    /// <see cref="Destination"/>: a 'Mech completing a Death From Above jump, for instance. Its
+    /// entry was validated when the action was declared (jump MP and clearance), so the forced
+    /// climb limit and the accidental-fall-from-above rule are not applied to it. The occupant
+    /// chain is still checked; only the entering unit's own entry is exempt.
+    /// </summary>
+    public bool EnteringEntryIsGuaranteed { get; init; }
+
+    /// <summary>
+    /// The surface the entering unit occupies at <see cref="Destination"/>. Only used when
+    /// <see cref="EnteringEntryIsGuaranteed"/> is true, because the forced-entry check that normally
+    /// selects the surface is skipped.
+    /// </summary>
+    public HexSurface DestinationSurface { get; init; } = HexSurface.Ground;
 }
