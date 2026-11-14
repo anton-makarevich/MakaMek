@@ -15,7 +15,6 @@ using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Map.Models;
-using Sanet.MakaMek.Map.Models.Terrains;
 
 // Pre-existing class coupling in this type, not introduced by this change. It is tracked in
 // #1714 together with the baseline-aware analyzer gate that will make this suppression unnecessary.
@@ -512,18 +511,16 @@ public class PhysicalAttackResolutionPhase : GamePhase
         if (target.IsDestroyed)
         {
             PublishDfaResolution(item, target, resolution);
-            if (target.Position is { } destroyedTargetPosition)
+            if (target.Position is not null)
             {
-                var landing = ExecuteDfaLanding(
-                    item.Attacker,
-                    LandingWithAttackerFacing(item.Attacker, destroyedTargetPosition));
+                var landing = ExecuteDfaLanding(item.Attacker);
                 RollDominoEffects(landing?.DominoEffect);
                 ApplyDfaFall(item.Attacker);
             }
             return;
         }
 
-        if (target.Position is not { } targetPosition) return;
+        if (target.Position is null) return;
 
         var candidate = _dfaDisplacementResolver.ResolveMiss(
             target,
@@ -549,7 +546,6 @@ public class PhysicalAttackResolutionPhase : GamePhase
         ApplyDfaMissDisplacement(
             item.Attacker,
             target,
-            targetPosition,
             candidate,
             DisplacementReason.DfaTarget);
     }
@@ -563,14 +559,7 @@ public class PhysicalAttackResolutionPhase : GamePhase
     /// </summary>
     private void ResolveDfaAutoFail(DfaQueueItem item, IUnit? target)
     {
-        var landing = Game.BattleMap is { } map
-            ? _dfaDisplacementResolver.ResolveLanding(
-                item.Attacker,
-                item.DeclaredTargetPosition,
-                map,
-                AllUnits(),
-                Game.Id)
-            : null;
+        var landing = ResolveDfaLanding(item.Attacker);
         var noLanding = landing is null || landing.IsOverlapUnresolved;
         PublishDfaResolution(
             item,
@@ -581,10 +570,8 @@ public class PhysicalAttackResolutionPhase : GamePhase
 
         if (noLanding) return;
 
-        var appliedLanding = ExecuteDfaLanding(
-            item.Attacker,
-            item.DeclaredTargetPosition,
-            DisplacementReason.DfaAutoFailLanding);
+        var appliedLanding = ApplyDfaLanding(
+            item.Attacker, landing, DfaLandingKind.AutoFailLanding);
         RollDominoEffects(appliedLanding?.DominoEffect);
     }
 
@@ -687,10 +674,7 @@ public class PhysicalAttackResolutionPhase : GamePhase
         // A destroyed attacker is removed from the board instead of grounding in the target hex.
         if (attackerDestroyed) return;
 
-        var landing = ExecuteDfaLanding(
-            item.Attacker,
-            displacement.AttackerDestination,
-            DisplacementReason.DfaAttackerLanding);
+        var landing = ExecuteDfaLanding(item.Attacker, DfaLandingKind.AttackerLanding);
         RollDominoEffects(
             targetMoves ? displacement.DominoEffect : null,
             landing?.DominoEffect);
@@ -698,13 +682,12 @@ public class PhysicalAttackResolutionPhase : GamePhase
 
     /// <summary>
     /// Grounds the attacker after a miss: the target moves to the hex the resolver picked along the
-    /// jump vector, then the attacker lands in the target's original hex and falls two levels with
-    /// rear hit locations.
+    /// jump vector, then the attacker completes its jump in the target's original hex and falls two
+    /// levels with rear hit locations.
     /// </summary>
     private void ApplyDfaMissDisplacement(
         IUnit attacker,
         IUnit target,
-        HexPosition targetPosition,
         DfaMissDisplacementCandidate candidate,
         DisplacementReason reason)
     {
@@ -719,32 +702,44 @@ public class PhysicalAttackResolutionPhase : GamePhase
         if (candidate.TriggersAutomaticFall && target is Mech targetMech)
             ResolveAutomaticFall(targetMech, candidate.LevelsFallen);
 
-        var landing = ExecuteDfaLanding(
-            attacker,
-            LandingWithAttackerFacing(attacker, targetPosition));
+        var landing = ExecuteDfaLanding(attacker);
         RollDominoEffects(landing?.DominoEffect);
         ApplyDfaFall(attacker);
     }
 
     /// <summary>
-    /// Moves the attacker to a landing hex through the displacement pipeline, resolving an
-    /// occupied hex with the shared domino effect and the charge side-hex fallback.
+    /// Resolves the landing of the jump path the attacker already recorded: the path's last
+    /// translation is the landing hex, the approach facing is kept and an occupied hex is resolved
+    /// through the shared domino effect. A DFA has no side-hex fallback, so a blocked chain leaves
+    /// the overlap unresolved for the caller to treat as no legal landing (Total Warfare, p. 150).
     /// </summary>
-    private DfaLandingResult? ExecuteDfaLanding(
-        IUnit attacker,
-        HexPosition desired,
-        DisplacementReason reason = DisplacementReason.DfaMissLanding)
+    private DfaLandingResult? ResolveDfaLanding(IUnit attacker)
     {
         if (Game.BattleMap is not { } map) return null;
+        if (attacker.MovementTaken?.GetDfaLandingPosition(map) is not { } landing) return null;
 
-        desired = ResolveLandingSurface(desired);
-        var landing = _dfaDisplacementResolver.ResolveLanding(
+        return _dfaDisplacementResolver.ResolveLanding(
             attacker,
-            desired,
+            landing,
             map,
             AllUnits(),
             Game.Id);
+    }
 
+    /// <summary>
+    /// Grounds the attacker by completing its jump. The landing command carries no position: the
+    /// unit's recorded movement path is the authoritative source for it.
+    /// </summary>
+    private DfaLandingResult? ExecuteDfaLanding(
+        IUnit attacker,
+        DfaLandingKind kind = DfaLandingKind.MissLanding) =>
+        ApplyDfaLanding(attacker, ResolveDfaLanding(attacker), kind);
+
+    private DfaLandingResult? ApplyDfaLanding(
+        IUnit attacker,
+        DfaLandingResult? landing,
+        DfaLandingKind kind)
+    {
         if (landing is null) return null;
 
         ExecuteDominoCommands(landing.DominoEffect);
@@ -757,11 +752,19 @@ public class PhysicalAttackResolutionPhase : GamePhase
             Game.Logger.LogWarning(
                 "DFA attacker {AttackerName} could not resolve the occupied landing hex {Hex}",
                 attacker.Name,
-                desired.Coordinates);
+                landing.Destination.Coordinates);
             return landing;
         }
 
-        ExecuteDisplacement(attacker, landing.Destination, reason);
+        Execute(new DfaLandingAction(
+            new DfaLandingCommand
+            {
+                UnitId = attacker.Id,
+                LandingKind = kind,
+                GameOriginId = Game.Id,
+                Timestamp = DateTime.UtcNow
+            },
+            publish: true));
         return landing;
     }
 
@@ -782,17 +785,6 @@ public class PhysicalAttackResolutionPhase : GamePhase
                 domino.PsrCandidates, Game.FallProcessor, domino.Falls));
         }
     }
-
-    private static HexPosition LandingWithAttackerFacing(IUnit attacker, HexPosition landing) =>
-        attacker.Position is { } position
-            ? landing with { Facing = position.Facing }
-            : landing;
-
-    private HexPosition ResolveLandingSurface(HexPosition landing) =>
-        landing.Surface == HexSurface.Bridge
-        && Game.BattleMap?.GetHex(landing.Coordinates)?.HasTerrain(MakaMekTerrains.Bridge) != true
-            ? landing with { Surface = HexSurface.Ground }
-            : landing;
 
     /// <summary>
     /// The miss fall: two levels, every hit location rear, no initial piloting skill roll

@@ -4001,6 +4001,78 @@ public class ClientGameTests
     }
 
     [Fact]
+    public void HandleCommand_ShouldCompleteTheDfaLanding_FromTheRecordedJumpPath()
+    {
+        // Arrange
+        var unitData = MechFactoryTests.CreateDummyMechData();
+        _sut.HandleCommand(new JoinGameCommand
+        {
+            PlayerId = Guid.NewGuid(),
+            GameOriginId = Guid.NewGuid(),
+            PlayerName = "Player1",
+            Units = [unitData],
+            Tint = "#FF0000",
+            PilotAssignments = []
+        });
+
+        var mapData = new BattleMapData
+        {
+            HexData =
+            [
+                new HexData
+                {
+                    Coordinates = new HexCoordinateData(1, 1),
+                    Terrains = [new TerrainData { Type = MakaMekTerrains.Clear }]
+                },
+                new HexData
+                {
+                    Coordinates = new HexCoordinateData(1, 2),
+                    Terrains = [new TerrainData { Type = MakaMekTerrains.Clear }]
+                },
+                new HexData
+                {
+                    Coordinates = new HexCoordinateData(2, 2),
+                    Terrains = [new TerrainData { Type = MakaMekTerrains.Clear }]
+                }
+            ]
+        };
+        var battleMap = BattleMapFactory.CreateFromData(mapData);
+        _mapFactory.CreateFromData(Arg.Any<BattleMapData>()).Returns(battleMap);
+        _sut.HandleCommand(new SetBattleMapCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            MapData = mapData
+        });
+
+        var unit = _sut.Players.SelectMany(p => p.Units).First();
+        var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.Top);
+        unit.Deploy(start, battleMap.GetHex(start.Coordinates));
+
+        var approach = new HexPosition(
+            new HexCoordinates(1, 2), HexDirection.TopRight, AirborneLevel: 4);
+        var path = new MovementPath(new List<PathSegment>
+        {
+            new(start, approach, []),
+            new(approach, new HexPosition(new HexCoordinates(2, 2), HexDirection.TopRight), [])
+        }, MovementType.Jump);
+        unit.Move(path, battleMap.GetHex(path.Destination.Coordinates), isCompleted: true, stopAt: approach);
+
+        // Act
+        _sut.HandleCommand(new DfaLandingCommand
+        {
+            UnitId = unit.Id,
+            LandingKind = DfaLandingKind.AttackerLanding,
+            GameOriginId = Guid.NewGuid()
+        });
+
+        // Assert
+        unit.Position.ShouldNotBeNull();
+        unit.Position.Coordinates.ShouldBe(new HexCoordinates(2, 2));
+        unit.Position.Facing.ShouldBe(HexDirection.TopRight);
+        unit.Position.AirborneLevel.ShouldBeNull();
+    }
+
+    [Fact]
     public void HandleCommand_ShouldApplyHullBreach_WhenHullBreachCommandIsReceived()
     {
         // Arrange

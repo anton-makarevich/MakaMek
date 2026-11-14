@@ -128,9 +128,10 @@ is added.
   submerged-attacker rejection) is decided before the move, when the attacker is grounded.
 * **Lifecycle:** the airborne value ends deterministically when the pending movement attack ends —
   on attacker destruction and on the turn reset (`ResetTurnState`). The DFA resolution slice grounds
-  the attacker through the displacement pipeline: a hit lands it in the target's original hex, a
-  miss or a destroyed target lands it there before the automatic two-level rear fall, and an
-  auto-fail lands it in the declared target hex (the jump destination) without damage or a fall.
+  the attacker by completing the jump it already recorded (`DfaLandingCommand`): a hit lands it in
+  the target's original hex, a miss or a destroyed target lands it there before the automatic
+  two-level rear fall, and an auto-fail lands it in the declared target hex (the jump destination)
+  without damage or a fall.
   The attacker always lands in the target hex: if a successful DFA's target cannot be displaced,
   the target is destroyed; if a missed DFA's target cannot be displaced, the attacker is destroyed.
   The declaration itself remains turn-scoped and is cleared by `ResetTurnState` at the end of the
@@ -147,11 +148,18 @@ is added.
   automatically fails and the attacker lands in the declared hex without damage or a fall (Total
   Warfare, Initiative and Displacement). A unit performing a Death From Above is immune to physical
   attacks until it lands (p. 149) and is never a replacement.
-* **Displacement reasons:** the first displacement an attack causes carries the attack's own reason —
-  the target push is `DfaTarget` (on a hit or a miss), and the attacker grounding is
-  `DfaAttackerLanding`, `DfaMissLanding` or `DfaAutoFailLanding`. A **domino effect** begins only when
-  a displacement enters an occupied hex and the stacking limit is exceeded (Total Warfare p. 57,
-  p. 152); only the links after the first are domino effects.
+* **Landing is a jump completion:** the attacker already recorded the full jump path, including the
+  final leg into the target hex, during the Movement Phase; it only waits in the approach hex. The
+  physical phase completes that move with a `DfaLandingCommand` (`DfaLandingKind`: attacker landing,
+  miss landing or auto-fail landing). The command carries no position or path: the handler derives
+  the landing hex from the last translation of `MovementTaken`, keeps the approach facing (a jump
+  does not turn in flight, so trailing turns are ignored) and clears the airborne level. A bridge
+  deck that no longer exists resolves to the ground beneath. This is not a rules displacement, so it
+  no longer uses `DisplaceUnitCommand`.
+* **Displacement reasons:** the first displacement the attack causes is the target push, labelled
+  `DfaTarget` (on a hit or a miss). A **domino effect** begins only when a displacement enters an
+  occupied hex and the stacking limit is exceeded (Total Warfare p. 57, p. 152); only the links after
+  the first are domino effects.
 * **Landing-hex occupant:** with one 'Mech per hex, the hit pushes the target one hex away and the
   miss moves it to an adjacent hex, so the landing hex is empty by the time the attacker grounds
   (p. 150). It still holds a unit when the declared target left and no enemy replacement exists (an
@@ -336,7 +344,7 @@ The water rules decide whether a physical attack may be **made at all** — they
 * **DFA:** the attack is **never** entirely underwater. A fully submerged target is rejected by an explicit check because DFA has no level comparison to fall back on. A fully submerged attacker is also rejected, but under the **jump-jet rule** ("jump jets cannot be fired while submerged"), not under the physical-attack water rule. A 'Mech in Depth 1 water can still jump with its torso-mounted jets.
 * **DFA against a target standing in Depth 1 water:** legal. A standing 'Mech is waist-deep, so its torso and head remain above the surface and it is **not** submerged; the target-side rule only protects a fully submerged unit. The attacker needs enough Jumping MP to clear the target hex's standing level plus the target's height (for a Depth 1 hex at level 0 the waterbed is −1 and a standing 'Mech reaches +1). If the DFA lands in the water hex, the attacker makes a landing PSR; on success it stands on the waterbed, on failure it falls onto the waterbed.
 
-**Implementation scope:** `PhysicalAttackEligibility` applies the Punch/Kick/Push rules (and the effective-standing-level comparison) to physical-phase declarations; the same rules are re-checked at resolution time via `CanResolve` and `PhysicalAttackTargetValidityGate`, so a declaration that has become illegal by resolution is skipped automatically. `MovementAttackDeclarationValidator` applies the Charge/DFA declaration rules. Charge and DFA resolutions live in `PhysicalAttackResolutionPhase`: a charge applies the charge water rules, and a DFA grounds the attacker through the displacement pipeline, with a two-level rear fall on a miss. A DFA target displaced down more than the automatic-fall threshold takes the standard automatic fall. If the target cannot be displaced at all, a hit destroys the target and a miss destroys the attacker (Total Warfare p. 150). The DFA landing PSR carries the water-entry modifier when the attacker lands in water (Depth 1 −1, Depth 2 0, Depth 3+ +1).
+**Implementation scope:** `PhysicalAttackEligibility` applies the Punch/Kick/Push rules (and the effective-standing-level comparison) to physical-phase declarations; the same rules are re-checked at resolution time via `CanResolve` and `PhysicalAttackTargetValidityGate`, so a declaration that has become illegal by resolution is skipped automatically. `MovementAttackDeclarationValidator` applies the Charge/DFA declaration rules. Charge and DFA resolutions live in `PhysicalAttackResolutionPhase`: a charge applies the charge water rules, and a DFA grounds the attacker by completing its recorded jump with `DfaLandingCommand`, with a two-level rear fall on a miss. A DFA target displaced down more than the automatic-fall threshold takes the standard automatic fall. If the target cannot be displaced at all, a hit destroys the target and a miss destroys the attacker (Total Warfare p. 150). The DFA landing PSR carries the water-entry modifier when the attacker lands in water (Depth 1 −1, Depth 2 0, Depth 3+ +1).
 
 **DFA miss displacement — first implementation:** the rules give the target's controller the choice of the adjacent hex. The first version resolves it on the server instead, so a miss needs no client interaction: `DfaDisplacementResolver.ResolveMiss` walks the adjacent hexes ordered by alignment away from the attacker's jump origin (`MovementTaken.Start`) and takes the first passable, unoccupied one, which is the hex a hit would push the target into. A deep drop is still a legal candidate: the target is displaced down and then takes the standard automatic fall. No adjacent hex is available → the attacker is destroyed. On a hit, if the target cannot be displaced, the target is destroyed instead. Restoring the controller's choice is tracked as a follow-up.
 

@@ -368,6 +368,29 @@ public class BattleMapViewModelTests
     }
 
     [Fact]
+    public void DfaLandingCommand_PublishesPlaybackInterruptionForThatUnit()
+    {
+        // Arrange
+        var player = JoinPlayerWithUnit("Jumper", "#FF0000");
+        var unit = _game.Players.Single(p => p.Id == player.Id).Units.Single();
+        UnitPlaybackInterruption? received = null;
+        using var subscription = _sut.UnitPlaybackInterruptions.Subscribe(value => received = value);
+
+        // Act
+        _game.HandleCommand(new DfaLandingCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            UnitId = unit.Id,
+            LandingKind = DfaLandingKind.AttackerLanding
+        });
+
+        // Assert
+        received.ShouldNotBeNull();
+        received!.Value.UnitId.ShouldBe(unit.Id);
+        received.Value.IsResetAll.ShouldBeFalse();
+    }
+
+    [Fact]
     public void MechSkidCommand_PublishesPlaybackInterruptionForThatUnit()
     {
         // Arrange

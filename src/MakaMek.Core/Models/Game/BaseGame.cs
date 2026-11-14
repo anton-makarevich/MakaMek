@@ -547,6 +547,24 @@ public abstract class BaseGame : IGame
     }
 
     /// <summary>
+    /// Completes a pending Death From Above jump. The landing is derived from the movement path the
+    /// unit recorded during the Movement Phase: its last translation's destination, the approach
+    /// facing and the surface still present on the map. The attacker completes its jump; it is not
+    /// displaced, so no position travels with the command.
+    /// </summary>
+    internal void OnDfaLanding(DfaLandingCommand command)
+    {
+        if (BattleMap is not { } map) return;
+        if (_players
+                .SelectMany(p => p.Units)
+                .FirstOrDefault(u => u.Id == command.UnitId) is not Unit unit) return;
+        if (unit.MovementTaken is not { } path) return;
+        if (path.GetDfaLandingPosition(map) is not { } landing) return;
+
+        unit.Displace(landing, map.GetHex(landing.Coordinates));
+    }
+
+    /// <summary>
     /// Handles a pilot consciousness roll command by updating the pilot's consciousness state
     /// </summary>
     /// <param name="command">The consciousness roll command</param>
@@ -604,6 +622,7 @@ public abstract class BaseGame : IGame
             GameEndedCommand => CommandValidationResult.Valid(),
             BridgeCollapsedCommand => CommandValidationResult.Valid(),
             DisplaceUnitCommand => CommandValidationResult.Valid(),
+            DfaLandingCommand => CommandValidationResult.Valid(),
             _ => CommandValidationResult.Invalid(ErrorCode.ValidationFailed)
         };
     }

@@ -215,6 +215,10 @@
   <data name="DfaOutcome_AutoFail" xml:space="preserve"><value>Auto-fail</value></data>
   <data name="DfaOutcome_AttackerDestroyedNoLanding" xml:space="preserve"><value>Attacker destroyed (no landing hex)</value></data>
   <data name="Command_DfaResolution_Replacement" xml:space="preserve"><value>Knocked out a replacement for {0}</value></data>
+  <data name="DfaLandingKind_AttackerLanding" xml:space="preserve"><value>Death From Above</value></data>
+  <data name="DfaLandingKind_MissLanding" xml:space="preserve"><value>Death From Above miss</value></data>
+  <data name="DfaLandingKind_AutoFailLanding" xml:space="preserve"><value>Death From Above auto-fail</value></data>
+  <data name="Command_DfaLanding" xml:space="preserve"><value>{0} lands ({1})</value></data>
   <data name="Command_DfaResolution_Outcome" xml:space="preserve"><value>Death From Above: {0}</value></data>
   <data name="Command_DfaResolution_AutoFail" xml:space="preserve"><value>{0}'s {1} Death From Above against {2} automatically fails</value></data>
   <data name="Command_DfaResolution_AttackerDestroyed" xml:space="preserve"><value>{0}'s {1} is destroyed: no legal landing hex remains after the Death From Above miss</value></data>

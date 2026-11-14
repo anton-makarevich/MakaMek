@@ -28,15 +28,6 @@ public enum DisplacementReason
     /// <summary>A Death From Above displaced its target one hex along the jump line, on a hit or a miss.</summary>
     DfaTarget,
 
-    /// <summary>The Death From Above attacker landed in the target's vacated hex.</summary>
-    DfaAttackerLanding,
-
-    /// <summary>A missed Death From Above placed the attacker in the target hex before its fall.</summary>
-    DfaMissLanding,
-
-    /// <summary>A failed Death From Above placed the attacker in the declared target hex.</summary>
-    DfaAutoFailLanding,
-
     /// <summary>
     /// A unit is forced out of the hex where the Death From Above attacker grounds because the
     /// landing exceeds the stacking limit there (Total Warfare p. 57, p. 152). This is the first

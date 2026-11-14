@@ -1818,6 +1818,24 @@ public sealed class BaseGameTests : BaseGame
     }
     
     [Fact]
+    public void ValidateCommand_ShouldAutoValidateDfaLandingCommand()
+    {
+        // Arrange
+        var command = new DfaLandingCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            UnitId = Guid.NewGuid(),
+            LandingKind = DfaLandingKind.AttackerLanding
+        };
+
+        // Act
+        var result = ValidateCommand(command);
+
+        // Assert
+        result.IsValid.ShouldBeTrue();
+    }
+
+    [Fact]
     public void ValidateCommand_ShouldAutoValidateMechFallCommand()
     {
         // Arrange

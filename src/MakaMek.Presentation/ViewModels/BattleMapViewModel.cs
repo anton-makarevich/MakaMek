@@ -646,6 +646,9 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
             case DisplaceUnitCommand displacement:
                 _playbackInterruptions.OnNext(new UnitPlaybackInterruption(displacement.UnitId));
                 break;
+            case DfaLandingCommand landing:
+                _playbackInterruptions.OnNext(new UnitPlaybackInterruption(landing.UnitId));
+                break;
             case MechSkidCommand skid:
                 _playbackInterruptions.OnNext(new UnitPlaybackInterruption(skid.UnitId));
                 break;
@@ -759,15 +762,14 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
                 && indicator.TargetId == command.TargetId)
             .ToList();
 
-        if (indicatorsToRemove.Any())
+        if (indicatorsToRemove.Count == 0) return;
+        
+        foreach (var indicator in indicatorsToRemove)
         {
-            foreach (var indicator in indicatorsToRemove)
-            {
-                WeaponAttackIndicators.Remove(indicator);
-            }
-
-            NotifyPropertyChanged(nameof(WeaponAttackIndicators));
+            WeaponAttackIndicators.Remove(indicator);
         }
+
+        NotifyPropertyChanged(nameof(WeaponAttackIndicators));
     }
 
     /// <summary>

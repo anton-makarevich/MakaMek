@@ -392,6 +392,29 @@ public class GameCommandJsonConverterTests
     }
 
     [Fact]
+    public void RoundTrip_DfaLandingCommand_WorksCorrectly()
+    {
+        // Arrange
+        var originalCommand = new DfaLandingCommand
+        {
+            UnitId = Guid.NewGuid(),
+            LandingKind = DfaLandingKind.MissLanding,
+            GameOriginId = Guid.NewGuid(),
+            Timestamp = DateTime.UtcNow
+        };
+
+        // Act
+        var json = JsonSerializer.Serialize(originalCommand, _options);
+        var deserializedCommand = JsonSerializer.Deserialize<IGameCommand>(json, _options);
+
+        // Assert
+        var landingCommand = deserializedCommand.ShouldBeOfType<DfaLandingCommand>();
+        landingCommand.UnitId.ShouldBe(originalCommand.UnitId);
+        landingCommand.LandingKind.ShouldBe(DfaLandingKind.MissLanding);
+        landingCommand.GameOriginId.ShouldBe(originalCommand.GameOriginId);
+    }
+
+    [Fact]
     public void RoundTrip_ClientCommand_WorksCorrectly()
     {
         // Arrange
@@ -553,8 +576,7 @@ public class GameCommandJsonConverterTests
                         [new LocationHitData([new LocationDamageData(PartLocation.LeftLeg, 2, 0, false)], [], [3, 4],
                             PartLocation.LeftLeg)],
                         2, [], 0),
-                    [PartLocation.LeftLeg],
-                    false))
+                    [PartLocation.LeftLeg]))
         };
 
         // Act
@@ -618,8 +640,7 @@ public class GameCommandJsonConverterTests
                             PartLocation.LeftLeg)],
                         4, [], 0),
                     originalTargetId,
-                    [PartLocation.LeftLeg],
-                    false))
+                    [PartLocation.LeftLeg]))
         };
 
         var json = JsonSerializer.Serialize(originalCommand, _options);

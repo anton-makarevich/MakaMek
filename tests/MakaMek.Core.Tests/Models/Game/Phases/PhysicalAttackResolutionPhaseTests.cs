@@ -1757,8 +1757,11 @@ public class PhysicalAttackResolutionPhaseTests : GamePhaseTestsBase
         _player2Mech.Position!.Coordinates.ShouldBe(new HexCoordinates(5, 5));
         _player1Mech.Position!.Coordinates.ShouldBe(new HexCoordinates(5, 4));
         PublishedCommands().OfType<DisplaceUnitCommand>()
-            .Select(command => command.DisplacementReason)
-            .ShouldBe([DisplacementReason.DfaTarget, DisplacementReason.DfaAttackerLanding]);
+            .ShouldHaveSingleItem()
+            .DisplacementReason.ShouldBe(DisplacementReason.DfaTarget);
+        PublishedCommands().OfType<DfaLandingCommand>()
+            .ShouldHaveSingleItem()
+            .LandingKind.ShouldBe(DfaLandingKind.AttackerLanding);
         MockPhaseManager.Received(1).GetNextPhase(PhaseNames.PhysicalAttackResolution, Game);
         _mockNextPhase.Received(1).Enter();
     }
@@ -1886,8 +1889,10 @@ public class PhysicalAttackResolutionPhaseTests : GamePhaseTestsBase
         resolution.ResolutionData.Dfa!.Outcome.ShouldBe(DfaOutcome.AutoFail);
         // The attacker committed to the declared target hex, so it lands there, not in its approach.
         _player1Mech.Position!.Coordinates.ShouldBe(declaredTarget);
-        PublishedCommands().OfType<DisplaceUnitCommand>()
-            .ShouldContain(command => command.DisplacementReason == DisplacementReason.DfaAutoFailLanding);
+        PublishedCommands().OfType<DfaLandingCommand>()
+            .ShouldHaveSingleItem()
+            .LandingKind.ShouldBe(DfaLandingKind.AutoFailLanding);
+        PublishedCommands().OfType<DisplaceUnitCommand>().ShouldBeEmpty();
         MockDfaAttackResolver.DidNotReceiveWithAnyArgs().ResolveDfa(null!);
         PublishedCommands().OfType<MechFallCommand>().ShouldBeEmpty();
         MockPhaseManager.Received(1).GetNextPhase(PhaseNames.PhysicalAttackResolution, Game);
@@ -2187,10 +2192,9 @@ public class PhysicalAttackResolutionPhaseTests : GamePhaseTestsBase
 
         _sut.Enter();
 
-        var landing = PublishedCommands().OfType<DisplaceUnitCommand>()
+        var landing = PublishedCommands().OfType<DfaLandingCommand>()
             .ShouldHaveSingleItem();
-        landing.DisplacementReason.ShouldBe(DisplacementReason.DfaAutoFailLanding);
-        landing.Surface.ShouldBe((int)HexSurface.Ground);
+        landing.LandingKind.ShouldBe(DfaLandingKind.AutoFailLanding);
         _player1Mech.Position!.Surface.ShouldBe(HexSurface.Ground);
     }
 

@@ -187,6 +187,9 @@ public sealed class ClientGame : BaseGame, IDisposable, IClientGame
             case DisplaceUnitCommand displaceUnitCommand:
                 OnUnitDisplaced(displaceUnitCommand);
                 break;
+            case DfaLandingCommand dfaLandingCommand:
+                OnDfaLanding(dfaLandingCommand);
+                break;
             case MechStandUpCommand mechStandedUpCommand:
                 OnMechStandUp(mechStandedUpCommand);
                 break;
