@@ -2,7 +2,9 @@ using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
+using Sanet.MakaMek.Core.Data.Game.Mechanics.PhysicalAttacks;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.PhysicalAttack;
+using Sanet.MakaMek.Core.Models.Units;
 
 namespace Sanet.MakaMek.Core.Models.Game.Phases;
 
@@ -94,26 +96,20 @@ public class PhysicalAttackPhase(ServerGame game) : MainGamePhase(game)
     /// </summary>
     private ErrorCode? Validate(PhysicalAttackCommand command)
     {
-        if (command.PlayerId != Game.PhaseStepState?.ActivePlayer.Id) return ErrorCode.InvalidGameState;
-
-        var attacker = Game.Players
-            .FirstOrDefault(p => p.Id == command.PlayerId)?
-            .Units.FirstOrDefault(u => u.Id == command.UnitId);
-        if (attacker == null || !_unitsToDeclare.Contains(attacker.Id)) return ErrorCode.InvalidGameState;
+        var attacker = FindDeclaringUnit(command);
+        if (attacker == null) return ErrorCode.InvalidGameState;
 
         if (command.Declaration is not { } declaration) return null;
 
         var allUnits = Game.Players.SelectMany(p => p.Units).ToList();
         var target = allUnits.FirstOrDefault(u => u.Id == declaration.TargetId);
-        var limbs = declaration.AttackerLimbs;
-        if (target == null || limbs is not { Count: > 0 }
-                           || limbs.Distinct().Count() != limbs.Count
-                           || !PhysicalAttackDefinitions.TryGet(declaration.AttackType, out var definition)
-                           || limbs.Count > definition.MaxLimbsPerDeclaration
-                           || limbs.Count < definition.MinLimbsPerDeclaration)
+        if (target == null || declaration.AttackerLimbs is not { Count: > 0 } limbs)
             return ErrorCode.ValidationFailed;
 
-        var eligibleLimbs = Game.PhysicalAttackEligibility.GetEligibleLimbs(attacker, target, declaration.AttackType, Game.BattleMap!);
+        if (!IsValidLimbChoice(declaration.AttackType, limbs)) return ErrorCode.ValidationFailed;
+
+        var eligibleLimbs = Game.PhysicalAttackEligibility.GetEligibleLimbs(
+            attacker, target, declaration.AttackType, Game.BattleMap!);
         if (!limbs.All(eligibleLimbs.Contains)) return ErrorCode.ValidationFailed;
 
         // A target may be the target of only one Charge, DFA or Push per turn.
@@ -122,4 +118,27 @@ public class PhysicalAttackPhase(ServerGame game) : MainGamePhase(game)
             ? ErrorCode.ValidationFailed
             : null;
     }
+
+    /// <summary>
+    /// The unit that may declare right now, or null when the command is out of turn, names an
+    /// unknown unit, or the unit has already settled its declaration.
+    /// </summary>
+    private IUnit? FindDeclaringUnit(PhysicalAttackCommand command)
+    {
+        if (command.PlayerId != Game.PhaseStepState?.ActivePlayer.Id) return null;
+
+        var attacker = Game.Players
+            .FirstOrDefault(p => p.Id == command.PlayerId)?
+            .Units.FirstOrDefault(u => u.Id == command.UnitId);
+        return attacker != null && _unitsToDeclare.Contains(attacker.Id) ? attacker : null;
+    }
+
+    /// <summary>
+    /// The chosen limbs must be distinct and within the attack's declared limb range.
+    /// </summary>
+    private static bool IsValidLimbChoice(PhysicalAttackType attackType, IReadOnlyList<PartLocation> limbs) =>
+        limbs.Distinct().Count() == limbs.Count
+        && PhysicalAttackDefinitions.TryGet(attackType, out var definition)
+        && limbs.Count <= definition.MaxLimbsPerDeclaration
+        && limbs.Count >= definition.MinLimbsPerDeclaration;
 }
