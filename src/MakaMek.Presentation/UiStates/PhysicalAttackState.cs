@@ -34,6 +34,8 @@ public class PhysicalAttackState : IUiState, ICombatSelectionRoles, IPhysicalAtt
 
     private readonly BattleMapViewModel _viewModel;
     private readonly Lock _stateLock = new();
+    private readonly PhysicalAttackSelectionPolicy _selectionPolicy;
+    private readonly PhysicalAttackOptionBuilder _optionBuilder;
 
     /// <summary>
     /// The enemies the attacker can reach with at least one supported attack type. Replaced as a
@@ -125,10 +127,15 @@ public class PhysicalAttackState : IUiState, ICombatSelectionRoles, IPhysicalAtt
     /// <inheritdoc />
     public IReadOnlyList<PhysicalAttackOptionViewModel> DeclarationOptions => Options;
 
-    public PhysicalAttackState(BattleMapViewModel viewModel)
+    public PhysicalAttackState(
+        BattleMapViewModel viewModel,
+        PhysicalAttackSelectionPolicy? selectionPolicy = null,
+        PhysicalAttackOptionBuilder? optionBuilder = null)
     {
         Game = viewModel.Game! ?? throw new InvalidOperationException("Game is not client game");
         _viewModel = viewModel;
+        _selectionPolicy = selectionPolicy ?? new PhysicalAttackSelectionPolicy();
+        _optionBuilder = optionBuilder ?? new PhysicalAttackOptionBuilder();
         if (Game.PhaseStepState?.ActivePlayer == null)
         {
             throw new InvalidOperationException("Active player is null");
@@ -213,46 +220,40 @@ public class PhysicalAttackState : IUiState, ICombatSelectionRoles, IPhysicalAtt
         }
         private set
         {
-            if (value == null) return;
-
             lock (_stateLock)
             {
-                if (!this.CanHumanPlayerAct()) return;
-                if (value.IsDestroyed) return;
-
-                switch (_currentStep)
+                var outcome = DecideSelection(value);
+                switch (outcome)
                 {
-                    case PhysicalAttackStep.SelectingUnit:
-                        if (!CanActAsAttacker(value)) return;
-                        SetAttacker(value);
+                    case PhysicalAttackSelectionOutcome.SelectAttacker:
+                        SetAttacker(value!);
                         return;
-
-                    case PhysicalAttackStep.TargetSelection:
-                        if (IsFriendly(value))
-                        {
-                            if (!CanActAsAttacker(value)) return;
-                            SetAttacker(value);
-                            return;
-                        }
-
-                        if (!_reachableTargets.Contains(value)) return;
-                        OpenDeclaration(value);
+                    case PhysicalAttackSelectionOutcome.OpenDeclaration:
+                        OpenDeclaration(value!);
                         return;
-
-                    case PhysicalAttackStep.Declaration:
-                        if (!IsFriendly(value) && _reachableTargets.Contains(value))
-                        {
-                            if (!ReferenceEquals(value, _selectedTarget))
-                                OpenDeclaration(value);
-                            return;
-                        }
-
+                    case PhysicalAttackSelectionOutcome.CloseDeclaration:
                         CloseDeclaration();
+                        return;
+                    default:
                         return;
                 }
             }
         }
     }
+
+    /// <summary>
+    /// Asks the selection policy what the request means. Called under <see cref="_stateLock"/> so the
+    /// candidate checks see the same state the outcome is applied to.
+    /// </summary>
+    private PhysicalAttackSelectionOutcome DecideSelection(IUnit? candidate) =>
+        _selectionPolicy.Decide(
+            _currentStep,
+            candidate,
+            this.CanHumanPlayerAct(),
+            isFriendly: candidate is not null && IsFriendly(candidate),
+            canActAsAttacker: candidate is not null && CanActAsAttacker(candidate),
+            isReachable: candidate is not null && _reachableTargets.Contains(candidate),
+            isCurrentTarget: ReferenceEquals(candidate, _selectedTarget));
 
     public void HandleUnitSelectionFromList(IUnit? unit)
     {
@@ -365,125 +366,22 @@ public class PhysicalAttackState : IUiState, ICombatSelectionRoles, IPhysicalAtt
     }
 
     /// <summary>
-    /// Builds one row per supported attack type against the selected target. A row is enabled when
-    /// the attack has at least one reaching limb and no declaration restriction, including the
-    /// displacement budget. Target numbers and breakdowns are computed only for enabled rows.
+    /// Builds the declaration rows for the selected target through the injected builder.
     /// </summary>
     private IReadOnlyList<PhysicalAttackOptionViewModel> BuildOptions(IUnit target)
     {
         IUnit? attacker;
         lock (_stateLock) attacker = _attacker;
 
-        if (attacker == null || Game.BattleMap is not { } map) return NoOptions;
+        if (attacker == null) return NoOptions;
 
-        var allUnits = GetAllUnits();
-        var options = new List<PhysicalAttackOptionViewModel>(SupportedAttackTypes.Count);
-        foreach (var definition in PhysicalAttackDefinitions.Supported)
-        {
-            var attackType = definition.AttackType;
-            var limbEligibility = Game.PhysicalAttackEligibility.GetLimbEligibility(
-                attacker, target, attackType, map);
-            var restriction = Game.PhysicalAttackEligibility
-                .GetDeclarationRestriction(attacker, target, attackType, map, allUnits);
-
-            var isEnabled = limbEligibility.Any(limb => limb.IsAvailable) && restriction is null;
-            string? restrictionReason = null;
-            if (!isEnabled)
-            {
-                restrictionReason = restriction is { } value
-                    ? GetString($"PhysicalAttackRestriction_{value}")
-                    : GetString("PhysicalAttackDeclaration_Unavailable");
-            }
-
-            int? targetNumber = null;
-            PhysicalAttackBreakdown? breakdown = null;
-            if (isEnabled)
-            {
-                targetNumber = Game.PhysicalAttackCalculator.GetToHitNumber(attacker, target, attackType, map);
-                breakdown = Game.PhysicalAttackCalculator
-                    .GetModifierBreakdown(attacker, target, attackType, map);
-            }
-
-            var variants = BuildLimbVariants(definition, limbEligibility, attacker);
-
-            options.Add(new PhysicalAttackOptionViewModel(
-                attackType,
-                variants,
-                isEnabled,
-                restrictionReason,
-                targetNumber,
-                breakdown,
-                OnOptionSelectionChanged,
-                _viewModel.LocalizationService));
-        }
-
-        return options;
-    }
-
-    private IReadOnlyList<PhysicalAttackLimbVariant> BuildLimbVariants(
-        PhysicalAttackDefinition definition,
-        IReadOnlyList<PhysicalAttackLimbEligibility> limbEligibility,
-        IUnit attacker)
-    {
-        if (limbEligibility.Count == 0) return [];
-
-        var attackType = definition.AttackType;
-        var variants = new List<PhysicalAttackLimbVariant>(limbEligibility.Count + 1);
-
-        // The attack type is already the row header, so the sub-items are simply the limb names.
-        // An attack that needs all of its limbs resolves as one declaration, so Push offers a
-        // single "Both Arms" variant instead of one variant per arm.
-        if (definition.MinLimbsPerDeclaration > 1)
-        {
-            if (limbEligibility.Count < definition.MinLimbsPerDeclaration) return [];
-
-            variants.Add(CreateVariant(
-                definition,
-                attacker,
-                GetString("PhysicalAttack_BothArms"),
-                limbEligibility.Take(definition.MinLimbsPerDeclaration).ToList()));
-            return variants;
-        }
-
-        foreach (var limb in limbEligibility)
-            variants.Add(CreateVariant(
-                definition,
-                attacker,
-                GetString($"MechPart_{limb.Limb}"),
-                [limb]));
-
-        if (attackType == PhysicalAttackType.Punch && limbEligibility.Count > 1)
-            variants.Add(CreateVariant(
-                definition,
-                attacker,
-                GetString("PhysicalAttack_BothArms"),
-                limbEligibility.ToList()));
-
-        return variants;
-    }
-
-    /// <summary>
-    /// Builds one variant from the limbs that will actually be declared. A combined variant is
-    /// unavailable as soon as one of its limbs is, and its damage is the sum of the per-limb
-    /// damage because a two-arm punch resolves as two independent attacks.
-    /// </summary>
-    private PhysicalAttackLimbVariant CreateVariant(
-        PhysicalAttackDefinition definition,
-        IUnit attacker,
-        string label,
-        IReadOnlyList<PhysicalAttackLimbEligibility> limbs)
-    {
-        var restriction = limbs
-            .Select(limb => limb.Restriction)
-            .FirstOrDefault(value => value is not null);
-        var damage = limbs.Sum(limb =>
-            Game.PhysicalAttackCalculator.GetDamage(attacker, definition.AttackType, limb.Limb));
-
-        return new PhysicalAttackLimbVariant(
-            label,
-            limbs.Select(limb => limb.Limb).ToList(),
-            damage,
-            restriction);
+        return _optionBuilder.Build(
+            attacker,
+            target,
+            Game,
+            GetAllUnits(),
+            OnOptionSelectionChanged,
+            _viewModel.LocalizationService);
     }
 
     /// <summary>
