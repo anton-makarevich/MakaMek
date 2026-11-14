@@ -7,15 +7,9 @@ using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Attack;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Penalties.HeatPenalties;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Penalties.MovementPenalties;
-using Sanet.MakaMek.Core.Models.Units.Components.Engines;
-using Sanet.MakaMek.Core.Models.Units.Components.Internal;
-using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
-using Sanet.MakaMek.Core.Models.Units.Pilots;
-using Sanet.MakaMek.Core.Models.Units.Components;
-using Sanet.MakaMek.Core.Models.Units.Components.Internal.Actuators;
-using Sanet.MakaMek.Map.Models;
-using Sanet.MakaMek.Map.Models.MovementCosts;
 using Sanet.MakaMek.Core.Models.Game.Rules;
+using Sanet.MakaMek.Core.Models.Units.Components.Internal;
+using Sanet.MakaMek.Map.Models;
 
 namespace Sanet.MakaMek.Core.Models.Units.Mechs;
 
@@ -36,17 +30,9 @@ public class Mech : Unit
     public int PossibleTorsoRotation { get; }
     public bool CanFlipArms { get; }
 
-    public HexDirection? TorsoDirection=> _parts.Values.OfType<Torso>().FirstOrDefault()?.Facing;
+    public HexDirection? TorsoDirection => MechTorsoController.GetTorsoDirection(this);
 
-    public bool HasUsedTorsoTwist
-    {
-        get
-        {
-            if (Position == null) return false;
-            var torsos = _parts.Values.OfType<Torso>();
-            return torsos.Any(t => t.Facing != Position.Facing);
-        }
-    }
+    public bool HasUsedTorsoTwist => MechTorsoController.HasUsedTorsoTwist(this);
 
     public Mech(
         string chassis,
@@ -64,17 +50,8 @@ public class Mech : Unit
         Status = UnitStatus.Active;
     }
 
-    public override int GetMovementPoints(MovementType type)
-    {
-        var baseMp = type switch
-        {
-            MovementType.Walk => ModifiedMovement,
-            MovementType.Run => (int)Math.Ceiling(ModifiedMovement * 1.5),
-            MovementType.Jump => GetAvailableComponents<JumpJets>().Sum(j => j.JumpMp),
-            _ => 0
-        };
-        return Math.Max(0, baseMp - MovementPointsSpent);
-    }
+    public override int GetMovementPoints(MovementType type) =>
+        MechMobilityRules.GetMovementPoints(this, type, ModifiedMovement);
     
     public override IReadOnlyList<MovementType> GetAvailableMovementTypes()
     {
@@ -88,491 +65,94 @@ public class Mech : Unit
 
     public bool CanRotateTorso=> PossibleTorsoRotation > 0 && !HasUsedTorsoTwist;
 
-    public void RotateTorso(HexDirection newFacing)
-    {
-        if (!CanRotateTorso)
-            return;
-
-        var currentUnitFacing = (int)Position!.Facing;
-        var newFacingInt = (int)newFacing;
-
-        // Calculate steps in both directions (clockwise and counterclockwise)
-        var clockwiseSteps = (newFacingInt - currentUnitFacing + 6) % 6;
-        var counterClockwiseSteps = (currentUnitFacing - newFacingInt + 6) % 6;
-
-        // Use the smaller number of steps
-        var steps = Math.Min(clockwiseSteps, counterClockwiseSteps);
-
-        // Check if rotation is within the allowed rangeBracket
-        if (steps > PossibleTorsoRotation) return;
-        foreach (var torso in _parts.Values.OfType<Torso>())
-        {
-            torso.Rotate(newFacing);
-        }
-    }
+    public void RotateTorso(HexDirection newFacing) => MechTorsoController.RotateTorso(this, newFacing);
 
     /// <summary>
     /// Determines if a weapon configuration is currently applied to this mech
     /// </summary>
     /// <param name="config">The weapon configuration to check</param>
     /// <returns>True if the configuration is applied, false otherwise</returns>
-    public override bool IsWeaponConfigurationApplied(WeaponConfiguration config)
-    {
-        if (config.Type == WeaponConfigurationType.TorsoRotation)
-        {
-            var desiredFacing = (HexDirection)config.Value;
-            return Facing == desiredFacing && Position?.Facing != desiredFacing;
-        }
-
-        return false;
-    }
+    public override bool IsWeaponConfigurationApplied(WeaponConfiguration config) =>
+        MechWeaponConfigurationApplier.IsApplied(this, config);
 
     public override void UpdateDestroyedStatus()
     {
-        if (Pilot?.IsDead == true)
+        if (MechStructureRules.IsPilotLost(this))
         {
             Status = UnitStatus.Destroyed;
             return;
         }
-        if (_parts.TryGetValue(PartLocation.Head, out var head) && head.IsDestroyed)
+        if (MechStructureRules.IsHeadDestroyed(this))
         {
             Status = UnitStatus.Destroyed;
             return;
         }
-        if (_parts.TryGetValue(PartLocation.CenterTorso, out var centerTorso) && centerTorso.IsDestroyed)
+        if (MechStructureRules.IsCenterTorsoDestroyed(this))
         {
             Status = UnitStatus.Destroyed;
         }
 
-        BlowOffArmOnTorsoDestruction(PartLocation.LeftTorso, PartLocation.LeftArm);
-        BlowOffArmOnTorsoDestruction(PartLocation.RightTorso, PartLocation.RightArm);
-        return;
-
-        // Side torso destruction blows off the corresponding arm 
-        void BlowOffArmOnTorsoDestruction(PartLocation torsoLocation, PartLocation armLocation)
-        {
-            if (_parts.TryGetValue(torsoLocation, out var torso)
-                && torso.CurrentStructure <= 0
-                && _parts.TryGetValue(armLocation, out var arm)
-                && !arm.IsBlownOff)
-            {
-                arm.BlowOff();
-            }
-        }
+        MechStructureRules.BlowOffArmOnTorsoDestruction(this, PartLocation.LeftTorso, PartLocation.LeftArm);
+        MechStructureRules.BlowOffArmOnTorsoDestruction(this, PartLocation.RightTorso, PartLocation.RightArm);
     }
 
-    public override PartLocation? GetTransferLocation(PartLocation location) => location switch
-    {
-        PartLocation.LeftArm => PartLocation.LeftTorso,
-        PartLocation.RightArm => PartLocation.RightTorso,
-        PartLocation.LeftLeg => PartLocation.LeftTorso,
-        PartLocation.RightLeg => PartLocation.RightTorso,
-        PartLocation.LeftTorso => PartLocation.CenterTorso,
-        PartLocation.RightTorso => PartLocation.CenterTorso,
-        _ => null
-    };
+    public override PartLocation? GetTransferLocation(PartLocation location) =>
+        MechStructureRules.GetTransferLocation(location);
 
-    public override void ApplyWeaponConfiguration(WeaponConfiguration weaponConfiguration)
-    {
-        if (Position == null)
-        {
-            return;
-        }
-
-        var type = weaponConfiguration.Type;
-
-        switch (type)
-        {
-            case WeaponConfigurationType.TorsoRotation:
-                var targetDirection = (HexDirection)weaponConfiguration.Value;
-                RotateTorso(targetDirection);
-                break;
-            case WeaponConfigurationType.ArmsFlip:
-                break; //TODO to be implemented
-        }
-    }
+    public override void ApplyWeaponConfiguration(WeaponConfiguration weaponConfiguration) =>
+        MechWeaponConfigurationApplier.Apply(this, weaponConfiguration);
     
-    public override int EngineHeatSinks => GetAllComponents<Engine>().FirstOrDefault()?.NumberOfHeatSinks??0;
+    public override int EngineHeatSinks => MechHeatEffects.GetEngineHeatSinks(this);
 
-    protected override int GetWaterHeatDissipationBonus(IRulesProvider rulesProvider)
-    {
-        var cap = rulesProvider.GetWaterHeatDissipationCap();
-        var bonus = 0;
-        foreach (var heatSink in GetAvailableComponents<HeatSink>())
-        {
-            if (heatSink.IsSubmerged)
-            {
-                bonus += heatSink.HeatDissipation;
-                if (bonus >= cap)
-                    return cap;
-            }
-        }
-        
-        var engine = GetComponentsAtLocation<Engine>(PartLocation.CenterTorso).FirstOrDefault();
-        if (engine is { NumberOfHeatSinks: > 0, IsSubmerged: true })
-        {
-            bonus += engine.NumberOfHeatSinks;
-        }
-
-        return Math.Min(bonus, cap);
-    }
+    protected override int GetWaterHeatDissipationBonus(IRulesProvider rulesProvider) =>
+        MechHeatEffects.GetWaterHeatDissipationBonus(this, rulesProvider);
 
     /// <summary>
     /// Gets the heat penalty caused by engine damage
     /// </summary>
-    public override EngineHeatPenalty? EngineHeatPenalty => GetAllComponents<Engine>().FirstOrDefault()?.HeatPenalty;
+    public override EngineHeatPenalty? EngineHeatPenalty => MechHeatEffects.GetEngineHeatPenalty(this);
 
     /// <summary>
     /// Determines if this Mech can fire weapons. Returns false if sensors are destroyed (2 critical hits).
     /// </summary>
-    public override bool CanFireWeapons
-    {
-        get
-        {
-            if (base.CanFireWeapons == false) return false;
-            var sensors = GetAllComponents<Sensors>().FirstOrDefault();
-            return sensors?.IsAvailable == true;
-        }
-    }
+    public override bool CanFireWeapons =>
+        base.CanFireWeapons && MechStructureRules.AreSensorsAvailable(this);
 
-    protected override void ApplyHeatEffects()
-    {
-        // Heat shutdown is now handled by HeatEffectsCalculator in HeatPhase
-        // Only apply pilot damage from life support failure here
-
-        var lifeSupport = GetAllComponents<LifeSupport>().FirstOrDefault(ls=>ls.IsDestroyed);
-        if (lifeSupport!=null && CurrentHeat >= 15 && Pilot is MechWarrior mw)
-        {
-            var hits = 1;
-            if (CurrentHeat >=26)
-            {
-                hits++;
-            }
-            mw.Hit(hits);
-        }
-    }
+    protected override void ApplyHeatEffects() => MechHeatEffects.ApplyHeatEffects(this);
     
     // Calculate movement penalty based on current heat
-    public override HeatMovementPenalty? MovementHeatPenalty
-    {
-        get
-        {
-            if (CurrentHeat < 5) return null;
-            var heatPenaltyValue = CurrentHeat switch
-            {
-                >= 25 => 5,
-                >= 20 => 4,
-                >= 15 => 3,
-                >= 10 => 2,
-                >= 5 => 1,
-                _ => 0
-            };
-            return new HeatMovementPenalty
-            {
-                HeatLevel = CurrentHeat,
-                Value = heatPenaltyValue
-            };
-        }
-    }
+    public override HeatMovementPenalty? MovementHeatPenalty => MechHeatEffects.GetMovementHeatPenalty(CurrentHeat);
 
-    public override int DamageReducedMovement
-    {
-        get
-        {
-            var movementPenalties = GetMovementModifiers();
-            var destroyedLegsPenalty = movementPenalties.OfType<LegDestroyedPenalty>().FirstOrDefault();
-            if (destroyedLegsPenalty != null) return 2-destroyedLegsPenalty.DestroyedLegCount; // This will reduce movement to 1 for one destroyed leg
-            
-            var destroyedHipsPenalty = movementPenalties.OfType<HipDestroyedPenalty>().FirstOrDefault();
-            // If both hips are destroyed, movement is 0
-            if (destroyedHipsPenalty is { DestroyedHipCount: >= 2 })
-                return 0; // This will reduce movement to 0
-
-            var hipModifiedMovement = BaseMovement - (destroyedHipsPenalty?.Value ?? 0);
-            
-            // Apply actuator penalties (excluding hip penalties which are handled above)
-            var actuatorPenalties = GetMovementModifiers()
-                .Where(p => p is FootActuatorMovementPenalty 
-                    or LowerLegActuatorMovementPenalty 
-                    or UpperLegActuatorMovementPenalty)
-                .Sum(p => p.Value);
-
-            return Math.Max(0, hipModifiedMovement - actuatorPenalties);
-        }
-    }
+    public override int DamageReducedMovement => MechMovementModifierCalculator.GetDamageReducedMovement(this, BaseMovement);
     
     // Calculate attack penalty based on current heat
-    public override HeatRollModifier? AttackHeatPenalty
-    {
-        get
-        {
-            if (CurrentHeat < 8) return null;
-
-            var heatPenaltyValue = CurrentHeat switch
-            {
-                >= 24 => 4,
-                >= 17 => 3,
-                >= 13 => 2,
-                >= 8 => 1,
-                _ => 0
-            };
-
-            return new HeatRollModifier
-            {
-                HeatLevel = CurrentHeat,
-                Value = heatPenaltyValue
-            };
-        }
-    }
+    public override HeatRollModifier? AttackHeatPenalty => MechHeatEffects.GetAttackHeatPenalty(CurrentHeat);
 
     /// <summary>
     /// Gets all movement penalties currently affecting this mech as a property for UI binding
     /// </summary>
-    public override IReadOnlyList<RollModifier> MovementModifiers => GetMovementModifiers();
+    public override IReadOnlyList<RollModifier> MovementModifiers => MechMovementModifierCalculator.Calculate(this, BaseMovement);
 
-    /// <summary>
-    /// Gets all movement penalties currently affecting this mech
-    /// </summary>
-    private IReadOnlyList<RollModifier> GetMovementModifiers()
-    {
-        var penalties = new List<RollModifier>();
-
-        // Heat movement penalty
-        var heatPenalty = MovementHeatPenalty;
-        if (heatPenalty != null)
-        {
-            penalties.Add(heatPenalty);
-        }
-        
-        // Leg destruction penalty
-        var destroyedLegs = _parts.Values.OfType<Leg>().Count(p=> p.IsDestroyed);
-        var legDestructionPenalty = LegDestroyedPenalty.Create(destroyedLegs, BaseMovement);
-        if (legDestructionPenalty != null)
-        {
-            penalties.Add(legDestructionPenalty);
-            return penalties;
-        }
-
-        // Hip actuator penalty
-        var destroyedHips = GetAllComponents<HipActuator>().Count(a => a.IsDestroyed);
-        var hipDestroyedPenalty = HipDestroyedPenalty.Create(destroyedHips, BaseMovement);
-        if (hipDestroyedPenalty != null)
-        {
-            penalties.Add(hipDestroyedPenalty);
-        }
-
-        // Foot actuator penalty
-        var destroyedFoot = GetAllComponents<FootActuator>().Count(a => a.IsDestroyed);
-        if (destroyedFoot > 0)
-        {
-            penalties.Add(new FootActuatorMovementPenalty
-            {
-                DestroyedCount = destroyedFoot,
-                Value = destroyedFoot
-            });
-        }
-
-        // Lower leg actuator penalty
-        var destroyedLowerLeg = GetAllComponents<LowerLegActuator>().Count(a => a.IsDestroyed);
-        if (destroyedLowerLeg > 0)
-        {
-            penalties.Add(new LowerLegActuatorMovementPenalty
-            {
-                DestroyedCount = destroyedLowerLeg,
-                Value = destroyedLowerLeg
-            });
-        }
-
-        // Upper leg actuator penalty
-        var destroyedUpperLeg = GetAllComponents<UpperLegActuator>().Count(a => a.IsDestroyed);
-        if (destroyedUpperLeg > 0)
-        {
-            penalties.Add(new UpperLegActuatorMovementPenalty
-            {
-                DestroyedCount = destroyedUpperLeg,
-                Value = destroyedUpperLeg
-            });
-        }
-
-        return penalties;
-    }
-    
     /// <summary>
     /// Gets all attack penalties currently affecting this mech
     /// </summary>
-    public override IReadOnlyList<RollModifier> GetAttackModifiers(PartLocation location)
-    {
-        var penalties = new List<RollModifier>();
+    public override IReadOnlyList<RollModifier> GetAttackModifiers(PartLocation location) =>
+        MechAttackModifierCalculator.Calculate(this, location);
 
-        // Heat attack penalty
-        if (AttackHeatPenalty != null)
-        {
-            penalties.Add(AttackHeatPenalty);
-        }
-
-        // Prone firing penalty
-        if (IsProne)
-        {
-            penalties.Add(new ProneAttackerModifier
-            {
-                Value = ProneAttackerModifier.DefaultValue // +2 modifier for firing while prone
-            });
-        }
-
-        // Skidding penalty
-        if (IsSkidding)
-        {
-            penalties.Add(new SkiddingAttackerModifier
-            {
-                Value = SkiddingAttackerModifier.DefaultValue // +1 modifier for skidding
-            });
-        }
-
-        // Add sensor hit modifier for Mechs
-        var sensors = GetAllComponents<Sensors>().FirstOrDefault(s=>s.Hits>0);
-        if (sensors!=null)
-        {
-            var sensorsHitModifier = SensorHitModifier.Create(sensors.Hits);
-            if (sensorsHitModifier!=null) penalties.Add(sensorsHitModifier);
-        }
-
-        // Arm critical hit modifiers
-        var armCriticalModifiers = GetArmCriticalHitModifiers(location);
-        penalties.AddRange(armCriticalModifiers);
-
-        return penalties;
-    }
-
-    /// <summary>
-    /// Gets all arm critical hit modifiers for the mech
-    /// </summary>
-    /// <param name="location"></param>
-    private IEnumerable<RollModifier> GetArmCriticalHitModifiers(PartLocation location)
-    {
-        // Check the requested arm
-        var arm = _parts.Values.OfType<Arm>().FirstOrDefault(a => a.Location == location && a.IsDestroyed == false);
-        if (arm == null) return [];
-
-        var modifiers = new List<RollModifier>();
-
-        // Check for shoulder actuator first (overrides other arm modifiers)
-        var shoulder = arm.GetComponents<ShoulderActuator>().FirstOrDefault(sh => sh.IsDestroyed);
-        if (shoulder != null)
-        {
-            modifiers.Add(new ShoulderActuatorHitModifier
-            {
-                ArmLocation = arm.Location,
-                Value = 4 // +4 modifier for destroyed shoulder
-            });
-            // Skip other checks for this arm as per rules
-            return modifiers;
-        }
-
-        // Check upper arm actuator
-        var upperArm = arm.GetComponents<UpperArmActuator>().FirstOrDefault(a=>a.IsDestroyed);
-        if (upperArm != null)
-        {
-            modifiers.Add(new UpperArmActuatorHitModifier
-            {
-                ArmLocation = arm.Location,
-                Value = 1 // +1 modifier for destroyed upper arm actuator
-            });
-        }
-
-        // Check lower arm actuator
-        var lowerArm = arm.GetComponents<LowerArmActuator>().FirstOrDefault(a=>a.IsDestroyed);
-        if (lowerArm != null)
-        {
-            modifiers.Add(new LowerArmActuatorHitModifier
-            {
-                ArmLocation = arm.Location,
-                Value = 1 // +1 modifier for destroyed lower arm actuator
-            });
-        }
-
-        return modifiers;
-    }
-
-    public override int CalculateBattleValue()
-    {
-        var bv = Tonnage * 100; // Base value
-        bv += GetAllComponents<Weapon>().Sum(w => w.BattleValue);
-        return bv;
-    }
+    public override int CalculateBattleValue() => MechStructureRules.CalculateBattleValue(this);
 
     public override bool CanMoveBackward(MovementType type) => type == MovementType.Walk;
     
-    public bool CanJump
-    {
-        get
-        {
-            // Cannot jump if currently prone
-            if (IsProne) return false;
-
-            // Cannot jump if the mech stood up in this phase
-            if (StandupAttempts > 0) return false;
-
-            // Cannot jump if no functional jump jets are available
-            return GetMovementPoints(MovementType.Jump) >= 1;
-        }
-    }
+    public bool CanJump => MechMobilityRules.CanJump(this);
     
-    public bool CanRun {
-        get
-        {
-            var destroyedLegs = _parts.Values.OfType<Leg>().Count(p=> p.IsDestroyed);
-            return destroyedLegs <= 0;
-        }
-    }
+    public bool CanRun => MechMobilityRules.CanRun(this);
     
-    public bool CanStandup()
-    {
-        if (IsShutdown) return false;
-        
-        if (HasMoved) return false;
-
-        // Cannot stand up in the same turn if falling during a jump
-        if (MovementTaken?.MovementType == MovementType.Jump) 
-            return false;
-
-        // Cannot stand up when skidding
-        if (IsSkidding) return false;
-
-        if (!IsGyroAvailable) return false;
-
-        var destroyedLegs = _parts.Values.OfType<Leg>().Count(p=> p.IsDestroyed);
-        if (destroyedLegs >= 2) return false;
-
-        // Check if the Mech has at least the effective standup cost worth of movement points
-        if (GetMovementPoints(MovementTaken?.MovementType ?? MovementType.Walk) < EffectiveStandupCost) 
-            return false;
-
-        if (Pilot?.IsConscious == false) return false;
-
-        return true;
-    }
+    public bool CanStandup() => MechMobilityRules.CanStandup(this);
 
     /// <summary>
     /// Determines if a piloting skill roll is required for jumping due to damage
     /// </summary>
-    public bool IsPsrForJumpRequired()
-    {
-        var destroyedFootActuators = GetAllComponents<FootActuator>()
-            .Where(a=>a.IsDestroyed);
-        if (destroyedFootActuators.Any()) return true;
-        var destroyedHipActuators = GetAllComponents<HipActuator>()
-            .Where(a=>a.IsDestroyed);
-        if (destroyedHipActuators.Any()) return true;
-        var destroyedLowerLegActuators = GetAllComponents<LowerLegActuator>()
-            .Where(a=>a.IsDestroyed);
-        if (destroyedLowerLegActuators.Any()) return true;
-        var destroyedUpperLegActuators = GetAllComponents<UpperLegActuator>()
-            .Where(a=>a.IsDestroyed);
-        if (destroyedUpperLegActuators.Any()) return true;
-        
-        var gyro = GetAvailableComponents<Gyro>().FirstOrDefault();
-        return gyro?.Hits ==1;
-    }
+    public bool IsPsrForJumpRequired() => MechMobilityRules.IsPsrForJumpRequired(this);
 
     public void SetProne(HexDirection? facing = null)
     {
@@ -580,30 +160,12 @@ public class Mech : Unit
         Status |= UnitStatus.Prone;
     }
 
-    private bool IsGyroAvailable {
-        get
-        {
-            var gyro = GetAvailableComponents<Gyro>().FirstOrDefault();
-            return gyro != null;
-        }
-    }
+    private bool IsGyroAvailable => MechMobilityRules.IsGyroAvailable(this);
 
     /// <summary>
     /// Determines if the mech can change its facing while prone
     /// </summary>
-    public bool CanChangeFacingWhileProne()
-    {
-        // Must be prone to use this action
-        if (!IsProne) return false;
-
-        // Cannot change facing if shutdown
-        if (IsShutdown) return false;
-
-        // Must have at least 1 movement point available
-        if (GetMovementPoints(MovementType.Walk) < 1) return false;
-        
-        return true;
-    }
+    public bool CanChangeFacingWhileProne() => MechMobilityRules.CanChangeFacingWhileProne(this);
 
     public void StandUp(HexDirection newFacing)
     {
@@ -620,8 +182,8 @@ public class Mech : Unit
         StandupAttempts++;
         movementType ??= MovementTaken?.MovementType;
         if (Position == null || movementType == null) return; 
-        MovementTaken ??= MovementPath.CreateSingleSegmentPath(Position, movementType.Value);
-        MovementTaken = MovementTaken.WithLastSegmentEvent(new SegmentEvent(SegmentEventType.StandupAttempt), new StandUpAttemptMovementCost { Value = standupCost });
+        MovementTaken ??= MechMovementTags.CreateSingleSegmentPath(Position, movementType.Value);
+        MovementTaken = MechMovementTags.TagStandupAttempt(MovementTaken, standupCost);
     }
 
     public void ApplyFall(MechFallCommand fallCommand)
@@ -634,7 +196,7 @@ public class Mech : Unit
             Pilot?.Hit();
         }
 
-        MovementTaken = MovementTaken?.WithLastSegmentEvent(new SegmentEvent(SegmentEventType.Fall));
+        MovementTaken = MechMovementTags.TagFall(MovementTaken);
     }
 
     public void ApplySkid(MechSkidCommand skidCommand)
@@ -651,37 +213,14 @@ public class Mech : Unit
         {
             base.Position = value;
             // Reset torso rotation when the position changes
-            foreach (var torso in _parts.Values.OfType<Torso>())
-            {
-                torso.ResetRotation();
-            }
+            MechTorsoController.ResetTorsos(this);
         }
     }
 
     /// <summary>
     /// Determines if the mech is immobile based on the rules:
     /// </summary>
-    public override bool IsImmobile
-    {
-        get
-        {   // A mech is immobile if it's shutdown
-            if (IsShutdown)
-                return true;
-
-            // A mech with an unconscious pilot is immobile
-            if (Pilot == null || Pilot.IsConscious == false)
-                return true;
-
-            // A mech with both legs and both arms destroyed/blown off is immobile
-            var destroyedLegs = _parts.Values.OfType<Leg>().Count(leg => leg.IsDestroyed);
-            if (destroyedLegs < 2) return false;
-            var destroyedArms = _parts.Values.OfType<Arm>().Count(arm => arm.IsDestroyed);
-            if (destroyedArms >= 2)
-                return true;
-
-            return false;
-        }
-    }
+    public override bool IsImmobile => MechStructureRules.IsImmobile(this);
 
     public bool IsProne => (Status & UnitStatus.Prone) == UnitStatus.Prone;
 
@@ -722,10 +261,7 @@ public class Mech : Unit
         StandupAttempts = 0;
 
         // Reset torso rotation
-        foreach (var torso in _parts.Values.OfType<Torso>())
-        {
-            torso.ResetRotation();
-        }
+        MechTorsoController.ResetTorsos(this);
     }
 
     /// <summary>
@@ -738,153 +274,14 @@ public class Mech : Unit
     public override LocationCriticalHitsData? CalculateCriticalHitsData(
         PartLocation location, 
         IDiceRoller diceRoller,
-        IDamageTransferCalculator damageTransferCalculator)
-    {
-        _parts.TryGetValue(location, out var part);
-        if (part is not { CurrentStructure: > 0 })
-            return null;
-            
-        var critRoll = diceRoller.Roll2D6()
-            .Select(d => d.Result)
-            .ToArray();
-        var numCrits = GetNumCriticalHits(critRoll.Sum());
-        ComponentHitData[]? hitComponents = null;
-        
-        // Check if the location can be blown off (head or limbs on a roll of 12)
-        var isBlownOff = part.CanBeBlownOff && numCrits == 3;
-        if (isBlownOff)
-        {
-            return new LocationCriticalHitsData(location, critRoll, 0, null, isBlownOff);
-        }
-        
-        if (numCrits > 0)
-        {
-            hitComponents = DetermineCriticalHitSlots(part, numCrits, diceRoller, damageTransferCalculator);
-        }
-        
-        return new LocationCriticalHitsData(location, critRoll, numCrits, hitComponents, isBlownOff);
-    }
+        IDamageTransferCalculator damageTransferCalculator) =>
+        MechCriticalHitCalculator.Calculate(this, location, diceRoller, damageTransferCalculator);
 
     /// <summary>
     /// Determines the number of critical hits based on the roll
     /// </summary>
     /// <param name="roll">The 2d6 roll result</param>
     /// <returns>Number of critical hits (0-3)</returns>
-    internal int GetNumCriticalHits(int roll)
-    {
-        // 2–7: 0, 8–9: 1, 10–11: 2, 12: 3 (always return 3 for roll of 12)
-        return roll switch
-        {
-            <= 7 => 0,
-            8 or 9 => 1,
-            10 or 11 => 2,
-            12 => 3,
-            _ => 0
-        };
-    }
-
-    /// <summary>
-    /// Maximum number of slot-roll attempts before falling back to a uniform pick.
-    /// With fair dice, this limit is effectively unreachable.
-    /// </summary>
-    private const int MaxCriticalSlotRollAttempts = 100;
-
-    /// <summary>
-    /// Number of equally likely outcomes of rolling two six-sided dice.
-    /// </summary>
-    private const int TwoDiceOutcomes = 36;
-
-    /// <summary>
-    /// Determines which specific slots are affected by critical hits
-    /// </summary>
-    /// <param name="part">The unit part receiving critical hits</param>
-    /// <param name="numCriticalHits">Number of critical hits to determine</param>
-    /// <param name="diceRoller">The dice roller to use</param>
-    /// <param name="damageTransferCalculator">Damage transfer calculator to calculate damage distribution</param>
-    /// <returns>Array of slot indices affected by critical hits, or null if none</returns>
-    private ComponentHitData[]? DetermineCriticalHitSlots(UnitPart part,
-        int numCriticalHits,
-        IDiceRoller diceRoller,
-        IDamageTransferCalculator damageTransferCalculator)
-    {
-        var availableSlots = Enumerable.Range(0, part.TotalSlots)
-            .Where(slot => !part.HitSlots.Contains(slot)
-                           && part.GetComponentAtSlot(slot) != null)
-            .ToList();
-        if (availableSlots.Count == 0 || numCriticalHits == 0)
-            return null;
-
-        var result = new List<ComponentHitData>();
-        for (var i = 0; i < numCriticalHits && availableSlots.Count > 0; i++)
-        {
-            // With one candidate left, rolling would eventually land on it anyway.
-            var slot = availableSlots.Count == 1
-                ? availableSlots[0]
-                : RollCriticalHitSlot(part, availableSlots, diceRoller);
-
-            result.Add(ComponentHitData.CreateComponentHitData(part, slot, damageTransferCalculator));
-            availableSlots.Remove(slot);
-        }
-
-        return result.Count > 0 ? result.ToArray() : null;
-    }
-
-    /// <summary>
-    /// Rolls a critical hit slot per Total Warfare p. 124: 1D6 for a 6-slot location
-    /// (head or leg), and two dice for a 12-slot location (torso or arm), where the
-    /// first die selects one of the two groups of six slots and the second die selects
-    /// the slot within that group. Invalid slots are re-rolled, which gives every
-    /// remaining slot an equal chance.
-    /// </summary>
-    private static int RollCriticalHitSlot(UnitPart part, List<int> availableSlots, IDiceRoller diceRoller)
-    {
-        var usesTwoDice = part.TotalSlots > 6;
-
-        for (var attempt = 0; attempt < MaxCriticalSlotRollAttempts; attempt++)
-        {
-            var slot = usesTwoDice
-                ? RollTwoDiceSlot(diceRoller)
-                : diceRoller.RollD6().Result - 1;
-
-            if (availableSlots.Contains(slot))
-                return slot;
-        }
-
-        // Degenerate dice must not hang the game, but the fallback still has to keep
-        // every remaining slot equally likely instead of always taking the first one.
-        return RollSlotUniformly(availableSlots, diceRoller);
-    }
-
-    /// <summary>
-    /// Picks one of the remaining slots uniformly using two dice. Two dice yield
-    /// <see cref="TwoDiceOutcomes"/> equally likely outcomes, so the values that would
-    /// make some slots more likely than others are discarded.
-    /// </summary>
-    private static int RollSlotUniformly(List<int> availableSlots, IDiceRoller diceRoller)
-    {
-        var limit = TwoDiceOutcomes - TwoDiceOutcomes % availableSlots.Count;
-        var roll = TwoDiceOutcomes;
-
-        for (var attempt = 0; attempt < MaxCriticalSlotRollAttempts; attempt++)
-        {
-            roll = (diceRoller.RollD6().Result - 1) * 6 + diceRoller.RollD6().Result;
-            if (roll <= limit)
-                break;
-        }
-
-        // If the dice never leave the discarded tail, spread the result over the
-        // remaining slots rather than always returning the first one.
-        return availableSlots[(roll - 1) % availableSlots.Count];
-    }
-
-    /// <summary>
-    /// Rolls a slot on a 12-slot critical hit table: the first die selects one of the
-    /// two groups of six slots, the second die selects the slot within that group.
-    /// </summary>
-    private static int RollTwoDiceSlot(IDiceRoller diceRoller)
-    {
-        var groupRoll = diceRoller.RollD6().Result; // 1-3 = slots 0-5, 4-6 = slots 6-11
-        var slotRoll = diceRoller.RollD6().Result - 1; // 0-5 within the group
-        return (groupRoll <= 3 ? 0 : 6) + slotRoll;
-    }
+    internal int GetNumCriticalHits(int roll) => MechCriticalHitCalculator.GetNumCriticalHits(roll);
 }
+
