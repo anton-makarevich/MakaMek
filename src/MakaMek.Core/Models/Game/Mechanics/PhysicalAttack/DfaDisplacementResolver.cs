@@ -52,7 +52,7 @@ public record DfaMissDisplacementCandidate(
 /// <param name="Destination">The final landing position.</param>
 /// <param name="DominoEffect">The chain that vacates the landing hex, if any.</param>
 /// <param name="IsOverlapUnresolved">
-/// True when the landing hex is occupied and neither a domino nor a side hex could resolve it.
+/// True when the landing hex is occupied and the domino effect could not vacate it.
 /// </param>
 public record DfaLandingResult(
     HexPosition Destination,
@@ -71,7 +71,8 @@ public record DfaLandingResult(
 /// <para>
 /// The attacker lands in the target's original hex on a hit and on a miss, and in the declared target
 /// hex on an auto-fail: the jump destination is always that hex. An occupied landing hex is resolved
-/// through the same domino effect, with the charge side-hex precedent (right then left) as a fallback.
+/// through the same domino effect; a DFA has no side-hex fallback, so a blocked chain leaves no legal
+/// landing (Total Warfare, p. 150).
 /// </para>
 /// </summary>
 public class DfaDisplacementResolver(
@@ -273,8 +274,9 @@ public class DfaDisplacementResolver(
 
     /// <summary>
     /// Resolves the hex where the attacker grounds. An empty hex is used as is. An occupied hex
-    /// first runs the domino effect; if its first link is blocked, the charge side-hex precedent
-    /// (right, then left of the approach facing) keeps two grounded units from sharing a hex.
+    /// runs the domino effect; a DFA has no side-hex fallback (that is the charge miss rule), so a
+    /// blocked chain leaves the overlap unresolved for the caller to treat as no legal landing
+    /// (Total Warfare, p. 150).
     /// </summary>
     public DfaLandingResult? ResolveLanding(
         IUnit attacker,
@@ -316,32 +318,6 @@ public class DfaDisplacementResolver(
             return new DfaLandingResult(
                 desired with { Surface = domino.EnteringSurface, AirborneLevel = null },
                 domino);
-
-        // Charge side-hex precedent: right, then left of the approach facing.
-        foreach (var sideDirection in new[]
-                 {
-                     attackerPosition.Facing.Rotate(1),
-                     attackerPosition.Facing.Rotate(-1)
-                 })
-        {
-            var sideCoordinates = desired.Coordinates.GetNeighbour(sideDirection);
-            if (!map.IsOnMap(sideCoordinates)) continue;
-            if (GetGroundOccupants(allUnits, sideCoordinates, attacker).Count != 0) continue;
-
-            var entry = ForcedEntryCheck.Check(
-                attacker,
-                map,
-                attackerPosition.Coordinates,
-                attackerPosition.Surface,
-                sideCoordinates);
-            if (!entry.IsLegal) continue;
-            if (GetLevelsFallen(map, attackerPosition, sideCoordinates, entry.Surface)
-                > rulesProvider.GetMaxDisplacementDropWithoutAutomaticFall())
-                continue;
-
-            return new DfaLandingResult(
-                new HexPosition(sideCoordinates, attackerPosition.Facing, entry.Surface));
-        }
 
         return new DfaLandingResult(
             desired with { AirborneLevel = null },

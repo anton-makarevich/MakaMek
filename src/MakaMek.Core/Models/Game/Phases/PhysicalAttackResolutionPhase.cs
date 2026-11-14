@@ -233,7 +233,7 @@ public class PhysicalAttackResolutionPhase : GamePhase
     /// The queue items one declaration produces: a single charge item, a single DFA item, or one
     /// item per declared limb. A movement-origin attack has no limb definition.
     /// </summary>
-    private IEnumerable<ResolutionQueueItem> CreateItems(
+    private List<ResolutionQueueItem> CreateItems(
         IPlayer player,
         IUnit attacker,
         PhysicalAttackDeclarationData declaration,
@@ -633,13 +633,17 @@ public class PhysicalAttackResolutionPhase : GamePhase
     {
         if (displacement is null) return;
 
-        ExecuteDominoCommands(displacement.DominoEffect);
-
-        // A destroyed target does not move. A target that could not be pushed was destroyed by
-        // PublishDfaResolution so the attacker can take its hex (Total Warfare, p. 150).
-        if (!target.IsDestroyed && displacement.TargetDestination is { } targetDestination)
+        // A target destroyed by the impact does not move, so the displacement plan prepared for it
+        // is discarded: its domino must not move other units or roll their PSRs
+        // (Total Warfare, p. 150).
+        var targetMoves = !target.IsDestroyed && displacement.TargetDestination is not null;
+        if (targetMoves)
         {
-            ExecuteDisplacement(target, targetDestination, DisplacementReason.DfaTarget);
+            ExecuteDominoCommands(displacement.DominoEffect);
+            ExecuteDisplacement(
+                target,
+                displacement.TargetDestination!,
+                DisplacementReason.DfaTarget);
 
             if (displacement.TriggersAutomaticFall && target is Mech targetMech)
                 ResolveAutomaticFall(targetMech, displacement.LevelsFallen);
@@ -649,7 +653,9 @@ public class PhysicalAttackResolutionPhase : GamePhase
             item.Attacker,
             displacement.AttackerDestination,
             DisplacementReason.DfaAttackerLanding);
-        RollDominoEffects(displacement.DominoEffect, landing?.DominoEffect);
+        RollDominoEffects(
+            targetMoves ? displacement.DominoEffect : null,
+            landing?.DominoEffect);
     }
 
     /// <summary>

@@ -2016,6 +2016,62 @@ public class PhysicalAttackResolutionPhaseTests : GamePhaseTestsBase
     }
 
     [Fact]
+    public void Enter_DfaAutoFail_WhenOnlyTheSideHexIsFree_DestroysTheAttacker()
+    {
+        SetMap();
+        SetUpDfa(_player1Mech, _player2Mech);
+        var declaredTarget = TargetHex;
+        MoveTargetAway();
+
+        // The declared target hex is occupied and the domino's first link is blocked by a
+        // three-level rise, but the side hexes are free. A DFA lands in the committed target hex
+        // and has no side-hex fallback, so the attacker has no legal landing.
+        Game.BattleMap!.AddHex(new Hex(declaredTarget.GetNeighbour(HexDirection.Bottom), 3));
+        var blockerOwner = (Player)Game.Players[1];
+        var occupant = CreateMech();
+        occupant.Deploy(new HexPosition(declaredTarget, HexDirection.Top), null);
+        blockerOwner.AddUnit(occupant);
+
+        _sut.Enter();
+
+        _player1Mech.IsDestroyed.ShouldBeTrue();
+        PublishedCommands().OfType<PhysicalAttackResolutionCommand>().Single()
+            .ResolutionData.Dfa!.Outcome.ShouldBe(DfaOutcome.AttackerDestroyedNoLanding);
+        PublishedCommands().OfType<DisplaceUnitCommand>().ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void Enter_DfaHit_WhenTheImpactDestroysTheTarget_DoesNotRunItsDomino()
+    {
+        SetMap();
+        var blockerOwner = (Player)Game.Players[1];
+        var occupant = CreateMech();
+        var targetDestination = TargetHex.GetNeighbour(HexDirection.Bottom);
+        occupant.Deploy(new HexPosition(targetDestination, HexDirection.Top), null);
+        blockerOwner.AddUnit(occupant);
+        SetUpDfa(_player1Mech, _player2Mech);
+        MockDfaAttackResolver.ResolveDfa(Arg.Any<DfaAttackContext>())
+            .Returns(DfaLethalHit(_player2Mech.Id, _player2Mech));
+
+        _sut.Enter();
+
+        // A target destroyed by the impact does not move, so its planned displacement chain must
+        // be discarded: no unit is pushed out of the destination hex and no domino PSR is rolled
+        // (Total Warfare, p. 150).
+        _player2Mech.IsDestroyed.ShouldBeTrue();
+        occupant.Position!.Coordinates.ShouldBe(targetDestination);
+        PublishedCommands().OfType<DisplaceUnitCommand>()
+            .ShouldNotContain(command => command.DisplacementReason == DisplacementReason.DominoEffect);
+        MockFallProcessor.DidNotReceive().ProcessMovementAttempt(
+            occupant,
+            Arg.Any<DominoEffectRollContext>(),
+            Game,
+            Arg.Any<MovementType>(),
+            Arg.Any<HexPosition?>());
+        _player1Mech.Position!.Coordinates.ShouldBe(TargetHex);
+    }
+
+    [Fact]
     public void Enter_DfaAutoFail_WhenTheLandingHexIsBlocked_DoesNotStackTheAttacker()
     {
         SetMap();
@@ -2236,6 +2292,26 @@ public class PhysicalAttackResolutionPhaseTests : GamePhaseTestsBase
                 targetHitLocations,
                 attackerLegs,
                 targetId));
+    }
+
+    private static PhysicalAttackResolutionData DfaLethalHit(Guid targetId, IUnit target)
+    {
+        var torso = target.Parts[PartLocation.CenterTorso];
+        var totalDamage = torso.CurrentArmor + torso.CurrentStructure;
+        var targetHitLocations = new AttackHitLocationsData(
+            [new LocationHitData(
+                [new LocationDamageData(
+                    PartLocation.CenterTorso, torso.CurrentArmor, torso.CurrentStructure, true)],
+                [], [1], PartLocation.CenterTorso)],
+            totalDamage, [], 0);
+        var hit = DfaHit(targetId);
+
+        return hit with
+        {
+            Damage = totalDamage,
+            AttackResolution = hit.AttackResolution with { HitLocationsData = targetHitLocations },
+            Dfa = hit.Dfa! with { TargetHitLocations = targetHitLocations }
+        };
     }
 
     private static PhysicalAttackResolutionData DfaMiss(Guid targetId) =>

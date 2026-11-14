@@ -257,23 +257,24 @@ public class DfaDisplacementResolverTests
     }
 
     [Fact]
-    public void ResolveLanding_WhenTheDominoIsBlocked_UsesTheSideHexPrecedent()
+    public void ResolveLanding_WhenTheDominoIsBlocked_ReportsAnUnresolvedOverlap()
     {
         var map = CreateMap();
         var attackerPosition = new HexPosition(new HexCoordinates(5, 5), HexDirection.Top, AirborneLevel: 4);
         var attacker = CreateMech(attackerPosition);
         var occupant = CreateMech(new HexPosition(new HexCoordinates(5, 5), HexDirection.Top));
-        // The domino's first link would climb three levels, so it is blocked and the side hexes
-        // are tried in the charge order: right of the approach facing first.
+        // The domino's first link would climb three levels, so it is blocked. A DFA lands in the
+        // target hex and has no side-hex fallback (that is the charge miss rule), so the overlap
+        // stays unresolved instead of stacking the two units (Total Warfare, p. 150).
         map.AddHex(new Hex(new HexCoordinates(5, 4), 3));
 
         var result = _sut.ResolveLanding(
             attacker, attackerPosition, map, [attacker, occupant]);
 
         result.ShouldNotBeNull();
-        result.Destination.Coordinates.ShouldBe(
-            new HexCoordinates(5, 5).GetNeighbour(HexDirection.Top.Rotate(1)));
-        result.IsOverlapUnresolved.ShouldBeFalse();
+        result.Destination.Coordinates.ShouldBe(new HexCoordinates(5, 5));
+        result.DominoEffect.ShouldBeNull();
+        result.IsOverlapUnresolved.ShouldBeTrue();
     }
 
     private static IBattleMap CreateMap() =>
