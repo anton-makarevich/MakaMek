@@ -1567,6 +1567,7 @@ public class PhysicalAttackEligibilityTests
                 Substitute.For<ILocalizationService>())
             .Create(MechFactoryTests.CreateDummyMechData(lasers));
         mech.Owner = owner;
+        mech.AssignPilot(new MechWarrior("Test", "Pilot", gunnery: 4, piloting: 5));
         mech.Deploy(new HexPosition(hex, facing, surface, airborneLevel), null);
         return mech;
     }

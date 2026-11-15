@@ -1,4 +1,4 @@
-﻿using Sanet.MakaMek.Core.Models.Units;
+using Sanet.MakaMek.Core.Models.Units;
 
 namespace Sanet.MakaMek.Core.Models.Game.Mechanics.PhysicalAttack;
 

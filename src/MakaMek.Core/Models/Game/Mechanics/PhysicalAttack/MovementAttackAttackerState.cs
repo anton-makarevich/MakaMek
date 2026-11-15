@@ -12,15 +12,15 @@ public enum MovementAttackAttackerState
 
     /// <summary>
     /// The attack resolves as an automatic failure without a to-hit roll: the attacker cannot make
-    /// it any more, either because it is destroyed, shut down, unconscious or prone, or because it
+    /// it any more, either because it is destroyed, shut down, immobile or prone, or because it
     /// is no longer in the hex it committed to attack from. A charge keeps the attacker in place; a
     /// DFA grounds it in the hex it committed to land in.
     /// </summary>
     CannotAttack,
 
     /// <summary>
-    /// The attacker's own state turns the attack into a miss without a to-hit roll. A prone,
-    /// shut-down or unconscious DFA attacker still lands in the target hex and falls.
+    /// The attacker's own state turns the attack into a miss without a to-hit roll. An immobile or
+    /// prone DFA attacker still lands in the target hex and falls.
     /// </summary>
     MustMiss
 }

@@ -18,7 +18,7 @@ Physical-attack logic lives in `src/MakaMek.Core/Models/Game/Mechanics/PhysicalA
   - Punch/Kick: a signed, height-adjusted Different-Levels table.
   - Push: exact equality of effective standing levels.
   - The shared water predicate for Punch, Kick and Push.
-- `MovementAttackValidator` (formerly `MovementAttackValidator`) is a separate class that now uses the same public endpoint record and the same water predicate. `MovementPhase` constructs it by default; `BattleTechPhaseManager` does not inject a replacement. It applies:
+- `MovementAttackValidator` (formerly `MovementAttackDeclarationValidator`) is a separate class that now uses the same public endpoint record and the same water predicate. `MovementPhase` constructs it by default; `BattleTechPhaseManager` does not inject a replacement. It applies:
   - Charge: the `From` position of the last translating segment (the **approach position**), `abs(target − approach) <= 1`, and the water predicate's same-submersion rule.
   - DFA: the attacker's start position, no level limit, rejection of any submerged endpoint, and a jump-clearance check.
   - Resolution: `GetAttackerState` and `SelectResolutionTarget` expose the same rules to the phase, and `MovementAttackTargetSelector` applies the water predicate to the declared target and to any replacement.
@@ -257,12 +257,8 @@ These are recorded here for the maintainer to file as separate, reviewable GitHu
 - `PhysicalAttackEligibility` uses it for the Punch/Kick/Push water check; behaviour is unchanged.
 - `IsChargeAllowed` and `IsDfaAllowed` use it. Charge keeps the symmetric rule (both endpoints on the same side of the water line); DFA rejects a submerged endpoint.
 - `MovementAttackTargetSelector` uses it for the declared target and for a replacement, so the resolution phase no longer resolves a Charge/DFA against a target the declaration would reject.
-- Still open: the confounded `HandleCommand_WhenTheChargeTargetIsSubmerged_ShouldRejectTheCharge` and the extra declaration cases listed below:
-  - both endpoints submerged (accept),
-  - a Depth 1 approach against a submerged target one level deeper (reject),
-  - a submerged approach against a surface target at an equal level (reject),
-  - both endpoints surface (accept),
-  - a bridge over water.
+- Still open: the confounded `HandleCommand_WhenTheChargeTargetIsSubmerged_ShouldRejectTheCharge`. Its target hex has raw level 1 with Depth 2 water, so the level check alone rejects the charge; the test still passes as a rejection but does not isolate the water rule.
+- The declaration cases are covered by `HandleCommand_WhenBothEndpointsAreSubmergedAtTheSameEffectiveLevel_ShouldAcceptTheCharge` (accept), `HandleCommand_WhenTheApproachIsOneWaterDepthAboveASubmergedTarget_ShouldRejectTheCharge` (reject, with the dry `HandleCommand_WhenTheApproachIsOneDryLevelAboveTheTarget_ShouldAcceptTheCharge` as the control that proves the level difference and the path are legal), and `HandleCommand_WhenChargingFromSubmergedWaterAtTheSameEffectiveLevel_ShouldRejectTheCharge` (reject). Both surface endpoints are covered by the ordinary charge tests, a bridge over water by the endpoint tests, and the per-attack predicate itself by the `IsWaterEligibleAgainst` theory in `PhysicalAttackEndpointExtensionsTests`.
 - Keep the DFA target and attacker guards explicit; the shared predicate returns `false` for DFA.
 
 ### Issue C — Make the DFA guards explicit

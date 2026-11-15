@@ -129,11 +129,12 @@ public class MovementAttackValidator : IMovementAttackValidator
         MovementAttackTargetSelector.Select(attacker, declaration.TargetId, declaration.AttackType, units, map);
 
     /// <summary>
-    /// The attacker can still make a movement attack: standing, intact, not shut down and with a
-    /// conscious pilot. Declaration time adds the "has not moved or declared yet" conditions.
+    /// The attacker can still make a movement attack: standing, intact, not shut down, not immobile
+    /// and with a present, conscious pilot. Declaration time adds the "has not moved or declared
+    /// yet" conditions.
     /// </summary>
     private static bool CanMakeMovementAttack(IUnit attacker) =>
-        IsStandingMech(attacker) && attacker.Pilot is { IsConscious: true };
+        IsStandingMech(attacker) && !attacker.IsImmobile;
 
     /// <summary>
     /// A Mech that is still in the game and on its feet.
@@ -160,13 +161,12 @@ public class MovementAttackValidator : IMovementAttackValidator
     }
 
     /// <summary>
-    /// A prone, shut-down or unconscious DFA attacker falls into the target hex without a to-hit
-    /// roll instead of auto-failing; a fall does not cancel the pending attack.
+    /// An immobile DFA attacker — shut down, without a conscious pilot, or prone after a fall —
+    /// falls into the target hex without a to-hit roll instead of auto-failing; a fall does not
+    /// cancel the pending attack.
     /// </summary>
     private static bool IsDfaAutoMiss(IUnit attacker) =>
-        attacker.IsShutdown
-        || attacker.Pilot is not { IsConscious: true }
-        || attacker.IsProne;
+        attacker.IsImmobile || attacker.IsProne;
 
     private static MovementAttackDeclarationValidation Invalid() =>
         MovementAttackDeclarationValidation.Invalid(ErrorCode.ValidationFailed);

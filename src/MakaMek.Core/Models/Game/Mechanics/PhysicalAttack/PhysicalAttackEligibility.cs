@@ -26,7 +26,8 @@ namespace Sanet.MakaMek.Core.Models.Game.Mechanics.PhysicalAttack;
 /// <see cref="PhysicalAttackTargetExtensions"/>, which the movement validator also uses;</item>
 /// <item>the shared water line predicate on <see cref="PhysicalAttackEndpoint"/>, which the movement
 /// validator and the Charge/DFA target selection also use;</item>
-/// <item>the attacker state: a standing Mech with a conscious pilot;</item>
+/// <item>the attacker state: a standing, non-immobile Mech — a shutdown reactor, a missing or
+/// unconscious pilot, or the Mech's own immobility blocks the attack;</item>
 /// <item>the one physical attack per turn rule (applied by <see cref="GetEligibleLimbs"/>, skipped
 /// by <see cref="CanResolve"/>);</item>
 /// <item>the target checks: an enemy, standing, adjacent Mech.</item>
@@ -358,12 +359,12 @@ public class PhysicalAttackEligibility : IPhysicalAttackEligibility
             == attacker.Position!.Coordinates.GetNeighbour(attacker.Position.Facing);
 
     /// <summary>
-    /// A standing Mech whose pilot is not unconscious. A skidding Mech may still attack; it takes
-    /// a to-hit penalty instead. An unconscious pilot cannot punch, kick or push, exactly as it
-    /// cannot charge or make a Death From Above.
+    /// A standing Mech that is not immobile. An immobile Mech cannot act: a shutdown reactor, a
+    /// missing or unconscious pilot, or the leg/arm damage the Mech itself reports. A skidding Mech
+    /// is not immobile and may still attack; it takes a to-hit penalty instead.
     /// </summary>
     private static bool CanMakePhysicalAttack(Mech attacker) =>
-        attacker.IsStanding && attacker.Pilot is not { IsConscious: false };
+        attacker.IsStanding && !attacker.IsImmobile;
 
     /// <summary>
     /// An enemy Mech that is still standing on the map in an adjacent hex.
