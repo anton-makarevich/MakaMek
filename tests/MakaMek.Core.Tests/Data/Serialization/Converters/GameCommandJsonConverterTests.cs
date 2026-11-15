@@ -392,6 +392,29 @@ public class GameCommandJsonConverterTests
     }
 
     [Fact]
+    public void RoundTrip_DfaLandingCommand_WorksCorrectly()
+    {
+        // Arrange
+        var originalCommand = new DfaLandingCommand
+        {
+            UnitId = Guid.NewGuid(),
+            LandingKind = DfaLandingKind.MissLanding,
+            GameOriginId = Guid.NewGuid(),
+            Timestamp = DateTime.UtcNow
+        };
+
+        // Act
+        var json = JsonSerializer.Serialize(originalCommand, _options);
+        var deserializedCommand = JsonSerializer.Deserialize<IGameCommand>(json, _options);
+
+        // Assert
+        var landingCommand = deserializedCommand.ShouldBeOfType<DfaLandingCommand>();
+        landingCommand.UnitId.ShouldBe(originalCommand.UnitId);
+        landingCommand.LandingKind.ShouldBe(DfaLandingKind.MissLanding);
+        landingCommand.GameOriginId.ShouldBe(originalCommand.GameOriginId);
+    }
+
+    [Fact]
     public void RoundTrip_ClientCommand_WorksCorrectly()
     {
         // Arrange
@@ -553,8 +576,7 @@ public class GameCommandJsonConverterTests
                         [new LocationHitData([new LocationDamageData(PartLocation.LeftLeg, 2, 0, false)], [], [3, 4],
                             PartLocation.LeftLeg)],
                         2, [], 0),
-                    [PartLocation.LeftLeg],
-                    false))
+                    [PartLocation.LeftLeg]))
         };
 
         // Act
@@ -571,6 +593,66 @@ public class GameCommandJsonConverterTests
         charge.OriginalTargetId.ShouldBe(originalTargetId);
         charge.AttackerCollision.ShouldNotBeNull().HitLocations[0].Damage[0].ArmorDamage.ShouldBe(2);
         charge.AttackerDestroyedParts.ShouldBe([PartLocation.LeftLeg]);
+        resolutionCommand.ResolutionData.PsrRequirements
+            .ShouldBe(originalCommand.ResolutionData.PsrRequirements);
+    }
+
+    [Fact]
+    public void RoundTrip_DfaPhysicalAttackResolutionCommand_WorksCorrectly()
+    {
+        var originalTargetId = Guid.NewGuid();
+        var originalCommand = new PhysicalAttackResolutionCommand
+        {
+            ResolutionId = Guid.NewGuid(),
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = Guid.NewGuid(),
+            AttackerId = Guid.NewGuid(),
+            TargetId = Guid.NewGuid(),
+            Timestamp = DateTime.UtcNow,
+            ResolutionData = new PhysicalAttackResolutionData(
+                PhysicalAttackType.DFA,
+                null,
+                11,
+                new AttackResolutionData(
+                    7,
+                    [new DiceResult(4), new DiceResult(5)],
+                    true,
+                    HitDirection.Rear,
+                    0,
+                    new AttackHitLocationsData(
+                        [new LocationHitData([new LocationDamageData(PartLocation.CenterTorso, 5, 0, false)], [], [1],
+                            PartLocation.CenterTorso)],
+                        5, [], 0)),
+                [
+                    new PhysicalAttackPsrRequirement(PhysicalAttackParticipant.Target,
+                        PilotingSkillRollType.DfaTargetImpact),
+                    new PhysicalAttackPsrRequirement(PhysicalAttackParticipant.Attacker,
+                        PilotingSkillRollType.DfaAttackerImpact)
+                ],
+                Dfa: new DfaResolutionData(
+                    DfaOutcome.Hit,
+                    new AttackHitLocationsData(
+                        [new LocationHitData([new LocationDamageData(PartLocation.LeftTorso, 5, 0, false)], [], [1],
+                            PartLocation.LeftTorso)],
+                        5, [], 0),
+                    new AttackHitLocationsData(
+                        [new LocationHitData([new LocationDamageData(PartLocation.LeftLeg, 4, 0, false)], [], [1],
+                            PartLocation.LeftLeg)],
+                        4, [], 0),
+                    originalTargetId,
+                    [PartLocation.LeftLeg]))
+        };
+
+        var json = JsonSerializer.Serialize(originalCommand, _options);
+        var deserializedCommand = JsonSerializer.Deserialize<IGameCommand>(json, _options);
+
+        var resolutionCommand = deserializedCommand.ShouldBeOfType<PhysicalAttackResolutionCommand>();
+        var dfa = resolutionCommand.ResolutionData.Dfa.ShouldNotBeNull();
+        dfa.Outcome.ShouldBe(DfaOutcome.Hit);
+        dfa.OriginalTargetId.ShouldBe(originalTargetId);
+        dfa.TargetHitLocations.ShouldNotBeNull().TotalDamage.ShouldBe(5);
+        dfa.AttackerLegHitLocations.ShouldNotBeNull().TotalDamage.ShouldBe(4);
+        dfa.AttackerDestroyedParts.ShouldBe([PartLocation.LeftLeg]);
         resolutionCommand.ResolutionData.PsrRequirements
             .ShouldBe(originalCommand.ResolutionData.PsrRequirements);
     }

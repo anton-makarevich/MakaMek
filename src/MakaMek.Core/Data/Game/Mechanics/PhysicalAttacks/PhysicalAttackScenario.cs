@@ -1,4 +1,5 @@
 using Sanet.MakaMek.Core.Models.Game;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.PhysicalAttack;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Map.Models;
 
@@ -96,9 +97,10 @@ public record PhysicalAttackScenario
             throw new InvalidOperationException("Target position is not set");
         if (attacker.MovementTaken is null)
             throw new InvalidOperationException("Attacker's Movement Type is undefined");
-        // A charge can target a unit that has not moved at all this turn, including one that began
-        // the turn shut down or with an unconscious pilot. Treat it as stationary.
-        if (target.MovementTaken is null && attackType != PhysicalAttackType.Charge)
+        // A movement attack (Charge or DFA) can target a unit that has not moved at all this turn,
+        // including one that began the turn shut down or with an unconscious pilot. Treat it as
+        // stationary.
+        if (target.MovementTaken is null && !PhysicalAttackDefinitions.IsMovementAttack(attackType))
             throw new InvalidOperationException("Target's Movement Type is undefined");
 
         return new PhysicalAttackScenario

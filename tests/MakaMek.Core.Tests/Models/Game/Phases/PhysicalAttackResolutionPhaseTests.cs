@@ -52,7 +52,9 @@ public class PhysicalAttackResolutionPhaseTests : GamePhaseTestsBase
         _sut = new PhysicalAttackResolutionPhase(
             Game,
             new PushDisplacementResolver(Game.RulesProvider, dominoEffectResolver),
-            new ChargeDisplacementResolver(Game.RulesProvider, dominoEffectResolver));
+            new ChargeDisplacementResolver(Game.RulesProvider, dominoEffectResolver),
+            new DfaDisplacementResolver(Game.RulesProvider, dominoEffectResolver),
+            MockDfaAttackResolver);
 
         Game.HandleCommand(CreateJoinCommand(_player1Id, "Player 1"));
         Game.HandleCommand(CreateJoinCommand(_player2Id, "Player 2"));
@@ -361,16 +363,27 @@ public class PhysicalAttackResolutionPhaseTests : GamePhaseTestsBase
     }
 
     /// <summary>
-    /// A 'Mech making a Death From Above cannot be the target of a physical attack, so a charge
-    /// declared against it auto-fails. A failed charge never ends in the target hex: the attacker
-    /// is placed in a side hex of its forward arc (Total Warfare p.148-149).
+    /// An airborne Death From Above performer cannot be the target of a physical attack, so a
+    /// charge declared against it auto-fails. A failed charge never ends in the target hex: the
+    /// attacker is placed in a side hex of its forward arc (Total Warfare p.148-149). A performer
+    /// that has already landed is an ordinary target and no longer auto-fails the charge.
     /// </summary>
     [Fact]
     public void Enter_ChargeAutoFails_WhenTheDeclaredTargetPerformsDfa_AndMovesToASideHex()
     {
-        // Arrange
+        // Arrange: the declared target waits airborne above the committed hex, so it cannot be the
+        // subject of the charge (Total Warfare p.148-149).
         SetMap();
         SetUpCharge(_player1Mech, _player2Mech);
+        var approach = new HexPosition(TargetHex, HexDirection.Top, AirborneLevel: 4);
+        _player2Mech.Move(
+            new MovementPath([new PathSegment(
+                new HexPosition(new HexCoordinates(5, 2), HexDirection.Bottom),
+                approach,
+                [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])], MovementType.Jump),
+            null,
+            true,
+            approach);
         Declare(_player2Mech, _player1Mech, PhysicalAttackType.DFA);
         CommandPublisher.ClearReceivedCalls();
 
@@ -379,7 +392,7 @@ public class PhysicalAttackResolutionPhaseTests : GamePhaseTestsBase
 
         // Assert
         var resolution = PublishedCommands().OfType<PhysicalAttackResolutionCommand>()
-            .ShouldHaveSingleItem();
+            .Single(command => command.ResolutionData.AttackType == PhysicalAttackType.Charge);
         resolution.ResolutionData.Charge!.Outcome.ShouldBe(ChargeOutcome.AutoFail);
         resolution.ResolutionData.AttackResolution.IsHit.ShouldBeFalse();
         resolution.ResolutionData.PsrRequirements.ShouldBeEmpty();
@@ -1734,4 +1747,910 @@ public class PhysicalAttackResolutionPhaseTests : GamePhaseTestsBase
             .Where(call => call.GetMethodInfo().Name == nameof(CommandPublisher.PublishCommand))
             .Select(call => (IGameCommand)call.GetArguments()[0]!)
             .ToList();
+
+    [Fact]
+    public void Enter_DfaHit_LandsTheAttackerInTheTargetHexAndDisplacesTheTarget()
+    {
+        // Arrange
+        SetMap();
+        SetUpDfa(_player1Mech, _player2Mech);
+        MockDfaAttackResolver.ResolveDfa(Arg.Any<DfaAttackContext>())
+            .Returns(DfaHit(_player2Mech.Id));
+
+        // Act
+        _sut.Enter();
+
+        // Assert
+        var resolution = PublishedCommands().OfType<PhysicalAttackResolutionCommand>()
+            .ShouldHaveSingleItem();
+        resolution.ResolutionData.Dfa!.Outcome.ShouldBe(DfaOutcome.Hit);
+        // The jump origin (5,2) is north of the target, so the push continues south to (5,5).
+        _player2Mech.Position!.Coordinates.ShouldBe(new HexCoordinates(5, 5));
+        _player1Mech.Position!.Coordinates.ShouldBe(new HexCoordinates(5, 4));
+        PublishedCommands().OfType<DisplaceUnitCommand>()
+            .ShouldHaveSingleItem()
+            .DisplacementReason.ShouldBe(DisplacementReason.DfaTarget);
+        PublishedCommands().OfType<DfaLandingCommand>()
+            .ShouldHaveSingleItem()
+            .LandingKind.ShouldBe(DfaLandingKind.AttackerLanding);
+        MockPhaseManager.Received(1).GetNextPhase(PhaseNames.PhysicalAttackResolution, Game);
+        _mockNextPhase.Received(1).Enter();
+    }
+
+    [Fact]
+    public void Enter_DfaHit_RequestsBothDfaPsrContexts()
+    {
+        SetMap();
+        SetUpDfa(_player1Mech, _player2Mech);
+        MockDfaAttackResolver.ResolveDfa(Arg.Any<DfaAttackContext>())
+            .Returns(DfaHit(_player2Mech.Id));
+
+        _sut.Enter();
+
+        MockFallProcessor.Received(1).ProcessPotentialFall(
+            _player2Mech, Game, Arg.Any<List<ComponentHitData>>(), Arg.Any<List<PartLocation>?>(),
+            Arg.Is<IReadOnlyList<PilotingSkillRollContext>?>(contexts =>
+                contexts != null && contexts.Any(context =>
+                    context.RollType == PilotingSkillRollType.DfaTargetImpact)));
+        MockFallProcessor.Received(1).ProcessPotentialFall(
+            _player1Mech, Game, Arg.Any<List<ComponentHitData>>(), Arg.Any<List<PartLocation>?>(),
+            Arg.Is<IReadOnlyList<PilotingSkillRollContext>?>(contexts =>
+                contexts != null && contexts.Any(context =>
+                    context.RollType == PilotingSkillRollType.DfaAttackerImpact)));
+    }
+
+    [Fact]
+    public void Enter_DfaMiss_FreeRing_DisplacesTheTargetAlongTheJumpVector()
+    {
+        SetMap();
+        SetUpDfa(_player1Mech, _player2Mech);
+        var targetPosition = _player2Mech.Position!.Coordinates;
+        // The jump runs from (5,2) through the approach hex to the target hex at (5,4): the hex on
+        // the far side of that line, (5,5), is the first direction away from the movement origin.
+        var expectedDestination = targetPosition.GetNeighbour(HexDirection.Bottom);
+        MockDfaAttackResolver.ResolveDfa(Arg.Any<DfaAttackContext>())
+            .Returns(DfaMiss(_player2Mech.Id));
+        StubDfaFall();
+
+        _sut.Enter();
+
+        _player2Mech.Position!.Coordinates.ShouldBe(expectedDestination);
+        _player1Mech.Position!.Coordinates.ShouldBe(targetPosition);
+        PublishedCommands().OfType<DisplaceUnitCommand>()
+            .ShouldContain(command => command.DisplacementReason == DisplacementReason.DfaTarget);
+        MockFallProcessor.Received(1).ProcessMovementAttempt(
+            _player1Mech,
+            Arg.Is<DfaFallRollContext>(context => context.RollType == PilotingSkillRollType.DfaFall),
+            Game,
+            MovementType.Jump,
+            Arg.Any<HexPosition?>());
+        MockPhaseManager.Received(1).GetNextPhase(PhaseNames.PhysicalAttackResolution, Game);
+        _mockNextPhase.Received(1).Enter();
+    }
+
+    [Fact]
+    public void Enter_DfaMiss_WhenTheIdealHexIsOccupied_UsesTheNextLegalHex()
+    {
+        SetMap();
+        SetUpDfa(_player1Mech, _player2Mech);
+        var targetPosition = _player2Mech.Position!.Coordinates;
+        var ideal = targetPosition.GetNeighbour(HexDirection.Bottom);
+        var expected = targetPosition.GetNeighbour(HexDirection.BottomRight);
+        var blockerOwner = (Player)Game.Players[1];
+        var blocker = CreateMech();
+        blocker.Deploy(new HexPosition(ideal, HexDirection.Top), null);
+        blockerOwner.AddUnit(blocker);
+        MockDfaAttackResolver.ResolveDfa(Arg.Any<DfaAttackContext>())
+            .Returns(DfaMiss(_player2Mech.Id));
+        StubDfaFall();
+
+        _sut.Enter();
+
+        _player2Mech.Position!.Coordinates.ShouldBe(expected);
+        _player1Mech.Position!.Coordinates.ShouldBe(targetPosition);
+    }
+
+    [Fact]
+    public void Enter_DfaMiss_WithNoCandidates_DestroysTheAttacker()
+    {
+        SetMap();
+        SetUpDfa(_player1Mech, _player2Mech);
+        var targetPosition = _player2Mech.Position!.Coordinates;
+        var blockerOwner = (Player)Game.Players[1];
+        foreach (var direction in HexDirectionExtensions.AllDirections)
+        {
+            var blocker = CreateMech();
+            blocker.Deploy(
+                new HexPosition(targetPosition.GetNeighbour(direction), HexDirection.Top),
+                null);
+            blockerOwner.AddUnit(blocker);
+        }
+        MockDfaAttackResolver.ResolveDfa(Arg.Any<DfaAttackContext>())
+            .Returns(DfaMiss(_player2Mech.Id));
+
+        _sut.Enter();
+
+        var resolution = PublishedCommands().OfType<PhysicalAttackResolutionCommand>()
+            .ShouldHaveSingleItem();
+        resolution.ResolutionData.Dfa!.Outcome.ShouldBe(DfaOutcome.AttackerDestroyedNoLanding);
+        _player1Mech.IsDestroyed.ShouldBeTrue();
+        PublishedCommands().OfType<DisplaceUnitCommand>().ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void Enter_DfaByAProneAttacker_AutoMissesWithoutAToHitRoll()
+    {
+        SetMap();
+        SetUpDfa(_player1Mech, _player2Mech);
+        _player1Mech.SetProne();
+        var targetPosition = _player2Mech.Position!.Coordinates;
+        StubDfaFall();
+
+        _sut.Enter();
+
+        var resolution = PublishedCommands().OfType<PhysicalAttackResolutionCommand>()
+            .ShouldHaveSingleItem();
+        resolution.ResolutionData.Dfa!.Outcome.ShouldBe(DfaOutcome.Miss);
+        // A prone attacker cannot aim the jump: the miss resolves with no to-hit roll.
+        MockDfaAttackResolver.DidNotReceiveWithAnyArgs().ResolveDfa(null!);
+        _player2Mech.Position!.Coordinates.ShouldNotBe(targetPosition);
+        _player1Mech.Position!.Coordinates.ShouldBe(targetPosition);
+    }
+
+    [Fact]
+    public void Enter_DfaWhenTheTargetMovedAway_AutoFailsAndLandsInTheDeclaredTargetHex()
+    {
+        SetMap();
+        SetUpDfa(_player1Mech, _player2Mech);
+        var declaredTarget = new HexCoordinates(5, 4);
+        var oldPosition = _player2Mech.Position!;
+        _player2Mech.Move(
+            new MovementPath(
+                [new PathSegment(
+                    oldPosition,
+                    new HexPosition(new HexCoordinates(6, 6), HexDirection.Top),
+                    [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])],
+                MovementType.Walk),
+            null);
+
+        _sut.Enter();
+
+        var resolution = PublishedCommands().OfType<PhysicalAttackResolutionCommand>()
+            .ShouldHaveSingleItem();
+        resolution.ResolutionData.Dfa!.Outcome.ShouldBe(DfaOutcome.AutoFail);
+        // The attacker committed to the declared target hex, so it lands there, not in its approach.
+        _player1Mech.Position!.Coordinates.ShouldBe(declaredTarget);
+        PublishedCommands().OfType<DfaLandingCommand>()
+            .ShouldHaveSingleItem()
+            .LandingKind.ShouldBe(DfaLandingKind.AutoFailLanding);
+        PublishedCommands().OfType<DisplaceUnitCommand>().ShouldBeEmpty();
+        MockDfaAttackResolver.DidNotReceiveWithAnyArgs().ResolveDfa(null!);
+        PublishedCommands().OfType<MechFallCommand>().ShouldBeEmpty();
+        MockPhaseManager.Received(1).GetNextPhase(PhaseNames.PhysicalAttackResolution, Game);
+        _mockNextPhase.Received(1).Enter();
+    }
+
+    [Fact]
+    public void Enter_DfaWhenTheAttackerWasDisplacedFromItsApproach_AutoFailsAndLandsInTheDeclaredTargetHex()
+    {
+        SetMap();
+        SetUpDfa(_player1Mech, _player2Mech);
+        MoveTargetAway();
+        // An earlier attack of the phase can push the jumping 'Mech out of the approach hex after
+        // the queue snapshot, so the attack fails without a roll.
+        _player1Mech.Displace(new HexPosition(new HexCoordinates(5, 6), HexDirection.Top), null);
+
+        _sut.Enter();
+
+        var resolution = PublishedCommands().OfType<PhysicalAttackResolutionCommand>()
+            .ShouldHaveSingleItem();
+        resolution.ResolutionData.Dfa!.Outcome.ShouldBe(DfaOutcome.AutoFail);
+        // The committed jump destination still grounds the attacker in the declared target hex.
+        _player1Mech.Position!.Coordinates.ShouldBe(TargetHex);
+        PublishedCommands().OfType<DfaLandingCommand>()
+            .ShouldHaveSingleItem()
+            .LandingKind.ShouldBe(DfaLandingKind.AutoFailLanding);
+        MockDfaAttackResolver.DidNotReceiveWithAnyArgs().ResolveDfa(null!);
+    }
+
+    [Fact]
+    public void Enter_DfaWhenTheTargetMovedAway_ResolvesAgainstAReplacementTargetAtPlusOne()
+    {
+        SetMap();
+        SetUpDfa(_player1Mech, _player2Mech);
+        MoveTargetAway();
+        var replacement = CreateMech();
+        ((Player)Game.Players[1]).AddUnit(replacement);
+        replacement.Deploy(new HexPosition(TargetHex, HexDirection.Top), null);
+        MockDfaAttackResolver.ResolveDfa(Arg.Any<DfaAttackContext>())
+            .Returns(call =>
+            {
+                var context = call.Arg<DfaAttackContext>();
+                var hit = DfaHit(context.Target.Id);
+                return hit with
+                {
+                    Dfa = hit.Dfa! with
+                    {
+                        OriginalTargetId = context.OriginalTargetId,
+                        IsReplacementTarget = context.IsReplacementTarget
+                    }
+                };
+            });
+
+        _sut.Enter();
+
+        MockDfaAttackResolver.Received(1).ResolveDfa(Arg.Is<DfaAttackContext>(context =>
+            context.Target == replacement
+            && context.IsReplacementTarget
+            && context.OriginalTargetId == _player2Mech.Id));
+        var resolution = PublishedCommands().OfType<PhysicalAttackResolutionCommand>()
+            .ShouldHaveSingleItem();
+        resolution.TargetId.ShouldBe(replacement.Id);
+        resolution.ResolutionData.Dfa!.IsReplacementTarget.ShouldBeTrue();
+        resolution.ResolutionData.Dfa.OriginalTargetId.ShouldBe(_player2Mech.Id);
+        PublishedCommands().OfType<DisplaceUnitCommand>()
+            .ShouldContain(command => command.UnitId == replacement.Id
+                                      && command.DisplacementReason == DisplacementReason.DfaTarget);
+    }
+
+    [Fact]
+    public void Enter_DfaHit_WhenTheImpactDestroysTheAttacker_DoesNotMoveTheTargetOrLand()
+    {
+        SetMap();
+        SetUpDfa(_player1Mech, _player2Mech);
+        MockDfaAttackResolver.ResolveDfa(Arg.Any<DfaAttackContext>())
+            .Returns(DfaHitWithLethalAttackerDamage(_player2Mech.Id, _player1Mech));
+
+        _sut.Enter();
+
+        // Total Warfare p. 150: the target is pushed only when neither unit was destroyed.
+        _player1Mech.IsDestroyed.ShouldBeTrue();
+        _player2Mech.Position!.Coordinates.ShouldBe(TargetHex);
+        PublishedCommands().OfType<DisplaceUnitCommand>()
+            .ShouldNotContain(command => command.UnitId == _player2Mech.Id
+                                        || command.UnitId == _player1Mech.Id);
+    }
+
+    [Fact]
+    public void Enter_DfaAgainstADestroyedTarget_LandsAndFallsIntoItsHex()
+    {
+        SetMap();
+        SetUpDfa(_player1Mech, _player2Mech);
+        _player2Mech.MarkDestroyed();
+        StubDfaFall();
+
+        _sut.Enter();
+
+        var resolution = PublishedCommands().OfType<PhysicalAttackResolutionCommand>()
+            .ShouldHaveSingleItem();
+        resolution.ResolutionData.Dfa!.Outcome.ShouldBe(DfaOutcome.Miss);
+        _player1Mech.Position!.Coordinates.ShouldBe(new HexCoordinates(5, 4));
+        MockDfaAttackResolver.DidNotReceiveWithAnyArgs().ResolveDfa(null!);
+        MockFallProcessor.Received(1).ProcessMovementAttempt(
+            _player1Mech, Arg.Any<DfaFallRollContext>(), Game, MovementType.Jump,
+            Arg.Any<HexPosition?>());
+    }
+
+    [Fact]
+    public void Enter_DfaMiss_KeepsTheAttackersFacingAfterLanding()
+    {
+        SetMap();
+        SetUpDfa(_player1Mech, _player2Mech);
+        MockDfaAttackResolver.ResolveDfa(Arg.Any<DfaAttackContext>())
+            .Returns(DfaMiss(_player2Mech.Id));
+        StubDfaFall();
+
+        _sut.Enter();
+
+        _player1Mech.Position!.Coordinates.ShouldBe(TargetHex);
+        _player1Mech.Position.Facing.ShouldBe(HexDirection.Top);
+    }
+
+    [Fact]
+    public void Enter_DfaAgainstADestroyedTarget_KeepsTheAttackersFacing()
+    {
+        SetMap();
+        SetUpDfa(_player1Mech, _player2Mech);
+        _player2Mech.MarkDestroyed();
+        StubDfaFall();
+
+        _sut.Enter();
+
+        _player1Mech.Position!.Coordinates.ShouldBe(TargetHex);
+        _player1Mech.Position.Facing.ShouldBe(HexDirection.Top);
+    }
+
+    [Fact]
+    public void Enter_DfaHit_WithADestroyedAttackerLeg_AddsItToTheEndOfPhasePsr()
+    {
+        SetMap();
+        SetUpDfa(_player1Mech, _player2Mech);
+        MockDfaAttackResolver.ResolveDfa(Arg.Any<DfaAttackContext>())
+            .Returns(DfaHitWithDestroyedAttackerLeg(_player2Mech.Id, _player1Mech));
+
+        _sut.Enter();
+
+        _player1Mech.Parts[PartLocation.LeftLeg].IsDestroyed.ShouldBeTrue();
+        MockFallProcessor.Received(1).ProcessPotentialFall(
+            _player1Mech, Game, Arg.Any<List<ComponentHitData>>(),
+            Arg.Is<List<PartLocation>?>(parts =>
+                parts != null && parts.Contains(PartLocation.LeftLeg)),
+            Arg.Any<IReadOnlyList<PilotingSkillRollContext>?>());
+    }
+
+    [Fact]
+    public void Enter_DfaHit_WhenTheTargetCannotBeDisplaced_DestroysTheTargetAndLandsInItsHex()
+    {
+        SetMap();
+        SetUpDfa(_player1Mech, _player2Mech);
+        foreach (var direction in HexDirectionExtensions.AllDirections)
+            Game.BattleMap!.AddHex(new Hex(TargetHex.GetNeighbour(direction), 3));
+        MockDfaAttackResolver.ResolveDfa(Arg.Any<DfaAttackContext>())
+            .Returns(DfaHit(_player2Mech.Id));
+
+        _sut.Enter();
+
+        _player2Mech.IsDestroyed.ShouldBeTrue();
+        _player1Mech.Position!.Coordinates.ShouldBe(TargetHex);
+        var resolution = PublishedCommands().OfType<PhysicalAttackResolutionCommand>().Single();
+        resolution.ResolutionData.Dfa!.Outcome.ShouldBe(DfaOutcome.Hit);
+        resolution.ResolutionData.AttackResolution.UnitDestroyed.ShouldBeTrue();
+        PublishedCommands().OfType<DisplaceUnitCommand>()
+            .ShouldNotContain(command => command.UnitId == _player2Mech.Id);
+    }
+
+    [Fact]
+    public void Enter_DfaHit_WhenTheTargetCannotBeDisplacedAndTheImpactDestroysTheAttacker_KeepsTheTarget()
+    {
+        SetMap();
+        SetUpDfa(_player1Mech, _player2Mech);
+        foreach (var direction in HexDirectionExtensions.AllDirections)
+            Game.BattleMap!.AddHex(new Hex(TargetHex.GetNeighbour(direction), 3));
+        MockDfaAttackResolver.ResolveDfa(Arg.Any<DfaAttackContext>())
+            .Returns(DfaHitWithLethalAttackerDamage(_player2Mech.Id, _player1Mech));
+
+        _sut.Enter();
+
+        // The blocked destination only destroys the target to vacate the hex for the attacker. An
+        // attacker destroyed by the impact never lands, so the target stays where it is
+        // (Total Warfare, p. 150: the target is pushed only when neither unit was destroyed).
+        _player1Mech.IsDestroyed.ShouldBeTrue();
+        _player2Mech.IsDestroyed.ShouldBeFalse();
+        _player2Mech.Position!.Coordinates.ShouldBe(TargetHex);
+        var resolution = PublishedCommands().OfType<PhysicalAttackResolutionCommand>().Single();
+        resolution.ResolutionData.AttackResolution.UnitDestroyed.ShouldBeFalse();
+        PublishedCommands().OfType<DfaLandingCommand>().ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void Enter_DfaWhenTheTargetMovedAway_UsesALandedDfaPerformerAsTheReplacementTarget()
+    {
+        SetMap();
+        SetUpDfa(_player1Mech, _player2Mech);
+        MoveTargetAway();
+
+        // A DFA performer that already landed is an ordinary grounded occupant: its immunity ends
+        // with the landing (Total Warfare, p. 149), so it can be the replacement target.
+        var landedDfaPerformer = CreateMech();
+        ((Player)Game.Players[1]).AddUnit(landedDfaPerformer);
+        landedDfaPerformer.Deploy(new HexPosition(TargetHex, HexDirection.Top), null);
+        Declare(landedDfaPerformer, _player1Mech, PhysicalAttackType.DFA);
+        MockDfaAttackResolver.ResolveDfa(Arg.Any<DfaAttackContext>())
+            .Returns(DfaHit(landedDfaPerformer.Id));
+
+        _sut.Enter();
+
+        MockDfaAttackResolver.Received(1).ResolveDfa(Arg.Is<DfaAttackContext>(context =>
+            context.Target == landedDfaPerformer
+            && context.IsReplacementTarget
+            && context.OriginalTargetId == _player2Mech.Id));
+    }
+
+    /// <summary>
+    /// A declared target that began its own Death From Above is airborne until it lands, so it is
+    /// never a legal DFA target either (Total Warfare, p. 149). With nobody else in the committed
+    /// hex the attack automatically fails and the attacker lands without damage or a fall.
+    /// </summary>
+    [Fact]
+    public void Enter_DfaAutoFails_WhenTheDeclaredTargetIsAnAirborneDfaPerformer()
+    {
+        // Arrange: the declared target hovers above the committed hex while it performs its own DFA.
+        SetMap();
+        MoveTargetAway();
+        var airbornePerformer = CreateMech();
+        ((Player)Game.Players[1]).AddUnit(airbornePerformer);
+        airbornePerformer.Deploy(
+            new HexPosition(TargetHex, HexDirection.Bottom, AirborneLevel: 4), null);
+        Declare(airbornePerformer, _player1Mech, PhysicalAttackType.DFA);
+        SetUpDfa(_player1Mech, airbornePerformer);
+        CommandPublisher.ClearReceivedCalls();
+
+        // Act
+        _sut.Enter();
+
+        // Assert: the immune 'Mech is never rolled against; the attacker lands in the declared hex.
+        MockDfaAttackResolver.DidNotReceiveWithAnyArgs().ResolveDfa(null!);
+        var resolution = PublishedCommands().OfType<PhysicalAttackResolutionCommand>()
+            .ShouldHaveSingleItem();
+        resolution.ResolutionData.Dfa!.Outcome.ShouldBe(DfaOutcome.AutoFail);
+        resolution.ResolutionData.PsrRequirements.ShouldBeEmpty();
+        _player1Mech.Position!.Coordinates.ShouldBe(TargetHex);
+        PublishedCommands().OfType<DfaLandingCommand>()
+            .ShouldHaveSingleItem()
+            .LandingKind.ShouldBe(DfaLandingKind.AutoFailLanding);
+        PublishedCommands().OfType<MechFallCommand>().ShouldBeEmpty();
+
+        // The airborne performer is not a ground occupant and is not displaced.
+        airbornePerformer.Position!.Coordinates.ShouldBe(TargetHex);
+        airbornePerformer.Position.AirborneLevel.ShouldBe(4);
+        PublishedCommands().OfType<DisplaceUnitCommand>().ShouldBeEmpty();
+    }
+
+    /// <summary>
+    /// An airborne DFA performer is skipped as the declared target but a grounded enemy in the same
+    /// hex is still a legal occupant, so it becomes the replacement target at +1 (Total Warfare,
+    /// p. 149 and Initiative and Displacement).
+    /// </summary>
+    [Fact]
+    public void Enter_DfaWhenTheDeclaredTargetIsAnAirborneDfaPerformer_UsesAGroundedEnemyInTheHex()
+    {
+        SetMap();
+        MoveTargetAway();
+        var airbornePerformer = CreateMech();
+        ((Player)Game.Players[1]).AddUnit(airbornePerformer);
+        airbornePerformer.Deploy(
+            new HexPosition(TargetHex, HexDirection.Bottom, AirborneLevel: 4), null);
+        Declare(airbornePerformer, _player1Mech, PhysicalAttackType.DFA);
+
+        // The airborne 'Mech does not count for stacking, so a grounded enemy shares the hex.
+        var groundedEnemy = CreateMech();
+        ((Player)Game.Players[1]).AddUnit(groundedEnemy);
+        groundedEnemy.Deploy(new HexPosition(TargetHex, HexDirection.Top), null);
+
+        SetUpDfa(_player1Mech, airbornePerformer);
+        MockDfaAttackResolver.ResolveDfa(Arg.Any<DfaAttackContext>())
+            .Returns(DfaHit(groundedEnemy.Id));
+
+        _sut.Enter();
+
+        MockDfaAttackResolver.Received(1).ResolveDfa(Arg.Is<DfaAttackContext>(context =>
+            context.Target == groundedEnemy
+            && context.IsReplacementTarget
+            && context.OriginalTargetId == airbornePerformer.Id));
+    }
+
+    [Fact]
+    public void Enter_DfaHit_WithAnOccupiedTargetDestination_RollsTheDominoPsr()
+    {
+        SetMap();
+        var blockerOwner = (Player)Game.Players[1];
+        var occupant = CreateMech();
+        occupant.Deploy(
+            new HexPosition(TargetHex.GetNeighbour(HexDirection.Bottom), HexDirection.Top), null);
+        blockerOwner.AddUnit(occupant);
+        SetUpDfa(_player1Mech, _player2Mech);
+        StubDominoRoll(occupant);
+        StubDominoRoll(_player2Mech);
+        MockDfaAttackResolver.ResolveDfa(Arg.Any<DfaAttackContext>())
+            .Returns(DfaHit(_player2Mech.Id));
+
+        _sut.Enter();
+
+        MockFallProcessor.Received(1).ProcessMovementAttempt(
+            occupant,
+            Arg.Is<DominoEffectRollContext>(context =>
+                context.RollType == PilotingSkillRollType.DominoEffect),
+            Game,
+            Arg.Any<MovementType>(),
+            Arg.Any<HexPosition?>());
+        MockFallProcessor.Received(1).ProcessMovementAttempt(
+            _player2Mech,
+            Arg.Is<DominoEffectRollContext>(context =>
+                context.RollType == PilotingSkillRollType.DominoEffect),
+            Game,
+            Arg.Any<MovementType>(),
+            Arg.Any<HexPosition?>());
+    }
+
+    [Fact]
+    public void Enter_DfaAutoFail_WhenOnlyTheSideHexIsFree_DestroysTheAttacker()
+    {
+        SetMap();
+        SetUpDfa(_player1Mech, _player2Mech);
+        var declaredTarget = TargetHex;
+        MoveTargetAway();
+
+        // The declared target hex is occupied and the domino's first link is blocked by a
+        // three-level rise, but the side hexes are free. A DFA lands in the committed target hex
+        // and has no side-hex fallback, so the attacker has no legal landing. The occupant is
+        // friendly, so it cannot become a replacement target.
+        Game.BattleMap!.AddHex(new Hex(declaredTarget.GetNeighbour(HexDirection.Bottom), 3));
+        var occupantOwner = (Player)Game.Players[0];
+        var occupant = CreateMech();
+        occupant.Deploy(new HexPosition(declaredTarget, HexDirection.Top), null);
+        occupantOwner.AddUnit(occupant);
+
+        _sut.Enter();
+
+        _player1Mech.IsDestroyed.ShouldBeTrue();
+        PublishedCommands().OfType<PhysicalAttackResolutionCommand>().Single()
+            .ResolutionData.Dfa!.Outcome.ShouldBe(DfaOutcome.AttackerDestroyedNoLanding);
+        PublishedCommands().OfType<DisplaceUnitCommand>().ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void Enter_DfaHit_WhenTheImpactDestroysTheTarget_DoesNotRunItsDomino()
+    {
+        SetMap();
+        var blockerOwner = (Player)Game.Players[1];
+        var occupant = CreateMech();
+        var targetDestination = TargetHex.GetNeighbour(HexDirection.Bottom);
+        occupant.Deploy(new HexPosition(targetDestination, HexDirection.Top), null);
+        blockerOwner.AddUnit(occupant);
+        SetUpDfa(_player1Mech, _player2Mech);
+        MockDfaAttackResolver.ResolveDfa(Arg.Any<DfaAttackContext>())
+            .Returns(DfaLethalHit(_player2Mech.Id, _player2Mech));
+
+        _sut.Enter();
+
+        // A target destroyed by the impact does not move, so its planned displacement chain must
+        // be discarded: no unit is pushed out of the destination hex and no domino PSR is rolled
+        // (Total Warfare, p. 150).
+        _player2Mech.IsDestroyed.ShouldBeTrue();
+        occupant.Position!.Coordinates.ShouldBe(targetDestination);
+        PublishedCommands().OfType<DisplaceUnitCommand>()
+            .ShouldNotContain(command => command.DisplacementReason == DisplacementReason.DominoEffect);
+        MockFallProcessor.DidNotReceive().ProcessMovementAttempt(
+            occupant,
+            Arg.Any<DominoEffectRollContext>(),
+            Game,
+            Arg.Any<MovementType>(),
+            Arg.Any<HexPosition?>());
+        _player1Mech.Position!.Coordinates.ShouldBe(TargetHex);
+    }
+
+    [Fact]
+    public void Enter_DfaAutoFail_WhenTheLandingHexIsBlocked_DoesNotStackTheAttacker()
+    {
+        SetMap();
+        SetUpDfa(_player1Mech, _player2Mech);
+        var declaredTarget = TargetHex;
+        MoveTargetAway();
+
+        // The declared target hex is occupied, the domino's first link is blocked by a three-level
+        // rise, and both side hexes are occupied, so no legal landing remains. The occupant is
+        // friendly, so it cannot become a replacement target.
+        Game.BattleMap!.AddHex(new Hex(declaredTarget.GetNeighbour(HexDirection.Bottom), 3));
+        var occupantOwner = (Player)Game.Players[0];
+        var occupant = CreateMech();
+        occupant.Deploy(new HexPosition(declaredTarget, HexDirection.Top), null);
+        occupantOwner.AddUnit(occupant);
+        var sideBlockerOwner = (Player)Game.Players[1];
+        foreach (var side in new[] { HexDirection.Top.Rotate(1), HexDirection.Top.Rotate(-1) })
+        {
+            var blocker = CreateMech();
+            blocker.Deploy(new HexPosition(declaredTarget.GetNeighbour(side), HexDirection.Top), null);
+            sideBlockerOwner.AddUnit(blocker);
+        }
+
+        _sut.Enter();
+
+        _player1Mech.IsDestroyed.ShouldBeTrue();
+        _player1Mech.Position!.Coordinates.ShouldBe(new HexCoordinates(5, 3));
+        PublishedCommands().OfType<PhysicalAttackResolutionCommand>().Single()
+            .ResolutionData.Dfa!.Outcome.ShouldBe(DfaOutcome.AttackerDestroyedNoLanding);
+        PublishedCommands().OfType<DisplaceUnitCommand>()
+            .ShouldNotContain(command => command.UnitId == _player1Mech.Id);
+    }
+
+    [Fact]
+    public void Enter_DfaAutoFail_WhenTheDeclaredBridgeCollapsed_LandsOnTheGround()
+    {
+        SetMap();
+        var bridgeHex = Game.BattleMap!.GetHex(TargetHex)!;
+        bridgeHex.AddTerrain(new BridgeTerrain(1, 100));
+        var groundPosition = _player2Mech.Position!;
+        _player2Mech.Move(
+            new MovementPath(
+                [new PathSegment(
+                    groundPosition,
+                    new HexPosition(TargetHex, HexDirection.Bottom, HexSurface.Bridge),
+                    [])],
+                MovementType.Walk),
+            null);
+        _player2Mech.ResetTurnState();
+        SetUpDfa(_player1Mech, _player2Mech);
+        MoveTargetAway();
+        _player2Mech.Position!.Coordinates.ShouldNotBe(TargetHex);
+        bridgeHex.RemoveTerrain(MakaMekTerrains.Bridge);
+
+        _sut.Enter();
+
+        var landing = PublishedCommands().OfType<DfaLandingCommand>()
+            .ShouldHaveSingleItem();
+        landing.LandingKind.ShouldBe(DfaLandingKind.AutoFailLanding);
+        _player1Mech.Position!.Surface.ShouldBe(HexSurface.Ground);
+    }
+
+    [Fact]
+    public void Enter_DfaMiss_WhenTheTargetDropsThreeLevels_TriggersItsAutomaticFall()
+    {
+        SetMap();
+        SetUpDfa(_player1Mech, _player2Mech);
+        Game.BattleMap!.AddHex(new Hex(TargetHex.GetNeighbour(HexDirection.Bottom), -3));
+        MockDfaAttackResolver.ResolveDfa(Arg.Any<DfaAttackContext>())
+            .Returns(DfaMiss(_player2Mech.Id));
+        StubDfaFall();
+        MockFallProcessor.ProcessMovementAttempt(
+                _player2Mech,
+                Arg.Any<CliffFallRollContext>(),
+                Game,
+                Arg.Any<MovementType>(),
+                Arg.Any<HexPosition?>())
+            .Returns(new FallContextData
+            {
+                UnitId = _player2Mech.Id,
+                GameId = Game.Id,
+                IsFalling = false
+            });
+        DiceRoller.RollD6().Returns(new DiceResult(1));
+
+        _sut.Enter();
+
+        MockFallProcessor.Received(1).ProcessMovementAttempt(
+            _player2Mech,
+            Arg.Is<CliffFallRollContext>(context => context.LevelsFallen == 3),
+            Game,
+            Arg.Any<MovementType>(),
+            Arg.Any<HexPosition?>());
+    }
+
+    [Fact]
+    public void Enter_DfaHit_WhenTheTargetDropsMoreThanTwoLevels_TriggersItsAutomaticFall()
+    {
+        SetMap();
+        // The push destination (the attacker's hex) is three levels below the target hex.
+        Game.BattleMap!.AddHex(new Hex(AttackerHex, -3));
+        SetUpDfa(_player1Mech, _player2Mech);
+        MockDfaAttackResolver.ResolveDfa(Arg.Any<DfaAttackContext>())
+            .Returns(DfaHit(_player2Mech.Id));
+        MockFallProcessor.ProcessMovementAttempt(
+                _player2Mech,
+                Arg.Any<CliffFallRollContext>(),
+                Game,
+                Arg.Any<MovementType>(),
+                Arg.Any<HexPosition?>())
+            .Returns(new FallContextData
+            {
+                UnitId = _player2Mech.Id,
+                GameId = Game.Id,
+                IsFalling = false
+            });
+        DiceRoller.RollD6().Returns(new DiceResult(1));
+
+        _sut.Enter();
+
+        _player2Mech.Position!.Coordinates.ShouldBe(AttackerHex);
+        MockFallProcessor.Received(1).ProcessMovementAttempt(
+            _player2Mech,
+            Arg.Is<CliffFallRollContext>(context => context.LevelsFallen == 3),
+            Game,
+            Arg.Any<MovementType>(),
+            Arg.Any<HexPosition?>());
+    }
+
+    [Fact]
+    public void Enter_DfaHit_WhenTheAttackerLandsInWater_AddsTheWaterDepthToItsImpactPsr()
+    {
+        SetMap();
+        // The attacker grounds in the target's hex, which is Depth 1 water at the same hex level.
+        var waterHex = new Hex(TargetHex);
+        waterHex.AddTerrain(new WaterTerrain(-1));
+        Game.BattleMap!.AddHex(waterHex);
+        SetUpDfa(_player1Mech, _player2Mech);
+        MockDfaAttackResolver.ResolveDfa(Arg.Any<DfaAttackContext>())
+            .Returns(DfaHit(_player2Mech.Id));
+
+        _sut.Enter();
+
+        _player1Mech.Position!.Coordinates.ShouldBe(TargetHex);
+        _player1Mech.Position.Surface.ShouldBe(HexSurface.Ground);
+        MockFallProcessor.Received(1).ProcessPotentialFall(
+            _player1Mech, Game, Arg.Any<List<ComponentHitData>>(), Arg.Any<List<PartLocation>?>(),
+            Arg.Is<IReadOnlyList<PilotingSkillRollContext>?>(contexts =>
+                contexts != null
+                && contexts.Count == 1
+                && contexts[0] is DfaAttackerImpactRollContext
+                && ((DfaAttackerImpactRollContext)contexts[0]).WaterDepth == 1));
+    }
+
+    [Fact]
+    public void Enter_EndOfPhasePsr_AppliesAFallThatFollowsASuccessfulPsr()
+    {
+        SetMap();
+        Declare(_player1Mech, _player2Mech, PhysicalAttackType.Kick, PartLocation.LeftLeg);
+        MockPhysicalAttackResolver.ResolveAttack(Arg.Any<PhysicalAttackContext>())
+            .Returns(Hit(PhysicalAttackType.Kick, PartLocation.LeftLeg, PartLocation.RightLeg,
+                armorDamage: 2, psrRequirements: KickHitRequirement));
+        var successfulRoll = new MechFallCommand
+        {
+            GameOriginId = Game.Id,
+            UnitId = _player2Mech.Id,
+            DamageData = null
+        };
+        var fall = new MechFallCommand
+        {
+            GameOriginId = Game.Id,
+            UnitId = _player2Mech.Id,
+            DamageData = new FallingDamageData(
+                HexDirection.Bottom,
+                new HitLocationsData([], 0),
+                new DiceResult(3),
+                HitDirection.Front)
+        };
+        MockFallProcessor.ProcessPotentialFall(
+                _player2Mech, Game, Arg.Any<List<ComponentHitData>>(),
+                Arg.Any<List<PartLocation>?>(),
+                Arg.Any<IReadOnlyList<PilotingSkillRollContext>?>())
+            .Returns([successfulRoll, fall]);
+
+        _sut.Enter();
+
+        PublishedCommands().OfType<MechFallCommand>().Count().ShouldBe(2);
+        PublishedCommands().OfType<MechFallCommand>()
+            .ShouldContain(command => command.DamageData != null);
+    }
+
+    private void MoveTargetAway()
+    {
+        var oldPosition = _player2Mech.Position!;
+        _player2Mech.Move(
+            new MovementPath(
+                [new PathSegment(
+                    oldPosition,
+                    new HexPosition(new HexCoordinates(8, 8), HexDirection.Top),
+                    [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])],
+                MovementType.Walk),
+            null);
+    }
+
+    private static PhysicalAttackResolutionData DfaHitWithDestroyedAttackerLeg(
+        Guid targetId,
+        IUnit attacker)
+    {
+        var hit = DfaHit(targetId);
+        var leg = attacker.Parts[PartLocation.LeftLeg];
+        var destroyedLeg = new AttackHitLocationsData(
+            [new LocationHitData(
+                [new LocationDamageData(
+                    PartLocation.LeftLeg, leg.CurrentArmor, leg.CurrentStructure, true)],
+                [], [1], PartLocation.LeftLeg)],
+            leg.CurrentArmor + leg.CurrentStructure, [], 0);
+        return hit with { Dfa = hit.Dfa! with { AttackerLegHitLocations = destroyedLeg } };
+    }
+
+    private static void SetUpDfa(IUnit attacker, IUnit target)
+    {
+        var start = new HexCoordinates(5, 2);
+        var approach = new HexPosition(new HexCoordinates(5, 3), HexDirection.Top, AirborneLevel: 4);
+        var targetPosition = target.Position!;
+        var path = new MovementPath(
+        [
+            new PathSegment(
+                new HexPosition(start, HexDirection.Top),
+                approach,
+                [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]),
+            new PathSegment(
+                approach,
+                targetPosition,
+                [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])
+        ], MovementType.Jump);
+
+        attacker.Move(path, null, true, approach);
+        attacker.DeclarePhysicalAttack(new PhysicalAttackDeclarationData
+        {
+            AttackType = PhysicalAttackType.DFA,
+            AttackerLimbs = [],
+            TargetId = target.Id
+        });
+    }
+
+    private static PhysicalAttackResolutionData DfaHitWithLethalAttackerDamage(Guid targetId, IUnit attacker)
+    {
+        var torso = attacker.Parts[PartLocation.CenterTorso];
+        var totalDamage = torso.CurrentArmor + torso.CurrentStructure;
+        var attackerDamage = new AttackHitLocationsData(
+            [new LocationHitData(
+                [new LocationDamageData(
+                    PartLocation.CenterTorso, torso.CurrentArmor, torso.CurrentStructure, true)],
+                [], [1], PartLocation.CenterTorso)],
+            totalDamage, [], 0);
+        var hit = DfaHit(targetId);
+        return hit with { Dfa = hit.Dfa! with { AttackerLegHitLocations = attackerDamage } };
+    }
+
+    private static PhysicalAttackResolutionData DfaHit(Guid targetId)
+    {
+        var targetHitLocations = new AttackHitLocationsData(
+            [new LocationHitData(
+                [new LocationDamageData(PartLocation.CenterTorso, 5, 0, false)],
+                [], [1], PartLocation.CenterTorso)],
+            5, [], 0);
+        var attackerLegs = new AttackHitLocationsData(
+            [new LocationHitData(
+                [new LocationDamageData(PartLocation.LeftLeg, 4, 0, false)],
+                [], [1], PartLocation.LeftLeg)],
+            4, [], 0);
+
+        return new PhysicalAttackResolutionData(
+            PhysicalAttackType.DFA,
+            null,
+            5,
+            new AttackResolutionData(
+                7,
+                [new DiceResult(4), new DiceResult(4)],
+                true,
+                HitDirection.Rear,
+                0,
+                targetHitLocations),
+            [
+                new PhysicalAttackPsrRequirement(
+                    PhysicalAttackParticipant.Target, PilotingSkillRollType.DfaTargetImpact),
+                new PhysicalAttackPsrRequirement(
+                    PhysicalAttackParticipant.Attacker, PilotingSkillRollType.DfaAttackerImpact)
+            ],
+            Dfa: new DfaResolutionData(
+                DfaOutcome.Hit,
+                targetHitLocations,
+                attackerLegs,
+                targetId));
+    }
+
+    private static PhysicalAttackResolutionData DfaLethalHit(Guid targetId, IUnit target)
+    {
+        var torso = target.Parts[PartLocation.CenterTorso];
+        var totalDamage = torso.CurrentArmor + torso.CurrentStructure;
+        var targetHitLocations = new AttackHitLocationsData(
+            [new LocationHitData(
+                [new LocationDamageData(
+                    PartLocation.CenterTorso, torso.CurrentArmor, torso.CurrentStructure, true)],
+                [], [1], PartLocation.CenterTorso)],
+            totalDamage, [], 0);
+        var hit = DfaHit(targetId);
+
+        return hit with
+        {
+            Damage = totalDamage,
+            AttackResolution = hit.AttackResolution with { HitLocationsData = targetHitLocations },
+            Dfa = hit.Dfa! with { TargetHitLocations = targetHitLocations }
+        };
+    }
+
+    private static PhysicalAttackResolutionData DfaMiss(Guid targetId) =>
+        new(PhysicalAttackType.DFA,
+            null,
+            0,
+            new AttackResolutionData(
+                7,
+                [new DiceResult(2), new DiceResult(2)],
+                false,
+                HitDirection.Front,
+                0),
+            [],
+            Dfa: new DfaResolutionData(DfaOutcome.Miss, OriginalTargetId: targetId));
+
+    private void StubDfaFall() =>
+        MockFallProcessor.ProcessMovementAttempt(
+                Arg.Any<Mech>(),
+                Arg.Any<DfaFallRollContext>(),
+                Game,
+                Arg.Any<MovementType>(),
+                Arg.Any<HexPosition?>())
+            .Returns(call => new FallContextData
+            {
+                UnitId = call.Arg<Mech>().Id,
+                GameId = Game.Id,
+                IsFalling = true,
+                LevelsFallen = 2
+            });
 }

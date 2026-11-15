@@ -82,6 +82,40 @@ public class DominoEffectResolverTests
     }
 
     [Fact]
+    public void Resolve_GuaranteedEnteringEntry_IgnoresAnAscentAboveTheClimbLimit()
+    {
+        var map = CreateFlatMap();
+        map.AddHex(new Hex(DestinationHex, 3));
+        var entering = UnitAt(SourceHex);
+        var occupant = UnitAt(DestinationHex);
+
+        var result = _sut.Resolve(
+            Request(entering, enteringEntryIsGuaranteed: true), map, [entering, occupant]);
+
+        result.Outcome.ShouldBe(DominoEffectOutcome.Resolved);
+        result.Failure.ShouldBeNull();
+        result.Commands.ShouldHaveSingleItem().UnitId.ShouldBe(occupant.Id);
+    }
+
+    [Fact]
+    public void Resolve_GuaranteedEnteringEntry_DoesNotTurnTheEntryIntoAnAccidentalFall()
+    {
+        var map = CreateFlatMap();
+        map.AddHex(new Hex(SourceHex, 2));
+        var entering = UnitAt(SourceHex);
+        var occupant = UnitAt(DestinationHex);
+
+        var result = _sut.Resolve(
+            Request(entering, enteringEntryIsGuaranteed: true, destinationSurface: HexSurface.Bridge),
+            map,
+            [entering, occupant]);
+
+        result.Outcome.ShouldBe(DominoEffectOutcome.Resolved);
+        result.Commands.ShouldHaveSingleItem().UnitId.ShouldBe(occupant.Id);
+        result.EnteringSurface.ShouldBe(HexSurface.Bridge);
+    }
+
+    [Fact]
     public void Resolve_UnoccupiedDestination_ReturnsNotRequired()
     {
         var map = CreateFlatMap();
@@ -133,6 +167,25 @@ public class DominoEffectResolverTests
             .ShouldBe([ThirdChainHex.ToData(), SecondChainHex.ToData(), FirstChainHex.ToData()]);
         result.PsrCandidates.Select(candidate => candidate.Id)
             .ShouldBe([entering.Id, first.Id, second.Id, third.Id]);
+    }
+
+    [Fact]
+    public void Resolve_FirstLinkDisplacementReason_AppliesToTheFirstLinkOnly()
+    {
+        var map = CreateFlatMap();
+        var entering = UnitAt(SourceHex);
+        var first = UnitAt(DestinationHex);
+        var second = UnitAt(FirstChainHex);
+
+        var result = _sut.Resolve(
+            Request(entering, firstLinkDisplacementReason: DisplacementReason.DfaLandingOccupant),
+            map,
+            [entering, first, second]);
+
+        result.Outcome.ShouldBe(DominoEffectOutcome.Resolved);
+        // Far-to-near, so the last command is the first link: the direct effect of the action.
+        result.Commands.Select(command => command.DisplacementReason)
+            .ShouldBe([DisplacementReason.DominoEffect, DisplacementReason.DfaLandingOccupant]);
     }
 
     [Fact]
@@ -469,15 +522,21 @@ public class DominoEffectResolverTests
         IUnit entering,
         IReadOnlyList<IUnit>? occupants = null,
         bool applyEntryElevationRule = true,
-        HexCoordinates? destination = null) => new()
+        HexCoordinates? destination = null,
+        bool enteringEntryIsGuaranteed = false,
+        HexSurface destinationSurface = HexSurface.Ground,
+        DisplacementReason? firstLinkDisplacementReason = null) => new()
     {
         EnteringUnit = entering,
         Destination = destination ?? DestinationHex,
         Direction = ChainDirection,
         Reason = DisplacementReason.DominoEffect,
+        FirstLinkDisplacementReason = firstLinkDisplacementReason,
         GameOriginId = _gameId,
         Occupants = occupants?.Where(occupant => occupant.Id != entering.Id).ToList(),
-        ApplyEntryElevationRule = applyEntryElevationRule
+        ApplyEntryElevationRule = applyEntryElevationRule,
+        EnteringEntryIsGuaranteed = enteringEntryIsGuaranteed,
+        DestinationSurface = destinationSurface
     };
 
     private static IUnit UnitAt(

@@ -585,6 +585,138 @@ public class PhysicalAttackCalculatorTests
     }
 
     [Fact]
+    public void GetToHitNumber_ForADfaScenario_IncludesTheRelativePilotingModifier()
+    {
+        // Arrange
+        _rules.GetAttackerMovementModifier(MovementType.Jump).Returns(3);
+        var attackerPosition = new HexPosition(new HexCoordinates(2, 2), HexDirection.Top);
+        var targetPosition = new HexPosition(new HexCoordinates(2, 3), HexDirection.Bottom);
+        var (attacker, target) = CreateUnits(
+            attackerPosition,
+            targetPosition,
+            MovementPath.CreateSingleSegmentPath(attackerPosition, MovementType.Jump),
+            pilot: new MechWarrior("John", "Doe", gunnery: 4, piloting: 3));
+        target.Pilot.Returns(new MechWarrior("Jane", "Roe", gunnery: 4, piloting: 5));
+        target.MovementTaken.Returns((MovementPath?)null);
+        var map = CreateMap();
+        var scenario = PhysicalAttackScenario.FromUnits(attacker, target, PhysicalAttackType.DFA);
+
+        // Act
+        var toHitNumber = _sut.GetToHitNumber(scenario, map);
+        var movementBreakdown = _sut.GetMovementAttackModifierBreakdown(scenario, map);
+
+        // Assert: the scenario dispatch routes a DFA through the movement-attack calculation, so
+        // the public breakdown and the to-hit number always agree.
+        toHitNumber.ShouldBe(movementBreakdown.Total);
+        movementBreakdown.OtherModifiers.OfType<RelativePilotingModifier>()
+            .ShouldHaveSingleItem().Value.ShouldBe(-2);
+        var scenarioBreakdown = _sut.GetModifierBreakdown(scenario, map);
+        scenarioBreakdown.Total.ShouldBe(toHitNumber);
+        scenarioBreakdown.OtherModifiers.OfType<RelativePilotingModifier>()
+            .ShouldHaveSingleItem().Value.ShouldBe(-2);
+    }
+
+    [Fact]
+    public void GetModifierBreakdown_ForAChargeScenario_IncludesTheRelativePilotingModifier()
+    {
+        // Arrange
+        var attackerPosition = new HexPosition(new HexCoordinates(2, 2), HexDirection.Top);
+        var targetPosition = new HexPosition(new HexCoordinates(2, 3), HexDirection.Bottom);
+        var (attacker, target) = CreateUnits(
+            attackerPosition,
+            targetPosition,
+            pilot: new MechWarrior("John", "Doe", gunnery: 4, piloting: 3));
+        target.Pilot.Returns(new MechWarrior("Jane", "Roe", gunnery: 4, piloting: 5));
+        var map = CreateMap();
+        var scenario = PhysicalAttackScenario.FromUnits(attacker, target, PhysicalAttackType.Charge);
+
+        // Act
+        var breakdown = _sut.GetModifierBreakdown(scenario, map);
+
+        // Assert: the preview breakdown matches the to-hit number the charge resolves against.
+        breakdown.OtherModifiers.OfType<RelativePilotingModifier>()
+            .ShouldHaveSingleItem().Value.ShouldBe(-2);
+        breakdown.Total.ShouldBe(_sut.GetToHitNumber(scenario, map));
+        breakdown.Total.ShouldBe(_sut.GetChargeToHitNumber(attacker, target, map, isReplacementTarget: false));
+    }
+
+    [Fact]
+    public void GetDfaModifierBreakdown_IncludesRelativePilotingAndJumpButNoTerrain()
+    {
+        // Arrange
+        _rules.GetAttackerMovementModifier(MovementType.Jump).Returns(3);
+        var attackerPosition = new HexPosition(new HexCoordinates(2, 2), HexDirection.Top);
+        var targetPosition = new HexPosition(new HexCoordinates(2, 3), HexDirection.Bottom);
+        var (attacker, target) = CreateUnits(
+            attackerPosition,
+            targetPosition,
+            MovementPath.CreateSingleSegmentPath(attackerPosition, MovementType.Jump),
+            pilot: new MechWarrior("John", "Doe", gunnery: 4, piloting: 3));
+        target.Pilot.Returns(new MechWarrior("Jane", "Roe", gunnery: 4, piloting: 5));
+        target.MovementTaken.Returns((MovementPath?)null);
+        var map = CreateMap(targetTerrain: new LightWoodsTerrain());
+
+        // Act
+        var breakdown = _sut.GetDfaModifierBreakdown(attacker, target, map);
+
+        // Assert
+        breakdown.AttackTypeModifier.AttackType.ShouldBe(PhysicalAttackType.DFA);
+        breakdown.AttackerMovement.MovementType.ShouldBe(MovementType.Jump);
+        breakdown.AttackerMovement.Value.ShouldBe(3);
+        breakdown.OtherModifiers.OfType<RelativePilotingModifier>()
+            .ShouldHaveSingleItem().Value.ShouldBe(-2);
+        breakdown.TerrainModifiers.ShouldBeEmpty();
+        breakdown.Total.ShouldBe(4);
+        _sut.GetDfaToHitNumber(attacker, target, map).ShouldBe(4);
+        // The generic overload used by the attack preview dispatches DFA to the same calculation.
+        _sut.GetToHitNumber(attacker, target, PhysicalAttackType.DFA, map).ShouldBe(4);
+    }
+
+    [Fact]
+    public void GetDfaModifierBreakdown_ForAProneTarget_UsesTheProneStatusModifier()
+    {
+        // Arrange
+        _rules.GetAttackerMovementModifier(MovementType.Jump).Returns(3);
+        _rules.GetProneTargetModifier(1).Returns(-2);
+        var attackerPosition = new HexPosition(new HexCoordinates(2, 2), HexDirection.Top);
+        var targetPosition = new HexPosition(new HexCoordinates(2, 3), HexDirection.Bottom);
+        var (attacker, target) = CreateUnits(
+            attackerPosition,
+            targetPosition,
+            MovementPath.CreateSingleSegmentPath(attackerPosition, MovementType.Jump));
+        target.Status.Returns(UnitStatus.Prone);
+        var map = CreateMap();
+
+        // Act
+        var breakdown = _sut.GetDfaModifierBreakdown(attacker, target, map);
+
+        // Assert
+        breakdown.OtherModifiers.OfType<ProneTargetModifier>()
+            .ShouldHaveSingleItem().Value.ShouldBe(-2);
+    }
+
+    [Fact]
+    public void GetDfaModifierBreakdown_AddsOneForAReplacementTarget()
+    {
+        // Arrange
+        _rules.GetDfaReplacementTargetModifier().Returns(1);
+        var (attacker, target) = CreateUnits(
+            new HexPosition(2, 2, HexDirection.Bottom),
+            new HexPosition(2, 3, HexDirection.Bottom));
+        var map = CreateMap();
+
+        // Act
+        var original = _sut.GetDfaToHitNumber(attacker, target, map, isReplacementTarget: false);
+        var replacement = _sut.GetDfaToHitNumber(attacker, target, map, isReplacementTarget: true);
+        var result = _sut.GetDfaModifierBreakdown(attacker, target, map, isReplacementTarget: true);
+
+        // Assert
+        replacement.ShouldBe(original + 1);
+        result.OtherModifiers.OfType<DfaReplacementTargetModifier>().ShouldHaveSingleItem()
+            .Value.ShouldBe(1);
+    }
+
+    [Fact]
     public void GetMovementAttackModifierBreakdown_ForDfa_AddsRelativePiloting()
     {
         // Arrange

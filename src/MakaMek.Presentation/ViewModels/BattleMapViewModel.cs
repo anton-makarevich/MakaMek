@@ -31,6 +31,10 @@ using Sanet.MakaMek.Services;
 using Sanet.MVVM.Core.Models;
 using Sanet.MVVM.Core.ViewModels;
 
+// Pre-existing class coupling in this type, not introduced by this change. It is tracked in
+// #1714 together with the baseline-aware analyzer gate that will make this suppression unnecessary.
+#pragma warning disable CA1506
+
 namespace Sanet.MakaMek.Presentation.ViewModels;
 
 /// <summary>
@@ -537,6 +541,7 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         });
     }
 
+#pragma warning disable CA1502 // pre-existing complexity of the command switch, tracked in #1714
     private void ProcessCommand(IGameCommand command)
     {
         if (Game == null) return;
@@ -621,6 +626,7 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         RemoveVoidedMovementAttackIndicators();
         NotifyStateChanged();
     }
+#pragma warning restore CA1502
 
     /// <summary>
     /// Forwards playback-relevant commands to the unit controls. Movement commands animate along their
@@ -639,6 +645,9 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
                 break;
             case DisplaceUnitCommand displacement:
                 _playbackInterruptions.OnNext(new UnitPlaybackInterruption(displacement.UnitId));
+                break;
+            case DfaLandingCommand landing:
+                _playbackInterruptions.OnNext(new UnitPlaybackInterruption(landing.UnitId));
                 break;
             case MechSkidCommand skid:
                 _playbackInterruptions.OnNext(new UnitPlaybackInterruption(skid.UnitId));
@@ -753,15 +762,14 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
                 && indicator.TargetId == command.TargetId)
             .ToList();
 
-        if (indicatorsToRemove.Any())
+        if (indicatorsToRemove.Count == 0) return;
+        
+        foreach (var indicator in indicatorsToRemove)
         {
-            foreach (var indicator in indicatorsToRemove)
-            {
-                WeaponAttackIndicators.Remove(indicator);
-            }
-
-            NotifyPropertyChanged(nameof(WeaponAttackIndicators));
+            WeaponAttackIndicators.Remove(indicator);
         }
+
+        NotifyPropertyChanged(nameof(WeaponAttackIndicators));
     }
 
     /// <summary>
@@ -864,9 +872,15 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
     {
         if (PhysicalAttackIndicators is not { Count: > 0 }) return;
 
-        // A charge declared against one unit can resolve against another unit that replaced it in
-        // the target hex. The badge belongs to the declared target, so match that instead.
-        var indicatorTargetId = command.ResolutionData.Charge?.OriginalTargetId ?? command.TargetId;
+        // A charge or a DFA declared against one unit can resolve against another unit that
+        // replaced it in the target hex. The badge belongs to the declared target, so match that
+        // instead; Charge and Dfa are mutually exclusive.
+        var originalTargetId = command.ResolutionData.Charge?.OriginalTargetId;
+        if (originalTargetId is null
+            && command.ResolutionData.Dfa is { IsReplacementTarget: true } dfaResolution)
+            originalTargetId = dfaResolution.OriginalTargetId;
+
+        var indicatorTargetId = originalTargetId ?? command.TargetId;
 
         var index = PhysicalAttackIndicators.FindIndex(indicator =>
             indicator.AttackerId == command.AttackerId

@@ -368,6 +368,29 @@ public class BattleMapViewModelTests
     }
 
     [Fact]
+    public void DfaLandingCommand_PublishesPlaybackInterruptionForThatUnit()
+    {
+        // Arrange
+        var player = JoinPlayerWithUnit("Jumper", "#FF0000");
+        var unit = _game.Players.Single(p => p.Id == player.Id).Units.Single();
+        UnitPlaybackInterruption? received = null;
+        using var subscription = _sut.UnitPlaybackInterruptions.Subscribe(value => received = value);
+
+        // Act
+        _game.HandleCommand(new DfaLandingCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            UnitId = unit.Id,
+            LandingKind = DfaLandingKind.AttackerLanding
+        });
+
+        // Assert
+        received.ShouldNotBeNull();
+        received!.Value.UnitId.ShouldBe(unit.Id);
+        received.Value.IsResetAll.ShouldBeFalse();
+    }
+
+    [Fact]
     public void MechSkidCommand_PublishesPlaybackInterruptionForThatUnit()
     {
         // Arrange
@@ -3250,6 +3273,25 @@ public class BattleMapViewModelTests
     }
 
     [Fact]
+    public void PhysicalAttackResolution_OfADfaAgainstAReplacementTarget_RemovesTheDeclaredBadge()
+    {
+        // Arrange - the badge tracks the target the DFA was declared against, while the
+        // resolution names the unit that replaced it in the target hex
+        var (attacker, target) = DeployPhysicalAttackers();
+        var replacementPlayer = JoinPlayerWithUnit("Replacement", "#0000FF");
+        var replacement = _sut.Units.First(unit => unit.Owner!.Id == replacementPlayer.Id);
+        replacement.Deploy(new HexPosition(new HexCoordinates(2, 0), HexDirection.Top), null);
+        SendDfaMove(attacker, target);
+        _sut.PhysicalAttackIndicators.ShouldHaveSingleItem().TargetId.ShouldBe(target.Id);
+
+        // Act
+        ResolvePhysicalDfa(attacker, replacement, target.Id);
+
+        // Assert
+        _sut.PhysicalAttackIndicators.ShouldBeEmpty();
+    }
+
+    [Fact]
     public void PhysicalAttackResolution_OfAMiss_RemovesTheIndicator()
     {
         // Arrange
@@ -3510,6 +3552,54 @@ public class BattleMapViewModelTests
                     HexesMoved: 1,
                     IsReplacementTarget: declaredTargetId != resolvedTarget.Id,
                     OriginalTargetId: declaredTargetId))
+        });
+
+    private void SendDfaMove(IUnit attacker, IUnit target)
+        => _game.HandleCommand(new MoveUnitCommand
+        {
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = attacker.Owner!.Id,
+            UnitId = attacker.Id,
+            MovementType = MovementType.Jump,
+            IsCompleted = true,
+            MovementPath =
+            [
+                new PathSegment(
+                    new HexPosition(attacker.Position!.Coordinates, HexDirection.Top),
+                    new HexPosition(target.Position!.Coordinates, HexDirection.Top),
+                    [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]).ToData()
+            ],
+            Declaration = new PhysicalAttackDeclarationData
+            {
+                AttackType = PhysicalAttackType.DFA,
+                AttackerLimbs = [],
+                TargetId = target.Id
+            }
+        });
+
+    private void ResolvePhysicalDfa(IUnit attacker, IUnit resolvedTarget, Guid declaredTargetId)
+        => _game.HandleCommand(new PhysicalAttackResolutionCommand
+        {
+            ResolutionId = Guid.NewGuid(),
+            GameOriginId = Guid.NewGuid(),
+            PlayerId = attacker.Owner!.Id,
+            AttackerId = attacker.Id,
+            TargetId = resolvedTarget.Id,
+            ResolutionData = new PhysicalAttackResolutionData(
+                PhysicalAttackType.DFA,
+                null,
+                10,
+                new AttackResolutionData(
+                    ToHitNumber: 7,
+                    AttackRoll: [new DiceResult(3), new DiceResult(4)],
+                    IsHit: true,
+                    AttackDirection: HitDirection.Rear,
+                    ExternalHeat: 0),
+                [],
+                Dfa: new DfaResolutionData(
+                    DfaOutcome.Hit,
+                    OriginalTargetId: declaredTargetId,
+                    IsReplacementTarget: declaredTargetId != resolvedTarget.Id))
         });
 
     [Fact]
@@ -4600,6 +4690,7 @@ public class BattleMapViewModelTests
     /// A client game whose acknowledgement timeout expires almost immediately, so a command that
     /// is never acknowledged raises CommandTimedOut without the test waiting ten seconds.
     /// </summary>
+
     private ClientGame CreateClientGameWithShortAckTimeout() =>
         new(new TotalWarfareRulesProvider(),
             _mechFactory,

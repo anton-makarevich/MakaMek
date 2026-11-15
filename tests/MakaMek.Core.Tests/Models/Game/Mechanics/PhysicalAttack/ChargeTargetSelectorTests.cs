@@ -39,7 +39,11 @@ public class ChargeTargetSelectorTests
         _declaredTarget.Deploy(new HexPosition(DestinationCoordinates, HexDirection.Bottom), null);
 
         // The attacker waits in the approach hex, with the destination committed on its path.
-        _attacker.Move(
+        CommitCharge(_attacker);
+    }
+
+    private static void CommitCharge(IUnit attacker) =>
+        attacker.Move(
             new MovementPath(
                 [new PathSegment(
                     new HexPosition(ApproachCoordinates, HexDirection.Top),
@@ -49,7 +53,6 @@ public class ChargeTargetSelectorTests
             null,
             true,
             new HexPosition(ApproachCoordinates, HexDirection.Top));
-    }
 
     [Fact]
     public void Select_WhenTheDeclaredTargetIsStillStandingInTheHex_ReturnsIt()
@@ -146,18 +149,39 @@ public class ChargeTargetSelectorTests
     }
 
     /// <summary>
-    /// A 'Mech making a Death From Above cannot be the target of physical attacks, so a charge
-    /// declared against it auto-fails (Total Warfare p.149).
+    /// An airborne DFA performer hovers over the committed hex, so it cannot be the target of a
+    /// charge declared against that hex (Total Warfare p.149).
     /// </summary>
     [Fact]
-    public void Select_WhenTheDeclaredTargetPerformsDfa_AutoFails()
+    public void Select_WhenTheDeclaredTargetIsAnAirborneDfaPerformer_AutoFails()
+    {
+        MoveElsewhere(_declaredTarget);
+        var dfaPerformer = CreateMech();
+        _targetPlayer.AddUnit(dfaPerformer);
+        dfaPerformer.Deploy(
+            new HexPosition(DestinationCoordinates, HexDirection.Bottom, AirborneLevel: 4), null);
+        DeclareDfa(dfaPerformer, _attacker);
+
+        var selection = ChargeTargetSelector.Select(_attacker, dfaPerformer.Id, AllUnits());
+
+        selection.Target.ShouldBeNull();
+        selection.IsAutoFail.ShouldBeTrue();
+    }
+
+    /// <summary>
+    /// The immunity lasts only until the performer lands (Total Warfare p.149), so a grounded DFA
+    /// performer standing in the committed hex is an ordinary occupant and a legal target.
+    /// </summary>
+    [Fact]
+    public void Select_WhenTheDeclaredTargetIsALandedDfaPerformer_ReturnsIt()
     {
         DeclareDfa(_declaredTarget, _attacker);
 
         var selection = ChargeTargetSelector.Select(_attacker, _declaredTarget.Id, AllUnits());
 
-        selection.Target.ShouldBeNull();
-        selection.IsAutoFail.ShouldBeTrue();
+        selection.Target.ShouldBe(_declaredTarget);
+        selection.IsReplacementTarget.ShouldBeFalse();
+        selection.IsAutoFail.ShouldBeFalse();
     }
 
     /// <summary>

@@ -2033,4 +2033,37 @@ public class FallProcessorTests
         // 20-ton mech: (2 tons/10 * (2+1)) / 2 = 3
         walkResult.FallingDamageData.HitLocations.TotalDamage.ShouldBe(3);
     }
+
+    [Fact]
+    public void ProcessMovementAttempt_DfaFall_UsesTwoLevelsAndTheExplicitRearFacingRoll()
+    {
+        // Arrange
+        var facingDiceRoll = new DiceResult(4);
+        var facingAfterFall = HexDirection.Bottom;
+        var fallingDamageData = GetFallingDamageData();
+        _mockFallingDamageCalculator.CalculateFallingDamage(
+                _testMech, 2, 0, facingDiceRoll, facingAfterFall)
+            .Returns(fallingDamageData);
+        SetupPsrFor(PilotingSkillRollType.PilotDamageFromFall, 0, "Pilot taking damage");
+        SetupRollResult(true, PilotingSkillRollType.PilotDamageFromFall);
+        var position = new HexPosition(new HexCoordinates(6, 6), HexDirection.Top);
+        _testMech.Deploy(position, null);
+
+        // Act
+        var result = _sut.ProcessMovementAttempt(
+            _testMech,
+            new DfaFallRollContext(2, facingDiceRoll, facingAfterFall),
+            _game,
+            MovementType.Jump,
+            position);
+
+        // Assert
+        result.IsFalling.ShouldBeTrue();
+        result.LevelsFallen.ShouldBe(2);
+        // A DFA attacker is jumping, so the fall is reported as happening mid-jump.
+        result.WasJumping.ShouldBeTrue();
+        result.PilotingSkillRoll.ShouldBeNull();
+        _mockFallingDamageCalculator.Received(1).CalculateFallingDamage(
+            _testMech, 2, 0, facingDiceRoll, facingAfterFall);
+    }
 }

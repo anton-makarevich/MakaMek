@@ -1,4 +1,4 @@
-﻿using Sanet.MakaMek.Core.Data.Game.Commands;
+using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
@@ -42,7 +42,6 @@ public interface IClientGame:IGame
     Guid? ServerGameId { get; }
     bool CanActivePlayerAct { get; }
     IPilotingSkillCalculator PilotingSkillCalculator { get; }
-    IConsciousnessCalculator ConsciousnessCalculator { get; }
     IHeatEffectsCalculator HeatEffectsCalculator { get; }
 
     /// <summary>

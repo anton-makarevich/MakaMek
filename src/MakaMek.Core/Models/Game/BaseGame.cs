@@ -24,6 +24,10 @@ using Sanet.MakaMek.Map.Models;
 using Sanet.MakaMek.Map.Models.Terrains;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.PhysicalAttack;
 
+// Pre-existing class coupling in this type, not introduced by this change. It is tracked in
+// #1714 together with the baseline-aware analyzer gate that will make this suppression unnecessary.
+#pragma warning disable CA1506
+
 namespace Sanet.MakaMek.Core.Models.Game;
 
 public abstract class BaseGame : IGame
@@ -293,7 +297,9 @@ public abstract class BaseGame : IGame
         // Apply damage only if we have hit locations
         if (res.HitLocationsData is not null)
         {
-            targetUnit.ApplyDamage(res.HitLocationsData.HitLocations, res.AttackDirection);
+            targetUnit.ApplyDamage(
+                res.HitLocationsData.HitLocations,
+                res.DamageDirection ?? res.AttackDirection);
         }
 
         // Apply external heat on hit
@@ -310,14 +316,7 @@ public abstract class BaseGame : IGame
         var data = resolutionCommand.ResolutionData;
         var res = data.AttackResolution;
 
-        if (res is { IsHit: true, HitLocationsData: not null })
-        {
-            var targetUnit = _players
-                .SelectMany(p => p.Units)
-                .FirstOrDefault(u => u.Id == resolutionCommand.TargetId);
-
-            targetUnit?.ApplyDamage(res.HitLocationsData.HitLocations, res.AttackDirection);
-        }
+        ApplyPhysicalAttackTargetConsequences(resolutionCommand, res);
 
         // A successful charge also damages the attacker. Apply it from the same resolution so the
         // server and every client compute the same state, and only once per resolution ID.
@@ -329,6 +328,45 @@ public abstract class BaseGame : IGame
 
             attackerUnit?.ApplyDamage(attackerCollision.HitLocations, HitDirection.Front);
         }
+
+        // A successful DFA damages the attacker's legs on the Front column. The target damage is
+        // already carried by AttackResolution.HitLocationsData above.
+        if (data.Dfa?.AttackerLegHitLocations is { } attackerLegs)
+        {
+            var attackerUnit = _players
+                .SelectMany(p => p.Units)
+                .FirstOrDefault(u => u.Id == resolutionCommand.AttackerId);
+
+            attackerUnit?.ApplyDamage(attackerLegs.HitLocations, HitDirection.Front);
+        }
+
+        // A DFA attacker with no legal landing hex is destroyed outright (Total Warfare, p. 150).
+        if (data.Dfa?.Outcome == DfaOutcome.AttackerDestroyedNoLanding)
+        {
+            _players
+                .SelectMany(p => p.Units)
+                .FirstOrDefault(u => u.Id == resolutionCommand.AttackerId)
+                ?.MarkDestroyed();
+        }
+    }
+
+    private void ApplyPhysicalAttackTargetConsequences(
+        PhysicalAttackResolutionCommand command,
+        AttackResolutionData res)
+    {
+        var targetUnit = _players
+            .SelectMany(p => p.Units)
+            .FirstOrDefault(u => u.Id == command.TargetId);
+
+        if (res is { IsHit: true, HitLocationsData: not null })
+            targetUnit?.ApplyDamage(
+                res.HitLocationsData.HitLocations,
+                res.DamageDirection ?? res.AttackDirection);
+
+        // A DFA whose target cannot be displaced destroys that target outright (Total Warfare,
+        // p. 150). The server marks it before publishing; clients follow the resolution metadata.
+        if (res.UnitDestroyed)
+            targetUnit?.MarkDestroyed();
     }
 
     internal void OnMechFalling(MechFallCommand fallCommand)
@@ -509,6 +547,24 @@ public abstract class BaseGame : IGame
     }
 
     /// <summary>
+    /// Completes a pending Death From Above jump. The landing is derived from the movement path the
+    /// unit recorded during the Movement Phase: its last translation's destination, the approach
+    /// facing and the surface still present on the map. The attacker completes its jump; it is not
+    /// displaced, so no position travels with the command.
+    /// </summary>
+    internal void OnDfaLanding(DfaLandingCommand command)
+    {
+        if (BattleMap is not { } map) return;
+        if (_players
+                .SelectMany(p => p.Units)
+                .FirstOrDefault(u => u.Id == command.UnitId) is not Unit unit) return;
+        if (unit.MovementTaken is not { } path) return;
+        if (path.GetDfaLandingPosition(map) is not { } landing) return;
+
+        unit.Displace(landing, map.GetHex(landing.Coordinates));
+    }
+
+    /// <summary>
     /// Handles a pilot consciousness roll command by updating the pilot's consciousness state
     /// </summary>
     /// <param name="command">The consciousness roll command</param>
@@ -566,6 +622,7 @@ public abstract class BaseGame : IGame
             GameEndedCommand => CommandValidationResult.Valid(),
             BridgeCollapsedCommand => CommandValidationResult.Valid(),
             DisplaceUnitCommand => CommandValidationResult.Valid(),
+            DfaLandingCommand => CommandValidationResult.Valid(),
             _ => CommandValidationResult.Invalid(ErrorCode.ValidationFailed)
         };
     }

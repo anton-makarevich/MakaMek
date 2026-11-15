@@ -37,6 +37,9 @@ public class PhysicalAttackCalculator : IPhysicalAttackCalculator
 
     public int GetToHitNumber(IUnit attacker, IUnit target, PhysicalAttackType attackType, IBattleMap map)
     {
+        if (attackType == PhysicalAttackType.DFA)
+            return GetDfaToHitNumber(attacker, target, map);
+
         var scenario = PhysicalAttackScenario.FromUnits(attacker, target, attackType);
         return GetModifierBreakdown(scenario, map).Total;
     }
@@ -46,16 +49,116 @@ public class PhysicalAttackCalculator : IPhysicalAttackCalculator
 
     public PhysicalAttackBreakdown GetModifierBreakdown(IUnit attacker, IUnit target, PhysicalAttackType attackType, IBattleMap map)
     {
+        if (attackType == PhysicalAttackType.DFA)
+            return GetDfaModifierBreakdown(attacker, target, map);
+
         var scenario = PhysicalAttackScenario.FromUnits(attacker, target, attackType);
         return GetModifierBreakdown(scenario, map);
     }
 
-    public int GetToHitNumber(PhysicalAttackScenario scenario, IBattleMap map)
+    public int GetToHitNumber(PhysicalAttackScenario scenario, IBattleMap map) =>
+        GetModifierBreakdown(scenario, map).Total;
+
+    /// <summary>
+    /// The scenario dispatch for a preview breakdown. A movement attack (Charge or DFA) adds the
+    /// relative-piloting modifier on top of the standard modifiers, so the breakdown total is
+    /// always the to-hit number <see cref="GetToHitNumber(PhysicalAttackScenario, IBattleMap)"/>
+    /// reports.
+    /// </summary>
+    public PhysicalAttackBreakdown GetModifierBreakdown(PhysicalAttackScenario scenario, IBattleMap map) =>
+        PhysicalAttackDefinitions.IsMovementAttack(scenario.AttackType)
+            ? GetMovementAttackModifierBreakdown(scenario, map)
+            : BuildBreakdown(scenario, map);
+
+    /// <inheritdoc />
+    public PhysicalAttackBreakdown GetChargeModifierBreakdown(
+        IUnit attacker,
+        IUnit target,
+        IBattleMap map,
+        bool isReplacementTarget)
     {
-        return GetModifierBreakdown(scenario, map).Total;
+        var scenario = PhysicalAttackScenario.FromUnits(attacker, target, PhysicalAttackType.Charge);
+        var breakdown = GetMovementAttackModifierBreakdown(scenario, map);
+        if (!isReplacementTarget) return breakdown;
+
+        return breakdown with
+        {
+            OtherModifiers =
+            [
+                .. breakdown.OtherModifiers,
+                new ChargeReplacementTargetModifier
+                {
+                    Value = ChargeReplacementTargetModifier.DefaultValue
+                }
+            ]
+        };
     }
 
-    public PhysicalAttackBreakdown GetModifierBreakdown(PhysicalAttackScenario scenario, IBattleMap map)
+    /// <inheritdoc />
+    public PhysicalAttackBreakdown GetMovementAttackModifierBreakdown(
+        PhysicalAttackScenario scenario,
+        IBattleMap map)
+    {
+        var breakdown = BuildBreakdown(scenario, map);
+
+        // Total Warfare p. 148: add the difference when the target has the lower (better) Piloting
+        // Skill Rating, subtract it when the attacker has the lower one. Piloting skill is static
+        // for a whole game, so reading it from the live target unit is safe.
+        if (scenario.TargetUnit?.Pilot is not { } targetPilot) return breakdown;
+
+        return breakdown with
+        {
+            OtherModifiers =
+            [
+                .. breakdown.OtherModifiers,
+                new RelativePilotingModifier
+                {
+                    Value = scenario.AttackerPiloting - targetPilot.Piloting,
+                    AttackerPiloting = scenario.AttackerPiloting,
+                    TargetPiloting = targetPilot.Piloting
+                }
+            ]
+        };
+    }
+
+    /// <inheritdoc />
+    public int GetChargeToHitNumber(IUnit attacker, IUnit target, IBattleMap map, bool isReplacementTarget) =>
+        GetChargeModifierBreakdown(attacker, target, map, isReplacementTarget).Total;
+
+    /// <inheritdoc />
+    public PhysicalAttackBreakdown GetDfaModifierBreakdown(
+        IUnit attacker,
+        IUnit target,
+        IBattleMap map,
+        bool isReplacementTarget = false)
+    {
+        var scenario = PhysicalAttackScenario.FromUnits(attacker, target, PhysicalAttackType.DFA);
+        var breakdown = GetMovementAttackModifierBreakdown(scenario, map);
+        if (!isReplacementTarget) return breakdown;
+
+        return breakdown with
+        {
+            OtherModifiers =
+            [
+                .. breakdown.OtherModifiers,
+                new DfaReplacementTargetModifier
+                {
+                    Value = _rules.GetDfaReplacementTargetModifier()
+                }
+            ]
+        };
+    }
+
+    /// <inheritdoc />
+    public int GetDfaToHitNumber(IUnit attacker, IUnit target, IBattleMap map, bool isReplacementTarget = false) =>
+        GetDfaModifierBreakdown(attacker, target, map, isReplacementTarget).Total;
+
+    /// <summary>
+    /// The standard physical-attack modifiers, before the movement-attack relative-piloting
+    /// modifier. Only the public dispatch and the movement-attack breakdown call it, so routing a
+    /// movement attack through the public API cannot recurse.
+    /// </summary>
+    private PhysicalAttackBreakdown BuildBreakdown(PhysicalAttackScenario scenario, IBattleMap map)
     {
         var losResult = map.GetLineOfSight(
             scenario.AttackerPosition,
@@ -110,61 +213,6 @@ public class PhysicalAttackCalculator : IPhysicalAttackCalculator
             TerrainModifiers = terrainModifiers
         };
     }
-
-    /// <inheritdoc />
-    public PhysicalAttackBreakdown GetChargeModifierBreakdown(
-        IUnit attacker,
-        IUnit target,
-        IBattleMap map,
-        bool isReplacementTarget)
-    {
-        var scenario = PhysicalAttackScenario.FromUnits(attacker, target, PhysicalAttackType.Charge);
-        var breakdown = GetMovementAttackModifierBreakdown(scenario, map);
-        if (!isReplacementTarget) return breakdown;
-
-        return breakdown with
-        {
-            OtherModifiers =
-            [
-                .. breakdown.OtherModifiers,
-                new ChargeReplacementTargetModifier
-                {
-                    Value = ChargeReplacementTargetModifier.DefaultValue
-                }
-            ]
-        };
-    }
-
-    /// <inheritdoc />
-    public PhysicalAttackBreakdown GetMovementAttackModifierBreakdown(
-        PhysicalAttackScenario scenario,
-        IBattleMap map)
-    {
-        var breakdown = GetModifierBreakdown(scenario, map);
-
-        // Total Warfare p. 148: add the difference when the target has the lower (better) Piloting
-        // Skill Rating, subtract it when the attacker has the lower one. Piloting skill is static
-        // for a whole game, so reading it from the live target unit is safe.
-        if (scenario.TargetUnit?.Pilot is not { } targetPilot) return breakdown;
-
-        return breakdown with
-        {
-            OtherModifiers =
-            [
-                .. breakdown.OtherModifiers,
-                new RelativePilotingModifier
-                {
-                    Value = scenario.AttackerPiloting - targetPilot.Piloting,
-                    AttackerPiloting = scenario.AttackerPiloting,
-                    TargetPiloting = targetPilot.Piloting
-                }
-            ]
-        };
-    }
-
-    /// <inheritdoc />
-    public int GetChargeToHitNumber(IUnit attacker, IUnit target, IBattleMap map, bool isReplacementTarget) =>
-        GetChargeModifierBreakdown(attacker, target, map, isReplacementTarget).Total;
 
     /// <summary>
     /// A push adds +2 for each damaged shoulder actuator across the attacker's arms. It is not a

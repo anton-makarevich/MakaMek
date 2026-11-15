@@ -1,4 +1,3 @@
-using Sanet.MakaMek.Core.Data.Game.Mechanics.PhysicalAttacks;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Map.Models;
@@ -31,8 +30,9 @@ public sealed record ChargeTargetSelection(
 /// The attacker never enters the destination hex; it is placed in a side hex of its forward arc
 /// exactly like a rolled miss (Total Warfare, p. 148).</item>
 /// </list>
-/// A 'Mech performing a Death From Above is never a target, declared or replacement: its movement
-/// is unfinished, so it cannot be the subject of a physical attack (Total Warfare, p. 149).
+/// An airborne 'Mech performing a Death From Above is never a target, declared or replacement: its
+/// movement is unfinished, so it cannot be the subject of a physical attack (Total Warfare, p. 149).
+/// Once it has landed its immunity has ended and it is an ordinary occupant of the hex.
 /// </summary>
 public static class ChargeTargetSelector
 {
@@ -65,13 +65,12 @@ public static class ChargeTargetSelector
 
     /// <summary>
     /// The declared target is a legal charge target while it still stands on the committed
-    /// destination hex and surface and is not performing a Death From Above, whose performer is
-    /// immune to physical attacks until its movement is complete (Total Warfare, p. 149).
+    /// destination hex and surface and is not an airborne Death From Above performer, whose
+    /// movement is not complete and who is therefore immune to physical attacks (Total Warfare,
+    /// p. 149). A performer that has already landed is an ordinary occupant.
     /// </summary>
     private static bool IsValidTarget(IUnit unit, HexPosition destination) =>
-        !unit.IsDestroyed
-        && !unit.DeclaredPhysicalAttack.IsDfa()
-        && unit is not Mech { IsProne: true }
+        unit is { IsDestroyed: false, IsAirborneDfaAttacker: false } and not Mech { IsProne: true }
         && IsInDestination(unit, destination);
 
     private static bool IsInDestination(IUnit unit, HexPosition destination) =>
