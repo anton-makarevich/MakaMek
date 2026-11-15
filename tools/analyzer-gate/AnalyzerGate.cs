@@ -39,10 +39,15 @@ internal static class Program
 {
     private const string DefaultBase = "origin/main";
     private const string ExclusionsFile = "tools/analyzer-gate/exclusions.txt";
-    private const string PragmaDirective = "#pragma warning disable";
-    private const string PragmaRestore = "#pragma warning restore";
     private const string AnySuppression = "*";
     private const string NoDeclaration = "<none>";
+
+    /// <summary>
+    /// A suppression whose rule argument is not a single string literal. C# still honours it, so the
+    /// gate records it under this synthetic rule and reports it when it is new instead of silently
+    /// accepting a suppression it cannot read.
+    /// </summary>
+    internal const string NonLiteralRule = "<non-literal>";
 
     /// <summary>
     /// The rules this repository's threshold configuration (`.editorconfig`, `CodeMetricsConfig.txt`)
@@ -68,6 +73,14 @@ internal static class Program
 
     private static readonly Regex RuleIdInAttributePattern =
         new("\"((?:CA|S)\\d{4})[:\"]", RegexOptions.CultureInvariant);
+
+    /// <summary>
+    /// A <c>#pragma warning disable|restore</c> directive. The <c>#</c> and the directive name may be
+    /// separated by whitespace, so the spelling is parsed rather than searched for verbatim.
+    /// </summary>
+    private static readonly Regex PragmaDirectivePattern = new(
+        @"^\s*#\s*pragma\s+warning\s+(?<action>disable|restore)\b(?<rules>.*)$",
+        RegexOptions.CultureInvariant);
 
     private static readonly string[] AnalyzedProjectPrefixes =
     [
@@ -348,9 +361,11 @@ internal static class Program
             var baselineCount = baseline.TryGetValue((rule, scope), out var known) ? known : 0;
             if (count <= baselineCount) continue;
 
-            failures.Add(baselineCount == 0
-                ? $"{file} adds a new {rule} suppression covering {scope}. Fix the finding instead of suppressing it."
-                : $"{file} adds another {rule} suppression covering {scope} (base: {baselineCount}, now: {count}). Fix the finding instead of suppressing it.");
+            failures.Add(rule == NonLiteralRule
+                ? $"{file} adds a suppression with a non-literal rule argument covering {scope}. Use a single string literal so the gate can verify it."
+                : baselineCount == 0
+                    ? $"{file} adds a new {rule} suppression covering {scope}. Fix the finding instead of suppressing it."
+                    : $"{file} adds another {rule} suppression covering {scope} (base: {baselineCount}, now: {count}). Fix the finding instead of suppressing it.");
         }
 
         return failures;
@@ -403,7 +418,15 @@ internal static class Program
         foreach (var attribute in FindSuppressMessageAttributes(code, argumentsCode))
         {
             var scope = ScopeAfter(declarations, attribute.End);
-            foreach (Match id in RuleIdInAttributePattern.Matches(attribute.Arguments))
+            var (nonLiteral, ruleLiteral) = ReadRuleArgument(attribute.Arguments);
+            if (nonLiteral)
+            {
+                Increment(scopes, NonLiteralRule, scope);
+                continue;
+            }
+            if (ruleLiteral is null) continue;
+
+            foreach (Match id in RuleIdInAttributePattern.Matches(ruleLiteral))
             {
                 if (IsGatedRule(id.Groups[1].Value))
                 {
@@ -686,18 +709,14 @@ internal static class Program
         var directives = new List<PragmaStatement>();
         foreach (var line in lines)
         {
-            var disableIndex = line.Text.IndexOf(PragmaDirective, StringComparison.Ordinal);
-            var restoreIndex = line.Text.IndexOf(PragmaRestore, StringComparison.Ordinal);
-            var isDisable = disableIndex >= 0 && (restoreIndex < 0 || disableIndex < restoreIndex);
-            var index = isDisable ? disableIndex : restoreIndex;
-            if (index < 0) continue;
+            var match = PragmaDirectivePattern.Match(line.Text);
+            if (!match.Success) continue;
 
-            var keyword = isDisable ? PragmaDirective : PragmaRestore;
             directives.Add(new PragmaStatement(
                 line.Offset,
                 line.Depth,
-                isDisable,
-                ParseRules(line.Text[(index + keyword.Length)..])));
+                match.Groups["action"].Value == "disable",
+                ParseRules(match.Groups["rules"].Value)));
         }
 
         var open = new Dictionary<string, Stack<(int Start, int Depth)>>(StringComparer.Ordinal);
@@ -781,6 +800,112 @@ internal static class Program
             yield return (nameIndex, closeParenthesis, argumentsCode[(openParenthesis + 1)..closeParenthesis]);
             searchIndex = closeParenthesis + 1;
         }
+    }
+
+    /// <summary>
+    /// Reads the <c>checkId</c> argument of a <c>[SuppressMessage]</c> attribute. <c>NonLiteral</c> is
+    /// returned when the argument is not exactly one string literal (a concatenation, a constant, an
+    /// interpolated string): the compiler still honours such a suppression, so the gate records it
+    /// instead of silently missing it.
+    /// </summary>
+    private static (bool NonLiteral, string? Literal) ReadRuleArgument(string arguments)
+    {
+        var positional = new List<string>();
+        string? namedCheckId = null;
+        foreach (var argument in SplitArguments(arguments))
+        {
+            var trimmed = argument.Trim();
+            if (trimmed.Length == 0) continue;
+
+            if (TryStripArgumentName(trimmed, "checkId", out var checkId))
+            {
+                namedCheckId = checkId;
+                continue;
+            }
+
+            if (TryStripArgumentName(trimmed, "category", out var category))
+            {
+                positional.Add(category);
+                continue;
+            }
+
+            positional.Add(trimmed);
+        }
+
+        var ruleArgument = namedCheckId ?? (positional.Count >= 2 ? positional[1] : null);
+        if (ruleArgument is null) return (false, null);
+
+        return TryGetSingleStringLiteral(ruleArgument, out var literal)
+            ? (false, literal)
+            : (true, null);
+    }
+
+    private static bool TryStripArgumentName(string argument, string name, out string value)
+    {
+        value = string.Empty;
+        if (!argument.StartsWith(name, StringComparison.Ordinal)) return false;
+
+        var rest = argument[name.Length..].TrimStart();
+        if (rest.Length == 0 || rest[0] != ':') return false;
+
+        value = rest[1..].Trim();
+        return true;
+    }
+
+    private static List<string> SplitArguments(string arguments)
+    {
+        var parts = new List<string>();
+        var start = 0;
+        var depth = 0;
+        for (var index = 0; index < arguments.Length; index++)
+        {
+            if (IsLiteralStart(arguments, index))
+            {
+                var end = MaskLiteral(arguments, index, new StringBuilder(), maskContent: true);
+                if (end > index)
+                {
+                    index = end - 1;
+                    continue;
+                }
+            }
+
+            switch (arguments[index])
+            {
+                case '(' or '[' or '{':
+                    depth++;
+                    break;
+                case ')' or ']' or '}':
+                    depth--;
+                    break;
+                case ',' when depth == 0:
+                    parts.Add(arguments[start..index]);
+                    start = index + 1;
+                    break;
+            }
+        }
+
+        parts.Add(arguments[start..]);
+        return parts;
+    }
+
+    private static bool TryGetSingleStringLiteral(string argument, out string value)
+    {
+        value = string.Empty;
+        var trimmed = argument.Trim();
+        if (trimmed.Length == 0) return false;
+
+        // Only a plain or verbatim string can be verified. An interpolated string may encode the rule
+        // id in fragments (`$"CA{1506}"`), so it is treated as non-literal.
+        var start = 0;
+        while (start < trimmed.Length && trimmed[start] == '@') start++;
+        if (start >= trimmed.Length || trimmed[start] != '"') return false;
+
+        var end = MaskLiteral(trimmed, 0, new StringBuilder(), maskContent: false);
+        if (end <= 0 || trimmed[end..].Trim().Length != 0) return false;
+
+        // Keep the literal's quotes: the rule-id pattern matches the quoted form.
+        value = trimmed[..end];
+        return true;
     }
 
     private static int FindMatchingParenthesis(string code, int openIndex)

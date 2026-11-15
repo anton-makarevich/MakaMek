@@ -219,6 +219,90 @@ public class SuppressionScanTests
     }
 
     [Fact]
+    public void SuppressionScopes_PragmaWithWhitespaceAfterHash_IsRecognized()
+    {
+        const string source = """
+            public class Example
+            {
+            # pragma warning disable S3776
+                public void Run() { }
+            #  pragma warning restore S3776
+            }
+            """;
+
+        var scopes = Program.SuppressionScopes(source);
+
+        scopes.ShouldContainKey(("S3776", "member:Run"));
+    }
+
+    [Fact]
+    public void FindNewSuppressionsIn_PragmaWithWhitespaceAfterHash_Fails()
+    {
+        const string baseline = """
+            public class Example
+            {
+                public void Run() { }
+            }
+            """;
+        const string current = """
+            public class Example
+            {
+            # pragma warning disable S3776
+                public void Run() { }
+            # pragma warning restore S3776
+            }
+            """;
+
+        var failures = Program.FindNewSuppressionsIn("Example.cs", baseline, current);
+
+        failures.ShouldHaveSingleItem().ShouldContain("S3776");
+    }
+
+    [Fact]
+    public void SuppressionScopes_AttributeWithConcatenatedRuleArgument_IsReportedAsNonLiteral()
+    {
+        const string source = """
+            [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA" + "1506:Avoid excessive class coupling")]
+            public class Example
+            {
+            }
+            """;
+
+        var scopes = Program.SuppressionScopes(source);
+
+        scopes.ShouldContainKey((Program.NonLiteralRule, "type:Example"));
+    }
+
+    [Fact]
+    public void FindNewSuppressionsIn_AttributeWithConstantRuleArgument_Fails()
+    {
+        const string current = """
+            [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", RuleId)]
+            public class Example
+            {
+                private const string RuleId = "CA1506:Avoid excessive class coupling";
+            }
+            """;
+
+        var failures = Program.FindNewSuppressionsIn("Example.cs", null, current);
+
+        failures.ShouldHaveSingleItem().ShouldContain("non-literal rule argument");
+    }
+
+    [Fact]
+    public void FindNewSuppressionsIn_UnchangedNonLiteralAttribute_Passes()
+    {
+        const string source = """
+            [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA" + "1506:Avoid excessive class coupling")]
+            public class Example
+            {
+            }
+            """;
+
+        Program.FindNewSuppressionsIn("Example.cs", source, source).ShouldBeEmpty();
+    }
+
+    [Fact]
     public void MaskLiteralsAndComments_PreservesLineBreaks()
     {
         const string source = """
