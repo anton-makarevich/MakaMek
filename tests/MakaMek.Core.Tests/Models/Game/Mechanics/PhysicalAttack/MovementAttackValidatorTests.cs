@@ -144,6 +144,22 @@ public class MovementAttackValidatorTests
     }
 
     [Fact]
+    public void GetPotentialTargets_ExcludesAnEnemyPerformingACharge()
+    {
+        var attacker = CreateDeployedMech(_attackerPlayer, ApproachCoordinates);
+        var enemy = CreateDeployedMech(_targetPlayer, DestinationCoordinates);
+        MoveElsewhere(enemy);
+        enemy.DeclarePhysicalAttack(new PhysicalAttackDeclarationData
+        {
+            AttackType = PhysicalAttackType.Charge,
+            AttackerLimbs = [],
+            TargetId = attacker.Id
+        });
+
+        _sut.GetPotentialTargets(attacker, MovementType.Run, AllUnits()).ShouldBeEmpty();
+    }
+
+    [Fact]
     public void GetPotentialTargets_ForAMovementTypeWithoutAnAttack_ReturnsEmpty()
     {
         var attacker = CreateDeployedMech(_attackerPlayer, ApproachCoordinates);

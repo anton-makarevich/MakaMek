@@ -8,6 +8,10 @@ using Sanet.MakaMek.Map.Models.Highlights;
 using Sanet.MakaMek.Presentation.ViewModels;
 using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 
+// Pre-existing class coupling in this type, not introduced by this change. It is tracked in
+// #1714 together with the baseline-aware analyzer gate that will make this suppression unnecessary.
+#pragma warning disable CA1506
+
 namespace Sanet.MakaMek.Presentation.UiStates;
 
 /// <summary>
@@ -27,7 +31,7 @@ namespace Sanet.MakaMek.Presentation.UiStates;
 /// </remarks>
 public class PhysicalAttackState : IUiState, ICombatSelectionRoles, IPhysicalAttackDeclarationState
 {
-    private static readonly IReadOnlyList<PhysicalAttackType> SupportedAttackTypes =
+    private static readonly List<PhysicalAttackType> SupportedAttackTypes =
         PhysicalAttackDefinitions.Supported.Select(definition => definition.AttackType).ToList();
 
     private static readonly IReadOnlyList<PhysicalAttackOptionViewModel> NoOptions = [];
@@ -39,7 +43,7 @@ public class PhysicalAttackState : IUiState, ICombatSelectionRoles, IPhysicalAtt
     /// The enemies the attacker can reach with at least one supported attack type. Replaced as a
     /// whole under the lock, never mutated in place, so a reader always sees a consistent set.
     /// </summary>
-    private IReadOnlySet<IUnit> _reachableTargets = new HashSet<IUnit>();
+    private HashSet<IUnit> _reachableTargets = [];
 
     private IReadOnlyList<PhysicalAttackOptionViewModel> _options = NoOptions;
     private PhysicalAttackStep _currentStep = PhysicalAttackStep.SelectingUnit;
@@ -211,6 +215,7 @@ public class PhysicalAttackState : IUiState, ICombatSelectionRoles, IPhysicalAtt
             lock (_stateLock)
                 return _currentStep == PhysicalAttackStep.Declaration ? _selectedTarget : _attacker;
         }
+#pragma warning disable S3776 // pre-existing complexity of the step dispatch, tracked in #1714
         private set
         {
             if (value == null) return;
@@ -253,6 +258,8 @@ public class PhysicalAttackState : IUiState, ICombatSelectionRoles, IPhysicalAtt
             }
         }
     }
+
+#pragma warning restore S3776
 
     public void HandleUnitSelectionFromList(IUnit? unit)
     {
@@ -420,7 +427,7 @@ public class PhysicalAttackState : IUiState, ICombatSelectionRoles, IPhysicalAtt
         return options;
     }
 
-    private IReadOnlyList<PhysicalAttackLimbVariant> BuildLimbVariants(
+    private List<PhysicalAttackLimbVariant> BuildLimbVariants(
         PhysicalAttackDefinition definition,
         IReadOnlyList<PhysicalAttackLimbEligibility> limbEligibility,
         IUnit attacker)
@@ -528,22 +535,27 @@ public class PhysicalAttackState : IUiState, ICombatSelectionRoles, IPhysicalAtt
         var reachable = new HashSet<IUnit>();
         if (Attacker is { } attacker && Game.BattleMap is { } map)
         {
-            foreach (var enemy in GetEnemies())
+            // The eligibility policy filters enemies, destroyed units and targets it cannot reach;
+            // the UI only collects the candidates that report a usable limb.
+            foreach (var candidate in _viewModel.Units)
             {
                 if (SupportedAttackTypes.Any(attackType =>
                         Game.PhysicalAttackEligibility
-                            .GetEligibleLimbs(attacker, enemy, attackType, map).Count > 0))
-                    reachable.Add(enemy);
+                            .GetEligibleLimbs(attacker, candidate, attackType, map).Count > 0))
+                    reachable.Add(candidate);
             }
         }
 
         lock (_stateLock) _reachableTargets = reachable;
     }
 
+    /// <summary>
+    /// A unit can act as the attacker while it belongs to the active player and the eligibility
+    /// policy still reports an option for it. The policy owns the "not destroyed, not already
+    /// committed" rules.
+    /// </summary>
     private bool CanActAsAttacker(IUnit unit) =>
-        !unit.IsDestroyed
-        && unit.Owner?.Id == Game.PhaseStepState?.ActivePlayer.Id
-        && !unit.HasDeclaredPhysicalAttack
+        unit.Owner?.Id == Game.PhaseStepState?.ActivePlayer.Id
         && HasAnyOption(unit);
 
     private bool IsFriendly(IUnit unit) => unit.Owner?.Id == Game.PhaseStepState?.ActivePlayer.Id;
@@ -553,29 +565,8 @@ public class PhysicalAttackState : IUiState, ICombatSelectionRoles, IPhysicalAtt
         if (Game.BattleMap is not { } map) return false;
 
         // Evaluated against the candidate, not the current attacker: this runs before the
-        // candidate becomes the attacker.
-        var enemies = _viewModel.Units.Where(other =>
-            other.Owner?.Id != unit.Owner?.Id
-            && !other.IsDestroyed
-            && other.Position != null).ToList();
-
-        return Game.PhysicalAttackEligibility.HasAnyOption(unit, enemies, map);
-    }
-
-    /// <summary>
-    /// Materialised under the lock: the caller may then iterate it on another thread without
-    /// holding the lock while it reads the view model's unit list.
-    /// </summary>
-    private List<IUnit> GetEnemies()
-    {
-        IUnit? attacker;
-        lock (_stateLock) attacker = _attacker;
-        if (attacker == null) return [];
-
-        return _viewModel.Units.Where(unit =>
-            unit.Owner?.Id != attacker.Owner?.Id
-            && !unit.IsDestroyed
-            && unit.Position != null).ToList();
+        // candidate becomes the attacker. The policy filters enemies and unit states itself.
+        return Game.PhysicalAttackEligibility.HasAnyOption(unit, _viewModel.Units, map);
     }
 
     private List<IUnit> GetAllUnits() => Game.Players.SelectMany(player => player.Units).ToList();
@@ -594,7 +585,7 @@ public class PhysicalAttackState : IUiState, ICombatSelectionRoles, IPhysicalAtt
 
         var hexHighlights = new Dictionary<HexCoordinates, HashSet<string>>();
 
-        foreach (var enemy in GetEnemies())
+        foreach (var enemy in _reachableTargets)
         {
             var labels = new HashSet<string>();
             foreach (var attackType in SupportedAttackTypes)
@@ -617,7 +608,9 @@ public class PhysicalAttackState : IUiState, ICombatSelectionRoles, IPhysicalAtt
 
         var highlights = new Dictionary<HexCoordinates, IHexHighlightType>(hexHighlights.Count);
         foreach (var (coordinates, labels) in hexHighlights)
-            highlights[coordinates] = new AttackReachableHighlight(labels.OrderBy(label => label).ToList());
+            highlights[coordinates] = new AttackReachableHighlight([
+                .. labels.OrderBy(label => label, StringComparer.InvariantCulture)
+            ]);
 
         _viewModel.HighlightRegions(highlights);
     }

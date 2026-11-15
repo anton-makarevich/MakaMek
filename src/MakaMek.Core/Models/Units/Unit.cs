@@ -116,6 +116,11 @@ public abstract class Unit : IUnit
     public virtual bool IsProne => false;
 
     /// <summary>
+    /// Gets whether the unit is standing: on the board, not destroyed, not shut down and not prone.
+    /// </summary>
+    public bool IsStanding => !IsDestroyed && !IsShutdown && !IsProne && Position is not null;
+
+    /// <summary>
     /// Gets whether the unit is active. Returns true if the Active flag is set, regardless of other flags.
     /// </summary>
     public bool IsActive => (_status & UnitStatus.Active) == UnitStatus.Active;

@@ -64,8 +64,10 @@ public interface IMovementAttackValidator
     /// <param name="attacker">The unit that declared the attack.</param>
     /// <param name="declaration">The declaration stored on the unit.</param>
     /// <param name="units">Every unit in the game, whatever its state.</param>
+    /// <param name="map">The battle map, used for the water line and the endpoints.</param>
     MovementAttackTargetSelection SelectResolutionTarget(
         IUnit attacker,
         PhysicalAttackDeclarationData declaration,
-        IEnumerable<IUnit> units);
+        IEnumerable<IUnit> units,
+        IBattleMap map);
 }

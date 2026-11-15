@@ -77,11 +77,9 @@ public class PhysicalAttackResolutionPhase : GamePhase
         DfaDisplacementResolver dfaDisplacementResolver,
         IDfaAttackResolver dfaAttackResolver) : base(game)
     {
-        _gates = [
-            new AttackerDestroyedGate(),
-            new AttackerProneGate(),
-            new PhysicalAttackTargetValidityGate(game.PhysicalAttackEligibility)
-        ];
+        // The eligibility policy owns the attacker and target state as well as the reach rules, so
+        // this gate is the only pre-attack check: it re-runs the same evaluation the declaration used.
+        _gates = [new PhysicalAttackTargetValidityGate(game.PhysicalAttackEligibility)];
         _pushDisplacementResolver = pushDisplacementResolver;
         _chargeDisplacementResolver = chargeDisplacementResolver;
         _dfaDisplacementResolver = dfaDisplacementResolver;
@@ -389,7 +387,7 @@ public class PhysicalAttackResolutionPhase : GamePhase
         // or reports an automatic failure. A 'Mech making its own Death From Above is immune to
         // physical attacks until it lands (p. 149), so the rule never selects an airborne performer.
         var selection = Game.MovementAttackValidator
-            .SelectResolutionTarget(item.Attacker, item.Declaration, AllUnits());
+            .SelectResolutionTarget(item.Attacker, item.Declaration, AllUnits(), map);
         if (selection.Target is not { } target)
         {
             ResolveDfaAutoFail(item, declaredTarget);
@@ -797,9 +795,10 @@ public class PhysicalAttackResolutionPhase : GamePhase
 
     private void ResolveCharge(ChargeQueueItem item)
     {
+        var map = Game.BattleMap ?? throw new InvalidOperationException("Battle map is null");
         var targetSelection = item.AttackerState == MovementAttackAttackerState.CanAttack
             ? Game.MovementAttackValidator
-                .SelectResolutionTarget(item.Attacker, item.Declaration, AllUnits())
+                .SelectResolutionTarget(item.Attacker, item.Declaration, AllUnits(), map)
             : MovementAttackTargetSelection.AutoFail();
 
         if (targetSelection.Target is not { } target)
@@ -813,7 +812,7 @@ public class PhysicalAttackResolutionPhase : GamePhase
         {
             Attacker = attacker,
             Target = target,
-            Map = Game.BattleMap ?? throw new InvalidOperationException("Battle map is null"),
+            Map = map,
             HexesMoved = item.Declaration.HexesMoved ?? 0,
             IsReplacementTarget = targetSelection.IsReplacementTarget,
             OriginalTargetId = item.Declaration.TargetId

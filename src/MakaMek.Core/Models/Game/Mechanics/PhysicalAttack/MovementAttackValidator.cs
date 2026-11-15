@@ -125,8 +125,8 @@ public class MovementAttackValidator : IMovementAttackValidator
     }
 
     public MovementAttackTargetSelection SelectResolutionTarget(IUnit attacker,
-        PhysicalAttackDeclarationData declaration, IEnumerable<IUnit> units) =>
-        MovementAttackTargetSelector.Select(attacker, declaration.TargetId, declaration.AttackType, units);
+        PhysicalAttackDeclarationData declaration, IEnumerable<IUnit> units, IBattleMap map) =>
+        MovementAttackTargetSelector.Select(attacker, declaration.TargetId, declaration.AttackType, units, map);
 
     /// <summary>
     /// The attacker can still make a movement attack: standing, intact, not shut down and with a
@@ -136,10 +136,10 @@ public class MovementAttackValidator : IMovementAttackValidator
         IsStandingMech(attacker) && attacker.Pilot is { IsConscious: true };
 
     /// <summary>
-    /// A Mech that is still in the game, not shut down and on its feet.
+    /// A Mech that is still in the game and on its feet.
     /// </summary>
     private static bool IsStandingMech(IUnit attacker) =>
-        attacker is Mech { IsDestroyed: false, IsShutdown: false, IsProne: false, Position: not null };
+        attacker is Mech && attacker.IsStanding;
 
     /// <summary>
     /// The attacker still waits where the move told it to stop. A Charge has to hold the exact
@@ -203,7 +203,7 @@ public class MovementAttackValidator : IMovementAttackValidator
     private static bool IsValidTarget(IUnit attacker, IUnit? target, PhysicalAttackType attackType) =>
         target is Mech { IsDestroyed: false, Position: not null }
         && target.Owner?.Id != attacker.Owner?.Id
-        && target is { HasPendingMovementAttack: false }
+        && target.GetPendingAttackRestriction(attackType) is null
         && (target.HasMoved || StartedTurnIncapacitated(target))
         && IsLegalAgainstProneTarget(target, attackType);
 
@@ -286,7 +286,7 @@ public class MovementAttackValidator : IMovementAttackValidator
         var targetEndpoint = map.GetPhysicalAttackEndpoint(targetPosition, target.Height);
         if (approachEndpoint is not { } approach || targetEndpoint is not { } targetState) return false;
 
-        return approach.IsSubmerged == targetState.IsSubmerged
+        return approach.IsWaterEligibleAgainst(targetState, PhysicalAttackType.Charge)
                && Math.Abs(approach.LevelDifferenceTo(targetState)) <= 1;
     }
 
@@ -308,8 +308,9 @@ public class MovementAttackValidator : IMovementAttackValidator
     {
         var attackerEndpoint = map.GetPhysicalAttackEndpoint(attacker.Position!, attacker.Height);
         var targetEndpoint = map.GetPhysicalAttackEndpoint(targetPosition, target.Height);
-        return attackerEndpoint is { IsSubmerged: false }
-               && targetEndpoint is { IsSubmerged: false }
+        return attackerEndpoint is { } attackerState
+               && targetEndpoint is { } targetState
+               && attackerState.IsWaterEligibleAgainst(targetState, PhysicalAttackType.DFA)
                && CanClearDfaHeight(attacker, target, targetPosition, map);
     }
 

@@ -44,6 +44,12 @@ public interface IUnit
     bool IsProne { get; }
 
     /// <summary>
+    /// Gets whether the unit is standing: on the board, not destroyed, not shut down and not prone.
+    /// Eligibility policies share this state instead of restating the individual flags.
+    /// </summary>
+    bool IsStanding { get; }
+
+    /// <summary>
     /// Gets whether the unit is destroyed. Returns true if the Destroyed flag is set, regardless of other flags.
     /// </summary>
     bool IsDestroyed { get; }

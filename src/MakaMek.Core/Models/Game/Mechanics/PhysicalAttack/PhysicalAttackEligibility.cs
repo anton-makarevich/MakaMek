@@ -21,7 +21,12 @@ namespace Sanet.MakaMek.Core.Models.Game.Mechanics.PhysicalAttack;
 /// <item>punch arcs following the torso and kick arcs following the feet;</item>
 /// <item>the shoulder and hip actuator prerequisites;</item>
 /// <item>the per-limb fired-weapon restrictions;</item>
-/// <item>the Death From Above target immunity (Total Warfare p. 149);</item>
+/// <item>the shared pending-attack target restriction (a DFA performer is immune to every physical
+/// attack, a Charge performer to Push and to other movement attacks), expressed once in
+/// <see cref="PhysicalAttackTargetExtensions"/>, which the movement validator also uses;</item>
+/// <item>the shared water line predicate on <see cref="PhysicalAttackEndpoint"/>, which the movement
+/// validator and the Charge/DFA target selection also use;</item>
+/// <item>the attacker state: a standing Mech with a conscious pilot;</item>
 /// <item>the one physical attack per turn rule (applied by <see cref="GetEligibleLimbs"/>, skipped
 /// by <see cref="CanResolve"/>);</item>
 /// <item>the target checks: an enemy, standing, adjacent Mech.</item>
@@ -147,8 +152,8 @@ public class PhysicalAttackEligibility : IPhysicalAttackEligibility
             || map.GetPhysicalAttackEndpoint(target.Position!, target.Height) is not { } targetEndpoint)
             return Evaluation.Fail(PhysicalAttackRestriction.TargetOutOfReach, candidates);
 
-        if (GetDfaTargetRestriction(target) is { } dfaRestriction)
-            return Evaluation.Fail(dfaRestriction, candidates);
+        if (target.GetPendingAttackRestriction(attackType) is { } targetRestriction)
+            return Evaluation.Fail(targetRestriction, candidates);
 
         if (IsBlockedByWater(attackerEndpoint, targetEndpoint, attackType))
             return Evaluation.Fail(PhysicalAttackRestriction.TargetSubmerged, candidates);
@@ -286,8 +291,8 @@ public class PhysicalAttackEligibility : IPhysicalAttackEligibility
             || map.GetPhysicalAttackEndpoint(target.Position!, target.Height) is not { } targetEndpoint)
             return Evaluation.Fail(PhysicalAttackRestriction.NoTargetInFront, candidates);
 
-        if (GetDfaTargetRestriction(target) is { } dfaRestriction)
-            return Evaluation.Fail(dfaRestriction, candidates);
+        if (target.GetPendingAttackRestriction(PhysicalAttackType.Push) is { } targetRestriction)
+            return Evaluation.Fail(targetRestriction, candidates);
 
         // The same water rule that removes the limbs has to report a reason here, otherwise the
         // UI offers a Push that cannot be selected.
@@ -310,14 +315,12 @@ public class PhysicalAttackEligibility : IPhysicalAttackEligibility
     /// underwater. A Mech standing in Depth 1 water keeps torso and arms above the surface, so
     /// only a kick occurs entirely underwater; in Depth 2+ water the whole Mech is underwater
     /// and any supported attack qualifies (issue #1600). Push also uses the arms, so it needs
-    /// the same Depth 1 restriction as a punch.
+    /// the same Depth 1 restriction as a punch. The predicate itself lives on the endpoint so the
+    /// movement attacks and the resolution target selection use the same rule.
     /// </summary>
     private static bool IsBlockedByWater(PhysicalAttackEndpoint attackerEndpoint,
         PhysicalAttackEndpoint targetEndpoint, PhysicalAttackType attackType) =>
-        targetEndpoint.IsSubmerged
-        && (!attackerEndpoint.IsInWater
-            || (!attackerEndpoint.IsSubmerged
-                && attackType is PhysicalAttackType.Punch or PhysicalAttackType.Push));
+        !attackerEndpoint.IsWaterEligibleAgainst(targetEndpoint, attackType);
 
     /// <summary>
     /// Reports why a Push cannot be made, or null when it can. The target has to be a standing
@@ -335,9 +338,6 @@ public class PhysicalAttackEligibility : IPhysicalAttackEligibility
         if (target is not Mech { IsProne: false })
             return PhysicalAttackRestriction.TargetNotStandingMech;
 
-        if (target.DeclaredPhysicalAttack?.AttackType is PhysicalAttackType.Charge or PhysicalAttackType.DFA)
-            return PhysicalAttackRestriction.TargetPerformingDisplacementAttack;
-
         if (targetEndpoint.EffectiveStandingLevel != attackerEndpoint.EffectiveStandingLevel)
             return PhysicalAttackRestriction.ElevationMismatch;
 
@@ -350,17 +350,6 @@ public class PhysicalAttackEligibility : IPhysicalAttackEligibility
     }
 
     /// <summary>
-    /// Total Warfare p.149: a 'Mech making a Death From Above cannot be the target of physical
-    /// attacks until its movement is complete, but it may still be the target of weapon attacks.
-    /// The check sits in the shared intrinsic path so declaration validation, phase enrollment,
-    /// the UI and <see cref="CanResolve"/> all apply it.
-    /// </summary>
-    private static PhysicalAttackRestriction? GetDfaTargetRestriction(IUnit target) =>
-        target.DeclaredPhysicalAttack?.AttackType is PhysicalAttackType.DFA
-            ? PhysicalAttackRestriction.TargetPerformingDeathFromAbove
-            : null;
-
-    /// <summary>
     /// The target must occupy the single hex directly in front of the attacker, using the feet
     /// orientation rather than the torso twist.
     /// </summary>
@@ -369,11 +358,12 @@ public class PhysicalAttackEligibility : IPhysicalAttackEligibility
             == attacker.Position!.Coordinates.GetNeighbour(attacker.Position.Facing);
 
     /// <summary>
-    /// A standing Mech that is still in the game. A skidding Mech may still attack; it takes a
-    /// to-hit penalty instead.
+    /// A standing Mech whose pilot is not unconscious. A skidding Mech may still attack; it takes
+    /// a to-hit penalty instead. An unconscious pilot cannot punch, kick or push, exactly as it
+    /// cannot charge or make a Death From Above.
     /// </summary>
     private static bool CanMakePhysicalAttack(Mech attacker) =>
-        attacker is { IsDestroyed: false, IsShutdown: false, IsProne: false, Position: not null };
+        attacker.IsStanding && attacker.Pilot is not { IsConscious: false };
 
     /// <summary>
     /// An enemy Mech that is still standing on the map in an adjacent hex.

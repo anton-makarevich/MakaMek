@@ -261,10 +261,8 @@ Physical-attack eligibility stays a **policy service**, not a rules-provider tab
 4.1. `PhysicalAttackResolutionPhase : GamePhase` with `Enter()` orchestration:
 
     - Build the resolution queue from all units with `HasDeclaredPhysicalAttack`, from the lower Initiative to the higher (the lower Initiative resolves first — Total Warfare p. 144), one queue item per declared attack (punch arms enqueue separately). A charge occupies its attacker's slot; it is not always resolved last.
-    - Pre-attack gates (new `IAttackResolutionGate` implementations in `Mechanics/PhysicalAttack/`):
-      - `PhysicalAttackTargetValidityGate` — re-validates target alive and attack-specific constraints at resolution time (adjacency, arc — including the punch side-arm restriction and torso-twist-rotated arcs, Background item 10 —, elevation; a standing target for Push).
-      - `AttackerProneGate` — attacker that became prone during weapon attack resolution cannot perform the physical attack.
-      - `AttackerDestroyedGate`.
+    - Pre-attack gate (new `IPhysicalAttackResolutionGate` implementation in `Mechanics/PhysicalAttack/`):
+      - `PhysicalAttackTargetValidityGate` — re-runs `IPhysicalAttackEligibility.CanResolve`, which now owns the attacker state (standing, conscious, not already committed) and the target constraints (alive, adjacency, arc — including the punch side-arm restriction and torso-twist-rotated arcs, Background item 10 —, elevation, water; a standing target for Push). The former `AttackerProneGate` and `AttackerDestroyedGate` are folded into the eligibility policy.
     - Resolve each queued attack via `IPhysicalAttackResolver`; publish `PhysicalAttackResolutionCommand` per attack (mirrors `WeaponAttackResolutionCommand` fields: player, attacker, target, attack type, limb, resolution data).
     - **Immediate damage and displacement:** attacks resolve in queue order and each attack's damage and displacement are applied before the next attack resolves (Total Warfare p. 148, 151). The queue and its gates are snapshotted at phase entry, so a declared attack is never skipped because an earlier one destroyed its attacker or target. Reciprocal push pairs are the one exception: both rolls are collected before either unit moves, because if both hit neither unit moves (p. 148). Attack-specific PSRs are still rolled at end of phase, reusing the `_accumulatedDamageData` pattern from `WeaponAttackResolutionPhase`.
 
@@ -376,7 +374,7 @@ Physical-attack eligibility stays a **policy service**, not a rules-provider tab
 `IPhysicalAttackDeclarationState` and reuses the existing `PhysicalAttackDeclarationPanel.axaml`:
 movement-attack targets are highlighted with `AttackReachableHighlight`, clicking one opens the
 panel without a direction selector, and the cheapest path that passes the shared
-`IMovementAttackDeclarationValidator` becomes the movement preview. The generic player action
+`IMovementAttackValidator` becomes the movement preview. The generic player action
 confirms the declaration in one `MoveUnitCommand`. `BattleMapViewModel`'s declaration properties are
 sourced from the interface, so the panel is not coupled to `PhysicalAttackState`. The full flow is
 documented in [`docs/rules/physical-attacks.md`](../rules/physical-attacks.md#32-movement-phase-declaration-ui-issue-1703).

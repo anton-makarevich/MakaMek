@@ -17,6 +17,8 @@ namespace Sanet.MakaMek.Core.Models.Game.Mechanics.PhysicalAttack;
 /// hit. A Charge can replace with any unit; a DFA only with a Mech.</item>
 /// <item>Otherwise the attack automatically fails.</item>
 /// </list>
+/// Every candidate also has to satisfy the shared water predicate, so a target the declaration
+/// would have rejected, or a replacement that is submerged, cannot become the target at resolution.
 /// An airborne 'Mech performing a Death From Above is never a target, declared or replacement: its
 /// movement is unfinished, so it cannot be the subject of a physical attack (Total Warfare, p. 149).
 /// Once it has landed its immunity has ended and it is an ordinary occupant of the hex.
@@ -27,23 +29,26 @@ public static class MovementAttackTargetSelector
         IUnit attacker,
         Guid declaredTargetId,
         PhysicalAttackType attackType,
-        IEnumerable<IUnit> units)
+        IEnumerable<IUnit> units,
+        IBattleMap map)
     {
         var destination = attacker.MovementTaken?.Destination;
-        if (destination is null) return MovementAttackTargetSelection.AutoFail();
+        if (destination is null || attacker.Position is null)
+            return MovementAttackTargetSelection.AutoFail();
 
         var deployed = units
             .Where(unit => unit is { IsDeployed: true, Position: not null })
             .ToList();
 
         var declaredTarget = deployed.FirstOrDefault(unit => unit.Id == declaredTargetId);
-        if (declaredTarget is not null && IsEligibleDeclaredTarget(declaredTarget, destination, attackType))
+        if (declaredTarget is not null
+            && IsEligibleDeclaredTarget(declaredTarget, destination, attackType, attacker, map))
             return new MovementAttackTargetSelection(declaredTarget, false, false);
 
         var replacement = deployed.FirstOrDefault(unit =>
             unit.Id != declaredTargetId
             && !ReferenceEquals(unit, attacker)
-            && IsEligibleReplacement(unit, destination, attackType, attacker));
+            && IsEligibleReplacement(unit, destination, attackType, attacker, map));
 
         return replacement is not null
             ? new MovementAttackTargetSelection(replacement, true, false)
@@ -56,14 +61,17 @@ public static class MovementAttackTargetSelector
     /// which turns the attack into a miss without a roll instead of an auto-fail.
     /// </summary>
     private static bool IsEligibleDeclaredTarget(IUnit unit, HexPosition destination,
-        PhysicalAttackType attackType) =>
+        PhysicalAttackType attackType, IUnit attacker, IBattleMap map) =>
         attackType switch
         {
             PhysicalAttackType.Charge =>
                 unit is { IsDestroyed: false, IsProne: false, IsAirborneDfaAttacker: false }
-                && IsInDestination(unit, destination),
+                && IsInDestination(unit, destination)
+                && IsWaterEligible(attacker, unit, attackType, map),
             PhysicalAttackType.DFA =>
-                !unit.IsAirborneDfaAttacker && IsInDestination(unit, destination),
+                !unit.IsAirborneDfaAttacker
+                && IsInDestination(unit, destination)
+                && IsWaterEligible(attacker, unit, attackType, map),
             _ => false
         };
 
@@ -72,15 +80,32 @@ public static class MovementAttackTargetSelector
     /// type, a DFA only with a Mech.
     /// </summary>
     private static bool IsEligibleReplacement(IUnit unit, HexPosition destination,
-        PhysicalAttackType attackType, IUnit attacker) =>
+        PhysicalAttackType attackType, IUnit attacker, IBattleMap map) =>
         unit is { IsDestroyed: false, IsAirborneDfaAttacker: false }
         && IsInDestination(unit, destination)
         && attackType switch
         {
-            PhysicalAttackType.Charge => !unit.IsProne && IsEnemy(unit, attacker),
-            PhysicalAttackType.DFA => unit is Mech && IsEnemy(unit, attacker),
+            PhysicalAttackType.Charge => !unit.IsProne && IsEnemy(unit, attacker)
+                                         && IsWaterEligible(attacker, unit, attackType, map),
+            PhysicalAttackType.DFA => unit is Mech && IsEnemy(unit, attacker)
+                                      && IsWaterEligible(attacker, unit, attackType, map),
             _ => false
         };
+
+    /// <summary>
+    /// The target has to satisfy the same water line the declaration used. The attacker endpoint is
+    /// its current position: for a Charge that is the approach hex, for a DFA the airborne approach
+    /// position, which is never submerged.
+    /// </summary>
+    private static bool IsWaterEligible(IUnit attacker, IUnit target,
+        PhysicalAttackType attackType, IBattleMap map)
+    {
+        var attackerEndpoint = map.GetPhysicalAttackEndpoint(attacker.Position!, attacker.Height);
+        var targetEndpoint = map.GetPhysicalAttackEndpoint(target.Position!, target.Height);
+        return attackerEndpoint is { } from
+               && targetEndpoint is { } to
+               && from.IsWaterEligibleAgainst(to, attackType);
+    }
 
     private static bool IsInDestination(IUnit unit, HexPosition destination) =>
         unit.Position is { } position

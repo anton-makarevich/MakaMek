@@ -211,7 +211,7 @@ instead of being resolved.
 * A 'Mech performing a **Charge** is not immune to physical attacks. Punch and Kick remain legal
   against it when the reach rules permit them; Push keeps the
   `TargetPerformingDisplacementAttack` restriction, and another Charge or DFA is rejected by
-  `MovementAttackDeclarationValidator`.
+  `MovementAttackValidator`.
 * **Charge resolution (issue [#1706](https://github.com/anton-makarevich/MakaMek/issues/1706)):**
   `MovementAttackTargetSelector` applies the immunity at resolution time too, using the same
   `IsAirborneDfaAttacker` predicate. An airborne pending-DFA 'Mech is never the declared target and
@@ -224,9 +224,10 @@ instead of being resolved.
   performer that has already landed is a grounded unit and a legal target, declared or replacement
   (§3.1: the immunity ends when it lands).
 * **One target rule for Charge and DFA:** the resolution phase never restates the target or
-  attacker rules. `MovementAttackDeclarationValidator.GetAttackerState` reports whether the
+  attacker rules. `MovementAttackValidator.GetAttackerState` reports whether the
   attacker can still attack, and `SelectResolutionTarget` returns the declared target, a
-  replacement or an automatic failure through `MovementAttackTargetSelector`. The UI target search
+  replacement or an automatic failure through `MovementAttackTargetSelector`. The selector applies
+  the shared water predicate to both the declared target and the replacement. The UI target search
   calls `GetPotentialTargets` on the same validator, so the highlighted targets and the resolved
   ones cannot drift.
 * **Airborne stacking exemption in every displacement path:** `IsAirborneDfaAttacker`
@@ -242,8 +243,8 @@ instead of being resolved.
 ### **3.2. Movement-Phase Declaration UI (issue #1703)**
 
 Charge and DFA are declared while the unit moves, so the Movement Phase owns the declaration and
-`MovementState` drives it. It uses the same `MovementAttackDeclarationValidator` instance as the
-server (`IGame.MovementAttackDeclarationValidator`), so a highlighted target is exactly one the
+`MovementState` drives it. It uses the same `MovementAttackValidator` instance as the
+server (`IGame.MovementAttackValidator`), so a highlighted target is exactly one the
 server accepts. The target prefilter is `GetPotentialTargets` on that validator: the UI adds only
 pathfinding and the cheapest-path choice, never its own eligibility rule.
 
@@ -360,7 +361,7 @@ The water rules decide whether a physical attack may be **made at all** — they
 * **DFA:** the attack is **never** entirely underwater. A fully submerged target is rejected by an explicit check because DFA has no level comparison to fall back on. A fully submerged attacker is also rejected, but under the **jump-jet rule** ("jump jets cannot be fired while submerged"), not under the physical-attack water rule. A 'Mech in Depth 1 water can still jump with its torso-mounted jets.
 * **DFA against a target standing in Depth 1 water:** legal. A standing 'Mech is waist-deep, so its torso and head remain above the surface and it is **not** submerged; the target-side rule only protects a fully submerged unit. The attacker needs enough Jumping MP to clear the target hex's standing level plus the target's height (for a Depth 1 hex at level 0 the waterbed is −1 and a standing 'Mech reaches +1). If the DFA lands in the water hex, the attacker makes a landing PSR; on success it stands on the waterbed, on failure it falls onto the waterbed.
 
-**Implementation scope:** `PhysicalAttackEligibility` applies the Punch/Kick/Push rules (and the effective-standing-level comparison) to physical-phase declarations; the same rules are re-checked at resolution time via `CanResolve` and `PhysicalAttackTargetValidityGate`, so a declaration that has become illegal by resolution is skipped automatically. `MovementAttackDeclarationValidator` applies the Charge/DFA declaration rules. Charge and DFA resolutions live in `PhysicalAttackResolutionPhase`: a charge applies the charge water rules, and a DFA grounds the attacker by completing its recorded jump with `DfaLandingCommand`, with a two-level rear fall on a miss. A DFA target displaced down more than the automatic-fall threshold takes the standard automatic fall. If the target cannot be displaced at all, a hit destroys the target and a miss destroys the attacker (Total Warfare p. 150). The DFA landing PSR carries the water-entry modifier when the attacker lands in water (Depth 1 −1, Depth 2 0, Depth 3+ +1).
+**Implementation scope:** `PhysicalAttackEligibility` applies the Punch/Kick/Push rules (and the effective-standing-level comparison) to physical-phase declarations; the same rules are re-checked at resolution time via `CanResolve` and `PhysicalAttackTargetValidityGate`, so a declaration that has become illegal by resolution is skipped automatically. `MovementAttackValidator` applies the Charge/DFA declaration rules, and the water predicate is shared through `PhysicalAttackEndpoint.IsWaterEligibleAgainst`: the declaration rules, the eligibility policy and `MovementAttackTargetSelector` all use it, so a Charge or DFA is re-checked against the water line at resolution for the declared target and for any replacement. Charge and DFA resolutions live in `PhysicalAttackResolutionPhase`: a charge applies the charge water rules, and a DFA grounds the attacker by completing its recorded jump with `DfaLandingCommand`, with a two-level rear fall on a miss. A DFA target displaced down more than the automatic-fall threshold takes the standard automatic fall. If the target cannot be displaced at all, a hit destroys the target and a miss destroys the attacker (Total Warfare p. 150). The DFA landing PSR carries the water-entry modifier when the attacker lands in water (Depth 1 −1, Depth 2 0, Depth 3+ +1).
 
 **DFA miss displacement — first implementation:** the rules give the target's controller the choice of the adjacent hex. The first version resolves it on the server instead, so a miss needs no client interaction: `DfaDisplacementResolver.ResolveMiss` walks the adjacent hexes ordered by alignment away from the attacker's jump origin (`MovementTaken.Start`) and takes the first passable, unoccupied one, which is the hex a hit would push the target into. A deep drop is still a legal candidate: the target is displaced down and then takes the standard automatic fall. No adjacent hex is available → the attacker is destroyed. On a hit, if the target cannot be displaced, the target is destroyed instead. Restoring the controller's choice is tracked as a follow-up.
 
@@ -376,4 +377,5 @@ A decision is recorded here about where physical-attack knowledge lives:
 * **`PhysicalAttackDefinitions` holds structural metadata only** — which attack types exist, their candidate limbs and the maximum limbs per declaration. Dynamic policy (arcs, actuator prerequisites, fired-weapon restrictions, level differences, target checks) stays in the eligibility service.
 * **`GetRestriction` explains every supported type.** Punch, Kick and Push derive the restriction and the reaching limbs from the same private evaluation, so a null restriction always means the attack has at least one reaching limb apart from the one-attack-per-turn rule. The first failure wins; the melee order is generic validity, the DFA target immunity, water, level difference, arc, then limbs.
 * **`GetDeclarationRestriction` adds the declaration-only budget check.** It returns the intrinsic `GetRestriction` first and then reports `TargetAlreadyDisplaced` only for a displacement attack whose target is already reserved this turn. `CanResolve` and `HasAnyOption` are unchanged and never apply the budget, so a declaration that reserved the target can still resolve.
-* **Qualified by the physical-attack level and water decision ([#1685](https://github.com/anton-makarevich/MakaMek/issues/1685)).** A shared Core endpoint record (effective standing level, submersion, in-water) and a small attack-type water predicate are planned, but the Different-Levels table stays local to this policy and no new eligibility interface is introduced. Charge/DFA remain in `MovementAttackDeclarationValidator`. See [`Physical-Attack-Level-And-Water-Rules.md`](../architecture/Physical-Attack-Level-And-Water-Rules.md).
+* **Shared state predicates.** `IUnit.IsStanding` is the single "standing Mech" state, and `PhysicalAttackTargetExtensions.GetPendingAttackRestriction` is the single target-side rule for a unit that is already performing a physical attack. The eligibility policy and the movement validator both use them; the separate attacker destroyed/prone gates were removed because `CanResolve` now covers the attacker state (including an unconscious pilot).
+* **Qualified by the physical-attack level and water decision ([#1685](https://github.com/anton-makarevich/MakaMek/issues/1685)).** The shared Core endpoint record and the attack-type water predicate (`PhysicalAttackEndpoint.IsWaterEligibleAgainst`) are implemented and consumed by the eligibility policy, the Charge/DFA validator and the resolution target selection. The Different-Levels table stays local to this policy and no new eligibility interface is introduced. Charge/DFA remain in `MovementAttackValidator`. See [`Physical-Attack-Level-And-Water-Rules.md`](../architecture/Physical-Attack-Level-And-Water-Rules.md).
