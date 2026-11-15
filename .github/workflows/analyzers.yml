@@ -38,6 +38,9 @@ jobs:
         with:
           install: false
 
+      - name: Test the analyzer gate itself
+        run: dotnet test tests/MakaMek.AnalyzerGate.Tests/MakaMek.AnalyzerGate.Tests.csproj
+
       - name: Verify analyzers on changed files
         env:
           ANALYZER_BASE: origin/${{ github.base_ref }}

@@ -40,7 +40,9 @@ internal static class Program
     private const string DefaultBase = "origin/main";
     private const string ExclusionsFile = "tools/analyzer-gate/exclusions.txt";
     private const string PragmaDirective = "#pragma warning disable";
+    private const string PragmaRestore = "#pragma warning restore";
     private const string AnySuppression = "*";
+    private const string NoDeclaration = "<none>";
 
     /// <summary>
     /// The rules this repository's threshold configuration (`.editorconfig`, `CodeMetricsConfig.txt`)
@@ -48,15 +50,21 @@ internal static class Program
     /// </summary>
     private static readonly string[] GatedRules = ["CA1501", "CA1502", "CA1505", "CA1506", "S3776"];
 
-    private static readonly Regex BlockCommentPattern =
-        new(@"/\*.*?\*/", RegexOptions.Singleline | RegexOptions.CultureInvariant);
+    /// <summary>
+    /// A type declaration. The name is the stable anchor a suppression is attributed to.
+    /// </summary>
+    private static readonly Regex TypeDeclarationPattern = new(
+        @"^(?:(?:public|private|protected|internal|static|sealed|abstract|partial|readonly|ref|file|unsafe|new)\s+)*(?:class|struct|interface|enum|record(?:\s+(?:struct|class))?)\s+(?<name>\w+)",
+        RegexOptions.CultureInvariant);
 
     /// <summary>
-    /// A <c>[SuppressMessage(...)]</c> attribute, which can span several lines. The captured group
-    /// is the attribute's argument list.
+    /// A member declaration (method, constructor return-type form, property or operator). Fields and
+    /// local variables are deliberately not matched: a suppression only ever wraps an executable
+    /// member, and the analyzer never reports CA1502/CA1505/S3776 on a field.
     /// </summary>
-    private static readonly Regex SuppressMessagePattern =
-        new(@"SuppressMessage\s*\((.*?)\)\s*\]", RegexOptions.Singleline | RegexOptions.CultureInvariant);
+    private static readonly Regex MemberDeclarationPattern = new(
+        @"^(?:(?:public|private|protected|internal|static|async|virtual|override|sealed|abstract|partial|unsafe|extern|new|required|readonly)\s+)*(?:[\w<>\[\],\.\?]+\s+)+(?<name>\w+)\s*(?:<[^>]*>)?\s*(?:\(|\{|=>)",
+        RegexOptions.CultureInvariant);
 
     private static readonly Regex RuleIdInAttributePattern =
         new("\"((?:CA|S)\\d{4})[:\"]", RegexOptions.CultureInvariant);
@@ -302,9 +310,7 @@ internal static class Program
     }
 
     /// <summary>
-    /// Suppressions a changed file added relative to the base ref. Only the gated rules count, and
-    /// occurrences are compared per rule: a pre-existing suppression authorizes itself, never a
-    /// second one added elsewhere in the same file for the same rule.
+    /// Suppressions a changed file added relative to the base ref.
     /// </summary>
     private static List<string> FindNewSuppressions(string repoRoot, string baseRef, IEnumerable<string> files)
     {
@@ -314,19 +320,37 @@ internal static class Program
             var path = Path.Combine(repoRoot, file);
             if (!File.Exists(path)) continue;
 
-            var current = SuppressedRules(File.ReadAllText(path));
-            if (current.Count == 0) continue;
+            failures.AddRange(FindNewSuppressionsIn(
+                file,
+                ReadAtBase(repoRoot, baseRef, file),
+                File.ReadAllText(path)));
+        }
 
-            var baseline = SuppressedRules(ReadAtBase(repoRoot, baseRef, file));
-            foreach (var (rule, count) in current.OrderBy(pair => pair.Key, StringComparer.Ordinal))
-            {
-                baseline.TryGetValue(rule, out var baselineCount);
-                if (count <= baselineCount) continue;
+        return failures;
+    }
 
-                failures.Add(
-                    $"{file} adds a new {rule} suppression (base: {baselineCount}, now: {count}). " +
-                    "Fix the finding instead of suppressing it.");
-            }
+    /// <summary>
+    /// The suppressions a file added relative to the base ref. Each suppression is identified by its
+    /// rule and by the declaration it covers, so a pre-existing suppression authorizes neither a
+    /// second occurrence, nor the same rule moved to another member, nor a wider region created by a
+    /// removed restore. Renaming a suppressed declaration therefore also fails the gate: the member
+    /// is expected to lose its suppression in the change that moves it.
+    /// </summary>
+    internal static List<string> FindNewSuppressionsIn(string file, string? baselineSource, string currentSource)
+    {
+        var failures = new List<string>();
+        var current = SuppressionScopes(currentSource);
+        if (current.Count == 0) return failures;
+
+        var baseline = SuppressionScopes(baselineSource);
+        foreach (var ((rule, scope), count) in current)
+        {
+            var baselineCount = baseline.TryGetValue((rule, scope), out var known) ? known : 0;
+            if (count <= baselineCount) continue;
+
+            failures.Add(baselineCount == 0
+                ? $"{file} adds a new {rule} suppression covering {scope}. Fix the finding instead of suppressing it."
+                : $"{file} adds another {rule} suppression covering {scope} (base: {baselineCount}, now: {count}). Fix the finding instead of suppressing it.");
         }
 
         return failures;
@@ -339,68 +363,452 @@ internal static class Program
     }
 
     /// <summary>
-    /// How many times each gated rule is suppressed in the source. Comments are stripped first so a
-    /// commented-out directive never counts, and attributes are matched over the whole file so a
-    /// multiline <c>[SuppressMessage(...)]</c> is recognized.
+    /// Every gated-rule suppression in the source, keyed by rule and by the declaration it covers.
+    /// Comments and literals are masked first, so text that only mentions a directive or an attribute
+    /// cannot count, and a suppression is attributed to the declaration it applies to rather than to
+    /// a line number that every edit would move.
     /// </summary>
-    private static Dictionary<string, int> SuppressedRules(string? source)
+    internal static SortedDictionary<(string Rule, string Scope), int> SuppressionScopes(string? source)
     {
-        var suppressed = new Dictionary<string, int>(StringComparer.Ordinal);
-        if (string.IsNullOrEmpty(source)) return suppressed;
+        var scopes = new SortedDictionary<(string Rule, string Scope), int>();
+        if (string.IsNullOrEmpty(source)) return scopes;
 
-        var code = StripComments(source);
+        var code = MaskLiteralsAndComments(source);
+        // Attribute arguments hold the rule id as a string literal, so they are read from a variant
+        // that keeps literals and only removes comments.
+        var argumentsCode = MaskComments(source);
+        var lines = ReadLines(code);
+        var declarations = FindDeclarations(lines);
 
-        foreach (var rawLine in code.Split('\n'))
+        foreach (var (rule, start, end, depth) in FindPragmaRegions(lines, code.Length))
         {
-            var line = rawLine.Trim();
-            var directive = line.IndexOf(PragmaDirective, StringComparison.Ordinal);
-            if (directive < 0) continue;
+            var covered = declarations
+                .Where(declaration =>
+                    declaration.Offset > start
+                    && declaration.Offset < end
+                    && declaration.Depth == depth)
+                .Select(declaration => declaration.Key)
+                .ToList();
+            if (covered.Count == 0) covered.Add(NoDeclaration);
 
-            var ids = line[(directive + PragmaDirective.Length)..].Split(
-                [',', ' ', '\t', '\r'],
-                StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-            if (ids.Length == 0)
+            foreach (var suppressedRule in ExpandRule(rule))
             {
-                // `#pragma warning disable` without ids disables every warning in the block.
-                Increment(suppressed, AnySuppression);
-            }
-            foreach (var id in ids.Where(IsGatedRule))
-            {
-                Increment(suppressed, id.ToUpperInvariant());
-            }
-        }
-
-        foreach (Match attribute in SuppressMessagePattern.Matches(code))
-        {
-            foreach (Match id in RuleIdInAttributePattern.Matches(attribute.Groups[1].Value))
-            {
-                if (IsGatedRule(id.Groups[1].Value))
+                foreach (var scope in covered)
                 {
-                    Increment(suppressed, id.Groups[1].Value.ToUpperInvariant());
+                    Increment(scopes, suppressedRule, scope);
                 }
             }
         }
 
-        return suppressed;
+        foreach (var attribute in FindSuppressMessageAttributes(code, argumentsCode))
+        {
+            var scope = ScopeAfter(declarations, attribute.End);
+            foreach (Match id in RuleIdInAttributePattern.Matches(attribute.Arguments))
+            {
+                if (IsGatedRule(id.Groups[1].Value))
+                {
+                    Increment(scopes, id.Groups[1].Value.ToUpperInvariant(), scope);
+                }
+            }
+        }
+
+        return scopes;
     }
 
-    private static void Increment(Dictionary<string, int> counts, string rule) =>
-        counts[rule] = counts.TryGetValue(rule, out var count) ? count + 1 : 1;
+    private static IEnumerable<string> ExpandRule(string rule) =>
+        rule == AnySuppression ? GatedRules : [rule];
+
+    private static string ScopeAfter(IReadOnlyList<Declaration> declarations, int offset)
+    {
+        foreach (var declaration in declarations)
+        {
+            if (declaration.Offset >= offset) return declaration.Key;
+        }
+        return NoDeclaration;
+    }
 
     /// <summary>
-    /// Removes <c>//</c> line comments and <c>/* ... */</c> blocks so text that only mentions a
-    /// directive cannot be read as an active suppression.
+    /// Replaces the contents of comments and string/char literals with spaces so the scan reads only
+    /// code. Line breaks are preserved so declaration offsets and pragma scopes stay meaningful.
     /// </summary>
-    private static string StripComments(string source)
+    internal static string MaskLiteralsAndComments(string source) => Mask(source, maskLiterals: true);
+
+    /// <summary>
+    /// Removes comments but keeps string literals, for syntax whose payload is a string (the rule id
+    /// of a <c>[SuppressMessage]</c> attribute).
+    /// </summary>
+    internal static string MaskComments(string source) => Mask(source, maskLiterals: false);
+
+    private static string Mask(string source, bool maskLiterals)
     {
-        var withoutBlocks = BlockCommentPattern.Replace(source, string.Empty);
-        var builder = new StringBuilder(withoutBlocks.Length);
-        foreach (var line in withoutBlocks.Split('\n'))
+        var masked = new StringBuilder(source.Length);
+        var index = 0;
+        while (index < source.Length)
         {
-            var comment = line.IndexOf("//", StringComparison.Ordinal);
-            builder.Append(comment >= 0 ? line[..comment] : line).Append('\n');
+            var current = source[index];
+            if (current == '/' && index + 1 < source.Length && source[index + 1] == '/')
+            {
+                index = MaskLineComment(source, index, masked);
+            }
+            else if (current == '/' && index + 1 < source.Length && source[index + 1] == '*')
+            {
+                index = MaskBlockComment(source, index, masked);
+            }
+            else if (IsLiteralStart(source, index))
+            {
+                index = MaskLiteral(source, index, masked, maskLiterals);
+            }
+            else
+            {
+                masked.Append(current);
+                index++;
+            }
         }
-        return builder.ToString();
+
+        return masked.ToString();
+    }
+
+    private static bool IsLiteralStart(string source, int index)
+    {
+        if (source[index] is '"' or '\'') return true;
+        if (source[index] is not ('$' or '@')) return false;
+
+        for (var probe = index; probe < source.Length && probe < index + 3; probe++)
+        {
+            if (source[probe] == '"') return true;
+            if (source[probe] is not ('$' or '@')) return false;
+        }
+
+        return false;
+    }
+
+    private static int MaskLiteral(string source, int start, StringBuilder masked, bool maskContent)
+    {
+        var index = start;
+        var verbatim = false;
+        while (index < source.Length && source[index] is '$' or '@')
+        {
+            if (source[index] == '@') verbatim = true;
+            masked.Append(maskContent ? ' ' : source[index]);
+            index++;
+        }
+
+        if (index < source.Length && source[index] == '\'')
+        {
+            return MaskQuotedRun(source, index, '\'', masked, escapes: true, maskContent);
+        }
+
+        var quoteRun = 0;
+        while (index + quoteRun < source.Length && source[index + quoteRun] == '"') quoteRun++;
+        if (quoteRun >= 3)
+        {
+            return MaskRawString(source, index, quoteRun, masked, maskContent);
+        }
+
+        return MaskQuotedRun(source, index, '"', masked, escapes: !verbatim, maskContent);
+    }
+
+    private static int MaskQuotedRun(
+        string source,
+        int start,
+        char quote,
+        StringBuilder masked,
+        bool escapes,
+        bool maskContent)
+    {
+        masked.Append(quote);
+        var index = start + 1;
+        while (index < source.Length)
+        {
+            var current = source[index];
+            if (escapes && current == '\\' && index + 1 < source.Length)
+            {
+                AppendLiteral(masked, source, index, 2, maskContent);
+                index += 2;
+                continue;
+            }
+
+            if (current == quote)
+            {
+                // In a verbatim string a doubled quote is an escaped quote, not the terminator.
+                if (!escapes && index + 1 < source.Length && source[index + 1] == quote)
+                {
+                    AppendLiteral(masked, source, index, 2, maskContent);
+                    index += 2;
+                    continue;
+                }
+
+                masked.Append(quote);
+                return index + 1;
+            }
+
+            AppendLiteral(masked, source, index, 1, maskContent);
+            index++;
+        }
+
+        return index;
+    }
+
+    private static int MaskRawString(
+        string source,
+        int start,
+        int quoteRun,
+        StringBuilder masked,
+        bool maskContent)
+    {
+        masked.Append(maskContent ? new string(' ', quoteRun) : source[start..(start + quoteRun)]);
+        var index = start + quoteRun;
+        while (index < source.Length)
+        {
+            if (source[index] == '"')
+            {
+                var run = 0;
+                while (index + run < source.Length && source[index + run] == '"') run++;
+                masked.Append(maskContent ? new string(' ', run) : source[index..(index + run)]);
+                index += run;
+                if (run >= quoteRun) return index;
+                continue;
+            }
+
+            AppendLiteral(masked, source, index, 1, maskContent);
+            index++;
+        }
+
+        return index;
+    }
+
+    private static void AppendLiteral(
+        StringBuilder masked,
+        string source,
+        int start,
+        int length,
+        bool maskContent)
+    {
+        for (var index = start; index < start + length; index++)
+        {
+            if (maskContent) AppendMaskedCharacter(masked, source[index]);
+            else masked.Append(source[index]);
+        }
+    }
+
+    private static int MaskLineComment(string source, int start, StringBuilder masked)
+    {
+        var index = start;
+        while (index < source.Length && source[index] is not ('\n' or '\r'))
+        {
+            masked.Append(' ');
+            index++;
+        }
+
+        return index;
+    }
+
+    private static int MaskBlockComment(string source, int start, StringBuilder masked)
+    {
+        masked.Append(' ', 2);
+        var index = start + 2;
+        while (index < source.Length)
+        {
+            if (source[index] == '*' && index + 1 < source.Length && source[index + 1] == '/')
+            {
+                masked.Append(' ', 2);
+                return index + 2;
+            }
+
+            AppendMaskedCharacter(masked, source[index]);
+            index++;
+        }
+
+        return index;
+    }
+
+    private static void AppendMaskedCharacter(StringBuilder masked, char character) =>
+        masked.Append(character is '\n' or '\r' ? character : ' ');
+
+    private sealed record SourceLine(int Offset, int Depth, string Text);
+
+    private sealed record Declaration(int Offset, int Depth, string Key);
+
+    private sealed record PragmaStatement(int Offset, int Depth, bool IsDisable, IReadOnlyList<string> Rules);
+
+    private static List<SourceLine> ReadLines(string code)
+    {
+        var lines = new List<SourceLine>();
+        var depth = 0;
+        var start = 0;
+        for (var position = 0; position <= code.Length; position++)
+        {
+            var atEnd = position == code.Length;
+            if (!atEnd && code[position] is not ('\n' or '\r')) continue;
+
+            var text = code[start..position];
+            lines.Add(new SourceLine(start, depth, text));
+            foreach (var character in text)
+            {
+                if (character == '{') depth++;
+                else if (character == '}') depth--;
+            }
+
+            start = position + 1;
+        }
+
+        return lines;
+    }
+
+    private static List<Declaration> FindDeclarations(IReadOnlyList<SourceLine> lines)
+    {
+        var declarations = new List<Declaration>();
+        foreach (var line in lines)
+        {
+            var key = DeclarationKey(line.Text);
+            if (key is not null) declarations.Add(new Declaration(line.Offset, line.Depth, key));
+        }
+
+        return declarations;
+    }
+
+    private static string? DeclarationKey(string line)
+    {
+        var trimmed = line.TrimStart();
+        if (trimmed.Length == 0) return null;
+
+        var typeMatch = TypeDeclarationPattern.Match(trimmed);
+        if (typeMatch.Success) return $"type:{typeMatch.Groups["name"].Value}";
+
+        var memberMatch = MemberDeclarationPattern.Match(trimmed);
+        return memberMatch.Success ? $"member:{memberMatch.Groups["name"].Value}" : null;
+    }
+
+    private static List<(string Rule, int Start, int End, int Depth)> FindPragmaRegions(
+        IReadOnlyList<SourceLine> lines,
+        int codeLength)
+    {
+        var directives = new List<PragmaStatement>();
+        foreach (var line in lines)
+        {
+            var disableIndex = line.Text.IndexOf(PragmaDirective, StringComparison.Ordinal);
+            var restoreIndex = line.Text.IndexOf(PragmaRestore, StringComparison.Ordinal);
+            var isDisable = disableIndex >= 0 && (restoreIndex < 0 || disableIndex < restoreIndex);
+            var index = isDisable ? disableIndex : restoreIndex;
+            if (index < 0) continue;
+
+            var keyword = isDisable ? PragmaDirective : PragmaRestore;
+            directives.Add(new PragmaStatement(
+                line.Offset,
+                line.Depth,
+                isDisable,
+                ParseRules(line.Text[(index + keyword.Length)..])));
+        }
+
+        var open = new Dictionary<string, Stack<(int Start, int Depth)>>(StringComparer.Ordinal);
+        var regions = new List<(string Rule, int Start, int End, int Depth)>();
+        foreach (var directive in directives.OrderBy(directive => directive.Offset))
+        {
+            if (directive.IsDisable)
+            {
+                foreach (var rule in directive.Rules)
+                {
+                    if (!open.TryGetValue(rule, out var stack))
+                    {
+                        stack = new Stack<(int Start, int Depth)>();
+                        open[rule] = stack;
+                    }
+
+                    stack.Push((directive.Offset, directive.Depth));
+                }
+
+                continue;
+            }
+
+            var closingRules = directive.Rules.Contains(AnySuppression)
+                ? open.Keys.ToList()
+                : directive.Rules;
+            foreach (var rule in closingRules)
+            {
+                if (!open.TryGetValue(rule, out var stack) || stack.Count == 0) continue;
+                var (start, depth) = stack.Pop();
+                regions.Add((rule, start, directive.Offset, depth));
+            }
+        }
+
+        foreach (var (rule, stack) in open)
+        {
+            while (stack.Count > 0)
+            {
+                var (start, depth) = stack.Pop();
+                regions.Add((rule, start, codeLength, depth));
+            }
+        }
+
+        return regions;
+    }
+
+    private static List<string> ParseRules(string arguments)
+    {
+        var ids = arguments.Split(
+            [',', ' ', '\t'],
+            StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if (ids.Length == 0)
+        {
+            // `#pragma warning disable` without ids disables every warning in the block.
+            return [AnySuppression];
+        }
+
+        return ids.Where(IsGatedRule).Select(id => id.ToUpperInvariant()).ToList();
+    }
+
+    private static IEnumerable<(int Start, int End, string Arguments)> FindSuppressMessageAttributes(
+        string code,
+        string argumentsCode)
+    {
+        const string attributeName = "SuppressMessage";
+        var searchIndex = 0;
+        while (searchIndex < code.Length)
+        {
+            var nameIndex = code.IndexOf(attributeName, searchIndex, StringComparison.Ordinal);
+            if (nameIndex < 0) yield break;
+
+            var openParenthesis = code.IndexOf('(', nameIndex + attributeName.Length);
+            if (openParenthesis < 0) yield break;
+
+            var closeParenthesis = FindMatchingParenthesis(code, openParenthesis);
+            if (closeParenthesis < 0)
+            {
+                searchIndex = nameIndex + 1;
+                continue;
+            }
+
+            yield return (nameIndex, closeParenthesis, argumentsCode[(openParenthesis + 1)..closeParenthesis]);
+            searchIndex = closeParenthesis + 1;
+        }
+    }
+
+    private static int FindMatchingParenthesis(string code, int openIndex)
+    {
+        var depth = 0;
+        for (var index = openIndex; index < code.Length; index++)
+        {
+            switch (code[index])
+            {
+                case '(':
+                    depth++;
+                    break;
+                case ')':
+                    depth--;
+                    if (depth == 0) return index;
+                    break;
+            }
+        }
+
+        return -1;
+    }
+
+    private static void Increment(
+        SortedDictionary<(string Rule, string Scope), int> counts,
+        string rule,
+        string scope)
+    {
+        counts[(rule, scope)] = counts.TryGetValue((rule, scope), out var count) ? count + 1 : 1;
     }
 
     private static bool IsGatedRule(string rule) =>
