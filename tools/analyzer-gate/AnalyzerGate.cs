@@ -424,7 +424,7 @@ internal static class Program
         var argumentsCode = MaskComments(source);
         var lines = ReadLines(code);
         var types = FindTypeDeclarations(lines);
-        var declarations = FindDeclarations(lines, types);
+        var declarations = FindDeclarations(lines, types, code);
         var (fileNamespace, namespaces) = FindNamespaces(lines);
         var constants = FindConstantDeclarations(lines, types, fileNamespace, namespaces);
 
@@ -784,7 +784,7 @@ internal static class Program
         var types = FindTypeDeclarations(lines);
         for (var index = 0; index < lines.Count; index++)
         {
-            if (DeclarationKey(lines[index], types) == scope) return index + 1;
+            if (DeclarationKey(lines[index], types, MaskLiteralsAndComments(source)) == scope) return index + 1;
         }
 
         return null;
@@ -1041,12 +1041,13 @@ internal static class Program
 
     private static List<Declaration> FindDeclarations(
         IReadOnlyList<SourceLine> lines,
-        IReadOnlyList<TypeDeclaration> types)
+        IReadOnlyList<TypeDeclaration> types,
+        string code)
     {
         var declarations = new List<Declaration>();
         foreach (var line in lines)
         {
-            var key = DeclarationKey(line, types);
+            var key = DeclarationKey(line, types, code);
             if (key is not null) declarations.Add(new Declaration(line.Offset, line.Depth, key));
         }
 
@@ -1059,7 +1060,10 @@ internal static class Program
     /// to one member, so moving it between same-named members or between overloads is detected.
     /// Locals (including local constants) are not declarations a suppression can cover.
     /// </summary>
-    private static string? DeclarationKey(SourceLine line, IReadOnlyList<TypeDeclaration> types)
+    private static string? DeclarationKey(
+        SourceLine line,
+        IReadOnlyList<TypeDeclaration> types,
+        string code)
     {
         var trimmed = line.Text.TrimStart();
         if (trimmed.Length == 0) return null;
@@ -1079,7 +1083,7 @@ internal static class Program
         if (typePath.Length == 0) return null;
 
         var name = memberMatch.Groups["name"].Value;
-        return $"member:{typePath}.{name}{MemberSignature(trimmed, memberMatch)}";
+        return $"member:{typePath}.{name}{MemberSignature(code, line, trimmed, memberMatch)}";
     }
 
     /// <summary>
@@ -1098,21 +1102,29 @@ internal static class Program
     }
 
     /// <summary>
-    /// The member's parameter list, whitespace-free, so overloads get distinct identities.
+    /// The member's parameter list, whitespace-free, so overloads get distinct identities. A list that
+    /// starts on the declaration line but continues on later lines is read to its matching
+    /// parenthesis; a member without parentheses contributes an empty signature.
     /// </summary>
-    private static string MemberSignature(string line, Match memberMatch)
+    private static string MemberSignature(string code, SourceLine line, string trimmed, Match memberMatch)
     {
         var nameEnd = memberMatch.Groups["name"].Index + memberMatch.Groups["name"].Length;
-        if (nameEnd >= line.Length) return string.Empty;
+        if (nameEnd >= trimmed.Length) return string.Empty;
 
-        var rest = line[nameEnd..];
+        var rest = trimmed[nameEnd..];
         var open = rest.IndexOf('(');
         if (open < 0) return string.Empty;
 
         var close = rest.IndexOf(')', open);
-        var parameters = close >= 0 ? rest[open..(close + 1)] : rest[open..];
-        return new string(parameters.Where(character => !char.IsWhiteSpace(character)).ToArray());
+        if (close >= 0) return Compact(rest[open..(close + 1)]);
+
+        var absoluteOpen = line.Offset + (line.Text.Length - trimmed.Length) + nameEnd + open;
+        var matching = FindMatchingParenthesis(code, absoluteOpen);
+        return matching >= 0 ? Compact(code[absoluteOpen..(matching + 1)]) : Compact(rest[open..]);
     }
+
+    private static string Compact(string text) =>
+        new(text.Where(character => !char.IsWhiteSpace(character)).ToArray());
 
     private static string JoinPath(string prefix, string name) =>
         prefix.Length == 0 ? name : $"{prefix}.{name}";

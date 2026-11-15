@@ -749,6 +749,39 @@ public class SuppressionScanTests
     }
 
     [Fact]
+    public void FindNewSuppressionsIn_MovedSuppressionBetweenMultilineOverloads_Fails()
+    {
+        const string baseline = """
+            public class Example
+            {
+            #pragma warning disable S3776
+                public void Run(
+                    int value) { }
+            #pragma warning restore S3776
+
+                public void Run(
+                    string value) { }
+            }
+            """;
+        const string current = """
+            public class Example
+            {
+                public void Run(
+                    int value) { }
+
+            #pragma warning disable S3776
+                public void Run(
+                    string value) { }
+            #pragma warning restore S3776
+            }
+            """;
+
+        var failures = Program.FindNewSuppressionsIn("Example.cs", baseline, current);
+
+        failures.ShouldHaveSingleItem().ShouldContain("member:Example.Run(stringvalue)");
+    }
+
+    [Fact]
     public void FindNewSuppressionsIn_NewSuppression_ReportsTheDeclarationLine()
     {
         const string current = """
