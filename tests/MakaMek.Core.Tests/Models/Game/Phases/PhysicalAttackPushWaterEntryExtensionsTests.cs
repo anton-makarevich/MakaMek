@@ -39,4 +39,34 @@ public class PhysicalAttackPushWaterEntryExtensionsTests
         ((PushHitRollContext)contexts[0]).WaterDepth.ShouldBe(0);
         ((PushHitRollContext)contexts[1]).WaterDepth.ShouldBe(1);
     }
+
+    [Fact]
+    public void ApplyPushWaterEntryModifier_LeavesTheRollUnmodified_WhenTheTargetStandsOnABridgeOverWater()
+    {
+        // Arrange: the hex holds water, but the target stands on a bridge surface, so it did not
+        // enter the water and its PushHit roll gets no water-entry modifier.
+        var unitId = Guid.NewGuid();
+        var coordinates = new HexCoordinates(3, 3);
+        var unit = Substitute.For<IUnit>();
+        unit.Id.Returns(unitId);
+        unit.Position.Returns(new HexPosition(coordinates, HexDirection.Top, HexSurface.Bridge));
+
+        var waterHex = new Hex(coordinates);
+        waterHex.AddTerrain(new WaterTerrain(-2));
+        var map = Substitute.For<IBattleMap>();
+        map.GetHex(coordinates).Returns(waterHex);
+
+        var push = new PushHitRollContext();
+        List<PilotingSkillRollContext> contexts = [push];
+        var state = new PhysicalAttackPhaseState();
+        state.PushHitContexts[unitId] = (contexts, push);
+
+        // Act
+        unit.ApplyPushWaterEntryModifier(map, state);
+
+        // Assert
+        var roll = (PushHitRollContext)contexts.ShouldHaveSingleItem();
+        roll.WaterDepth.ShouldBe(0);
+        roll.ShouldBeSameAs(push);
+    }
 }
