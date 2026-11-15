@@ -45,4 +45,3 @@
         <Exec Command="dotnet tool update --global AvaloniaUI.DeveloperTools --version $(AvaloniaDevToolsVersion) --allow-downgrade || dotnet tool install --global AvaloniaUI.DeveloperTools --version $(AvaloniaDevToolsVersion)" />
     </Target>
 </Project>
-

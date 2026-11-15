@@ -9,8 +9,8 @@ using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Map.Models;
 
-// Pre-existing class coupling in this type, not introduced by this change. It is tracked in
-// #1714 together with the baseline-aware analyzer gate that will make this suppression unnecessary.
+// Pre-existing class coupling in this type, not introduced by this change. The gate is
+// zero-tolerance for changed code, so remove this suppression when the type is next split.
 #pragma warning disable CA1506
 
 namespace Sanet.MakaMek.Bots.Models.DecisionEngines;
@@ -160,7 +160,7 @@ public class TacticalEvaluator : ITacticalEvaluator
     /// <param name="defenderHeight">Height of the unit at the position</param>
     /// <param name="defenderIsProne">If defender is prone</param>
     /// <returns>Defensive threat index (lower is better)</returns>
-#pragma warning disable S3776 // pre-existing complexity, tracked in #1714
+#pragma warning disable S3776 // pre-existing complexity; remove this suppression when the member is next changed
     private PathDefensiveScore CalculateDefensiveIndex(
         MovementPath defenderPath,
         IReadOnlyList<IUnit> enemyUnits,
@@ -263,7 +263,7 @@ public class TacticalEvaluator : ITacticalEvaluator
     /// <summary>
     /// Evaluates all weapons against a target and returns a list of viable weapons with hit probabilities
     /// </summary>
-#pragma warning disable S3776 // pre-existing complexity, tracked in #1714
+#pragma warning disable S3776 // pre-existing complexity; remove this suppression when the member is next changed
     private Dictionary<WeaponConfiguration, List<WeaponEvaluationData>> EvaluateWeaponsForTarget(
         IUnit attacker,
         MovementPath attackerPath,

@@ -115,4 +115,3 @@ internal sealed class PhysicalAttackPushResolver
     }
 
 }
-

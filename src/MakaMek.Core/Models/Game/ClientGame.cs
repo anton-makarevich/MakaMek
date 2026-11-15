@@ -348,6 +348,3 @@ public sealed class ClientGame : BaseGame, IDisposable, IClientGame
         DisposeCommandResources();
     }
 }
-
-
-

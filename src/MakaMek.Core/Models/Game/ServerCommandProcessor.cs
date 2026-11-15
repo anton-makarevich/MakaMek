@@ -84,4 +84,3 @@ internal sealed class ServerCommandProcessor
         _game.RecordCommand(command);
     }
 }
-

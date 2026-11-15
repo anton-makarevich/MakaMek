@@ -97,7 +97,14 @@ public class ServerGame : BaseGame, IDisposable
     
     public void SetInitiativeOrder(IReadOnlyList<IPlayer> order)
     {
-        _initiativeOrder = order;
+        // Snapshot the caller's list: the order is game state, not a view over it. Copied by hand
+        // so the type does not add the LINQ/List references its CA1506 budget has no room for.
+        var snapshot = new IPlayer[order.Count];
+        for (var index = 0; index < snapshot.Length; index++)
+        {
+            snapshot[index] = order[index];
+        }
+        _initiativeOrder = snapshot;
     }
 
     public void TransitionToNextPhase(PhaseNames currentPhase)
@@ -174,5 +181,3 @@ public class ServerGame : BaseGame, IDisposable
         DisposeCommandResources();
     }
 }
-
-

@@ -6,9 +6,15 @@
 //
 // The allowlist is deliberately tiny: it exists only for findings that cannot be fixed without
 // changing a public contract that this repository's tests or views pin (for example the class
-// coupling of a type that implements a large public interface). Every entry must name a reason.
-// Everything else must be fixed or refactored - do not add #pragma warning disable or
-// [SuppressMessage] to work around the gate.
+// coupling of a type that implements a large public interface). Each entry is
+// `path:RULE[:symbol]`: the optional symbol limits the entry to the declaration the analyzer
+// names in the message, so an entry cannot blanket a whole file. Every entry must carry a comment
+// naming the reason, and an entry that matches no finding fails the gate so the list cannot rot.
+//
+// The gate also rejects suppressions introduced by the diff: a changed file may keep the
+// `#pragma warning disable` or [SuppressMessage] it already carried on the base ref, but it must
+// not add one for a gated rule. Otherwise "zero tolerance" would only mean "tolerate everything
+// the compiler was told to ignore".
 //
 // This is a .NET file-based app so the gate behaves identically in CI (Ubuntu) and on Windows,
 // without depending on bash, jq or a specific shell.
@@ -24,6 +30,7 @@
 
 using System.Diagnostics;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 
 namespace AnalyzerGate;
 
@@ -31,6 +38,14 @@ internal static class Program
 {
     private const string DefaultBase = "origin/main";
     private const string ExclusionsFile = "tools/analyzer-gate/exclusions.txt";
+    private const string PragmaDirective = "#pragma warning disable";
+    private const string AnySuppression = "*";
+
+    /// <summary>
+    /// The rules this repository's threshold configuration (`.editorconfig`, `CodeMetricsConfig.txt`)
+    /// turns on. A suppression introduced for one of them would hide new debt from the gate.
+    /// </summary>
+    private static readonly string[] GatedRules = ["CA1501", "CA1502", "CA1505", "CA1506", "S3776"];
 
     private static readonly string[] AnalyzedProjectPrefixes =
     [
@@ -45,10 +60,15 @@ internal static class Program
 
     private static int Main(string[] args)
     {
-        var repoRoot = Capture("git", ["rev-parse", "--show-toplevel"], null).Trim();
-        if (repoRoot.Length == 0)
+        if (!TryCaptureGit(null, ["rev-parse", "--show-toplevel"], out var repoRootOutput))
         {
             return Fail("not inside a git repository");
+        }
+
+        var repoRoot = repoRootOutput.Trim();
+        if (repoRoot.Length == 0)
+        {
+            return Fail("git could not report the repository root");
         }
 
         var baseRef = ResolveBase(repoRoot);
@@ -74,15 +94,21 @@ internal static class Program
             }
         }
 
+        var explicitMode = explicitFiles.Count > 0;
         List<string> changedFiles;
-        if (explicitFiles.Count > 0)
+        if (explicitMode)
         {
             changedFiles = explicitFiles;
         }
         else
         {
-            configChanged = ChangedFiles(repoRoot, baseRef, "CodeMetricsConfig.txt").Count > 0;
-            changedFiles = ChangedFiles(repoRoot, baseRef, "*.cs");
+            var configFiles = ChangedFiles(repoRoot, baseRef, "CodeMetricsConfig.txt");
+            if (configFiles is null) return 1;
+            configChanged = configFiles.Count > 0;
+
+            var sourceFiles = ChangedFiles(repoRoot, baseRef, "*.cs");
+            if (sourceFiles is null) return 1;
+            changedFiles = sourceFiles;
         }
 
         // CA1509 (invalid CodeMetricsConfig.txt entry) is reported on the config file, so it
@@ -118,6 +144,15 @@ internal static class Program
         var exclusions = ReadExclusions(repoRoot);
         var excluded = new List<Finding>();
         var failures = new List<Finding>();
+
+        // A diff must not hide new debt behind a suppression the base ref did not have.
+        var suppressionFailures = FindNewSuppressions(
+            repoRoot, baseRef, projects.Values.SelectMany(files => files));
+        foreach (var failure in suppressionFailures)
+        {
+            Console.Error.WriteLine($"ERROR: {failure}");
+        }
+        if (suppressionFailures.Count > 0) status = 1;
 
         var workDirectory = CreateWorkDirectory();
         if (workDirectory is null)
@@ -172,6 +207,22 @@ internal static class Program
             }
         }
 
+        // In explicit-file mode only a slice of the diff is analyzed, so an unmatched entry is
+        // expected and must not fail the run. The full-diff run is the source of truth.
+        if (!explicitMode)
+        {
+            var unused = exclusions.Unmatched().ToList();
+            if (unused.Count > 0)
+            {
+                Console.Error.WriteLine($"ERROR: {ExclusionsFile} has entries that matched no finding:");
+                foreach (var entry in unused)
+                {
+                    Console.Error.WriteLine($"  {entry}");
+                }
+                status = 1;
+            }
+        }
+
         if (failures.Count == 0)
         {
             Console.WriteLine("No analyzer findings outside the allowlist.");
@@ -211,14 +262,105 @@ internal static class Program
     private static bool GitRefExists(string repoRoot, string reference) =>
         Run("git", ["rev-parse", "--verify", "--quiet", reference], repoRoot).ExitCode == 0;
 
-    private static List<string> ChangedFiles(string repoRoot, string baseRef, string pathSpec)
+    /// <summary>
+    /// The changed files the gate must analyze: the diff against the merge base, the uncommitted
+    /// changes and the untracked files. Returns <c>null</c> when git could not answer (for example
+    /// a shallow checkout without a merge base), because an empty list would silently pass the gate.
+    /// </summary>
+    private static List<string>? ChangedFiles(string repoRoot, string baseRef, string pathSpec)
     {
         var output = new List<string>();
-        output.AddRange(Lines(Capture("git", ["diff", "--name-only", "--diff-filter=ACMR", $"{baseRef}...HEAD", "--", pathSpec], repoRoot)));
-        output.AddRange(Lines(Capture("git", ["diff", "--name-only", "--diff-filter=ACMR", "HEAD", "--", pathSpec], repoRoot)));
-        output.AddRange(Lines(Capture("git", ["ls-files", "--others", "--exclude-standard", "--", pathSpec], repoRoot)));
+        if (!TryCaptureGit(repoRoot, ["diff", "--name-only", "-z", "--diff-filter=ACMR", $"{baseRef}...HEAD", "--", pathSpec], out var committed)
+            || !TryCaptureGit(repoRoot, ["diff", "--name-only", "-z", "--diff-filter=ACMR", "HEAD", "--", pathSpec], out var uncommitted)
+            || !TryCaptureGit(repoRoot, ["ls-files", "-z", "--others", "--exclude-standard", "--", pathSpec], out var untracked))
+        {
+            return null;
+        }
+
+        output.AddRange(NullSeparated(committed));
+        output.AddRange(NullSeparated(uncommitted));
+        output.AddRange(NullSeparated(untracked));
         return output.Select(NormalizePath).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToList();
     }
+
+    /// <summary>
+    /// Suppressions a changed file added relative to the base ref. Only the gated rules count, and
+    /// a pre-existing suppression is tolerated so the migration can proceed file by file.
+    /// </summary>
+    private static List<string> FindNewSuppressions(string repoRoot, string baseRef, IEnumerable<string> files)
+    {
+        var failures = new List<string>();
+        foreach (var file in files)
+        {
+            var path = Path.Combine(repoRoot, file);
+            if (!File.Exists(path)) continue;
+
+            var current = SuppressedRules(File.ReadAllText(path));
+            if (current.Count == 0) continue;
+
+            var baseline = SuppressedRules(ReadAtBase(repoRoot, baseRef, file));
+            foreach (var rule in current.Where(rule => !baseline.Contains(rule)).Order(StringComparer.Ordinal))
+            {
+                failures.Add(
+                    $"{file} suppresses {rule}, which the base ref did not. Fix the finding instead of suppressing it.");
+            }
+        }
+
+        return failures;
+    }
+
+    private static string? ReadAtBase(string repoRoot, string baseRef, string file)
+    {
+        var result = Run("git", ["show", $"{baseRef}:{file}"], repoRoot);
+        return result.ExitCode == 0 ? result.StandardOutput : null;
+    }
+
+    private static HashSet<string> SuppressedRules(string? source)
+    {
+        var rules = new HashSet<string>(StringComparer.Ordinal);
+        if (string.IsNullOrEmpty(source)) return rules;
+
+        foreach (var rawLine in source.Split('\n'))
+        {
+            var line = rawLine.Trim();
+
+            var directive = line.IndexOf(PragmaDirective, StringComparison.Ordinal);
+            if (directive >= 0)
+            {
+                var rest = line[(directive + PragmaDirective.Length)..];
+                var comment = rest.IndexOf("//", StringComparison.Ordinal);
+                if (comment >= 0) rest = rest[..comment];
+                var ids = rest.Split(
+                    [',', ' ', '\t', '\r'],
+                    StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                if (ids.Length == 0)
+                {
+                    // `#pragma warning disable` without ids disables every warning in the block.
+                    rules.Add(AnySuppression);
+                }
+                foreach (var id in ids.Where(IsGatedRule))
+                {
+                    rules.Add(id.ToUpperInvariant());
+                }
+            }
+
+            if (line.Contains("SuppressMessage", StringComparison.Ordinal))
+            {
+                foreach (Match match in Regex.Matches(line, "\"((?:CA|S)\\d{4})[:\"]"))
+                {
+                    if (IsGatedRule(match.Groups[1].Value))
+                    {
+                        rules.Add(match.Groups[1].Value.ToUpperInvariant());
+                    }
+                }
+            }
+        }
+
+        return rules;
+    }
+
+    private static bool IsGatedRule(string rule) =>
+        GatedRules.Contains(rule, StringComparer.OrdinalIgnoreCase);
 
     private static SortedDictionary<string, List<string>>? GroupByProject(string repoRoot, List<string> files)
     {
@@ -369,7 +511,7 @@ internal static class Program
 
     private static Exclusions ReadExclusions(string repoRoot)
     {
-        var entries = new HashSet<(string File, string Rule)>();
+        var entries = new List<AllowlistEntry>();
         var path = Path.Combine(repoRoot, ExclusionsFile);
         if (!File.Exists(path))
         {
@@ -381,14 +523,17 @@ internal static class Program
             var line = rawLine.Trim();
             if (line.Length == 0 || line.StartsWith('#')) continue;
 
-            var columns = line.Split(':', 2);
-            if (columns.Length != 2 || columns[0].Length == 0 || columns[1].Length == 0)
+            // `path:RULE` allows every finding of that rule in the file; `path:RULE:symbol` only
+            // the finding whose message names the quoted symbol (for example 'ProcessCommand').
+            var columns = line.Split(':', 3);
+            if (columns.Length < 2 || columns[0].Length == 0 || columns[1].Length == 0)
             {
                 Console.Error.WriteLine($"WARNING: ignoring invalid exclusion line '{line}' in {ExclusionsFile}");
                 continue;
             }
 
-            entries.Add((NormalizePath(columns[0].Trim()), columns[1].Trim()));
+            var symbol = columns.Length == 3 && columns[2].Trim().Length > 0 ? columns[2].Trim() : null;
+            entries.Add(new AllowlistEntry(NormalizePath(columns[0].Trim()), columns[1].Trim(), symbol));
         }
 
         return new Exclusions(entries);
@@ -403,11 +548,24 @@ internal static class Program
 
     private static string NormalizePath(string path) => path.Replace('\\', '/');
 
-    private static IEnumerable<string> Lines(string text) =>
-        text.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+    private static IEnumerable<string> NullSeparated(string text) =>
+        text.Split('\0', StringSplitOptions.RemoveEmptyEntries);
 
-    private static string Capture(string file, IReadOnlyList<string> arguments, string? workingDirectory) =>
-        Run(file, arguments, workingDirectory).StandardOutput;
+    private static bool TryCaptureGit(string? workingDirectory, IReadOnlyList<string> arguments, out string output)
+    {
+        var result = Run("git", arguments, workingDirectory);
+        if (result.ExitCode == 0)
+        {
+            output = result.StandardOutput;
+            return true;
+        }
+
+        var error = result.StandardError.Trim();
+        Console.Error.WriteLine($"ERROR: git {string.Join(' ', arguments)} failed (exit {result.ExitCode}).");
+        if (error.Length > 0) Console.Error.WriteLine(error);
+        output = string.Empty;
+        return false;
+    }
 
     private static ProcessResult Run(string file, IReadOnlyList<string> arguments, string? workingDirectory, string? logPath = null)
     {
@@ -467,9 +625,36 @@ internal static class Program
 
     private sealed record ProcessResult(int ExitCode, string StandardOutput, string StandardError);
 
-    private sealed class Exclusions(HashSet<(string File, string Rule)> entries)
+    private sealed record AllowlistEntry(string File, string Rule, string? Symbol)
     {
-        public bool IsExcluded(Finding finding) => entries.Contains((finding.File, finding.Rule));
+        public override string ToString() => Symbol is null ? $"{File}:{Rule}" : $"{File}:{Rule}:{Symbol}";
+    }
+
+    private sealed class Exclusions(IReadOnlyList<AllowlistEntry> entries)
+    {
+        private readonly HashSet<int> _matched = [];
+
+        public bool IsExcluded(Finding finding)
+        {
+            for (var index = 0; index < entries.Count; index++)
+            {
+                var entry = entries[index];
+                if (!entry.File.Equals(finding.File, StringComparison.Ordinal)) continue;
+                if (!entry.Rule.Equals(finding.Rule, StringComparison.Ordinal)) continue;
+                if (entry.Symbol is { } symbol
+                    && !finding.Message.Contains($"'{symbol}'", StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                _matched.Add(index);
+                return true;
+            }
+
+            return false;
+        }
+
+        public IEnumerable<AllowlistEntry> Unmatched() =>
+            entries.Where((_, index) => !_matched.Contains(index));
     }
 }
-

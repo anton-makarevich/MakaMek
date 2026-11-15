@@ -138,4 +138,3 @@ public class PhysicalAttackResolutionPhase : GamePhase
 
     public override PhaseNames Name => PhaseNames.PhysicalAttackResolution;
 }
-

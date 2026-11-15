@@ -8,8 +8,8 @@ using Sanet.MakaMek.Map.Models.Highlights;
 using Sanet.MakaMek.Presentation.ViewModels;
 using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 
-// Pre-existing class coupling in this type, not introduced by this change. It is tracked in
-// #1714 together with the baseline-aware analyzer gate that will make this suppression unnecessary.
+// Pre-existing class coupling in this type, not introduced by this change. The gate is
+// zero-tolerance for changed code, so remove this suppression when the type is next split.
 #pragma warning disable CA1506
 
 namespace Sanet.MakaMek.Presentation.UiStates;
@@ -215,7 +215,7 @@ public class PhysicalAttackState : IUiState, ICombatSelectionRoles, IPhysicalAtt
             lock (_stateLock)
                 return _currentStep == PhysicalAttackStep.Declaration ? _selectedTarget : _attacker;
         }
-#pragma warning disable S3776 // pre-existing complexity of the step dispatch, tracked in #1714
+#pragma warning disable S3776 // pre-existing complexity of the step dispatch; remove when this member is next changed
         private set
         {
             if (value == null) return;
