@@ -77,11 +77,9 @@ public class PhysicalAttackResolutionPhase : GamePhase
         DfaDisplacementResolver dfaDisplacementResolver,
         IDfaAttackResolver dfaAttackResolver) : base(game)
     {
-        _gates = [
-            new AttackerDestroyedGate(),
-            new AttackerProneGate(),
-            new PhysicalAttackTargetValidityGate(game.PhysicalAttackEligibility)
-        ];
+        // The eligibility policy owns the attacker and target state as well as the reach rules, so
+        // this gate is the only pre-attack check: it re-runs the same evaluation the declaration used.
+        _gates = [new PhysicalAttackTargetValidityGate(game.PhysicalAttackEligibility)];
         _pushDisplacementResolver = pushDisplacementResolver;
         _chargeDisplacementResolver = chargeDisplacementResolver;
         _dfaDisplacementResolver = dfaDisplacementResolver;
@@ -93,15 +91,13 @@ public class PhysicalAttackResolutionPhase : GamePhase
     private sealed record ChargeQueueItem(
         IPlayer Player,
         IUnit Attacker,
-        Guid DeclaredTargetId,
-        int HexesMoved,
-        bool AttackerAutoFail);
+        PhysicalAttackDeclarationData Declaration,
+        MovementAttackAttackerState AttackerState);
 
     private sealed record DfaQueueItem(
         IPlayer Player,
         IUnit Attacker,
-        Guid DeclaredTargetId,
-        HexPosition DeclaredTargetPosition,
+        PhysicalAttackDeclarationData Declaration,
         HexCoordinates StartCoordinates,
         HexPosition ApproachCoordinates);
 
@@ -247,9 +243,8 @@ public class PhysicalAttackResolutionPhase : GamePhase
                     new ChargeQueueItem(
                         player,
                         attacker,
-                        declaration.TargetId,
-                        declaration.HexesMoved ?? 0,
-                        IsAttackerAutoFail(attacker, declaration)),
+                        declaration,
+                        Game.MovementAttackValidator.GetAttackerState(attacker, declaration)),
                     null)
             ];
 
@@ -315,34 +310,21 @@ public class PhysicalAttackResolutionPhase : GamePhase
         IUnit attacker,
         PhysicalAttackDeclarationData declaration)
     {
+        // A destroyed attacker or a missing path has nothing left to place, so there is no
+        // resolution to publish. These are data guards, not eligibility rules: whether the attack
+        // can still be made is decided by the validator at resolution time.
         if (attacker.IsDestroyed) return null;
         if (attacker.MovementTaken is not { } movement) return null;
 
         var approach = movement.GetStopPosition(declaration);
         if (approach is null) return null;
 
-        var declaredTarget = movement.Destination;
         return new DfaQueueItem(
             player,
             attacker,
-            declaration.TargetId,
-            declaredTarget,
+            declaration,
             movement.Start.Coordinates,
             approach);
-    }
-
-    private static bool IsAttackerAutoFail(IUnit attacker, PhysicalAttackDeclarationData declaration)
-    {
-        if (attacker.IsDestroyed
-            || attacker.IsShutdown
-            || attacker.Pilot is not { IsConscious: true }
-            || attacker.Status.HasFlag(UnitStatus.Prone))
-            return true;
-
-        if (attacker.MovementTaken is not { } movement) return true;
-
-        var approach = movement.GetStopPosition(declaration);
-        return approach is null || attacker.Position != approach;
     }
 
     private PhysicalAttackResolutionData ResolveAttack(AttackQueueItem item)
@@ -382,36 +364,36 @@ public class PhysicalAttackResolutionPhase : GamePhase
     }
 
     /// <summary>
-    /// Resolves a Death From Above: the auto-fail checks, the target selection, the no-roll miss
-    /// paths, the to-hit roll and then either the hit consequences or the miss's automatic target
-    /// displacement.
+    /// Resolves a Death From Above: the resolution state the declaration validator reports, the
+    /// target it selects, the no-roll miss paths, the to-hit roll and then either the hit
+    /// consequences or the miss's automatic target displacement.
     /// </summary>
     private void ResolveDfa(DfaQueueItem item)
     {
         if (Game.BattleMap is not { } map) return;
         if (item.Attacker.IsDestroyed) return;
 
-        var declaredTarget = AllUnits().FirstOrDefault(u => u.Id == item.DeclaredTargetId);
-        if (!IsAttackerAtApproach(item))
+        var declaredTarget = AllUnits().FirstOrDefault(u => u.Id == item.Declaration.TargetId);
+        var attackerState = Game.MovementAttackValidator
+            .GetAttackerState(item.Attacker, item.Declaration);
+        if (attackerState == MovementAttackAttackerState.CannotAttack)
         {
             ResolveDfaAutoFail(item, declaredTarget);
             return;
         }
 
-        // An earlier attack of the phase can displace, destroy or fell the declared target. Another
-        // enemy Mech standing in the committed hex then becomes the replacement target and is
-        // attacked at +1; with no valid unit there the attack automatically fails (Total Warfare,
-        // Initiative and Displacement). A 'Mech making its own Death From Above is immune to
-        // physical attacks until it lands (p. 149), so an airborne performer is never the declared
-        // target: it is treated as absent, exactly like a target that left the hex, and the
-        // replacement search runs instead.
-        var declaredTargetIsEligible = IsInDeclaredTargetHex(declaredTarget, item.DeclaredTargetPosition)
-                                       && declaredTarget is not { IsAirborneDfaAttacker: true };
-        var isReplacement = !declaredTargetIsEligible;
-        var target = isReplacement ? FindDfaReplacementTarget(item) : declaredTarget;
-        if (target is null)
+        // An earlier attack of the phase can displace, destroy or fell the declared target. The
+        // validator's target rule then names the enemy that replaced it, which is attacked at +1,
+        // or reports an automatic failure. A 'Mech making its own Death From Above is immune to
+        // physical attacks until it lands (p. 149), so the rule never selects an airborne performer.
+        var selection = Game.MovementAttackValidator
+            .SelectResolutionTarget(item.Attacker, item.Declaration, AllUnits(), map);
+        if (selection.Target is not { } target)
         {
-            ResolveDfaAutoFail(item, declaredTarget);
+            // An attacker that must miss still crashes even when nobody holds the committed hex:
+            // the attack misses first, and the missing target only removes the target side (p. 149).
+            ResolveDfaAutoFail(item, declaredTarget,
+                attackerState == MovementAttackAttackerState.MustMiss);
             return;
         }
 
@@ -419,9 +401,10 @@ public class PhysicalAttackResolutionPhase : GamePhase
         // attacker falls into its hex (Total Warfare, p. 150). A prone, shutdown or unconscious
         // attacker also resolves as a miss without a to-hit roll; a fall does not cancel the
         // pending DFA (docs/rules/physical-attacks.md section 3.1).
-        if (target.IsDestroyed || IsDfaAutoMiss(item.Attacker))
+        if (target.IsDestroyed || attackerState == MovementAttackAttackerState.MustMiss)
         {
-            ResolveDfaMiss(item, target, CreateDfaAutoResolution(item, DfaOutcome.Miss, isReplacement));
+            ResolveDfaMiss(item, target,
+                CreateDfaAutoResolution(item, DfaOutcome.Miss, selection.IsReplacementTarget));
             return;
         }
 
@@ -432,8 +415,8 @@ public class PhysicalAttackResolutionPhase : GamePhase
             Map = map,
             StartCoordinates = item.StartCoordinates,
             ApproachCoordinates = item.ApproachCoordinates,
-            IsReplacementTarget = isReplacement,
-            OriginalTargetId = item.DeclaredTargetId
+            IsReplacementTarget = selection.IsReplacementTarget,
+            OriginalTargetId = item.Declaration.TargetId
         });
 
         if (resolution.AttackResolution.IsHit)
@@ -465,40 +448,6 @@ public class PhysicalAttackResolutionPhase : GamePhase
             ResolveDfaMiss(item, target, resolution);
         }
     }
-
-    private static bool IsAttackerAtApproach(DfaQueueItem item) =>
-        item.Attacker.Position is { } position
-        && position.Coordinates == item.ApproachCoordinates.Coordinates;
-
-    private static bool IsInDeclaredTargetHex(IUnit? target, HexPosition declaredPosition) =>
-        target?.Position is { } position
-        && position.Coordinates == declaredPosition.Coordinates
-        && position.Surface == declaredPosition.Surface;
-
-    /// <summary>
-    /// The enemy Mech that becomes the attack's target when the declared one left the committed
-    /// hex before the attack resolved (Total Warfare, Initiative and Displacement). A unit
-    /// performing a Death From Above is immune to physical attacks until it lands (p. 149), so it
-    /// cannot be a replacement while it is airborne; once it has landed its immunity has ended and
-    /// it is an ordinary occupant of the hex.
-    /// </summary>
-    private IUnit? FindDfaReplacementTarget(DfaQueueItem item) =>
-        AllUnits().FirstOrDefault(unit =>
-            unit.Id != item.DeclaredTargetId
-            && !ReferenceEquals(unit, item.Attacker)
-            && unit is Mech { IsDestroyed: false, Position: not null }
-            && !unit.IsAirborneDfaAttacker
-            && unit.Position?.Coordinates == item.DeclaredTargetPosition.Coordinates
-            && unit.Position.Surface == item.DeclaredTargetPosition.Surface
-            && IsEnemy(unit, item.Attacker));
-
-    private static bool IsEnemy(IUnit unit, IUnit attacker) =>
-        attacker.Owner is null || unit.Owner is null || unit.Owner != attacker.Owner;
-
-    private static bool IsDfaAutoMiss(IUnit attacker) =>
-        attacker.IsShutdown
-        || attacker.Pilot is not { IsConscious: true }
-        || attacker.Status.HasFlag(UnitStatus.Prone);
 
     /// <summary>
     /// Resolves a DFA miss: the target is displaced into the hex the resolver picks along the jump
@@ -561,9 +510,11 @@ public class PhysicalAttackResolutionPhase : GamePhase
     /// is no longer at its approach hex) and grounds the attacker in the hex it committed to land in.
     /// The jump destination of a DFA is the target hex, so a failed attack never ends anywhere else;
     /// an occupied hex is resolved through the displacement pipeline. If no legal landing remains,
-    /// the attacker is destroyed. No damage and no fall (Total Warfare, p. 150).
+    /// the attacker is destroyed. No damage and no fall (Total Warfare, p. 150) — unless the attacker
+    /// had to miss anyway (prone, shutdown or unconscious), because then the miss still carries its
+    /// automatic two-level fall even though the target left the hex (p. 149-150).
     /// </summary>
-    private void ResolveDfaAutoFail(DfaQueueItem item, IUnit? target)
+    private void ResolveDfaAutoFail(DfaQueueItem item, IUnit? target, bool applyMissFall = false)
     {
         var landing = ResolveDfaLanding(item.Attacker);
         var noLanding = landing is null || landing.IsOverlapUnresolved;
@@ -572,13 +523,18 @@ public class PhysicalAttackResolutionPhase : GamePhase
             target,
             CreateDfaAutoResolution(
                 item,
-                noLanding ? DfaOutcome.AttackerDestroyedNoLanding : DfaOutcome.AutoFail));
+                noLanding ? DfaOutcome.AttackerDestroyedNoLanding
+                    : applyMissFall ? DfaOutcome.Miss : DfaOutcome.AutoFail));
 
         if (noLanding) return;
 
         var appliedLanding = ApplyDfaLanding(
-            item.Attacker, landing, DfaLandingKind.AutoFailLanding);
+            item.Attacker, landing,
+            applyMissFall ? DfaLandingKind.MissLanding : DfaLandingKind.AutoFailLanding);
         RollDominoEffects(appliedLanding?.DominoEffect);
+
+        // A landing that could not be resolved has already destroyed the attacker; it cannot fall.
+        if (applyMissFall && !item.Attacker.IsDestroyed) ApplyDfaFall(item.Attacker);
     }
 
     private static PhysicalAttackResolutionData CreateDfaAutoResolution(
@@ -593,7 +549,7 @@ public class PhysicalAttackResolutionPhase : GamePhase
             [],
             Dfa: new DfaResolutionData(
                 outcome,
-                OriginalTargetId: item.DeclaredTargetId,
+                OriginalTargetId: item.Declaration.TargetId,
                 IsReplacementTarget: isReplacementTarget));
 
     /// <summary>
@@ -617,7 +573,7 @@ public class PhysicalAttackResolutionPhase : GamePhase
             GameOriginId = Game.Id,
             PlayerId = item.Player.Id,
             AttackerId = item.Attacker.Id,
-            TargetId = target?.Id ?? item.DeclaredTargetId,
+            TargetId = target?.Id ?? item.Declaration.TargetId,
             ResolutionData = resolution
         };
 
@@ -849,9 +805,11 @@ public class PhysicalAttackResolutionPhase : GamePhase
 
     private void ResolveCharge(ChargeQueueItem item)
     {
-        var targetSelection = item.AttackerAutoFail
-            ? ChargeTargetSelection.AutoFail()
-            : ChargeTargetSelector.Select(item.Attacker, item.DeclaredTargetId, AllUnits());
+        var map = Game.BattleMap ?? throw new InvalidOperationException("Battle map is null");
+        var targetSelection = item.AttackerState == MovementAttackAttackerState.CanAttack
+            ? Game.MovementAttackValidator
+                .SelectResolutionTarget(item.Attacker, item.Declaration, AllUnits(), map)
+            : MovementAttackTargetSelection.AutoFail();
 
         if (targetSelection.Target is not { } target)
         {
@@ -864,10 +822,10 @@ public class PhysicalAttackResolutionPhase : GamePhase
         {
             Attacker = attacker,
             Target = target,
-            Map = Game.BattleMap ?? throw new InvalidOperationException("Battle map is null"),
-            HexesMoved = item.HexesMoved,
+            Map = map,
+            HexesMoved = item.Declaration.HexesMoved ?? 0,
             IsReplacementTarget = targetSelection.IsReplacementTarget,
-            OriginalTargetId = item.DeclaredTargetId
+            OriginalTargetId = item.Declaration.TargetId
         });
 
         var targetDestroyedPartsBefore = GetDestroyedParts(target);
@@ -928,9 +886,9 @@ public class PhysicalAttackResolutionPhase : GamePhase
             [],
             new ChargeResolutionData(
                 ChargeOutcome.AutoFail,
-                item.HexesMoved,
+                item.Declaration.HexesMoved ?? 0,
                 false,
-                item.DeclaredTargetId));
+                item.Declaration.TargetId));
 
         var command = new PhysicalAttackResolutionCommand
         {
@@ -938,13 +896,13 @@ public class PhysicalAttackResolutionPhase : GamePhase
             GameOriginId = Game.Id,
             PlayerId = item.Player.Id,
             AttackerId = item.Attacker.Id,
-            TargetId = item.DeclaredTargetId,
+            TargetId = item.Declaration.TargetId,
             ResolutionData = resolution
         };
         Game.OnPhysicalAttackResolution(command);
         Game.CommandPublisher.PublishCommand(command);
 
-        if (item.AttackerAutoFail) return;
+        if (item.AttackerState != MovementAttackAttackerState.CanAttack) return;
 
         ApplyChargeMissDisplacement(item.Attacker);
     }

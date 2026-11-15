@@ -72,7 +72,7 @@ public class DeploymentStateTests
             Substitute.For<IHeatEffectsCalculator>(),
             new PhysicalAttackEligibility(),
             Substitute.For<IPhysicalAttackCalculator>(),
-            Substitute.For<IMovementAttackDeclarationValidator>(),
+            Substitute.For<IMovementAttackValidator>(),
             Substitute.For<IBattleMapFactory>(),
             _hashService,
             Substitute.For<ILogger<ClientGame>>());

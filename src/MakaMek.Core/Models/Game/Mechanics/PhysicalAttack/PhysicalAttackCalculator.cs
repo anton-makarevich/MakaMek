@@ -264,7 +264,7 @@ public class PhysicalAttackCalculator : IPhysicalAttackCalculator
             });
         }
 
-        if (scenario.TargetUnit.Status.HasFlag(UnitStatus.Prone))
+        if (scenario.TargetUnit.IsProne)
         {
             var distance = scenario.AttackerPosition.Coordinates.DistanceTo(scenario.TargetPosition.Coordinates);
             modifiers.Add(new ProneTargetModifier { Value = _rules.GetProneTargetModifier(distance) });

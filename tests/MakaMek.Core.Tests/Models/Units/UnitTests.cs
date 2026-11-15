@@ -3019,6 +3019,57 @@ public class UnitTests
     }
     
     [Fact]
+    public void IsProne_ShouldReturnFalse_EvenWhenTheStatusContainsTheProneFlag()
+    {
+        // Arrange: only a Mech can be prone, so the base implementation never reports it.
+        var unit = CreateTestUnit();
+        unit.SetStatusForTesting(UnitStatus.Prone);
+
+        // Act + Assert
+        unit.IsProne.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void IsStanding_ShouldBeFalse_WhenNotDeployed()
+    {
+        var unit = CreateTestUnit();
+
+        unit.IsStanding.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void IsStanding_ShouldBeTrue_WhenDeployedAndActive()
+    {
+        var unit = CreateTestUnit();
+        unit.SetStatusForTesting(UnitStatus.Active);
+        unit.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top), null);
+
+        unit.IsStanding.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void IsStanding_ShouldBeFalse_WhenShutdown()
+    {
+        var unit = CreateTestUnit();
+        unit.SetStatusForTesting(UnitStatus.Active);
+        unit.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top), null);
+        unit.Shutdown(new ShutdownData { Reason = ShutdownReason.Voluntary, Turn = 1 });
+
+        unit.IsStanding.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void IsStanding_ShouldBeFalse_WhenDestroyed()
+    {
+        var unit = CreateTestUnit();
+        unit.SetStatusForTesting(UnitStatus.Active);
+        unit.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top), null);
+        unit.SetStatusForTesting(UnitStatus.Destroyed);
+
+        unit.IsStanding.ShouldBeFalse();
+    }
+
+    [Fact]
     public void IsOutOfCommission_ShouldReturnFalse_ByDefault()
     {
         // Arrange

@@ -3684,6 +3684,29 @@ public class MovementPhaseTests : GamePhaseTestsBase
         attacker.HasMoved.ShouldBeFalse();
     }
 
+    /// <summary>
+    /// Entering water of the given depth in an accepted move asks the fall processor for the
+    /// water-entry Piloting Skill Roll. The stub keeps the unit on its feet so the declaration can
+    /// be checked without a fall truncating the move.
+    /// </summary>
+    private void StubWaterEntryPsr(Mech attacker, int waterDepth, MovementType movementType) =>
+        MockFallProcessor.ProcessMovementAttempt(attacker,
+                Arg.Is<EnteringDeepWaterRollContext>(c => c.WaterDepth == waterDepth),
+                Game, movementType, Arg.Any<HexPosition?>())
+            .Returns(new FallContextData
+            {
+                UnitId = attacker.Id,
+                GameId = Game.Id,
+                IsFalling = false,
+                PilotingSkillRoll = new PilotingSkillRollData
+                {
+                    RollContext = new EnteringDeepWaterRollContext(waterDepth),
+                    DiceResults = [6, 6],
+                    IsSuccessful = true,
+                    PsrBreakdown = new PsrBreakdown { BasePilotingSkill = 4, Modifiers = [] }
+                }
+            });
+
     [Fact]
     public void HandleCommand_WhenChargeIsValid_ShouldStoreTheDeclarationWithTheComputedDistance()
     {
@@ -4050,22 +4073,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
         Game.BattleMap!.GetHex(end)!.AddTerrain(new WaterTerrain(-1));
         var waterStep = new PathSegment(Position(middle), Position(end),
             [new TerrainMovementCost { TerrainId = MakaMekTerrains.Water, Value = 3 }]);
-        MockFallProcessor.ProcessMovementAttempt(attacker,
-                Arg.Is<EnteringDeepWaterRollContext>(c => c.WaterDepth == 1),
-                Game, MovementType.Walk, Arg.Any<HexPosition?>())
-            .Returns(new FallContextData
-            {
-                UnitId = attacker.Id,
-                GameId = Game.Id,
-                IsFalling = false,
-                PilotingSkillRoll = new PilotingSkillRollData
-                {
-                    RollContext = new EnteringDeepWaterRollContext(1),
-                    DiceResults = [6, 6],
-                    IsSuccessful = true,
-                    PsrBreakdown = new PsrBreakdown { BasePilotingSkill = 4, Modifiers = [] }
-                }
-            });
+        StubWaterEntryPsr(attacker, waterDepth: 1, MovementType.Walk);
         var command = MoveCommand(Game.PhaseStepState!.Value.ActivePlayer.Id,
             [ClearStep(Position(start), Position(middle)), waterStep],
             MovementType.Walk, Charge(target.Id));
@@ -4121,6 +4129,107 @@ public class MovementPhaseTests : GamePhaseTestsBase
     }
 
     [Fact]
+    public void HandleCommand_WhenChargingFromSubmergedWaterAtTheSameEffectiveLevel_ShouldRejectTheCharge()
+    {
+        // Arrange - the approach is fully submerged in Depth 2 water and the target stands dry at
+        // the same effective level, so the levels alone allow the charge and only the water line
+        // rejects it (Total Warfare, p. 144)
+        var (attacker, target, start, middle, end) = SetUpChargeOnTheMap();
+        var approachHex = new Hex(middle, 1);
+        approachHex.AddTerrain(new WaterTerrain(-2));
+        Game.BattleMap!.AddHex(approachHex);
+        var targetHex = new Hex(end, -1);
+        targetHex.AddTerrain(new ClearTerrain());
+        Game.BattleMap!.AddHex(targetHex);
+        var chargeStep = new PathSegment(Position(middle), Position(end),
+            [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }]);
+        var idempotencyKey = Guid.NewGuid();
+        var command = MoveCommand(Game.PhaseStepState!.Value.ActivePlayer.Id,
+            [ClearStep(Position(start), Position(middle)), chargeStep],
+            MovementType.Run, Charge(target.Id), idempotencyKey);
+
+        // Act & Assert
+        AssertDeclarationRejected(command, attacker, idempotencyKey);
+    }
+
+    [Fact]
+    public void HandleCommand_WhenBothEndpointsAreSubmergedAtTheSameEffectiveLevel_ShouldAcceptTheCharge()
+    {
+        // Arrange - a Depth 2 approach and a Depth 2 target stand at the same effective level, so
+        // both endpoints are on the same side of the water line and the charge is legal
+        // (Total Warfare, p. 144)
+        var (attacker, target, start, middle, end) = SetUpChargeOnTheMap();
+        var approachHex = new Hex(middle, 1);
+        approachHex.AddTerrain(new WaterTerrain(-2));
+        Game.BattleMap!.AddHex(approachHex);
+        var targetHex = new Hex(end, 1);
+        targetHex.AddTerrain(new WaterTerrain(-2));
+        Game.BattleMap!.AddHex(targetHex);
+        StubWaterEntryPsr(attacker, waterDepth: 2, MovementType.Run);
+        var waterStep = new PathSegment(Position(middle), Position(end),
+            [new TerrainMovementCost { TerrainId = MakaMekTerrains.Water, Value = 4 }]);
+        var command = MoveCommand(Game.PhaseStepState!.Value.ActivePlayer.Id,
+            [ClearStep(Position(start), Position(middle)), waterStep],
+            MovementType.Run, Charge(target.Id));
+
+        // Act
+        _sut.HandleCommand(command);
+
+        // Assert
+        attacker.Position!.Coordinates.ShouldBe(middle);
+        attacker.DeclaredPhysicalAttack.ShouldNotBeNull().AttackType.ShouldBe(PhysicalAttackType.Charge);
+    }
+
+    [Fact]
+    public void HandleCommand_WhenTheApproachIsOneWaterDepthAboveASubmergedTarget_ShouldRejectTheCharge()
+    {
+        // Arrange - the approach stands in Depth 1 water and the target is fully submerged in
+        // Depth 2 water one effective level deeper: the level difference alone allows the charge,
+        // so only the water line rejects it (Total Warfare, p. 144)
+        var (attacker, target, start, middle, end) = SetUpChargeOnTheMap();
+        var approachHex = new Hex(middle);
+        approachHex.AddTerrain(new WaterTerrain(-1));
+        Game.BattleMap!.AddHex(approachHex);
+        var targetHex = new Hex(end);
+        targetHex.AddTerrain(new WaterTerrain(-2));
+        Game.BattleMap!.AddHex(targetHex);
+        var waterStep = new PathSegment(Position(middle), Position(end),
+            [new TerrainMovementCost { TerrainId = MakaMekTerrains.Water, Value = 5 }]);
+        var idempotencyKey = Guid.NewGuid();
+        var command = MoveCommand(Game.PhaseStepState!.Value.ActivePlayer.Id,
+            [ClearStep(Position(start), Position(middle)), waterStep],
+            MovementType.Run, Charge(target.Id), idempotencyKey);
+
+        // Act & Assert
+        AssertDeclarationRejected(command, attacker, idempotencyKey);
+    }
+
+    [Fact]
+    public void HandleCommand_WhenTheApproachIsOneDryLevelAboveTheTarget_ShouldAcceptTheCharge()
+    {
+        // Arrange - the control for the water-line case above: the same one-level descent over dry
+        // hexes is a legal charge, so the rejection there comes from the water line, not the levels
+        var (attacker, target, start, middle, end) = SetUpChargeOnTheMap();
+        var approachHex = new Hex(middle, -1);
+        approachHex.AddTerrain(new ClearTerrain());
+        Game.BattleMap!.AddHex(approachHex);
+        var targetHex = new Hex(end, -2);
+        targetHex.AddTerrain(new ClearTerrain());
+        Game.BattleMap!.AddHex(targetHex);
+        var descentStep = new PathSegment(Position(middle), Position(end),
+            [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 2 }]);
+        var command = MoveCommand(Game.PhaseStepState!.Value.ActivePlayer.Id,
+            [ClearStep(Position(start), Position(middle)), descentStep],
+            MovementType.Run, Charge(target.Id));
+
+        // Act
+        _sut.HandleCommand(command);
+
+        // Assert
+        attacker.DeclaredPhysicalAttack.ShouldNotBeNull().AttackType.ShouldBe(PhysicalAttackType.Charge);
+    }
+
+    [Fact]
     public void HandleCommand_WhenTheDfaTargetIsSubmerged_ShouldRejectTheDeclaration()
     {
         // Arrange - a DFA bridges level differences, but it cannot reach a fully submerged target
@@ -4154,22 +4263,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
         var centerTorso = attacker.Parts[PartLocation.CenterTorso];
         centerTorso.TryAddComponent(new JumpJets()).ShouldBeTrue();
         centerTorso.TryAddComponent(new JumpJets()).ShouldBeTrue();
-        MockFallProcessor.ProcessMovementAttempt(attacker,
-                Arg.Is<EnteringDeepWaterRollContext>(c => c.WaterDepth == 1),
-                Game, MovementType.Jump, Arg.Any<HexPosition?>())
-            .Returns(new FallContextData
-            {
-                UnitId = attacker.Id,
-                GameId = Game.Id,
-                IsFalling = false,
-                PilotingSkillRoll = new PilotingSkillRollData
-                {
-                    RollContext = new EnteringDeepWaterRollContext(1),
-                    DiceResults = [6, 6],
-                    IsSuccessful = true,
-                    PsrBreakdown = new PsrBreakdown { BasePilotingSkill = 4, Modifiers = [] }
-                }
-            });
+        StubWaterEntryPsr(attacker, waterDepth: 1, MovementType.Jump);
         var command = MoveCommand(Game.PhaseStepState!.Value.ActivePlayer.Id,
             [
                 new PathSegment(Position(start), Position(middle), [new JumpMovementCost { Value = 1 }]),
@@ -4394,6 +4488,48 @@ public class MovementPhaseTests : GamePhaseTestsBase
         _sut.HandleCommand(command);
         CommandPublisher.Received(1).PublishCommand(Arg.Is<ErrorCommand>(cmd => cmd.IdempotencyKey == idempotencyKey));
         attacker.DeclaredPhysicalAttack!.AttackType.ShouldBe(PhysicalAttackType.Punch);
+    }
+
+    /// <summary>
+    /// An immobile Mech cannot declare a movement attack at all: the declaration gate shares the
+    /// attacker-state rule with resolution, so a standing but immobile Mech (here an unconscious
+    /// pilot) is rejected before the move instead of being accepted and auto-missing later.
+    /// </summary>
+    [Fact]
+    public void HandleCommand_WhenTheChargeAttackerIsImmobile_ShouldRejectTheDeclaration()
+    {
+        // Arrange
+        var (attacker, target, start, middle, end) = SetUpChargeOnTheMap();
+        ((MechWarrior)attacker.Pilot!).KnockUnconscious(1);
+        attacker.IsImmobile.ShouldBeTrue("an unconscious pilot makes the Mech immobile");
+        var idempotencyKey = Guid.NewGuid();
+        var command = MoveCommand(Game.PhaseStepState!.Value.ActivePlayer.Id,
+            [ClearStep(Position(start), Position(middle)), ClearStep(Position(middle), Position(end))],
+            MovementType.Walk, Charge(target.Id), idempotencyKey);
+
+        // Act & Assert
+        AssertDeclarationRejected(command, attacker, idempotencyKey);
+    }
+
+    [Fact]
+    public void HandleCommand_WhenTheDfaAttackerIsImmobile_ShouldRejectTheDeclaration()
+    {
+        // Arrange
+        var (attacker, target, start, middle, end) = SetUpChargeOnTheMap();
+        ((MechWarrior)attacker.Pilot!).KnockUnconscious(1);
+        attacker.IsImmobile.ShouldBeTrue("an unconscious pilot makes the Mech immobile");
+        var centerTorso = attacker.Parts[PartLocation.CenterTorso];
+        centerTorso.TryAddComponent(new JumpJets()).ShouldBeTrue();
+        centerTorso.TryAddComponent(new JumpJets()).ShouldBeTrue();
+        var idempotencyKey = Guid.NewGuid();
+        var command = MoveCommand(Game.PhaseStepState!.Value.ActivePlayer.Id,
+            [
+                new PathSegment(Position(start), Position(middle), [new JumpMovementCost { Value = 1 }]),
+                new PathSegment(Position(middle), Position(end), [new JumpMovementCost { Value = 1 }])
+            ], MovementType.Jump, Dfa(target.Id), idempotencyKey);
+
+        // Act & Assert
+        AssertDeclarationRejected(command, attacker, idempotencyKey);
     }
 
     [Fact]

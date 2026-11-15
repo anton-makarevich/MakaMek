@@ -11,6 +11,7 @@ using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Internal.Actuators;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
+using Sanet.MakaMek.Core.Models.Units.Pilots;
 using Sanet.MakaMek.Core.Tests.Utils;
 using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Map.Models;
@@ -493,6 +494,28 @@ public class PhysicalAttackEligibilityTests
         // Act + Assert
         _sut.GetRestriction(attacker, target, attackType, _map).ShouldBeNull();
         _sut.GetEligibleLimbs(attacker, target, attackType, _map).ShouldNotBeEmpty();
+    }
+
+    /// <summary>
+    /// An unconscious pilot cannot make a physical attack, exactly as it cannot charge or make a
+    /// Death From Above. The eligibility policy owns this check for the whole phase.
+    /// </summary>
+    [Theory]
+    [InlineData(PhysicalAttackType.Punch, PhysicalAttackRestriction.TargetOutOfReach)]
+    [InlineData(PhysicalAttackType.Kick, PhysicalAttackRestriction.TargetOutOfReach)]
+    [InlineData(PhysicalAttackType.Push, PhysicalAttackRestriction.NoTargetInFront)]
+    public void NoAttack_WhenTheAttackerPilotIsUnconscious(PhysicalAttackType attackType,
+        PhysicalAttackRestriction expectedRestriction)
+    {
+        // Arrange
+        var (attacker, target) = CreatePair(AttackerHex.GetNeighbour(HexDirection.Top));
+        var pilot = new MechWarrior("Test", "Pilot", gunnery: 4, piloting: 5);
+        attacker.AssignPilot(pilot);
+        pilot.KnockUnconscious(1);
+
+        // Act + Assert
+        _sut.GetEligibleLimbs(attacker, target, attackType, _map).ShouldBeEmpty();
+        _sut.GetRestriction(attacker, target, attackType, _map).ShouldBe(expectedRestriction);
     }
 
     /// <summary>
@@ -1544,6 +1567,7 @@ public class PhysicalAttackEligibilityTests
                 Substitute.For<ILocalizationService>())
             .Create(MechFactoryTests.CreateDummyMechData(lasers));
         mech.Owner = owner;
+        mech.AssignPilot(new MechWarrior("Test", "Pilot", gunnery: 4, piloting: 5));
         mech.Deploy(new HexPosition(hex, facing, surface, airborneLevel), null);
         return mech;
     }

@@ -105,7 +105,7 @@ second jump curve.
 
 DFA declares the target hex as the jump destination and uses the same shortest-route and jump-height
 rules. It has an additional clearance requirement, implemented in
-`MovementAttackDeclarationValidator`: the attacker needs enough Jumping MP to clear the target hex
+`MovementAttackValidator`: the attacker needs enough Jumping MP to clear the target hex
 level plus the target's height (a standing 'Mech is height 2), even though reaching the target hex
 costs the usual 1 MP per hex.
 

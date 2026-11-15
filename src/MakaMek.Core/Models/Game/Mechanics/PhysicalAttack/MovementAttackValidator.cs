@@ -1,5 +1,6 @@
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Mechanics.PhysicalAttacks;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.Movement;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Map.Data;
@@ -11,8 +12,8 @@ namespace Sanet.MakaMek.Core.Models.Game.Mechanics.PhysicalAttack;
 /// The default Charge and DFA declaration policy (Total Warfare p. 148-149 and the physical attacks
 /// PRD, R6.1). A movement-origin declaration is valid only when:
 /// <list type="bullet">
-/// <item>the attacker is a standing, intact, non-shutdown Mech that has not moved or declared an
-/// attack yet;</item>
+/// <item>the attacker is a standing, intact Mech that is not immobile — no shutdown reactor and no
+/// missing or unconscious pilot — and has not moved or declared an attack yet;</item>
 /// <item>the attack is a Charge with Walk/Run movement or a DFA with Jump movement;</item>
 /// <item>the target is an enemy Mech that has already completed its movement, is not itself
 /// performing a Charge or DFA, and stands in the hex the path terminates in;</item>
@@ -30,8 +31,14 @@ namespace Sanet.MakaMek.Core.Models.Game.Mechanics.PhysicalAttack;
 /// <item>the move fits the remaining movement points; and</item>
 /// <item>the target is not already reserved by another displacement attack this turn.</item>
 /// </list>
+/// <para>
+/// The same policy answers the resolution-time questions, so the physical attack resolution phase
+/// never restates them: <see cref="GetAttackerState"/> reports whether the attacker can still make
+/// the attack, and <see cref="SelectResolutionTarget"/> picks the declared target, a replacement or
+/// an automatic failure with the same target rule the declaration used.
+/// </para>
 /// </summary>
-public class MovementAttackDeclarationValidator : IMovementAttackDeclarationValidator
+public class MovementAttackValidator : IMovementAttackValidator
 {
     public MovementAttackDeclarationValidation Validate(
         IUnit attacker,
@@ -54,16 +61,7 @@ public class MovementAttackDeclarationValidator : IMovementAttackDeclarationVali
         if (movementPath.Start.Coordinates != attacker.Position!.Coordinates) return Invalid();
 
         var targetPosition = target!.Position!;
-        var enteringSegment = FindEnteringSegment(movementPath);
-        if (movementPath.Destination.Coordinates != targetPosition.Coordinates
-            || movementPath.Destination.Surface != targetPosition.Surface
-            || !EntersTargetHex(movementPath, movementType, map)
-            || declaration.AttackType == PhysicalAttackType.Charge
-            && !IsChargeAllowed(attacker, target, enteringSegment, targetPosition, map)
-            || declaration.AttackType == PhysicalAttackType.DFA
-            && !IsDfaAllowed(attacker, target, targetPosition, map)
-            || movementPath.TotalCost > attacker.GetMovementPoints(movementType)
-            || PhysicalAttackDisplacementBudget.IsReserved(target.Id, allUnits))
+        if (!IsLegalPath(movementPath, movementType, declaration, attacker, target, targetPosition, allUnits, map))
             return Invalid();
 
         var hexesMoved = CountHexesMovedBeforeTarget(attacker, movementPath, targetPosition.Coordinates);
@@ -74,11 +72,115 @@ public class MovementAttackDeclarationValidator : IMovementAttackDeclarationVali
         });
     }
 
+    /// <summary>
+    /// The path ends in the target's hex, enters it legally, fits the remaining movement points and
+    /// clears the attack-specific approach rules (Charge levels and water, DFA clearance) without
+    /// reserving a target another displacement attack already claimed.
+    /// </summary>
+    private static bool IsLegalPath(
+        MovementPath movementPath,
+        MovementType movementType,
+        PhysicalAttackDeclarationData declaration,
+        IUnit attacker,
+        IUnit target,
+        HexPosition targetPosition,
+        IReadOnlyList<IUnit> allUnits,
+        IBattleMap map) =>
+        movementPath.Destination.Coordinates == targetPosition.Coordinates
+        && movementPath.Destination.Surface == targetPosition.Surface
+        && EntersTargetHex(movementPath, movementType, map)
+        && (declaration.AttackType != PhysicalAttackType.Charge
+            || IsChargeAllowed(attacker, target, FindEnteringSegment(movementPath), targetPosition, map))
+        && (declaration.AttackType != PhysicalAttackType.DFA
+            || IsDfaAllowed(attacker, target, targetPosition, map))
+        && movementPath.TotalCost <= attacker.GetMovementPoints(movementType)
+        && !PhysicalAttackDisplacementBudget.IsReserved(target.Id, allUnits);
+
+    public IReadOnlyList<IUnit> GetPotentialTargets(IUnit attacker, MovementType movementType,
+        IEnumerable<IUnit> units)
+    {
+        var attackType = movementType.GetMovementAttackType();
+        if (attackType is not { } type) return [];
+
+        return units.Where(unit => IsValidTarget(attacker, unit, type)).ToList();
+    }
+
+    public MovementAttackAttackerState GetAttackerState(IUnit attacker,
+        PhysicalAttackDeclarationData declaration)
+    {
+        if (declaration.AttackType == PhysicalAttackType.Charge)
+            return CanMakeMovementAttack(attacker) && IsAtCommittedApproach(attacker, declaration)
+                ? MovementAttackAttackerState.CanAttack
+                : MovementAttackAttackerState.CannotAttack;
+
+        if (declaration.AttackType != PhysicalAttackType.DFA) return MovementAttackAttackerState.CannotAttack;
+
+        // A destroyed DFA attacker has nothing left to place, so it cannot ground anywhere.
+        if (attacker.IsDestroyed || !IsAtCommittedApproach(attacker, declaration))
+            return MovementAttackAttackerState.CannotAttack;
+
+        return IsDfaAutoMiss(attacker)
+            ? MovementAttackAttackerState.MustMiss
+            : MovementAttackAttackerState.CanAttack;
+    }
+
+    public MovementAttackTargetSelection SelectResolutionTarget(IUnit attacker,
+        PhysicalAttackDeclarationData declaration, IEnumerable<IUnit> units, IBattleMap map) =>
+        MovementAttackTargetSelector.Select(attacker, declaration.TargetId, declaration.AttackType, units, map);
+
+    /// <summary>
+    /// The attacker can still act: a standing, intact Mech that is not immobile — no shutdown
+    /// reactor and no missing or unconscious pilot. This is the single attacker-state rule shared
+    /// by the declaration gate and the resolution-time state: declaration adds the "has not moved
+    /// or declared yet" conditions, resolution adds the "still at the committed approach"
+    /// condition.
+    /// </summary>
+    private static bool CanMakeMovementAttack(IUnit attacker) =>
+        IsStandingMech(attacker) && !attacker.IsImmobile;
+
+    /// <summary>
+    /// A Mech that is still in the game and on its feet.
+    /// </summary>
+    private static bool IsStandingMech(IUnit attacker) =>
+        attacker is Mech && attacker.IsStanding;
+
+    /// <summary>
+    /// The attacker still waits where the move told it to stop. A Charge has to hold the exact
+    /// committed approach position, disregarding only the path that moved it there. A DFA only has
+    /// to still be above the hex it jumped from, because its approach position carries the airborne
+    /// base level rather than the unit's current grounded position.
+    /// </summary>
+    private static bool IsAtCommittedApproach(IUnit attacker,
+        PhysicalAttackDeclarationData declaration)
+    {
+        if (attacker.MovementTaken is not { } movement
+            || movement.GetStopPosition(declaration) is not { } approach)
+            return false;
+
+        return declaration.AttackType == PhysicalAttackType.DFA
+            ? attacker.Position is { } position && position.Coordinates == approach.Coordinates
+            : attacker.Position == approach;
+    }
+
+    /// <summary>
+    /// A DFA whose attacker can no longer act — prone after a fall, shut down or without a
+    /// conscious pilot — falls into the target hex without a to-hit roll instead of auto-failing;
+    /// a fall does not cancel the pending attack. It is the negation of the shared attacker-state
+    /// rule, so a state that blocks the declaration also turns a declared DFA into this miss. A
+    /// destroyed attacker has nothing left to place and is rejected before this rule.
+    /// </summary>
+    private static bool IsDfaAutoMiss(IUnit attacker) => !CanMakeMovementAttack(attacker);
+
     private static MovementAttackDeclarationValidation Invalid() =>
         MovementAttackDeclarationValidation.Invalid(ErrorCode.ValidationFailed);
 
+    /// <summary>
+    /// The declaration gate reuses the shared attacker-state rule and adds only the conditions
+    /// that stop making sense once the move is taken: the unit must not have moved or declared an
+    /// attack yet.
+    /// </summary>
     private static bool IsValidAttacker(IUnit attacker) =>
-        attacker is Mech { IsDestroyed: false, IsShutdown: false, IsProne: false, Position: not null }
+        CanMakeMovementAttack(attacker)
         && attacker is { HasDeclaredPhysicalAttack: false, HasMoved: false };
 
     /// <summary>
@@ -109,7 +211,7 @@ public class MovementAttackDeclarationValidator : IMovementAttackDeclarationVali
     private static bool IsValidTarget(IUnit attacker, IUnit? target, PhysicalAttackType attackType) =>
         target is Mech { IsDestroyed: false, Position: not null }
         && target.Owner?.Id != attacker.Owner?.Id
-        && target is { HasPendingMovementAttack: false }
+        && target.GetPendingAttackRestriction(attackType) is null
         && (target.HasMoved || StartedTurnIncapacitated(target))
         && IsLegalAgainstProneTarget(target, attackType);
 
@@ -192,7 +294,7 @@ public class MovementAttackDeclarationValidator : IMovementAttackDeclarationVali
         var targetEndpoint = map.GetPhysicalAttackEndpoint(targetPosition, target.Height);
         if (approachEndpoint is not { } approach || targetEndpoint is not { } targetState) return false;
 
-        return approach.IsSubmerged == targetState.IsSubmerged
+        return approach.IsWaterEligibleAgainst(targetState, PhysicalAttackType.Charge)
                && Math.Abs(approach.LevelDifferenceTo(targetState)) <= 1;
     }
 
@@ -214,8 +316,9 @@ public class MovementAttackDeclarationValidator : IMovementAttackDeclarationVali
     {
         var attackerEndpoint = map.GetPhysicalAttackEndpoint(attacker.Position!, attacker.Height);
         var targetEndpoint = map.GetPhysicalAttackEndpoint(targetPosition, target.Height);
-        return attackerEndpoint is { IsSubmerged: false }
-               && targetEndpoint is { IsSubmerged: false }
+        return attackerEndpoint is { } attackerState
+               && targetEndpoint is { } targetState
+               && attackerState.IsWaterEligibleAgainst(targetState, PhysicalAttackType.DFA)
                && CanClearDfaHeight(attacker, target, targetPosition, map);
     }
 

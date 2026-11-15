@@ -119,7 +119,7 @@ public class DfaAttackResolverTests
         UseQueuedRoll2D6();
         _diceRoller.RollD6().Returns(new DiceResult(1), new DiceResult(2));
         var target = CreateUnit(20, TargetPosition());
-        target.Status.Returns(UnitStatus.Prone);
+        target.IsProne.Returns(true);
         var attacker = CreateUnit(35, new HexPosition(new HexCoordinates(0, 2), HexDirection.Top));
 
         var result = _sut.ResolveDfa(new DfaAttackContext
@@ -224,7 +224,7 @@ public class DfaAttackResolverTests
         UseQueuedRoll2D6();
         _diceRoller.RollD6().Returns(new DiceResult(1), new DiceResult(2));
         var target = CreateUnit(20, TargetPosition());
-        target.Status.Returns(UnitStatus.Prone);
+        target.IsProne.Returns(true);
         var attacker = CreateUnit(35, new HexPosition(new HexCoordinates(0, -2), HexDirection.Top));
 
         var result = _sut.ResolveDfa(new DfaAttackContext

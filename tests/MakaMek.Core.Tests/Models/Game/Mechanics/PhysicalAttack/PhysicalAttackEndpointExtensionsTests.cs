@@ -1,3 +1,4 @@
+using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.PhysicalAttack;
 using Sanet.MakaMek.Map.Models;
 using Sanet.MakaMek.Map.Models.Terrains;
@@ -149,6 +150,55 @@ public class PhysicalAttackEndpointExtensionsTests
         higher.LevelDifferenceTo(deeper).ShouldBe(-4);
     }
 
+    /// <summary>
+    /// The per-attack water line (Total Warfare p. 144 "Water" and p. 149-151). A submerged endpoint
+    /// is always in water; a Depth 1 attacker is in water but not submerged.
+    /// </summary>
+    [Theory]
+    // A Charge keeps both endpoints on the same side of the water line.
+    [InlineData(false, false, false, PhysicalAttackType.Charge, true)]
+    [InlineData(true, true, true, PhysicalAttackType.Charge, true)]
+    [InlineData(false, false, true, PhysicalAttackType.Charge, false)]
+    [InlineData(true, true, false, PhysicalAttackType.Charge, false)]
+    // A DFA comes from above the surface, so neither endpoint may be submerged.
+    [InlineData(false, false, false, PhysicalAttackType.DFA, true)]
+    [InlineData(true, true, false, PhysicalAttackType.DFA, false)]
+    [InlineData(false, false, true, PhysicalAttackType.DFA, false)]
+    // A Kick occurs entirely underwater, so a Depth 1 attacker still reaches a submerged target.
+    [InlineData(true, false, true, PhysicalAttackType.Kick, true)]
+    [InlineData(false, false, true, PhysicalAttackType.Kick, false)]
+    [InlineData(false, false, false, PhysicalAttackType.Kick, true)]
+    // Punch and Push use the arms, so only a submerged attacker reaches a submerged target.
+    [InlineData(true, false, true, PhysicalAttackType.Punch, false)]
+    [InlineData(true, true, true, PhysicalAttackType.Punch, true)]
+    [InlineData(true, true, false, PhysicalAttackType.Punch, true)]
+    [InlineData(true, false, true, PhysicalAttackType.Push, false)]
+    [InlineData(true, true, true, PhysicalAttackType.Push, true)]
+    [InlineData(true, true, false, PhysicalAttackType.Push, true)]
+    public void IsWaterEligibleAgainst_AppliesThePerAttackWaterLine(bool attackerInWater,
+        bool attackerSubmerged, bool targetSubmerged, PhysicalAttackType attackType, bool expected)
+    {
+        // Arrange
+        var attacker = Endpoint(attackerInWater, attackerSubmerged);
+        var target = Endpoint(targetSubmerged, targetSubmerged);
+
+        // Act + Assert
+        attacker.IsWaterEligibleAgainst(target, attackType).ShouldBe(expected);
+    }
+
+    /// <summary>
+    /// An attack type without a water rule is never water-eligible.
+    /// </summary>
+    [Fact]
+    public void IsWaterEligibleAgainst_ForAnUnknownAttackType_IsFalse()
+    {
+        // Arrange
+        var dry = Endpoint(inWater: false, submerged: false);
+
+        // Act + Assert
+        dry.IsWaterEligibleAgainst(dry, (PhysicalAttackType)99).ShouldBeFalse();
+    }
+
     [Fact]
     public void GetPhysicalAttackEndpoint_AirbornePosition_UsesTheAirborneBaseLevel()
     {
@@ -204,6 +254,9 @@ public class PhysicalAttackEndpointExtensionsTests
     private static HexPosition Position(HexCoordinates coordinates,
         HexSurface surface = HexSurface.Ground) =>
         new(coordinates, HexDirection.Top, surface);
+
+    private static PhysicalAttackEndpoint Endpoint(bool inWater, bool submerged) =>
+        new(submerged ? -2 : inWater ? -1 : 0, submerged, inWater);
 
     private static Hex ClearHex(HexCoordinates coordinates, int level = 0)
     {

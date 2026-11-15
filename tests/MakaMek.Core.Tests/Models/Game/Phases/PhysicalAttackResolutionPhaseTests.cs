@@ -1930,6 +1930,32 @@ public class PhysicalAttackResolutionPhaseTests : GamePhaseTestsBase
         _mockNextPhase.Received(1).Enter();
     }
 
+    /// <summary>
+    /// A DFA that has to miss still crashes when the declared target left the hex: the miss, not the
+    /// missing target, carries the automatic two-level fall (Total Warfare p.149-150).
+    /// </summary>
+    [Fact]
+    public void Enter_DfaByAProneAttacker_WhenTheTargetMovedAway_StillFallsAfterLanding()
+    {
+        SetMap();
+        SetUpDfa(_player1Mech, _player2Mech);
+        _player1Mech.SetProne();
+        MoveTargetAway();
+        StubDfaFall();
+
+        _sut.Enter();
+
+        var resolution = PublishedCommands().OfType<PhysicalAttackResolutionCommand>()
+            .ShouldHaveSingleItem();
+        resolution.ResolutionData.Dfa!.Outcome.ShouldBe(DfaOutcome.Miss);
+        _player1Mech.Position!.Coordinates.ShouldBe(TargetHex);
+        PublishedCommands().OfType<DfaLandingCommand>()
+            .ShouldHaveSingleItem()
+            .LandingKind.ShouldBe(DfaLandingKind.MissLanding);
+        PublishedCommands().OfType<MechFallCommand>().ShouldHaveSingleItem();
+        MockDfaAttackResolver.DidNotReceiveWithAnyArgs().ResolveDfa(null!);
+    }
+
     [Fact]
     public void Enter_DfaWhenTheAttackerWasDisplacedFromItsApproach_AutoFailsAndLandsInTheDeclaredTargetHex()
     {

@@ -68,7 +68,7 @@ public class DfaAttackResolver(
         }
 
         var attackDirection = context.Target.GetAttackDirectionFrom(context.StartCoordinates);
-        var targetIsProne = context.Target.Status.HasFlag(UnitStatus.Prone);
+        var targetIsProne = context.Target.IsProne;
         var targetDamage = rulesProvider.GetDfaDamage(context.Attacker.Tonnage);
         var targetHitLocations = ResolveTargetDamage(
             context.Target,
@@ -115,7 +115,7 @@ public class DfaAttackResolver(
     {
         if (damage <= 0) return null;
 
-        return target.Status.HasFlag(UnitStatus.Prone)
+        return target.IsProne
             ? ResolveClusters(target, damage, HitDirection.Rear, tableType: null, useTwoDice: true)
             : ResolveClusters(target, damage, direction, PhysicalAttackType.DFA, useTwoDice: false);
     }

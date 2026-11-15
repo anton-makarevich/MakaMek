@@ -54,7 +54,7 @@ A 'Mech punching with one or two arms resolves each arm separately, so the arm-a
 | **Club** | Physical Phase | `-1` | Tonnage / 5 *(round up)* | Uses **Standard Hit Location Table**. Requires two undamaged hand/shoulder actuators and no arm weapons fired. Clubs can be severed limbs, trees, or girders. |
 | **Push** | Physical Phase | `-1` | `0` *(No damage)* | Target must be a **standing ’Mech** at the **exact same elevation** in the hex directly in front of the attacker's **feet** (not torso twist); cannot be performing a Charge or DFA, and a unit may receive only one Charge/DFA/Push per turn. Requires **both arms** and **no arm-mounted weapons fired** that turn (head/torso/leg weapons allowed). Damaged shoulder actuators do **not** block the push but add **+2 to-hit per damaged shoulder**. On a hit, target is pushed 1 hex directly away, attacker advances into the vacated hex at **0 MP cost**, and the target must pass a PSR or fall. An occupied destination triggers a domino effect (§4). Blocked/prohibited destination prevents movement but not the PSR. See §4 for full requirements. |
 | **Physical Weapon** | Physical Phase | Varies *(e.g., Hatchet -1, Sword -2)* | Varies *(e.g., Hatchet = Tonnage / 5, round up; Sword = Tonnage / 10, round up, + 1)* | Uses **Standard Hit Location Table** (or Punch/Kick table with a +4 modifier). Cannot fire weapons on the weapon arm. |
-| **Charge** | **Movement Phase** | `+0` *(± Piloting diff.)* | **Target:** (Attacker Tonnage / 10) × Hexes Moved, then *round up*.<br>**Attacker:** Target Tonnage / 10 *(round up)*. | Damage in 5-pt clusters. **Hexes Moved** counts only hexes traversed *before* entering the target's hex. The target must be **directly in front of the charging unit's feet** at the start of the Physical Attack Phase (torso twists disregarded), so a backward entry into its hex is not a charge; a shut-down attacker cannot declare one. Displaces the target one hex in the charge direction (an occupied destination triggers the domino effect). If that hex is prohibited terrain, off the map, or an occupant cannot be dislodged, **neither unit moves** while damage and PSRs still apply. **On hit:** both units must pass a **PSR (+2 modifier)** or fall. **On miss:** the attacker lands in the hex to the left or right of the attacker's forward arc (never a rear or rear-side hex), no damage is taken or dealt, and **no charge PSRs are rolled**. If the declared target is gone at resolution (prone, destroyed or displaced) and no replacement enemy occupies the hex, the charge **automatically fails**: no to-hit roll and no damage, and the attacker lands in a side hex of its forward arc exactly as on a miss — a failed charge never ends in the target hex. A pending-DFA 'Mech is never a valid target (§3.1.1) and, being airborne, is not a ground occupant, so it does not count for stacking. No weapon attacks allowed. |
+| **Charge** | **Movement Phase** | `+0` *(± Piloting diff.)* | **Target:** (Attacker Tonnage / 10) × Hexes Moved, then *round up*.<br>**Attacker:** Target Tonnage / 10 *(round up)*. | Damage in 5-pt clusters. **Hexes Moved** counts only hexes traversed *before* entering the target's hex. The target must be **directly in front of the charging unit's feet** at the start of the Physical Attack Phase (torso twists disregarded), so a backward entry into its hex is not a charge; a shut-down or otherwise immobile attacker cannot declare one. Displaces the target one hex in the charge direction (an occupied destination triggers the domino effect). If that hex is prohibited terrain, off the map, or an occupant cannot be dislodged, **neither unit moves** while damage and PSRs still apply. **On hit:** both units must pass a **PSR (+2 modifier)** or fall. **On miss:** the attacker lands in the hex to the left or right of the attacker's forward arc (never a rear or rear-side hex), no damage is taken or dealt, and **no charge PSRs are rolled**. If the declared target is gone at resolution (prone, destroyed or displaced) and no replacement enemy occupies the hex, the charge **automatically fails**: no to-hit roll and no damage, and the attacker lands in a side hex of its forward arc exactly as on a miss — a failed charge never ends in the target hex. A pending-DFA 'Mech is never a valid target (§3.1.1) and, being airborne, is not a ground occupant, so it does not count for stacking. No weapon attacks allowed. |
 | **Death From Above (DFA)** | **Movement Phase** | `+0` *(± Piloting diff. + Jump mod; **no terrain modifier**)* | **Target:** (Attacker Tonnage × 3) / 10 *(round the final result up)*.<br>**Attacker:** Attacker Tonnage / 5 *(round up)* to legs **(on hit only)**. | Damage in 5-pt clusters on **Punch Location Table** for target. **On hit:** attacker lands in target hex, target is displaced; both make PSRs (Target +2, Attacker +4). **On miss:** the attacker **automatically falls** (2-level fall, damage applied to the rear); the target **does not roll a PSR** and instead is displaced to an adjacent passable hex of its choice. No weapon attacks allowed. The to-hit roll applies all normal attack modifiers (attacker jumping movement, target movement, target status) **except terrain** (p. 144 footnote). |
 
 ---
@@ -119,8 +119,12 @@ is added.
   `UnitStatus.Prone` but does not cancel the pending DFA; it resolves as a miss in the Physical
   Attack Phase and the attacker then falls. `Mech.Height` therefore keeps the **standing** height
   while `Position.AirborneLevel` is non-null, so the LOS level does not silently drop by one level.
-* **Damaged / immobile status:** does not change the formula. The DFA attacker is already limited
-  by the declaration validator (jump jets, MP, submerged attacker, target reservation).
+* **Damaged / immobile status:** an immobile attacker — a shutdown reactor, or a missing or
+  unconscious pilot — cannot declare a DFA at all: the declaration gate and
+  `GetAttackerState` share one attacker-state rule. A DFA whose attacker becomes immobile (or
+  prone) *after* a legal declaration still lands and resolves as a no-roll miss. The remaining
+  declaration limits are jump jets, MP, the submerged attacker and the target reservation.
+  Immobile status does not change the height formula.
 * **Cover:** an airborne unit can never claim partial cover (`Mech.CanHavePartialCover`); a target
   that is airborne is not partially concealed by the terrain it hovers over.
 * **Physical reach:** uses the airborne base level. The endpoint resolves `Position.AirborneLevel` when it is set, so the DFA attacker's feet are `max(approach, target) + 2` and the Different-Levels table sees that difference. The airborne level is the unit's base (feet) level; LOS adds the unit height on top, reach does not. An airborne endpoint is never submerged or in water.
@@ -131,7 +135,9 @@ is added.
   the attacker by completing the jump it already recorded (`DfaLandingCommand`): a hit lands it in
   the target's original hex, a miss or a destroyed target lands it there before the automatic
   two-level rear fall, and an auto-fail lands it in the declared target hex (the jump destination)
-  without damage or a fall.
+  without damage or a fall. An auto-fail still carries the miss fall when the attacker had to miss
+  anyway (prone, shutdown or unconscious), because that outcome is decided by the attacker, not by
+  the target's presence.
   The attacker always lands in the target hex: if a successful DFA's target cannot be displaced,
   the target is destroyed so the hex frees up — unless the impact destroyed the attacker first,
   which then never lands; if a missed DFA's target cannot be displaced, the attacker is destroyed.
@@ -147,11 +153,15 @@ is added.
   fell the declared target. If another enemy 'Mech stands in the committed target hex, the DFA
   resolves against it as a **replacement target at +1 to hit**; with no valid unit there the attack
   automatically fails and the attacker lands in the declared hex without damage or a fall (Total
-  Warfare, Initiative and Displacement). A unit performing a Death From Above is immune to physical
+  Warfare, Initiative and Displacement). That auto-fail only replaces the target side: a DFA the
+  attacker had to miss anyway (prone, shutdown or unconscious, p. 149) still lands and then takes
+  the automatic two-level fall. A unit performing a Death From Above is immune to physical
   attacks until it lands (p. 149), so an airborne performer is excluded both as the declared target
   and as a replacement: when the declared target is itself airborne, it is treated as absent, the
   replacement search runs and the attack auto-fails when nobody else holds the hex. A performer
-  that has already landed is an ordinary grounded occupant and may be the replacement.
+  that has already landed is an ordinary grounded occupant and may be the replacement, but a unit
+  still performing its own Charge is not, because its movement is unfinished until the Physical
+  Attack Phase (p. 148).
 * **Landing is a jump completion:** the attacker already recorded the full jump path, including the
   final leg into the target hex, during the Movement Phase; it only waits in the approach hex. The
   physical phase completes that move with a `DfaLandingCommand` (`DfaLandingKind`: attacker landing,
@@ -211,9 +221,9 @@ instead of being resolved.
 * A 'Mech performing a **Charge** is not immune to physical attacks. Punch and Kick remain legal
   against it when the reach rules permit them; Push keeps the
   `TargetPerformingDisplacementAttack` restriction, and another Charge or DFA is rejected by
-  `MovementAttackDeclarationValidator`.
+  `MovementAttackValidator`.
 * **Charge resolution (issue [#1706](https://github.com/anton-makarevich/MakaMek/issues/1706)):**
-  `ChargeTargetSelector` applies the immunity at resolution time too, using the same
+  `MovementAttackTargetSelector` applies the immunity at resolution time too, using the same
   `IsAirborneDfaAttacker` predicate. An airborne pending-DFA 'Mech is never the declared target and
   never a replacement target, so when it is the only airborne occupant of the committed destination
   hex the charge automatically fails: no to-hit roll, no damage and no charge
@@ -223,6 +233,14 @@ instead of being resolved.
   occupant: it does not count for stacking, and cannot be displaced while it is in the air. A
   performer that has already landed is a grounded unit and a legal target, declared or replacement
   (§3.1: the immunity ends when it lands).
+* **One target rule for Charge and DFA:** the resolution phase never restates the target or
+  attacker rules. `MovementAttackValidator.GetAttackerState` reports whether the
+  attacker can still attack, and `SelectResolutionTarget` returns the declared target, a
+  replacement or an automatic failure through `MovementAttackTargetSelector`. The selector applies
+  the shared water predicate and the pending-attack restriction (`TargetPerformingDisplacementAttack`)
+  to the replacement, so a unit whose own Charge is still unresolved never becomes the target. The
+  UI target search calls `GetPotentialTargets` on the same validator, so the highlighted targets and
+  the resolved ones cannot drift.
 * **Airborne stacking exemption in every displacement path:** `IsAirborneDfaAttacker`
   (`HasPendingMovementAttack` + `IsDfa` + an `AirborneLevel` on the position) is excluded from the
   occupant checks of `ChargeDisplacementResolver`, `PushDisplacementResolver` and the shared
@@ -236,9 +254,10 @@ instead of being resolved.
 ### **3.2. Movement-Phase Declaration UI (issue #1703)**
 
 Charge and DFA are declared while the unit moves, so the Movement Phase owns the declaration and
-`MovementState` drives it. It uses the same `MovementAttackDeclarationValidator` instance as the
-server (`IGame.MovementAttackDeclarationValidator`), so a highlighted target is exactly one the
-server accepts.
+`MovementState` drives it. It uses the same `MovementAttackValidator` instance as the
+server (`IGame.MovementAttackValidator`), so a highlighted target is exactly one the
+server accepts. The target prefilter is `GetPotentialTargets` on that validator: the UI adds only
+pathfinding and the cheapest-path choice, never its own eligibility rule.
 
 1. The player selects a unit and a movement type (Walk/Run for Charge, Jump for DFA).
 2. Reachable hexes are highlighted as usual. In addition, every enemy 'Mech that has completed its
@@ -353,7 +372,7 @@ The water rules decide whether a physical attack may be **made at all** — they
 * **DFA:** the attack is **never** entirely underwater. A fully submerged target is rejected by an explicit check because DFA has no level comparison to fall back on. A fully submerged attacker is also rejected, but under the **jump-jet rule** ("jump jets cannot be fired while submerged"), not under the physical-attack water rule. A 'Mech in Depth 1 water can still jump with its torso-mounted jets.
 * **DFA against a target standing in Depth 1 water:** legal. A standing 'Mech is waist-deep, so its torso and head remain above the surface and it is **not** submerged; the target-side rule only protects a fully submerged unit. The attacker needs enough Jumping MP to clear the target hex's standing level plus the target's height (for a Depth 1 hex at level 0 the waterbed is −1 and a standing 'Mech reaches +1). If the DFA lands in the water hex, the attacker makes a landing PSR; on success it stands on the waterbed, on failure it falls onto the waterbed.
 
-**Implementation scope:** `PhysicalAttackEligibility` applies the Punch/Kick/Push rules (and the effective-standing-level comparison) to physical-phase declarations; the same rules are re-checked at resolution time via `CanResolve` and `PhysicalAttackTargetValidityGate`, so a declaration that has become illegal by resolution is skipped automatically. `MovementAttackDeclarationValidator` applies the Charge/DFA declaration rules. Charge and DFA resolutions live in `PhysicalAttackResolutionPhase`: a charge applies the charge water rules, and a DFA grounds the attacker by completing its recorded jump with `DfaLandingCommand`, with a two-level rear fall on a miss. A DFA target displaced down more than the automatic-fall threshold takes the standard automatic fall. If the target cannot be displaced at all, a hit destroys the target and a miss destroys the attacker (Total Warfare p. 150). The DFA landing PSR carries the water-entry modifier when the attacker lands in water (Depth 1 −1, Depth 2 0, Depth 3+ +1).
+**Implementation scope:** `PhysicalAttackEligibility` applies the Punch/Kick/Push rules (and the effective-standing-level comparison) to physical-phase declarations; the same rules are re-checked at resolution time via `CanResolve` and `PhysicalAttackTargetValidityGate`, so a declaration that has become illegal by resolution is skipped automatically. `MovementAttackValidator` applies the Charge/DFA declaration rules, and the water predicate is shared through `PhysicalAttackEndpoint.IsWaterEligibleAgainst`: the declaration rules, the eligibility policy and `MovementAttackTargetSelector` all use it, so a Charge or DFA is re-checked against the water line at resolution for the declared target and for any replacement. Charge and DFA resolutions live in `PhysicalAttackResolutionPhase`: a charge applies the charge water rules, and a DFA grounds the attacker by completing its recorded jump with `DfaLandingCommand`, with a two-level rear fall on a miss. A DFA target displaced down more than the automatic-fall threshold takes the standard automatic fall. If the target cannot be displaced at all, a hit destroys the target and a miss destroys the attacker (Total Warfare p. 150). The DFA landing PSR carries the water-entry modifier when the attacker lands in water (Depth 1 −1, Depth 2 0, Depth 3+ +1).
 
 **DFA miss displacement — first implementation:** the rules give the target's controller the choice of the adjacent hex. The first version resolves it on the server instead, so a miss needs no client interaction: `DfaDisplacementResolver.ResolveMiss` walks the adjacent hexes ordered by alignment away from the attacker's jump origin (`MovementTaken.Start`) and takes the first passable, unoccupied one, which is the hex a hit would push the target into. A deep drop is still a legal candidate: the target is displaced down and then takes the standard automatic fall. No adjacent hex is available → the attacker is destroyed. On a hit, if the target cannot be displaced, the target is destroyed instead. Restoring the controller's choice is tracked as a follow-up.
 
@@ -369,4 +388,5 @@ A decision is recorded here about where physical-attack knowledge lives:
 * **`PhysicalAttackDefinitions` holds structural metadata only** — which attack types exist, their candidate limbs and the maximum limbs per declaration. Dynamic policy (arcs, actuator prerequisites, fired-weapon restrictions, level differences, target checks) stays in the eligibility service.
 * **`GetRestriction` explains every supported type.** Punch, Kick and Push derive the restriction and the reaching limbs from the same private evaluation, so a null restriction always means the attack has at least one reaching limb apart from the one-attack-per-turn rule. The first failure wins; the melee order is generic validity, the DFA target immunity, water, level difference, arc, then limbs.
 * **`GetDeclarationRestriction` adds the declaration-only budget check.** It returns the intrinsic `GetRestriction` first and then reports `TargetAlreadyDisplaced` only for a displacement attack whose target is already reserved this turn. `CanResolve` and `HasAnyOption` are unchanged and never apply the budget, so a declaration that reserved the target can still resolve.
-* **Qualified by the physical-attack level and water decision ([#1685](https://github.com/anton-makarevich/MakaMek/issues/1685)).** A shared Core endpoint record (effective standing level, submersion, in-water) and a small attack-type water predicate are planned, but the Different-Levels table stays local to this policy and no new eligibility interface is introduced. Charge/DFA remain in `MovementAttackDeclarationValidator`. See [`Physical-Attack-Level-And-Water-Rules.md`](../architecture/Physical-Attack-Level-And-Water-Rules.md).
+* **Shared state predicates.** `IUnit.IsStanding` is the single "standing Mech" state, `IUnit.IsImmobile` the single "cannot act" state (a shutdown reactor, a missing or unconscious pilot, or the Mech's own immobility), and `PhysicalAttackTargetExtensions.GetPendingAttackRestriction` is the single target-side rule for a unit that is already performing a physical attack. The eligibility policy and the movement validator both use them; the separate attacker destroyed/prone gates were removed because `CanResolve` now covers the attacker state.
+* **Qualified by the physical-attack level and water decision ([#1685](https://github.com/anton-makarevich/MakaMek/issues/1685)).** The shared Core endpoint record and the attack-type water predicate (`PhysicalAttackEndpoint.IsWaterEligibleAgainst`) are implemented and consumed by the eligibility policy, the Charge/DFA validator and the resolution target selection. The Different-Levels table stays local to this policy and no new eligibility interface is introduced. Charge/DFA remain in `MovementAttackValidator`. See [`Physical-Attack-Level-And-Water-Rules.md`](../architecture/Physical-Attack-Level-And-Water-Rules.md).

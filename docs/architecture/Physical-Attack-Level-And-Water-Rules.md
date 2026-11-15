@@ -6,7 +6,7 @@ This document is the decision record for issue [#1685](https://github.com/anton-
 
 ## Status and scope
 
-- **In scope:** the duplicated endpoint facts (effective standing level, submersion, in-water) and the water/level rules used by `PhysicalAttackEligibility` (Punch, Kick, Push) and `MovementAttackDeclarationValidator` (Charge, DFA).
+- **In scope:** the duplicated endpoint facts (effective standing level, submersion, in-water) and the water/level rules used by `PhysicalAttackEligibility` (Punch, Kick, Push) and `MovementAttackValidator` (Charge, DFA).
 - **Out of scope:** Charge/DFA hit resolution, underwater damage halving (tracked by [#1503](https://github.com/anton-makarevich/MakaMek/issues/1503)), hull-breach resolution, and any change to the Different-Levels table itself.
 - The decision **qualifies** the [#1612](https://github.com/anton-makarevich/MakaMek/issues/1612) decision. It does not supersede it.
 
@@ -14,14 +14,16 @@ This document is the decision record for issue [#1685](https://github.com/anton-
 
 Physical-attack logic lives in `src/MakaMek.Core/Models/Game/Mechanics/PhysicalAttack/`.
 
-- `PhysicalAttackEligibility` is the replaceable, game-owned policy for the current board state. It resolves a private `UnitEndpoint(EffectiveStandingLevel, IsSubmerged, IsInWater)` from the map and applies:
+- `PhysicalAttackEligibility` is the replaceable, game-owned policy for the current board state. It resolves a `PhysicalAttackEndpoint(EffectiveStandingLevel, IsSubmerged, IsInWater)` from the map and applies:
   - Punch/Kick: a signed, height-adjusted Different-Levels table.
   - Push: exact equality of effective standing levels.
-  - A target-side water check for Punch, Kick and Push.
-- `MovementAttackDeclarationValidator` is a separate class with its own private `UnitEndpoint(StandingLevel, IsSubmerged)`. `MovementPhase` constructs it by default; `BattleTechPhaseManager` does not inject a replacement. It applies:
-  - Charge: the `From` position of the last translating segment (the **approach position**), `abs(target − approach) <= 1`, and the same submersion flag on both endpoints.
+  - The shared water predicate for Punch, Kick and Push.
+- `MovementAttackValidator` (formerly `MovementAttackDeclarationValidator`) is a separate class that now uses the same public endpoint record and the same water predicate. `MovementPhase` constructs it by default; `BattleTechPhaseManager` does not inject a replacement. It applies:
+  - Charge: the `From` position of the last translating segment (the **approach position**), `abs(target − approach) <= 1`, and the water predicate's same-submersion rule.
   - DFA: the attacker's start position, no level limit, rejection of any submerged endpoint, and a jump-clearance check.
-- Both services call `HexExtensions.GetLosEndpointInfo(surface, height)` from `src/MakaMek.Map/Models/HexExtensions.cs`. That helper returns the effective standing level and the submersion flag but not an in-water flag. Its airborne contract is written for line of sight, not for physical attacks.
+  - Resolution: `GetAttackerState` and `SelectResolutionTarget` expose the same rules to the phase, and `MovementAttackTargetSelector` applies the water predicate to the declared target and to any replacement.
+  - Attacker state: one rule, `CanMakeMovementAttack` (a standing, non-immobile Mech — no shutdown reactor and no missing or unconscious pilot). The declaration gate adds only the "has not moved or declared yet" conditions, so an immobile Mech cannot declare either attack; at resolution the same rule makes an immobile or prone DFA attacker a no-roll miss (`IsDfaAutoMiss`), while a charge in that state auto-fails.
+- Both services resolve endpoints through `IBattleMap.GetPhysicalAttackEndpoint(position, height)`, which uses `HexExtensions.GetLosEndpointInfo(surface, height)` from `src/MakaMek.Map/Models/HexExtensions.cs`. The endpoint record carries the in-water flag that only physical attacks need, and handles the airborne position.
 - Jump-jet availability per location is a separate rule in `JumpJets` / `UnitPart.IsSubmerged`, and it reads the stored `Unit.Hex`; the endpoint helpers read the map.
 
 Related documents:
@@ -245,23 +247,19 @@ These are recorded here for the maintainer to file as separate, reviewable GitHu
 ### Issue A — Extract the shared endpoint primitive (behaviour-preserving) — [#1697](https://github.com/anton-makarevich/MakaMek/issues/1697)
 
 - Add `PhysicalAttackEndpoint` and `PhysicalAttackEndpointExtensions` in `src/MakaMek.Core/Models/Game/Mechanics/PhysicalAttack/`.
-- Replace the private `UnitEndpoint`/`GetEndpoint` in `PhysicalAttackEligibility.cs` and in `MovementAttackDeclarationValidator.cs` with the shared record and extension.
+- Replace the private `UnitEndpoint`/`GetEndpoint` in `PhysicalAttackEligibility.cs` and in `MovementAttackValidator.cs` with the shared record and extension.
 - Use the signed raw level difference in both services. Keep the Punch/Kick height adjustment, the Push equal-level check and the Charge absolute limit local.
 - Add unit tests for the extension: ground in Depth 1 and Depth 2; a prone unit in Depth 1; a bridge over water; a missing hex; a map hex replaced after the unit deployed while `Unit.Hex` is non-null.
 - Acceptance: all existing `PhysicalAttackEligibility` and `MovementPhase` tests pass unchanged.
 
-### Issue B — Apply the canonical water predicate (behaviour-preserving for Charge)
+### Issue B — Apply the canonical water predicate — **implemented**
 
-- Add the shared predicate on the endpoint record, keyed by `PhysicalAttackType`, with the per-attack conditions in D4.
-- Use it in `PhysicalAttackEligibility` for the existing water check. Punch/Kick/Push behaviour must not change.
-- Use it in `IsChargeAllowed` and `IsDfaAllowed`. Charge keeps the symmetric rule: **do not** remove the equal-submersion check.
-- Keep `HandleCommand_WhenChargingFromSubmergedWater_ShouldRejectTheCharge` rejecting the charge; it expresses the confirmed rule.
-- Fix the confounded `HandleCommand_WhenTheChargeTargetIsSubmerged_ShouldRejectTheCharge` so the effective levels are equal or differ by one, isolating the water rule. Add cases for:
-  - both endpoints submerged (accept),
-  - a Depth 1 approach against a submerged target one level deeper (reject),
-  - a submerged approach against a surface target at an equal level (reject),
-  - both endpoints surface (accept),
-  - a bridge over water.
+- The shared predicate lives on `PhysicalAttackEndpoint` as `IsWaterEligibleAgainst(target, attackType)`, keyed by `PhysicalAttackType`, with the per-attack conditions in D4.
+- `PhysicalAttackEligibility` uses it for the Punch/Kick/Push water check; behaviour is unchanged.
+- `IsChargeAllowed` and `IsDfaAllowed` use it. Charge keeps the symmetric rule (both endpoints on the same side of the water line); DFA rejects a submerged endpoint.
+- `MovementAttackTargetSelector` uses it for the declared target and for a replacement, so the resolution phase no longer resolves a Charge/DFA against a target the declaration would reject.
+- Still open: the confounded `HandleCommand_WhenTheChargeTargetIsSubmerged_ShouldRejectTheCharge`. Its target hex has raw level 1 with Depth 2 water, so the level check alone rejects the charge; the test still passes as a rejection but does not isolate the water rule.
+- The declaration cases are covered by `HandleCommand_WhenBothEndpointsAreSubmergedAtTheSameEffectiveLevel_ShouldAcceptTheCharge` (accept), `HandleCommand_WhenTheApproachIsOneWaterDepthAboveASubmergedTarget_ShouldRejectTheCharge` (reject, with the dry `HandleCommand_WhenTheApproachIsOneDryLevelAboveTheTarget_ShouldAcceptTheCharge` as the control that proves the level difference and the path are legal), and `HandleCommand_WhenChargingFromSubmergedWaterAtTheSameEffectiveLevel_ShouldRejectTheCharge` (reject). Both surface endpoints are covered by the ordinary charge tests, a bridge over water by the endpoint tests, and the per-attack predicate itself by the `IsWaterEligibleAgainst` theory in `PhysicalAttackEndpointExtensionsTests`.
 - Keep the DFA target and attacker guards explicit; the shared predicate returns `false` for DFA.
 
 ### Issue C — Make the DFA guards explicit
@@ -274,7 +272,7 @@ These are recorded here for the maintainer to file as separate, reviewable GitHu
 
 ### Issue D — Make the movement validator replaceable (optional)
 
-- Inject `IMovementAttackDeclarationValidator` through the normal phase construction so a house rule can replace Charge/DFA validation.
+- Inject `IMovementAttackValidator` through the normal phase construction so a house rule can replace Charge/DFA validation.
 - This is the separate follow-up named in D6. It is not required for the shared primitive.
 
 ### Deferred / open questions
