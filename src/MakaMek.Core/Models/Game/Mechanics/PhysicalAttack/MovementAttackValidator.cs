@@ -12,8 +12,8 @@ namespace Sanet.MakaMek.Core.Models.Game.Mechanics.PhysicalAttack;
 /// The default Charge and DFA declaration policy (Total Warfare p. 148-149 and the physical attacks
 /// PRD, R6.1). A movement-origin declaration is valid only when:
 /// <list type="bullet">
-/// <item>the attacker is a standing, intact, non-shutdown Mech that has not moved or declared an
-/// attack yet;</item>
+/// <item>the attacker is a standing, intact Mech that is not immobile — no shutdown reactor and no
+/// missing or unconscious pilot — and has not moved or declared an attack yet;</item>
 /// <item>the attack is a Charge with Walk/Run movement or a DFA with Jump movement;</item>
 /// <item>the target is an enemy Mech that has already completed its movement, is not itself
 /// performing a Charge or DFA, and stands in the hex the path terminates in;</item>
@@ -129,9 +129,11 @@ public class MovementAttackValidator : IMovementAttackValidator
         MovementAttackTargetSelector.Select(attacker, declaration.TargetId, declaration.AttackType, units, map);
 
     /// <summary>
-    /// The attacker can still make a movement attack: standing, intact, not shut down, not immobile
-    /// and with a present, conscious pilot. Declaration time adds the "has not moved or declared
-    /// yet" conditions.
+    /// The attacker can still act: a standing, intact Mech that is not immobile — no shutdown
+    /// reactor and no missing or unconscious pilot. This is the single attacker-state rule shared
+    /// by the declaration gate and the resolution-time state: declaration adds the "has not moved
+    /// or declared yet" conditions, resolution adds the "still at the committed approach"
+    /// condition.
     /// </summary>
     private static bool CanMakeMovementAttack(IUnit attacker) =>
         IsStandingMech(attacker) && !attacker.IsImmobile;
@@ -161,18 +163,24 @@ public class MovementAttackValidator : IMovementAttackValidator
     }
 
     /// <summary>
-    /// An immobile DFA attacker — shut down, without a conscious pilot, or prone after a fall —
-    /// falls into the target hex without a to-hit roll instead of auto-failing; a fall does not
-    /// cancel the pending attack.
+    /// A DFA whose attacker can no longer act — prone after a fall, shut down or without a
+    /// conscious pilot — falls into the target hex without a to-hit roll instead of auto-failing;
+    /// a fall does not cancel the pending attack. It is the negation of the shared attacker-state
+    /// rule, so a state that blocks the declaration also turns a declared DFA into this miss. A
+    /// destroyed attacker has nothing left to place and is rejected before this rule.
     /// </summary>
-    private static bool IsDfaAutoMiss(IUnit attacker) =>
-        attacker.IsImmobile || attacker.IsProne;
+    private static bool IsDfaAutoMiss(IUnit attacker) => !CanMakeMovementAttack(attacker);
 
     private static MovementAttackDeclarationValidation Invalid() =>
         MovementAttackDeclarationValidation.Invalid(ErrorCode.ValidationFailed);
 
+    /// <summary>
+    /// The declaration gate reuses the shared attacker-state rule and adds only the conditions
+    /// that stop making sense once the move is taken: the unit must not have moved or declared an
+    /// attack yet.
+    /// </summary>
     private static bool IsValidAttacker(IUnit attacker) =>
-        IsStandingMech(attacker)
+        CanMakeMovementAttack(attacker)
         && attacker is { HasDeclaredPhysicalAttack: false, HasMoved: false };
 
     /// <summary>

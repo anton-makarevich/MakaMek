@@ -22,6 +22,7 @@ Physical-attack logic lives in `src/MakaMek.Core/Models/Game/Mechanics/PhysicalA
   - Charge: the `From` position of the last translating segment (the **approach position**), `abs(target − approach) <= 1`, and the water predicate's same-submersion rule.
   - DFA: the attacker's start position, no level limit, rejection of any submerged endpoint, and a jump-clearance check.
   - Resolution: `GetAttackerState` and `SelectResolutionTarget` expose the same rules to the phase, and `MovementAttackTargetSelector` applies the water predicate to the declared target and to any replacement.
+  - Attacker state: one rule, `CanMakeMovementAttack` (a standing, non-immobile Mech — no shutdown reactor and no missing or unconscious pilot). The declaration gate adds only the "has not moved or declared yet" conditions, so an immobile Mech cannot declare either attack; at resolution the same rule makes an immobile or prone DFA attacker a no-roll miss (`IsDfaAutoMiss`), while a charge in that state auto-fails.
 - Both services resolve endpoints through `IBattleMap.GetPhysicalAttackEndpoint(position, height)`, which uses `HexExtensions.GetLosEndpointInfo(surface, height)` from `src/MakaMek.Map/Models/HexExtensions.cs`. The endpoint record carries the in-water flag that only physical attacks need, and handles the airborne position.
 - Jump-jet availability per location is a separate rule in `JumpJets` / `UnitPart.IsSubmerged`, and it reads the stored `Unit.Hex`; the endpoint helpers read the map.
 

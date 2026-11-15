@@ -4490,6 +4490,48 @@ public class MovementPhaseTests : GamePhaseTestsBase
         attacker.DeclaredPhysicalAttack!.AttackType.ShouldBe(PhysicalAttackType.Punch);
     }
 
+    /// <summary>
+    /// An immobile Mech cannot declare a movement attack at all: the declaration gate shares the
+    /// attacker-state rule with resolution, so a standing but immobile Mech (here an unconscious
+    /// pilot) is rejected before the move instead of being accepted and auto-missing later.
+    /// </summary>
+    [Fact]
+    public void HandleCommand_WhenTheChargeAttackerIsImmobile_ShouldRejectTheDeclaration()
+    {
+        // Arrange
+        var (attacker, target, start, middle, end) = SetUpChargeOnTheMap();
+        ((MechWarrior)attacker.Pilot!).KnockUnconscious(1);
+        attacker.IsImmobile.ShouldBeTrue("an unconscious pilot makes the Mech immobile");
+        var idempotencyKey = Guid.NewGuid();
+        var command = MoveCommand(Game.PhaseStepState!.Value.ActivePlayer.Id,
+            [ClearStep(Position(start), Position(middle)), ClearStep(Position(middle), Position(end))],
+            MovementType.Walk, Charge(target.Id), idempotencyKey);
+
+        // Act & Assert
+        AssertDeclarationRejected(command, attacker, idempotencyKey);
+    }
+
+    [Fact]
+    public void HandleCommand_WhenTheDfaAttackerIsImmobile_ShouldRejectTheDeclaration()
+    {
+        // Arrange
+        var (attacker, target, start, middle, end) = SetUpChargeOnTheMap();
+        ((MechWarrior)attacker.Pilot!).KnockUnconscious(1);
+        attacker.IsImmobile.ShouldBeTrue("an unconscious pilot makes the Mech immobile");
+        var centerTorso = attacker.Parts[PartLocation.CenterTorso];
+        centerTorso.TryAddComponent(new JumpJets()).ShouldBeTrue();
+        centerTorso.TryAddComponent(new JumpJets()).ShouldBeTrue();
+        var idempotencyKey = Guid.NewGuid();
+        var command = MoveCommand(Game.PhaseStepState!.Value.ActivePlayer.Id,
+            [
+                new PathSegment(Position(start), Position(middle), [new JumpMovementCost { Value = 1 }]),
+                new PathSegment(Position(middle), Position(end), [new JumpMovementCost { Value = 1 }])
+            ], MovementType.Jump, Dfa(target.Id), idempotencyKey);
+
+        // Act & Assert
+        AssertDeclarationRejected(command, attacker, idempotencyKey);
+    }
+
     [Fact]
     public void HandleCommand_WhenThePathEndsWithAFacingChange_ShouldAcceptTheCharge()
     {

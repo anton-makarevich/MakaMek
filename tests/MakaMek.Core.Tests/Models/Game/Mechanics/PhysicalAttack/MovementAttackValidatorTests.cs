@@ -120,6 +120,33 @@ public class MovementAttackValidatorTests
             .ShouldBe(MovementAttackAttackerState.MustMiss);
     }
 
+    /// <summary>
+    /// An immobile DFA attacker resolves as a no-roll miss, exactly like a prone one, because the
+    /// shared attacker-state rule reports that it cannot act. A charge attacker in the same state
+    /// auto-fails instead, because a charge has no landing to fall into.
+    /// </summary>
+    [Fact]
+    public void GetAttackerState_ForAnUnconsciousPilotDfaAttacker_ReturnsMustMiss()
+    {
+        var attacker = CreateDeployedMech(_attackerPlayer, ApproachCoordinates);
+        CommitDfa(attacker);
+        ((MechWarrior)attacker.Pilot!).KnockUnconscious(1);
+
+        _sut.GetAttackerState(attacker, DfaDeclaration)
+            .ShouldBe(MovementAttackAttackerState.MustMiss);
+    }
+
+    [Fact]
+    public void GetAttackerState_ForAnUnconsciousPilotChargeAttacker_ReturnsCannotAttack()
+    {
+        var attacker = CreateDeployedMech(_attackerPlayer, ApproachCoordinates);
+        CommitCharge(attacker);
+        ((MechWarrior)attacker.Pilot!).KnockUnconscious(1);
+
+        _sut.GetAttackerState(attacker, ChargeDeclaration)
+            .ShouldBe(MovementAttackAttackerState.CannotAttack);
+    }
+
     [Fact]
     public void GetAttackerState_ForADfaPushedOutOfItsApproach_ReturnsCannotAttack()
     {
