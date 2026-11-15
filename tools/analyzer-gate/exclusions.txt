@@ -1,0 +1,34 @@
+# Analyzer-gate allowlist (issue #1714).
+#
+# One `path:RULE` per line. A finding on that file with that rule is reported as "excluded"
+# instead of failing the gate. Everything else must be fixed or refactored.
+#
+# Rules for adding an entry:
+#   * it must be a pre-existing finding on a type whose public contract cannot change, and
+#   * the comment must name the measured value and why it cannot be reduced here.
+#
+# Do NOT use this file for new debt, and never add #pragma warning disable / [SuppressMessage].
+#
+# ---------------------------------------------------------------------------------------------
+# Hard cases: types whose CA1506 class coupling cannot reach <= 40 under the current public
+# contract. CA1506 counts every type referenced by the type's own declaration, including the
+# members it implements, so each of these carries a large, test/UI-pinned surface.
+#
+# Unit (75): implements IUnit. Its floor is the IUnit surface + 1 (measured: IUnit itself is at
+# the threshold), so <= 40 is unreachable without cutting the interface every UI state, bot and
+# test consumes. The method-level complexity (ApplyCriticalHits) is fixed.
+src/MakaMek.Core/Models/Units/Unit.cs:CA1506
+#
+# BaseGame (102): its ~25 internal OnXxx command handlers are invoked directly by the tests, so
+# their command-payload signatures cannot move off the class without touching test sources.
+src/MakaMek.Core/Models/Game/BaseGame.cs:CA1506
+#
+# ClientGame (70): ~15 constructor-injected services (constructor pinned by tests) + the 14
+# public client-command methods on IClientGame, each owning a payload type. The dispatch logic
+# has been extracted; the remaining references are the frozen interface.
+src/MakaMek.Core/Models/Game/ClientGame.cs:CA1506
+#
+# BattleMapViewModel (142): the public bindable surface is consumed by the AXAML views through
+# compiled bindings, and ProcessCommand dispatches those same command types.
+src/MakaMek.Presentation/ViewModels/BattleMapViewModel.cs:CA1506
+src/MakaMek.Presentation/ViewModels/BattleMapViewModel.cs:CA1502

@@ -51,9 +51,10 @@ description = "Updates the Cognee MCP server to the latest version"
 run = "uv tool upgrade -p 3.13 cognee-mcp"
 
 [tasks.analyzer-gate]
-description = "Runs the baseline-aware, diff-scoped .NET analyzer gate on changed C# files (vs origin/main, or explicit files)"
+description = "Runs the zero-tolerance, diff-scoped .NET analyzer gate on changed C# files (vs origin/main, or explicit files; allowlist in tools/analyzer-gate/exclusions.txt)"
 run = "dotnet run tools/analyzer-gate/AnalyzerGate.cs --"
 
 [tasks.test-architecture]
 description = "Runs the ArchUnitNET architecture test suite"
 run = "dotnet test tests/MakaMek.Architecture.Tests/MakaMek.Architecture.Tests.csproj"
+

@@ -1,24 +1,17 @@
-// Baseline-aware, diff-scoped analyzer gate (issue #1714).
+// Diff-scoped analyzer gate (issue #1714).
 //
-// Only the C# files changed against a base ref (default: origin/main) are
-// analyzed, and the gate fails only on diagnostics that are NEW relative to the
-// merge-base. Pre-existing debt is reported as "baselined" instead of failing,
-// which is what AGENTS.md promises and what the plain
-// `dotnet format analyzers --include <changed files>` invocation could not do
-// (it reports every finding in a touched file).
+// Analyzes only the C# files changed against a base ref (default: origin/main) in the reusable
+// library projects, and fails when any analyzer finding remains after applying the explicit
+// allowlist in tools/analyzer-gate/exclusions.txt.
 //
-// How it works: the exact same `dotnet format analyzers` command is run twice -
-// once in the working tree and once in a source snapshot of the merge-base
-// (created with `git archive`, so no git metadata and no other checkout is
-// touched). Diagnostics are keyed by (file, rule id, message) rather than by
-// line number, so moving code around does not resurrect old findings, while a
-// genuinely new finding - including a finding whose measured complexity or
-// coupling got worse - has a different message and therefore counts as new.
-// Pure renames are compared against the file's merge-base path, so renaming a
-// file does not resurrect its pre-existing findings.
+// The allowlist is deliberately tiny: it exists only for findings that cannot be fixed without
+// changing a public contract that this repository's tests or views pin (for example the class
+// coupling of a type that implements a large public interface). Every entry must name a reason.
+// Everything else must be fixed or refactored - do not add #pragma warning disable or
+// [SuppressMessage] to work around the gate.
 //
-// This is a .NET file-based app so the gate behaves identically in CI (Ubuntu)
-// and on Windows, without depending on bash, jq or a specific shell.
+// This is a .NET file-based app so the gate behaves identically in CI (Ubuntu) and on Windows,
+// without depending on bash, jq or a specific shell.
 //
 // Usage:
 //   mise run analyzer-gate
@@ -26,19 +19,18 @@
 //   mise run analyzer-gate -- src/path/File.cs
 //
 // Environment:
-//   ANALYZER_BASE            git ref to diff against (default: origin/main)
-//   ANALYZER_GATE_KEEP_TEMP  set to 1 to keep the snapshot/report directories
+//   ANALYZER_BASE  git ref to diff against (default: origin/main)
+//   ANALYZER_GATE_KEEP_REPORT  set to 1 to keep the report directories
 
 using System.Diagnostics;
-using System.Formats.Tar;
 using System.Text.Json;
-using System.Text.RegularExpressions;
 
 namespace AnalyzerGate;
 
 internal static class Program
 {
     private const string DefaultBase = "origin/main";
+    private const string ExclusionsFile = "tools/analyzer-gate/exclusions.txt";
 
     private static readonly string[] AnalyzedProjectPrefixes =
     [
@@ -50,12 +42,6 @@ internal static class Program
         "src/MakaMek.Localization/",
         "src/MakaMek.Bots/"
     ];
-
-    // Rules whose message carries the measured value ("coupled with '75' types",
-    // "complexity of '26'", "Cognitive Complexity from 26"). For these, a finding only counts
-    // as new when the measured value got worse than the baseline, not when it improved.
-    private static readonly HashSet<string> MetricRules =
-        new(StringComparer.Ordinal) { "CA1501", "CA1502", "CA1505", "CA1506", "S3776" };
 
     private static int Main(string[] args)
     {
@@ -71,13 +57,7 @@ internal static class Program
             return 1;
         }
 
-        var mergeBase = Capture("git", ["merge-base", baseRef, "HEAD"], repoRoot).Trim();
-        if (mergeBase.Length == 0)
-        {
-            return Fail($"could not determine the merge-base of '{baseRef}' and HEAD");
-        }
-
-        Console.WriteLine($"Analyzer baseline: {baseRef} ({mergeBase})");
+        Console.WriteLine($"Analyzer gate: diff against {baseRef}");
 
         var status = 0;
         var explicitFiles = new List<string>();
@@ -95,7 +75,6 @@ internal static class Program
         }
 
         List<string> changedFiles;
-        Dictionary<string, string> renamedFrom = new(StringComparer.Ordinal);
         if (explicitFiles.Count > 0)
         {
             changedFiles = explicitFiles;
@@ -104,12 +83,10 @@ internal static class Program
         {
             configChanged = ChangedFiles(repoRoot, baseRef, "CodeMetricsConfig.txt").Count > 0;
             changedFiles = ChangedFiles(repoRoot, baseRef, "*.cs");
-            renamedFrom = RenamedFiles(repoRoot, baseRef, "*.cs");
         }
 
-        // CA1509 (invalid CodeMetricsConfig.txt entry) is reported on the config
-        // file, so it cannot be filtered with `--include`; promote it to an error
-        // while validating.
+        // CA1509 (invalid CodeMetricsConfig.txt entry) is reported on the config file, so it
+        // cannot be filtered with `--include`; promote it to an error while validating.
         if (configChanged)
         {
             Console.WriteLine("CodeMetricsConfig.txt changed; validating CA1509...");
@@ -138,6 +115,10 @@ internal static class Program
             return status;
         }
 
+        var exclusions = ReadExclusions(repoRoot);
+        var excluded = new List<Finding>();
+        var failures = new List<Finding>();
+
         var workDirectory = CreateWorkDirectory();
         if (workDirectory is null)
         {
@@ -146,12 +127,6 @@ internal static class Program
 
         try
         {
-            var snapshot = Path.Combine(workDirectory, "baseline-src");
-            if (!CreateSnapshot(repoRoot, mergeBase, snapshot))
-            {
-                return 1;
-            }
-
             var index = 0;
             foreach (var (project, files) in projects)
             {
@@ -164,55 +139,23 @@ internal static class Program
 
                 if (!AnalyzeProject(
                         repoRoot, project, files,
-                        Path.Combine(workDirectory, $"current-{index}"),
-                        "the working tree", out var current))
+                        Path.Combine(workDirectory, $"report-{index}"),
+                        out var findings))
                 {
                     return 1;
                 }
 
-                // Files that do not exist at the merge-base are new: every
-                // finding on them is new by definition, so they are omitted
-                // from the baseline run instead of being compared. Renamed
-                // files are compared against their old path so a pure rename
-                // keeps the pre-existing findings baselined.
-                var baselinePaths = new List<string>();
-                var baselinePathMap = new Dictionary<string, string>(StringComparer.Ordinal);
-                foreach (var file in files)
+                foreach (var finding in findings)
                 {
-                    var baselinePath = renamedFrom.GetValueOrDefault(file, file);
-                    if (!File.Exists(Path.Combine(snapshot, baselinePath)))
+                    if (exclusions.IsExcluded(finding))
                     {
-                        continue;
+                        excluded.Add(finding);
                     }
-                    baselinePaths.Add(baselinePath);
-                    baselinePathMap[baselinePath] = file;
-                }
-
-                var baseline = new List<Finding>();
-                if (File.Exists(Path.Combine(snapshot, project)) && baselinePaths.Count > 0)
-                {
-                    if (!AnalyzeProject(
-                            snapshot, project, baselinePaths,
-                            Path.Combine(workDirectory, $"baseline-{index}"),
-                            mergeBase, out baseline, baselinePathMap))
+                    else
                     {
-                        return 1;
+                        failures.Add(finding);
                     }
                 }
-
-                var (newFindings, baselined) = Subtract(current, baseline);
-                if (newFindings.Count == 0)
-                {
-                    Console.WriteLine($"No new analyzer findings in {project} ({baselined} pre-existing baselined).");
-                    continue;
-                }
-
-                Console.WriteLine($"New analyzer findings in {project} ({baselined} pre-existing baselined):");
-                foreach (var finding in newFindings)
-                {
-                    Console.WriteLine($"  {finding.File}({finding.Line}): {finding.Rule} {finding.Message}");
-                }
-                status = 1;
             }
         }
         finally
@@ -220,7 +163,28 @@ internal static class Program
             Cleanup(workDirectory);
         }
 
-        return status;
+        if (excluded.Count > 0)
+        {
+            Console.WriteLine($"Excluded by {ExclusionsFile} ({excluded.Count}):");
+            foreach (var finding in excluded)
+            {
+                Console.WriteLine($"  {finding.File}({finding.Line}): {finding.Rule} {finding.Message}");
+            }
+        }
+
+        if (failures.Count == 0)
+        {
+            Console.WriteLine("No analyzer findings outside the allowlist.");
+            return status;
+        }
+
+        Console.WriteLine($"Analyzer findings outside the allowlist ({failures.Count}):");
+        foreach (var finding in failures)
+        {
+            Console.WriteLine($"  {finding.File}({finding.Line}): {finding.Rule} {finding.Message}");
+        }
+
+        return 1;
     }
 
     private static string? ResolveBase(string repoRoot)
@@ -254,28 +218,6 @@ internal static class Program
         output.AddRange(Lines(Capture("git", ["diff", "--name-only", "--diff-filter=ACMR", "HEAD", "--", pathSpec], repoRoot)));
         output.AddRange(Lines(Capture("git", ["ls-files", "--others", "--exclude-standard", "--", pathSpec], repoRoot)));
         return output.Select(NormalizePath).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToList();
-    }
-
-    // Maps a renamed file's current path to its path at the merge-base.
-    private static Dictionary<string, string> RenamedFiles(string repoRoot, string baseRef, string pathSpec)
-    {
-        var renames = new Dictionary<string, string>(StringComparer.Ordinal);
-        foreach (var arguments in new[]
-                 {
-                     new[] { "diff", "-M", "--name-status", $"{baseRef}...HEAD", "--", pathSpec },
-                     new[] { "diff", "-M", "--name-status", "HEAD", "--", pathSpec }
-                 })
-        {
-            foreach (var line in Lines(Capture("git", arguments, repoRoot)))
-            {
-                var columns = line.Split('\t');
-                if (columns.Length == 3 && columns[0].StartsWith('R'))
-                {
-                    renames[NormalizePath(columns[2])] = NormalizePath(columns[1]);
-                }
-            }
-        }
-        return renames;
     }
 
     private static SortedDictionary<string, List<string>>? GroupByProject(string repoRoot, List<string> files)
@@ -350,37 +292,12 @@ internal static class Program
         }
     }
 
-    private static bool CreateSnapshot(string repoRoot, string mergeBase, string destination)
-    {
-        Directory.CreateDirectory(destination);
-        var archive = Path.Combine(Path.GetDirectoryName(destination)!, "baseline.tar");
-        var git = Run("git", ["archive", "--format=tar", "-o", archive, mergeBase], repoRoot);
-        if (git.ExitCode != 0)
-        {
-            Fail("could not archive the merge-base revision");
-            return false;
-        }
-
-        try
-        {
-            TarFile.ExtractToDirectory(archive, destination, overwriteFiles: true);
-            return true;
-        }
-        catch (Exception exception)
-        {
-            Fail($"could not extract the merge-base snapshot: {exception.Message}");
-            return false;
-        }
-    }
-
     private static bool AnalyzeProject(
-        string runRoot,
+        string repoRoot,
         string project,
         List<string> files,
         string reportDirectory,
-        string revisionLabel,
-        out List<Finding> findings,
-        IReadOnlyDictionary<string, string>? pathMap = null)
+        out List<Finding> findings)
     {
         findings = [];
         Directory.CreateDirectory(reportDirectory);
@@ -396,19 +313,19 @@ internal static class Program
         arguments.AddRange(["--report", reportDirectory, "--verbosity", "quiet"]);
 
         var log = Path.Combine(reportDirectory, "analyzer.log");
-        var result = Run("dotnet", arguments, runRoot, log);
+        var result = Run("dotnet", arguments, repoRoot, log);
         if (result.ExitCode != 0 && result.ExitCode != 2)
         {
             Console.Error.WriteLine($"{result.StandardOutput}{result.StandardError}");
-            Fail($"analyzer run failed for {project} ({revisionLabel})");
+            Fail($"analyzer run failed for {project}");
             return false;
         }
 
-        findings = ReadReport(Path.Combine(reportDirectory, "format-report.json"), pathMap);
+        findings = ReadReport(Path.Combine(reportDirectory, "format-report.json"));
         return true;
     }
 
-    private static List<Finding> ReadReport(string reportPath, IReadOnlyDictionary<string, string>? pathMap)
+    private static List<Finding> ReadReport(string reportPath)
     {
         var findings = new List<Finding>();
         if (!File.Exists(reportPath))
@@ -420,10 +337,6 @@ internal static class Program
         foreach (var sourceFile in document.RootElement.EnumerateArray())
         {
             var path = Relativize(sourceFile.GetProperty("FilePath").GetString() ?? string.Empty);
-            if (pathMap is not null && pathMap.TryGetValue(path, out var mappedPath))
-            {
-                path = mappedPath;
-            }
             if (!sourceFile.TryGetProperty("FileChanges", out var changes))
             {
                 continue;
@@ -437,8 +350,7 @@ internal static class Program
                 var message = change.TryGetProperty("FormatDescription", out var messageElement)
                     ? messageElement.GetString() ?? string.Empty
                     : string.Empty;
-                // FormatDescription is prefixed with "warning <rule>: "; drop that
-                // so the key and the printed line contain only the message.
+                // FormatDescription is prefixed with "warning <rule>: "; drop that.
                 var prefix = $"warning {rule}: ";
                 if (message.StartsWith(prefix, StringComparison.Ordinal))
                 {
@@ -455,51 +367,31 @@ internal static class Program
         return findings;
     }
 
-    private static (List<Finding> New, int Baselined) Subtract(List<Finding> current, List<Finding> baseline)
+    private static Exclusions ReadExclusions(string repoRoot)
     {
-        var baselineMetrics = new Dictionary<string, int>(StringComparer.Ordinal);
-        var baselineCounts = new Dictionary<string, int>(StringComparer.Ordinal);
-        foreach (var finding in baseline)
+        var entries = new HashSet<(string File, string Rule)>();
+        var path = Path.Combine(repoRoot, ExclusionsFile);
+        if (!File.Exists(path))
         {
-            if (finding.HasMetric)
-            {
-                baselineMetrics[finding.Key] =
-                    Math.Max(baselineMetrics.GetValueOrDefault(finding.Key), finding.Metric);
-            }
-            else
-            {
-                baselineCounts[finding.Key] = baselineCounts.GetValueOrDefault(finding.Key) + 1;
-            }
+            return new Exclusions(entries);
         }
 
-        var newFindings = new List<Finding>();
-        var baselined = 0;
-        foreach (var finding in current)
+        foreach (var rawLine in File.ReadLines(path))
         {
-            if (finding.HasMetric)
+            var line = rawLine.Trim();
+            if (line.Length == 0 || line.StartsWith('#')) continue;
+
+            var columns = line.Split(':', 2);
+            if (columns.Length != 2 || columns[0].Length == 0 || columns[1].Length == 0)
             {
-                // A metric finding is new only when it is missing from the baseline or got worse.
-                if (baselineMetrics.TryGetValue(finding.Key, out var baselineMetric)
-                    && finding.Metric <= baselineMetric)
-                {
-                    baselined++;
-                    continue;
-                }
-                newFindings.Add(finding);
+                Console.Error.WriteLine($"WARNING: ignoring invalid exclusion line '{line}' in {ExclusionsFile}");
                 continue;
             }
 
-            if (baselineCounts.GetValueOrDefault(finding.Key) > 0)
-            {
-                baselineCounts[finding.Key]--;
-                baselined++;
-                continue;
-            }
-
-            newFindings.Add(finding);
+            entries.Add((NormalizePath(columns[0].Trim()), columns[1].Trim()));
         }
 
-        return (newFindings, baselined);
+        return new Exclusions(entries);
     }
 
     private static string Relativize(string path)
@@ -549,9 +441,9 @@ internal static class Program
 
     private static void Cleanup(string workDirectory)
     {
-        if (Environment.GetEnvironmentVariable("ANALYZER_GATE_KEEP_TEMP") == "1")
+        if (Environment.GetEnvironmentVariable("ANALYZER_GATE_KEEP_REPORT") == "1")
         {
-            Console.WriteLine($"Artifacts kept in {workDirectory}");
+            Console.WriteLine($"Reports kept in {workDirectory}");
             return;
         }
 
@@ -571,21 +463,13 @@ internal static class Program
         return 1;
     }
 
-    private sealed record Finding(string File, int Line, string Rule, string Message)
-    {
-        public bool HasMetric => MetricRules.Contains(Rule);
-
-        public int Metric
-        {
-            get
-            {
-                var match = Regex.Match(Message, @"\d+");
-                return match.Success && int.TryParse(match.Value, out var value) ? value : int.MaxValue;
-            }
-        }
-
-        public string Key => $"{File}\u0001{Rule}\u0001{Regex.Replace(Message, @"\d+", "#")}";
-    }
+    private sealed record Finding(string File, int Line, string Rule, string Message);
 
     private sealed record ProcessResult(int ExitCode, string StandardOutput, string StandardError);
+
+    private sealed class Exclusions(HashSet<(string File, string Rule)> entries)
+    {
+        public bool IsExcluded(Finding finding) => entries.Contains((finding.File, finding.Rule));
+    }
 }
+
