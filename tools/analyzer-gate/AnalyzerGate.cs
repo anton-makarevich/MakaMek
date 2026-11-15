@@ -423,8 +423,8 @@ internal static class Program
         // that keeps literals and only removes comments.
         var argumentsCode = MaskComments(source);
         var lines = ReadLines(code);
-        var declarations = FindDeclarations(lines);
         var types = FindTypeDeclarations(lines);
+        var declarations = FindDeclarations(lines, types);
         var (fileNamespace, namespaces) = FindNamespaces(lines);
         var constants = FindConstantDeclarations(lines, types, fileNamespace, namespaces);
 
@@ -628,8 +628,9 @@ internal static class Program
                 .Select(type => type.Name));
 
     /// <summary>
-    /// Every <c>const string</c> declaration in the file with the namespace and the type path that
-    /// declare it, so a qualified reference can be bound to the right one.
+    /// Every <c>const string</c> declared directly as a type member, with the namespace and the type
+    /// path that declare it. Local constants inside methods are not members and cannot be reached by
+    /// an unqualified attribute reference, so they are not indexed.
     /// </summary>
     private static List<ConstantDeclaration> FindConstantDeclarations(
         IReadOnlyList<SourceLine> lines,
@@ -642,6 +643,7 @@ internal static class Program
         {
             var constant = ConstantDeclarationPattern.Match(line.Text);
             if (!constant.Success) continue;
+            if (!IsDirectTypeMember(line, types)) continue;
 
             var typePath = TypePathAt(types, line.Offset, line.Depth);
             if (typePath.Length == 0) continue;
@@ -779,9 +781,10 @@ internal static class Program
         if (scope == NoDeclaration) return null;
 
         var lines = ReadLines(MaskLiteralsAndComments(source));
+        var types = FindTypeDeclarations(lines);
         for (var index = 0; index < lines.Count; index++)
         {
-            if (DeclarationKey(lines[index].Text) == scope) return index + 1;
+            if (DeclarationKey(lines[index], types) == scope) return index + 1;
         }
 
         return null;
@@ -1036,29 +1039,83 @@ internal static class Program
         return lines;
     }
 
-    private static List<Declaration> FindDeclarations(IReadOnlyList<SourceLine> lines)
+    private static List<Declaration> FindDeclarations(
+        IReadOnlyList<SourceLine> lines,
+        IReadOnlyList<TypeDeclaration> types)
     {
         var declarations = new List<Declaration>();
         foreach (var line in lines)
         {
-            var key = DeclarationKey(line.Text);
+            var key = DeclarationKey(line, types);
             if (key is not null) declarations.Add(new Declaration(line.Offset, line.Depth, key));
         }
 
         return declarations;
     }
 
-    private static string? DeclarationKey(string line)
+    /// <summary>
+    /// The stable identity of a declaration: its namespace-qualified type path, the member name and
+    /// the member's parameter list. The type path and the signature keep a suppression attributable
+    /// to one member, so moving it between same-named members or between overloads is detected.
+    /// Locals (including local constants) are not declarations a suppression can cover.
+    /// </summary>
+    private static string? DeclarationKey(SourceLine line, IReadOnlyList<TypeDeclaration> types)
     {
-        var trimmed = line.TrimStart();
+        var trimmed = line.Text.TrimStart();
         if (trimmed.Length == 0) return null;
 
         var typeMatch = TypeDeclarationPattern.Match(trimmed);
-        if (typeMatch.Success) return $"type:{typeMatch.Groups["name"].Value}";
+        if (typeMatch.Success)
+        {
+            var path = JoinPath(TypePathAt(types, line.Offset, line.Depth), typeMatch.Groups["name"].Value);
+            return $"type:{path}";
+        }
 
         var memberMatch = MemberDeclarationPattern.Match(trimmed);
-        return memberMatch.Success ? $"member:{memberMatch.Groups["name"].Value}" : null;
+        if (!memberMatch.Success) return null;
+        if (!IsDirectTypeMember(line, types)) return null;
+
+        var typePath = TypePathAt(types, line.Offset, line.Depth);
+        if (typePath.Length == 0) return null;
+
+        var name = memberMatch.Groups["name"].Value;
+        return $"member:{typePath}.{name}{MemberSignature(trimmed, memberMatch)}";
     }
+
+    /// <summary>
+    /// Whether the line is declared directly in a type body (a field, method or property) rather than
+    /// inside a method or a nested scope, where a suppression cannot target it.
+    /// </summary>
+    private static bool IsDirectTypeMember(SourceLine line, IReadOnlyList<TypeDeclaration> types)
+    {
+        var enclosingDepth = types
+            .Where(type => type.Offset < line.Offset && line.Offset < type.End && type.Depth < line.Depth)
+            .Select(type => type.Depth)
+            .DefaultIfEmpty(-1)
+            .Max();
+
+        return enclosingDepth >= 0 && line.Depth == enclosingDepth + 1;
+    }
+
+    /// <summary>
+    /// The member's parameter list, whitespace-free, so overloads get distinct identities.
+    /// </summary>
+    private static string MemberSignature(string line, Match memberMatch)
+    {
+        var nameEnd = memberMatch.Groups["name"].Index + memberMatch.Groups["name"].Length;
+        if (nameEnd >= line.Length) return string.Empty;
+
+        var rest = line[nameEnd..];
+        var open = rest.IndexOf('(');
+        if (open < 0) return string.Empty;
+
+        var close = rest.IndexOf(')', open);
+        var parameters = close >= 0 ? rest[open..(close + 1)] : rest[open..];
+        return new string(parameters.Where(character => !char.IsWhiteSpace(character)).ToArray());
+    }
+
+    private static string JoinPath(string prefix, string name) =>
+        prefix.Length == 0 ? name : $"{prefix}.{name}";
 
     private static List<(string Rule, int Start, int End, int Depth)> FindPragmaRegions(
         IReadOnlyList<SourceLine> lines,

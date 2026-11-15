@@ -55,7 +55,7 @@ public class SuppressionScanTests
 
         var scopes = Program.SuppressionScopes(source);
 
-        scopes.ShouldContainKey(("CA1506", "member:Run"));
+        scopes.ShouldContainKey(("CA1506", "member:Example.Run()"));
     }
 
     [Fact]
@@ -87,11 +87,11 @@ public class SuppressionScanTests
 
         var scopes = Program.SuppressionScopes(source);
 
-        scopes.ShouldContainKey(("CA1501", "member:Run"));
-        scopes.ShouldContainKey(("CA1502", "member:Run"));
-        scopes.ShouldContainKey(("CA1505", "member:Run"));
-        scopes.ShouldContainKey(("CA1506", "member:Run"));
-        scopes.ShouldContainKey(("S3776", "member:Run"));
+        scopes.ShouldContainKey(("CA1501", "member:Example.Run()"));
+        scopes.ShouldContainKey(("CA1502", "member:Example.Run()"));
+        scopes.ShouldContainKey(("CA1505", "member:Example.Run()"));
+        scopes.ShouldContainKey(("CA1506", "member:Example.Run()"));
+        scopes.ShouldContainKey(("S3776", "member:Example.Run()"));
     }
 
     [Fact]
@@ -118,7 +118,7 @@ public class SuppressionScanTests
 
         var failures = Program.FindNewSuppressionsIn("Example.cs", baseline, current);
 
-        failures.ShouldHaveSingleItem().ShouldContain("member:Second");
+        failures.ShouldHaveSingleItem().ShouldContain("member:Example.Second");
     }
 
     [Fact]
@@ -144,7 +144,7 @@ public class SuppressionScanTests
 
         var failures = Program.FindNewSuppressionsIn("Example.cs", baseline, current);
 
-        failures.ShouldHaveSingleItem().ShouldContain("member:Second");
+        failures.ShouldHaveSingleItem().ShouldContain("member:Example.Second");
     }
 
     [Fact]
@@ -173,7 +173,7 @@ public class SuppressionScanTests
 
         var failures = Program.FindNewSuppressionsIn("Example.cs", baseline, current);
 
-        failures.ShouldHaveSingleItem().ShouldContain("member:Second");
+        failures.ShouldHaveSingleItem().ShouldContain("member:Example.Second");
     }
 
     [Fact]
@@ -232,7 +232,7 @@ public class SuppressionScanTests
 
         var scopes = Program.SuppressionScopes(source);
 
-        scopes.ShouldContainKey(("S3776", "member:Run"));
+        scopes.ShouldContainKey(("S3776", "member:Example.Run()"));
     }
 
     [Fact]
@@ -659,6 +659,93 @@ public class SuppressionScanTests
         var failures = Program.FindNewSuppressionsIn("Example.cs", baseline, current);
 
         failures.ShouldHaveSingleItem().ShouldContain("CA1506");
+    }
+
+    [Fact]
+    public void FindNewSuppressionsIn_LocalConstantInsideMethod_IsNotAnAttributeCandidate()
+    {
+        const string source = """
+            using static External.RuleIds;
+
+            public class Example
+            {
+                public void Other()
+                {
+                    const string Id = "CA1822:Avoid unnecessary code";
+                }
+
+                [System.Diagnostics.CodeAnalysis.SuppressMessage("Maintainability", Id)]
+                public void Run() { }
+            }
+            """;
+
+        var failures = Program.FindNewSuppressionsIn("Example.cs", null, source);
+
+        failures.ShouldHaveSingleItem().ShouldContain("cannot be resolved");
+    }
+
+    [Fact]
+    public void FindNewSuppressionsIn_MovedSuppressionBetweenTypesWithTheSameMemberName_Fails()
+    {
+        const string baseline = """
+            public class A
+            {
+            #pragma warning disable S3776
+                public void Run() { }
+            #pragma warning restore S3776
+            }
+
+            public class B
+            {
+                public void Run() { }
+            }
+            """;
+        const string current = """
+            public class A
+            {
+                public void Run() { }
+            }
+
+            public class B
+            {
+            #pragma warning disable S3776
+                public void Run() { }
+            #pragma warning restore S3776
+            }
+            """;
+
+        var failures = Program.FindNewSuppressionsIn("Example.cs", baseline, current);
+
+        failures.ShouldHaveSingleItem().ShouldContain("member:B.Run");
+    }
+
+    [Fact]
+    public void FindNewSuppressionsIn_MovedSuppressionBetweenOverloads_Fails()
+    {
+        const string baseline = """
+            public class Example
+            {
+            #pragma warning disable S3776
+                public void Run(int value) { }
+            #pragma warning restore S3776
+
+                public void Run(string value) { }
+            }
+            """;
+        const string current = """
+            public class Example
+            {
+                public void Run(int value) { }
+
+            #pragma warning disable S3776
+                public void Run(string value) { }
+            #pragma warning restore S3776
+            }
+            """;
+
+        var failures = Program.FindNewSuppressionsIn("Example.cs", baseline, current);
+
+        failures.ShouldHaveSingleItem().ShouldContain("member:Example.Run(stringvalue)");
     }
 
     [Fact]
