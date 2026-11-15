@@ -72,7 +72,16 @@ internal static class Program
         RegexOptions.CultureInvariant);
 
     private static readonly Regex RuleIdInAttributePattern =
-        new("\"((?:CA|S)\\d{4})[:\"]", RegexOptions.CultureInvariant);
+        new(@"^(?<id>(?:CA|S)\d{4})(?::|$)", RegexOptions.CultureInvariant);
+
+    private static readonly Regex IdentifierPattern =
+        new("[A-Za-z_][A-Za-z0-9_]*", RegexOptions.CultureInvariant);
+
+    private static readonly Regex WhitespacePattern =
+        new(@"\s+", RegexOptions.CultureInvariant);
+
+    private static readonly HashSet<string> NonIdentifierKeywords =
+        new(["const", "string", "null", "true", "false", "nameof", "typeof", "default"], StringComparer.Ordinal);
 
     /// <summary>
     /// A <c>#pragma warning disable|restore</c> directive. The <c>#</c> and the directive name may be
@@ -361,11 +370,21 @@ internal static class Program
             var baselineCount = baseline.TryGetValue((rule, scope), out var known) ? known : 0;
             if (count <= baselineCount) continue;
 
-            failures.Add(rule == NonLiteralRule
-                ? $"{file} adds a suppression with a non-literal rule argument covering {scope}. Use a single string literal so the gate can verify it."
-                : baselineCount == 0
-                    ? $"{file} adds a new {rule} suppression covering {scope}. Fix the finding instead of suppressing it."
-                    : $"{file} adds another {rule} suppression covering {scope} (base: {baselineCount}, now: {count}). Fix the finding instead of suppressing it.");
+            if (rule.StartsWith(NonLiteralRule, StringComparison.Ordinal))
+            {
+                var expression = rule[(NonLiteralRule.Length + 1)..];
+                var separator = expression.IndexOf('|');
+                if (separator >= 0) expression = expression[..separator];
+
+                failures.Add(
+                    $"{file} adds a suppression with a non-literal rule argument `{expression}` covering {scope}. " +
+                    "Use a single string literal so the gate can verify it.");
+                continue;
+            }
+
+            failures.Add(baselineCount == 0
+                ? $"{file} adds a new {rule} suppression covering {scope}. Fix the finding instead of suppressing it."
+                : $"{file} adds another {rule} suppression covering {scope} (base: {baselineCount}, now: {count}). Fix the finding instead of suppressing it.");
         }
 
         return failures;
@@ -418,19 +437,22 @@ internal static class Program
         foreach (var attribute in FindSuppressMessageAttributes(code, argumentsCode))
         {
             var scope = ScopeAfter(declarations, attribute.End);
-            var (nonLiteral, ruleLiteral) = ReadRuleArgument(attribute.Arguments);
-            if (nonLiteral)
+            var ruleArgument = ReadRuleArgument(attribute.Arguments);
+            if (ruleArgument is null) continue;
+
+            if (!TryDecodeStringLiteral(ruleArgument, out var ruleLiteral))
             {
-                Increment(scopes, NonLiteralRule, scope);
+                // A non-literal rule argument can name any rule once evaluated, so its identity is the
+                // expression itself plus the constants it references: editing either one fails the gate.
+                Increment(scopes, NonLiteralRuleKey(ruleArgument, argumentsCode), scope);
                 continue;
             }
-            if (ruleLiteral is null) continue;
 
             foreach (Match id in RuleIdInAttributePattern.Matches(ruleLiteral))
             {
-                if (IsGatedRule(id.Groups[1].Value))
+                if (IsGatedRule(id.Groups["id"].Value))
                 {
-                    Increment(scopes, id.Groups[1].Value.ToUpperInvariant(), scope);
+                    Increment(scopes, id.Groups["id"].Value.ToUpperInvariant(), scope);
                 }
             }
         }
@@ -808,7 +830,12 @@ internal static class Program
     /// interpolated string): the compiler still honours such a suppression, so the gate records it
     /// instead of silently missing it.
     /// </summary>
-    private static (bool NonLiteral, string? Literal) ReadRuleArgument(string arguments)
+    /// <summary>
+    /// The <c>checkId</c> argument of a <c>[SuppressMessage]</c> attribute: positional or named, with
+    /// nested parentheses and string literals respected. Returns <c>null</c> when the attribute does
+    /// not carry a rule argument.
+    /// </summary>
+    private static string? ReadRuleArgument(string arguments)
     {
         var positional = new List<string>();
         string? namedCheckId = null;
@@ -832,12 +859,129 @@ internal static class Program
             positional.Add(trimmed);
         }
 
-        var ruleArgument = namedCheckId ?? (positional.Count >= 2 ? positional[1] : null);
-        if (ruleArgument is null) return (false, null);
+        return namedCheckId ?? (positional.Count >= 2 ? positional[1] : null);
+    }
 
-        return TryGetSingleStringLiteral(ruleArgument, out var literal)
-            ? (false, literal)
-            : (true, null);
+    /// <summary>
+    /// The identity of a suppression whose rule argument is not one resolvable literal. The key keeps
+    /// the normalized expression and the value of every in-file constant it references, so editing the
+    /// expression or the constant changes the key instead of hiding behind one generic entry.
+    /// </summary>
+    private static string NonLiteralRuleKey(string expression, string source)
+    {
+        var normalized = WhitespacePattern.Replace(expression, string.Empty);
+        var key = new StringBuilder(NonLiteralRule).Append(':').Append(normalized);
+
+        foreach (Match identifier in IdentifierPattern.Matches(expression))
+        {
+            var name = identifier.Value;
+            if (NonIdentifierKeywords.Contains(name)) continue;
+
+            key.Append('|').Append(name).Append('=')
+                .Append(ResolveStringConstant(source, name) ?? "?");
+        }
+
+        return key.ToString();
+    }
+
+    private static string? ResolveStringConstant(string source, string name)
+    {
+        var pattern = new Regex(
+            $@"\bconst\s+string\s+{Regex.Escape(name)}\s*=\s*(?<literal>@?""(?:[^""]|"""")*""|""(?:\\.|[^""\\])*"")",
+            RegexOptions.CultureInvariant);
+        var match = pattern.Match(source);
+        return match.Success && TryDecodeStringLiteral(match.Groups["literal"].Value, out var value)
+            ? value
+            : null;
+    }
+
+    /// <summary>
+    /// Decodes one plain or verbatim string literal into the value the compiler sees, including escape
+    /// sequences such as <c>\u0043</c>. Returns <c>false</c> for anything else (a concatenation, a
+    /// constant, an interpolated string, or an escape the scanner cannot resolve), so the caller can
+    /// record the suppression as non-literal rather than missing it.
+    /// </summary>
+    private static bool TryDecodeStringLiteral(string argument, out string value)
+    {
+        value = string.Empty;
+        var trimmed = argument.Trim();
+        if (trimmed.Length == 0) return false;
+
+        var offset = trimmed.StartsWith('@') ? 1 : 0;
+        if (offset >= trimmed.Length || trimmed[offset] != '"') return false;
+
+        var end = MaskLiteral(trimmed, 0, new StringBuilder(), maskContent: true);
+        if (end <= offset + 1 || trimmed[end..].Trim().Length != 0) return false;
+
+        var content = trimmed[(offset + 1)..(end - 1)];
+        if (offset == 1)
+        {
+            // A verbatim string spells an embedded quote as two quotes.
+            value = content.Replace("\"\"", "\"", StringComparison.Ordinal);
+            return true;
+        }
+
+        var decoded = new StringBuilder(content.Length);
+        for (var index = 0; index < content.Length; index++)
+        {
+            var current = content[index];
+            if (current != '\\')
+            {
+                decoded.Append(current);
+                continue;
+            }
+
+            if (index + 1 >= content.Length) return false;
+            var escape = content[++index];
+            switch (escape)
+            {
+                case '\\': decoded.Append('\\'); break;
+                case '"': decoded.Append('"'); break;
+                case '\'': decoded.Append('\''); break;
+                case '0': decoded.Append('\0'); break;
+                case 'a': decoded.Append('\a'); break;
+                case 'b': decoded.Append('\b'); break;
+                case 'f': decoded.Append('\f'); break;
+                case 'n': decoded.Append('\n'); break;
+                case 'r': decoded.Append('\r'); break;
+                case 't': decoded.Append('\t'); break;
+                case 'v': decoded.Append('\v'); break;
+                case 'u':
+                    if (!TryReadHex(content, ref index, 4, out var utf16)) return false;
+                    decoded.Append((char)utf16);
+                    break;
+                case 'U':
+                    if (!TryReadHex(content, ref index, 8, out var codePoint)) return false;
+                    if (codePoint > 0x10FFFF || codePoint is >= 0xD800 and <= 0xDFFF) return false;
+                    decoded.Append(char.ConvertFromUtf32(codePoint));
+                    break;
+                case 'x':
+                    if (!TryReadHex(content, ref index, 4, out var hex, allowShorter: true)) return false;
+                    decoded.Append((char)hex);
+                    break;
+                default:
+                    return false;
+            }
+        }
+
+        value = decoded.ToString();
+        return true;
+    }
+
+    private static bool TryReadHex(string content, ref int index, int digits, out int value, bool allowShorter = false)
+    {
+        value = 0;
+        var consumed = 0;
+        while (consumed < digits
+               && index + 1 < content.Length
+               && Uri.IsHexDigit(content[index + 1]))
+        {
+            value = value * 16 + Convert.ToInt32(content[index + 1].ToString(), 16);
+            index++;
+            consumed++;
+        }
+
+        return consumed == digits || (allowShorter && consumed > 0);
     }
 
     private static bool TryStripArgumentName(string argument, string name, out string value)
@@ -886,26 +1030,6 @@ internal static class Program
 
         parts.Add(arguments[start..]);
         return parts;
-    }
-
-    private static bool TryGetSingleStringLiteral(string argument, out string value)
-    {
-        value = string.Empty;
-        var trimmed = argument.Trim();
-        if (trimmed.Length == 0) return false;
-
-        // Only a plain or verbatim string can be verified. An interpolated string may encode the rule
-        // id in fragments (`$"CA{1506}"`), so it is treated as non-literal.
-        var start = 0;
-        while (start < trimmed.Length && trimmed[start] == '@') start++;
-        if (start >= trimmed.Length || trimmed[start] != '"') return false;
-
-        var end = MaskLiteral(trimmed, 0, new StringBuilder(), maskContent: false);
-        if (end <= 0 || trimmed[end..].Trim().Length != 0) return false;
-
-        // Keep the literal's quotes: the rule-id pattern matches the quoted form.
-        value = trimmed[..end];
-        return true;
     }
 
     private static int FindMatchingParenthesis(string code, int openIndex)

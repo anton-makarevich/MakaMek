@@ -270,7 +270,83 @@ public class SuppressionScanTests
 
         var scopes = Program.SuppressionScopes(source);
 
-        scopes.ShouldContainKey((Program.NonLiteralRule, "type:Example"));
+        scopes.Keys.ShouldContain(key =>
+            key.Rule.StartsWith(Program.NonLiteralRule, StringComparison.Ordinal)
+            && key.Scope == "type:Example");
+    }
+
+    [Fact]
+    public void SuppressionScopes_AttributeWithEscapedRuleId_IsDetected()
+    {
+        const string source = """
+            [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "\u0043A1506:Avoid excessive class coupling")]
+            public class Example
+            {
+            }
+            """;
+
+        var scopes = Program.SuppressionScopes(source);
+
+        scopes.ShouldContainKey(("CA1506", "type:Example"));
+    }
+
+    [Fact]
+    public void FindNewSuppressionsIn_AttributeWithEscapedRuleId_Fails()
+    {
+        const string current = """
+            [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "\u0043A1506:Avoid excessive class coupling")]
+            public class Example
+            {
+            }
+            """;
+
+        var failures = Program.FindNewSuppressionsIn("Example.cs", null, current);
+
+        failures.ShouldHaveSingleItem().ShouldContain("CA1506");
+    }
+
+    [Fact]
+    public void FindNewSuppressionsIn_EditedConcatenatedRuleArgument_Fails()
+    {
+        const string baseline = """
+            [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA" + "1822:Avoid unnecessary code")]
+            public class Example
+            {
+            }
+            """;
+        const string current = """
+            [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA" + "1506:Avoid excessive class coupling")]
+            public class Example
+            {
+            }
+            """;
+
+        var failures = Program.FindNewSuppressionsIn("Example.cs", baseline, current);
+
+        failures.ShouldHaveSingleItem().ShouldContain("non-literal rule argument");
+    }
+
+    [Fact]
+    public void FindNewSuppressionsIn_EditedReferencedConstant_Fails()
+    {
+        const string baseline = """
+            [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", RuleId)]
+            public class Example
+            {
+                private const string RuleId = "CA1822:Avoid unnecessary code";
+            }
+            """;
+        const string current = """
+            [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", RuleId)]
+            public class Example
+            {
+                private const string RuleId = "CA1506:Avoid excessive class coupling";
+            }
+            """;
+
+        var failures = Program.FindNewSuppressionsIn("Example.cs", baseline, current);
+
+        failures.ShouldHaveSingleItem().ShouldContain("non-literal rule argument");
     }
 
     [Fact]
