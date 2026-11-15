@@ -401,8 +401,13 @@ public class PhysicalAttackResolutionPhase : GamePhase
         // An earlier attack of the phase can displace, destroy or fell the declared target. Another
         // enemy Mech standing in the committed hex then becomes the replacement target and is
         // attacked at +1; with no valid unit there the attack automatically fails (Total Warfare,
-        // Initiative and Displacement).
-        var isReplacement = !IsInDeclaredTargetHex(declaredTarget, item.DeclaredTargetPosition);
+        // Initiative and Displacement). A 'Mech making its own Death From Above is immune to
+        // physical attacks until it lands (p. 149), so an airborne performer is never the declared
+        // target: it is treated as absent, exactly like a target that left the hex, and the
+        // replacement search runs instead.
+        var declaredTargetIsEligible = IsInDeclaredTargetHex(declaredTarget, item.DeclaredTargetPosition)
+                                       && declaredTarget is not { IsAirborneDfaAttacker: true };
+        var isReplacement = !declaredTargetIsEligible;
         var target = isReplacement ? FindDfaReplacementTarget(item) : declaredTarget;
         if (target is null)
         {

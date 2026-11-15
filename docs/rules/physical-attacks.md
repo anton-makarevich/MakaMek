@@ -148,8 +148,10 @@ is added.
   resolves against it as a **replacement target at +1 to hit**; with no valid unit there the attack
   automatically fails and the attacker lands in the declared hex without damage or a fall (Total
   Warfare, Initiative and Displacement). A unit performing a Death From Above is immune to physical
-  attacks until it lands (p. 149), so only an airborne performer is excluded as a replacement; a
-  performer that has already landed is an ordinary grounded occupant and may be the replacement.
+  attacks until it lands (p. 149), so an airborne performer is excluded both as the declared target
+  and as a replacement: when the declared target is itself airborne, it is treated as absent, the
+  replacement search runs and the attack auto-fails when nobody else holds the hex. A performer
+  that has already landed is an ordinary grounded occupant and may be the replacement.
 * **Landing is a jump completion:** the attacker already recorded the full jump path, including the
   final leg into the target hex, during the Movement Phase; it only waits in the approach hex. The
   physical phase completes that move with a `DfaLandingCommand` (`DfaLandingKind`: attacker landing,

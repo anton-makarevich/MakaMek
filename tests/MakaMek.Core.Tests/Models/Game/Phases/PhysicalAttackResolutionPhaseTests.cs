@@ -2146,6 +2146,79 @@ public class PhysicalAttackResolutionPhaseTests : GamePhaseTestsBase
             && context.OriginalTargetId == _player2Mech.Id));
     }
 
+    /// <summary>
+    /// A declared target that began its own Death From Above is airborne until it lands, so it is
+    /// never a legal DFA target either (Total Warfare, p. 149). With nobody else in the committed
+    /// hex the attack automatically fails and the attacker lands without damage or a fall.
+    /// </summary>
+    [Fact]
+    public void Enter_DfaAutoFails_WhenTheDeclaredTargetIsAnAirborneDfaPerformer()
+    {
+        // Arrange: the declared target hovers above the committed hex while it performs its own DFA.
+        SetMap();
+        MoveTargetAway();
+        var airbornePerformer = CreateMech();
+        ((Player)Game.Players[1]).AddUnit(airbornePerformer);
+        airbornePerformer.Deploy(
+            new HexPosition(TargetHex, HexDirection.Bottom, AirborneLevel: 4), null);
+        Declare(airbornePerformer, _player1Mech, PhysicalAttackType.DFA);
+        SetUpDfa(_player1Mech, airbornePerformer);
+        CommandPublisher.ClearReceivedCalls();
+
+        // Act
+        _sut.Enter();
+
+        // Assert: the immune 'Mech is never rolled against; the attacker lands in the declared hex.
+        MockDfaAttackResolver.DidNotReceiveWithAnyArgs().ResolveDfa(null!);
+        var resolution = PublishedCommands().OfType<PhysicalAttackResolutionCommand>()
+            .ShouldHaveSingleItem();
+        resolution.ResolutionData.Dfa!.Outcome.ShouldBe(DfaOutcome.AutoFail);
+        resolution.ResolutionData.PsrRequirements.ShouldBeEmpty();
+        _player1Mech.Position!.Coordinates.ShouldBe(TargetHex);
+        PublishedCommands().OfType<DfaLandingCommand>()
+            .ShouldHaveSingleItem()
+            .LandingKind.ShouldBe(DfaLandingKind.AutoFailLanding);
+        PublishedCommands().OfType<MechFallCommand>().ShouldBeEmpty();
+
+        // The airborne performer is not a ground occupant and is not displaced.
+        airbornePerformer.Position!.Coordinates.ShouldBe(TargetHex);
+        airbornePerformer.Position.AirborneLevel.ShouldBe(4);
+        PublishedCommands().OfType<DisplaceUnitCommand>().ShouldBeEmpty();
+    }
+
+    /// <summary>
+    /// An airborne DFA performer is skipped as the declared target but a grounded enemy in the same
+    /// hex is still a legal occupant, so it becomes the replacement target at +1 (Total Warfare,
+    /// p. 149 and Initiative and Displacement).
+    /// </summary>
+    [Fact]
+    public void Enter_DfaWhenTheDeclaredTargetIsAnAirborneDfaPerformer_UsesAGroundedEnemyInTheHex()
+    {
+        SetMap();
+        MoveTargetAway();
+        var airbornePerformer = CreateMech();
+        ((Player)Game.Players[1]).AddUnit(airbornePerformer);
+        airbornePerformer.Deploy(
+            new HexPosition(TargetHex, HexDirection.Bottom, AirborneLevel: 4), null);
+        Declare(airbornePerformer, _player1Mech, PhysicalAttackType.DFA);
+
+        // The airborne 'Mech does not count for stacking, so a grounded enemy shares the hex.
+        var groundedEnemy = CreateMech();
+        ((Player)Game.Players[1]).AddUnit(groundedEnemy);
+        groundedEnemy.Deploy(new HexPosition(TargetHex, HexDirection.Top), null);
+
+        SetUpDfa(_player1Mech, airbornePerformer);
+        MockDfaAttackResolver.ResolveDfa(Arg.Any<DfaAttackContext>())
+            .Returns(DfaHit(groundedEnemy.Id));
+
+        _sut.Enter();
+
+        MockDfaAttackResolver.Received(1).ResolveDfa(Arg.Is<DfaAttackContext>(context =>
+            context.Target == groundedEnemy
+            && context.IsReplacementTarget
+            && context.OriginalTargetId == airbornePerformer.Id));
+    }
+
     [Fact]
     public void Enter_DfaHit_WithAnOccupiedTargetDestination_RollsTheDominoPsr()
     {
