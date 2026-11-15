@@ -72,10 +72,28 @@ An [LLM-powered bot system](docs/architecture/llm-bot-system-design.md), with de
 - Ability to configure custom hub URL in settings.
 </details>
 
-### Next: Physical attacks (thanks [@Caleb68864](https://github.com/Caleb68864) for contributing)
+<details>
+  <summary>Phase 4. Physical attacks ✅</summary>
+- [Physical Attacks PRD](docs/project/physical-attacks-prd.md) - Requirements and milestones for 'Mech melee combat
+- [Physical Attacks Rules](docs/rules/physical-attacks.md) - BattleTech rules summary used by the implementation
+
+#### Implemented (thanks [@Caleb68864](https://github.com/Caleb68864) for contributing)
+- Punch, kick, push, charge and Death From Above (DFA) attacks
+- Physical attack declaration phase with eligibility checks (arcs, elevation, water, actuator and weapon-firing restrictions)
+- Piloting-based to-hit rolls, dedicated punch/kick hit location tables and tonnage-derived damage
+- Charge and DFA declared during the movement phase, resolved in the physical attack phase
+- Push, charge and DFA displacement, including domino effects and fall handling
+- Piloting skill rolls and falling for attackers and targets
+- Physical attack UI state with to-hit preview, target highlighting and limb selection
+
+#### Deferred
+- Clubs (improvised objects, including pickup and carry mechanics)
+- Melee weapons (hatchet/sword)
+</details>
 
 ### Future (possible) phases
 - Support of paved areas and buildings
+- Support of clubs and melee weapons (hatchet/sword)
 - Support of advanced tech rules (Clan, LosTech equipment and more)
 - Support for vehicles, battle armor and infantry
 - Tools for creating and managing custom units and maps, compatible with common community data formats
