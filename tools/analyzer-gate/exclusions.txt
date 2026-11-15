@@ -10,7 +10,8 @@
 #   * it must be a pre-existing finding on a type whose public contract cannot change, and
 #   * the comment must name the measured value and why it cannot be reduced here.
 #
-# An entry that matches no finding fails the gate, so remove entries once the debt is paid.
+# An entry whose file is part of the diff but matches no finding fails the gate, so remove
+# entries once the debt is paid.
 # Do NOT use this file for new debt, and never add #pragma warning disable / [SuppressMessage].
 #
 # ---------------------------------------------------------------------------------------------

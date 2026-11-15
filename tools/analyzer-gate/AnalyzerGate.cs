@@ -29,6 +29,7 @@
 //   ANALYZER_GATE_KEEP_REPORT  set to 1 to keep the report directories
 
 using System.Diagnostics;
+using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
@@ -46,6 +47,19 @@ internal static class Program
     /// turns on. A suppression introduced for one of them would hide new debt from the gate.
     /// </summary>
     private static readonly string[] GatedRules = ["CA1501", "CA1502", "CA1505", "CA1506", "S3776"];
+
+    private static readonly Regex BlockCommentPattern =
+        new(@"/\*.*?\*/", RegexOptions.Singleline | RegexOptions.CultureInvariant);
+
+    /// <summary>
+    /// A <c>[SuppressMessage(...)]</c> attribute, which can span several lines. The captured group
+    /// is the attribute's argument list.
+    /// </summary>
+    private static readonly Regex SuppressMessagePattern =
+        new(@"SuppressMessage\s*\((.*?)\)\s*\]", RegexOptions.Singleline | RegexOptions.CultureInvariant);
+
+    private static readonly Regex RuleIdInAttributePattern =
+        new("\"((?:CA|S)\\d{4})[:\"]", RegexOptions.CultureInvariant);
 
     private static readonly string[] AnalyzedProjectPrefixes =
     [
@@ -207,11 +221,15 @@ internal static class Program
             }
         }
 
-        // In explicit-file mode only a slice of the diff is analyzed, so an unmatched entry is
-        // expected and must not fail the run. The full-diff run is the source of truth.
+        // An entry can only be judged when its file is part of this diff: an allowlisted file the
+        // PR does not touch is not analyzed, and its finding is expected to be absent. Explicit-file
+        // mode analyzes just a slice of the diff, so it never checks for unused entries at all.
         if (!explicitMode)
         {
-            var unused = exclusions.Unmatched().ToList();
+            var analyzedFiles = projects.Values
+                .SelectMany(files => files)
+                .ToHashSet(StringComparer.Ordinal);
+            var unused = exclusions.Unmatched(analyzedFiles).ToList();
             if (unused.Count > 0)
             {
                 Console.Error.WriteLine($"ERROR: {ExclusionsFile} has entries that matched no finding:");
@@ -285,7 +303,8 @@ internal static class Program
 
     /// <summary>
     /// Suppressions a changed file added relative to the base ref. Only the gated rules count, and
-    /// a pre-existing suppression is tolerated so the migration can proceed file by file.
+    /// occurrences are compared per rule: a pre-existing suppression authorizes itself, never a
+    /// second one added elsewhere in the same file for the same rule.
     /// </summary>
     private static List<string> FindNewSuppressions(string repoRoot, string baseRef, IEnumerable<string> files)
     {
@@ -299,10 +318,14 @@ internal static class Program
             if (current.Count == 0) continue;
 
             var baseline = SuppressedRules(ReadAtBase(repoRoot, baseRef, file));
-            foreach (var rule in current.Where(rule => !baseline.Contains(rule)).Order(StringComparer.Ordinal))
+            foreach (var (rule, count) in current.OrderBy(pair => pair.Key, StringComparer.Ordinal))
             {
+                baseline.TryGetValue(rule, out var baselineCount);
+                if (count <= baselineCount) continue;
+
                 failures.Add(
-                    $"{file} suppresses {rule}, which the base ref did not. Fix the finding instead of suppressing it.");
+                    $"{file} adds a new {rule} suppression (base: {baselineCount}, now: {count}). " +
+                    "Fix the finding instead of suppressing it.");
             }
         }
 
@@ -315,48 +338,69 @@ internal static class Program
         return result.ExitCode == 0 ? result.StandardOutput : null;
     }
 
-    private static HashSet<string> SuppressedRules(string? source)
+    /// <summary>
+    /// How many times each gated rule is suppressed in the source. Comments are stripped first so a
+    /// commented-out directive never counts, and attributes are matched over the whole file so a
+    /// multiline <c>[SuppressMessage(...)]</c> is recognized.
+    /// </summary>
+    private static Dictionary<string, int> SuppressedRules(string? source)
     {
-        var rules = new HashSet<string>(StringComparer.Ordinal);
-        if (string.IsNullOrEmpty(source)) return rules;
+        var suppressed = new Dictionary<string, int>(StringComparer.Ordinal);
+        if (string.IsNullOrEmpty(source)) return suppressed;
 
-        foreach (var rawLine in source.Split('\n'))
+        var code = StripComments(source);
+
+        foreach (var rawLine in code.Split('\n'))
         {
             var line = rawLine.Trim();
-
             var directive = line.IndexOf(PragmaDirective, StringComparison.Ordinal);
-            if (directive >= 0)
-            {
-                var rest = line[(directive + PragmaDirective.Length)..];
-                var comment = rest.IndexOf("//", StringComparison.Ordinal);
-                if (comment >= 0) rest = rest[..comment];
-                var ids = rest.Split(
-                    [',', ' ', '\t', '\r'],
-                    StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-                if (ids.Length == 0)
-                {
-                    // `#pragma warning disable` without ids disables every warning in the block.
-                    rules.Add(AnySuppression);
-                }
-                foreach (var id in ids.Where(IsGatedRule))
-                {
-                    rules.Add(id.ToUpperInvariant());
-                }
-            }
+            if (directive < 0) continue;
 
-            if (line.Contains("SuppressMessage", StringComparison.Ordinal))
+            var ids = line[(directive + PragmaDirective.Length)..].Split(
+                [',', ' ', '\t', '\r'],
+                StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            if (ids.Length == 0)
             {
-                foreach (Match match in Regex.Matches(line, "\"((?:CA|S)\\d{4})[:\"]"))
+                // `#pragma warning disable` without ids disables every warning in the block.
+                Increment(suppressed, AnySuppression);
+            }
+            foreach (var id in ids.Where(IsGatedRule))
+            {
+                Increment(suppressed, id.ToUpperInvariant());
+            }
+        }
+
+        foreach (Match attribute in SuppressMessagePattern.Matches(code))
+        {
+            foreach (Match id in RuleIdInAttributePattern.Matches(attribute.Groups[1].Value))
+            {
+                if (IsGatedRule(id.Groups[1].Value))
                 {
-                    if (IsGatedRule(match.Groups[1].Value))
-                    {
-                        rules.Add(match.Groups[1].Value.ToUpperInvariant());
-                    }
+                    Increment(suppressed, id.Groups[1].Value.ToUpperInvariant());
                 }
             }
         }
 
-        return rules;
+        return suppressed;
+    }
+
+    private static void Increment(Dictionary<string, int> counts, string rule) =>
+        counts[rule] = counts.TryGetValue(rule, out var count) ? count + 1 : 1;
+
+    /// <summary>
+    /// Removes <c>//</c> line comments and <c>/* ... */</c> blocks so text that only mentions a
+    /// directive cannot be read as an active suppression.
+    /// </summary>
+    private static string StripComments(string source)
+    {
+        var withoutBlocks = BlockCommentPattern.Replace(source, string.Empty);
+        var builder = new StringBuilder(withoutBlocks.Length);
+        foreach (var line in withoutBlocks.Split('\n'))
+        {
+            var comment = line.IndexOf("//", StringComparison.Ordinal);
+            builder.Append(comment >= 0 ? line[..comment] : line).Append('\n');
+        }
+        return builder.ToString();
     }
 
     private static bool IsGatedRule(string rule) =>
@@ -654,7 +698,8 @@ internal static class Program
             return false;
         }
 
-        public IEnumerable<AllowlistEntry> Unmatched() =>
-            entries.Where((_, index) => !_matched.Contains(index));
+        public IEnumerable<AllowlistEntry> Unmatched(IReadOnlySet<string> analyzedFiles) =>
+            entries.Where((entry, index) =>
+                !_matched.Contains(index) && analyzedFiles.Contains(entry.File));
     }
 }
