@@ -561,6 +561,103 @@ public class SuppressionScanTests
     }
 
     [Fact]
+    public void FindNewSuppressionsIn_ExternalNamespaceTypeWithMatchingName_Fails()
+    {
+        const string source = """
+            namespace Other
+            {
+                internal static class RuleIds
+                {
+                    public const string Id = "CA1822:Avoid unnecessary code";
+                }
+            }
+
+            [System.Diagnostics.CodeAnalysis.SuppressMessage("Maintainability", External.RuleIds.Id)]
+            public class Example
+            {
+            }
+            """;
+
+        var failures = Program.FindNewSuppressionsIn("Example.cs", null, source);
+
+        failures.ShouldHaveSingleItem().ShouldContain("cannot be resolved");
+    }
+
+    [Fact]
+    public void FindNewSuppressionsIn_LocalNamespaceConstant_Resolves()
+    {
+        const string baseline = """
+            namespace Other
+            {
+                [System.Diagnostics.CodeAnalysis.SuppressMessage("Maintainability", RuleIds.Id)]
+                public class Example
+                {
+                }
+
+                internal static class RuleIds
+                {
+                    public const string Id = "CA1822:Avoid unnecessary code";
+                }
+            }
+            """;
+        const string current = """
+            namespace Other
+            {
+                [System.Diagnostics.CodeAnalysis.SuppressMessage("Maintainability", RuleIds.Id)]
+                public class Example
+                {
+                }
+
+                internal static class RuleIds
+                {
+                    public const string Id = "CA1506:Avoid excessive class coupling";
+                }
+            }
+            """;
+
+        var failures = Program.FindNewSuppressionsIn("Example.cs", baseline, current);
+
+        failures.ShouldHaveSingleItem().ShouldContain("CA1506");
+    }
+
+    [Fact]
+    public void FindNewSuppressionsIn_FullyQualifiedNamespaceConstant_Resolves()
+    {
+        const string baseline = """
+            [System.Diagnostics.CodeAnalysis.SuppressMessage("Maintainability", Other.RuleIds.Id)]
+            public class Example
+            {
+            }
+
+            namespace Other
+            {
+                internal static class RuleIds
+                {
+                    public const string Id = "CA1822:Avoid unnecessary code";
+                }
+            }
+            """;
+        const string current = """
+            [System.Diagnostics.CodeAnalysis.SuppressMessage("Maintainability", Other.RuleIds.Id)]
+            public class Example
+            {
+            }
+
+            namespace Other
+            {
+                internal static class RuleIds
+                {
+                    public const string Id = "CA1506:Avoid excessive class coupling";
+                }
+            }
+            """;
+
+        var failures = Program.FindNewSuppressionsIn("Example.cs", baseline, current);
+
+        failures.ShouldHaveSingleItem().ShouldContain("CA1506");
+    }
+
+    [Fact]
     public void FindNewSuppressionsIn_NewSuppression_ReportsTheDeclarationLine()
     {
         const string current = """

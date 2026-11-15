@@ -73,6 +73,14 @@ internal static class Program
     private static readonly Regex IdentifierPathPattern =
         new("^[A-Za-z_][A-Za-z0-9_]*(?:\\.[A-Za-z_][A-Za-z0-9_]*)*$", RegexOptions.CultureInvariant);
 
+    private static readonly Regex FileScopedNamespacePattern = new(
+        @"^\s*namespace\s+(?<name>[A-Za-z_][A-Za-z0-9_.]*)\s*;",
+        RegexOptions.CultureInvariant);
+
+    private static readonly Regex BlockNamespacePattern = new(
+        @"^\s*namespace\s+(?<name>[A-Za-z_][A-Za-z0-9_.]*)\s*\{?\s*$",
+        RegexOptions.CultureInvariant);
+
     private const int MaxConstantEvaluationDepth = 8;
 
     /// <summary>
@@ -416,7 +424,8 @@ internal static class Program
         var argumentsCode = MaskComments(source);
         var lines = ReadLines(code);
         var declarations = FindDeclarations(lines);
-        var constants = FindConstantDeclarations(code);
+        var (fileNamespace, namespaces) = FindNamespaces(lines);
+        var constants = FindConstantDeclarations(lines, fileNamespace, namespaces);
 
         foreach (var (rule, start, end, depth) in FindPragmaRegions(lines, code.Length))
         {
@@ -444,7 +453,8 @@ internal static class Program
             var ruleArgument = ReadRuleArgument(attribute.Arguments);
             if (ruleArgument is null) continue;
 
-            if (!TryEvaluateRuleArgument(ruleArgument, argumentsCode, constants, out var ruleText))
+            var referenceNamespace = NamespaceAt(lines, fileNamespace, namespaces, attribute.Start);
+            if (!TryEvaluateRuleArgument(ruleArgument, argumentsCode, constants, referenceNamespace, out var ruleText))
             {
                 unresolvable.Add(new UnresolvableSuppression(LineAt(code, attribute.Start), scope, ruleArgument));
                 continue;
@@ -472,13 +482,15 @@ internal static class Program
         string expression,
         string source,
         IReadOnlyList<ConstantDeclaration> constants,
+        string referenceNamespace,
         out string value) =>
-        TryEvaluateExpression(expression, source, constants, 0, out value);
+        TryEvaluateExpression(expression, source, constants, referenceNamespace, 0, out value);
 
     private static bool TryEvaluateExpression(
         string expression,
         string source,
         IReadOnlyList<ConstantDeclaration> constants,
+        string referenceNamespace,
         int depth,
         out string value)
     {
@@ -499,7 +511,8 @@ internal static class Program
             }
 
             if (!IdentifierPathPattern.IsMatch(operand)) return false;
-            if (!TryResolveStringConstant(operand, source, constants, depth, out var constant)) return false;
+            if (!TryResolveStringConstant(operand, source, constants, referenceNamespace, depth, out var constant))
+                return false;
             builder.Append(constant);
         }
 
@@ -508,28 +521,33 @@ internal static class Program
     }
 
     /// <summary>
-    /// Resolves a constant reference the compiler would bind: a qualified path only matches a constant
-    /// declared in the type named by the qualifier, and an unqualified name only when the file
-    /// declares exactly one such constant. Anything ambiguous or not declared in the file is rejected,
-    /// so an unrelated constant with the same name can never stand in for an external one.
+    /// Resolves a constant reference the way the compiler binds it: a qualified path must match the
+    /// constant's full type path, or its type path inside the reference's namespace; an unqualified
+    /// name is accepted only when the file declares exactly one such constant. Anything ambiguous, in
+    /// another namespace, or not declared in the file is rejected, so a same-named local constant can
+    /// never stand in for an external one.
     /// </summary>
     private static bool TryResolveStringConstant(
         string path,
         string source,
         IReadOnlyList<ConstantDeclaration> constants,
+        string referenceNamespace,
         int depth,
         out string value)
     {
         value = string.Empty;
         var segments = path.Split('.');
         var name = segments[^1];
-        var qualifier = segments.Length > 1 ? segments[^2] : null;
+        var qualifier = segments.Length > 1 ? string.Join('.', segments[..^1]) : string.Empty;
 
         var candidates = constants.Where(candidate => candidate.Name == name).ToList();
-        if (qualifier is not null)
+        if (qualifier.Length > 0)
         {
             candidates = candidates
-                .Where(candidate => string.Equals(candidate.DeclaringType, qualifier, StringComparison.Ordinal))
+                .Where(candidate =>
+                    string.Equals(qualifier, candidate.FullPath, StringComparison.Ordinal)
+                    || (string.Equals(qualifier, candidate.TypePath, StringComparison.Ordinal)
+                        && string.Equals(candidate.Namespace, referenceNamespace, StringComparison.Ordinal)))
                 .ToList();
         }
 
@@ -540,25 +558,34 @@ internal static class Program
         if (end < 0) return false;
 
         return TryEvaluateExpression(
-            source[declaration.InitializerStart..end], source, constants, depth + 1, out value);
+            source[declaration.InitializerStart..end],
+            source,
+            constants,
+            declaration.Namespace,
+            depth + 1,
+            out value);
     }
 
     /// <summary>
-    /// Every <c>const string</c> declaration in the file with the type that declares it, so a
-    /// qualified reference can be bound to the right one.
+    /// Every <c>const string</c> declaration in the file with the namespace and the type path that
+    /// declare it, so a qualified reference can be bound to the right one.
     /// </summary>
-    private static List<ConstantDeclaration> FindConstantDeclarations(string code)
+    private static List<ConstantDeclaration> FindConstantDeclarations(
+        IReadOnlyList<SourceLine> lines,
+        string fileNamespace,
+        IReadOnlyList<NamespaceDeclaration> namespaces)
     {
-        var lines = ReadLines(code);
-
-        var types = new List<(int Offset, int Depth, string Name)>();
-        foreach (var line in lines)
+        var types = new List<(int Offset, int Depth, int End, string Name)>();
+        for (var index = 0; index < lines.Count; index++)
         {
-            var typeMatch = TypeDeclarationPattern.Match(line.Text.TrimStart());
-            if (typeMatch.Success)
-            {
-                types.Add((line.Offset, line.Depth, typeMatch.Groups["name"].Value));
-            }
+            var typeMatch = TypeDeclarationPattern.Match(lines[index].Text.TrimStart());
+            if (!typeMatch.Success) continue;
+
+            types.Add((
+                lines[index].Offset,
+                lines[index].Depth,
+                FindScopeEnd(lines, index),
+                typeMatch.Groups["name"].Value));
         }
 
         var declarations = new List<ConstantDeclaration>();
@@ -567,20 +594,108 @@ internal static class Program
             var constant = ConstantDeclarationPattern.Match(line.Text);
             if (!constant.Success) continue;
 
-            // The nearest preceding type declared at a lower depth encloses this constant.
-            var declaringType = types
-                .Where(type => type.Offset < line.Offset && type.Depth < line.Depth)
-                .OrderByDescending(type => type.Offset)
-                .Select(type => type.Name)
-                .FirstOrDefault();
+            // The enclosing type chain: the nearest type at each lower depth whose scope still
+            // contains this line, outermost first.
+            var typePath = string.Join('.',
+                types
+                    .Where(type => type.Offset < line.Offset && line.Offset < type.End && type.Depth < line.Depth)
+                    .GroupBy(type => type.Depth)
+                    .Select(group => group.OrderByDescending(type => type.Offset).First())
+                    .OrderBy(type => type.Depth)
+                    .Select(type => type.Name));
+            if (typePath.Length == 0) continue;
 
             declarations.Add(new ConstantDeclaration(
-                declaringType,
+                NamespaceAt(lines, fileNamespace, namespaces, line.Offset),
+                typePath,
                 constant.Groups["name"].Value,
                 line.Offset + constant.Index + constant.Length));
         }
 
         return declarations;
+    }
+
+    /// <summary>
+    /// The file-scoped namespace (if any) and every block namespace with the offset where its scope
+    /// ends, so a reference can be resolved against the namespace it sits in.
+    /// </summary>
+    private static (string FileNamespace, List<NamespaceDeclaration> Blocks) FindNamespaces(
+        IReadOnlyList<SourceLine> lines)
+    {
+        var fileNamespace = string.Empty;
+        var blocks = new List<NamespaceDeclaration>();
+
+        for (var index = 0; index < lines.Count; index++)
+        {
+            var fileScoped = FileScopedNamespacePattern.Match(lines[index].Text);
+            if (fileScoped.Success)
+            {
+                fileNamespace = fileScoped.Groups["name"].Value;
+                continue;
+            }
+
+            var block = BlockNamespacePattern.Match(lines[index].Text);
+            if (!block.Success) continue;
+
+            blocks.Add(new NamespaceDeclaration(
+                lines[index].Offset,
+                lines[index].Depth,
+                FindScopeEnd(lines, index),
+                block.Groups["name"].Value));
+        }
+
+        return (fileNamespace, blocks);
+    }
+
+    /// <summary>
+    /// The offset where the scope of the declaration at <paramref name="declarationIndex"/> ends: the
+    /// first line that is back at the declaration's depth after its body has opened.
+    /// </summary>
+    private static int FindScopeEnd(IReadOnlyList<SourceLine> lines, int declarationIndex)
+    {
+        var depth = lines[declarationIndex].Depth;
+        var opened = false;
+        for (var index = declarationIndex + 1; index < lines.Count; index++)
+        {
+            var lineDepth = lines[index].Depth;
+            if (!opened)
+            {
+                if (lineDepth > depth) opened = true;
+                continue;
+            }
+
+            if (lineDepth <= depth) return lines[index].Offset;
+        }
+
+        return int.MaxValue;
+    }
+
+    private static string NamespaceAt(
+        IReadOnlyList<SourceLine> lines,
+        string fileNamespace,
+        IReadOnlyList<NamespaceDeclaration> namespaces,
+        int offset)
+    {
+        var depth = DepthAt(lines, offset);
+        var active = namespaces
+            .Where(declaration => declaration.Offset < offset && offset < declaration.End && declaration.Depth < depth)
+            .OrderBy(declaration => declaration.Offset)
+            .Select(declaration => declaration.Name)
+            .ToList();
+
+        return active.Count > 0 ? string.Join('.', active) : fileNamespace;
+    }
+
+    private static int DepthAt(IReadOnlyList<SourceLine> lines, int offset)
+    {
+        var depth = 0;
+        foreach (var line in lines)
+        {
+            if (line.Offset > offset) break;
+            depth = line.Depth;
+        }
+
+        return depth;
     }
 
     /// <summary>
@@ -845,7 +960,12 @@ internal static class Program
 
     private sealed record Declaration(int Offset, int Depth, string Key);
 
-    private sealed record ConstantDeclaration(string? DeclaringType, string Name, int InitializerStart);
+    private sealed record NamespaceDeclaration(int Offset, int Depth, int End, string Name);
+
+    private sealed record ConstantDeclaration(string Namespace, string TypePath, string Name, int InitializerStart)
+    {
+        public string FullPath => Namespace.Length == 0 ? TypePath : $"{Namespace}.{TypePath}";
+    }
 
     private sealed record PragmaStatement(int Offset, int Depth, bool IsDisable, IReadOnlyList<string> Rules);
 
