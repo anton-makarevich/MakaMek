@@ -349,17 +349,21 @@ public class SuppressionScanTests
     public void FindNewSuppressionsIn_EditedReferencedConstant_Fails()
     {
         const string baseline = """
-            [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", RuleId)]
             public class Example
             {
                 private const string RuleId = "CA1822:Avoid unnecessary code";
+
+                [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", RuleId)]
+                public void Run() { }
             }
             """;
         const string current = """
-            [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", RuleId)]
             public class Example
             {
                 private const string RuleId = "CA1506:Avoid excessive class coupling";
+
+                [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", RuleId)]
+                public void Run() { }
             }
             """;
 
@@ -677,16 +681,40 @@ public class SuppressionScanTests
     public void FindNewSuppressionsIn_AttributeWithConstantRuleArgument_Fails()
     {
         const string current = """
-            [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", RuleId)]
             public class Example
             {
                 private const string RuleId = "CA1506:Avoid excessive class coupling";
+
+                [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", RuleId)]
+                public void Run() { }
             }
             """;
 
         var failures = Program.FindNewSuppressionsIn("Example.cs", null, current);
 
         failures.ShouldHaveSingleItem().ShouldContain("CA1506");
+    }
+
+    [Fact]
+    public void FindNewSuppressionsIn_UnqualifiedReferenceToAnotherType_Fails()
+    {
+        const string source = """
+            using static External.RuleIds;
+
+            namespace Local;
+
+            internal static class OtherIds
+            {
+                public const string Id = "CA1822:Avoid unnecessary code";
+            }
+
+            [System.Diagnostics.CodeAnalysis.SuppressMessage("Maintainability", Id)]
+            internal class Example { }
+            """;
+
+        var failures = Program.FindNewSuppressionsIn("Example.cs", null, source);
+
+        failures.ShouldHaveSingleItem().ShouldContain("cannot be resolved");
     }
 
     [Fact]

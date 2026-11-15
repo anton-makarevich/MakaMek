@@ -424,8 +424,9 @@ internal static class Program
         var argumentsCode = MaskComments(source);
         var lines = ReadLines(code);
         var declarations = FindDeclarations(lines);
+        var types = FindTypeDeclarations(lines);
         var (fileNamespace, namespaces) = FindNamespaces(lines);
-        var constants = FindConstantDeclarations(lines, fileNamespace, namespaces);
+        var constants = FindConstantDeclarations(lines, types, fileNamespace, namespaces);
 
         foreach (var (rule, start, end, depth) in FindPragmaRegions(lines, code.Length))
         {
@@ -454,7 +455,14 @@ internal static class Program
             if (ruleArgument is null) continue;
 
             var referenceNamespace = NamespaceAt(lines, fileNamespace, namespaces, attribute.Start);
-            if (!TryEvaluateRuleArgument(ruleArgument, argumentsCode, constants, referenceNamespace, out var ruleText))
+            var referenceTypePath = TypePathAt(types, attribute.Start, DepthAt(lines, attribute.Start));
+            if (!TryEvaluateRuleArgument(
+                    ruleArgument,
+                    argumentsCode,
+                    constants,
+                    referenceNamespace,
+                    referenceTypePath,
+                    out var ruleText))
             {
                 unresolvable.Add(new UnresolvableSuppression(LineAt(code, attribute.Start), scope, ruleArgument));
                 continue;
@@ -483,14 +491,16 @@ internal static class Program
         string source,
         IReadOnlyList<ConstantDeclaration> constants,
         string referenceNamespace,
+        string referenceTypePath,
         out string value) =>
-        TryEvaluateExpression(expression, source, constants, referenceNamespace, 0, out value);
+        TryEvaluateExpression(expression, source, constants, referenceNamespace, referenceTypePath, 0, out value);
 
     private static bool TryEvaluateExpression(
         string expression,
         string source,
         IReadOnlyList<ConstantDeclaration> constants,
         string referenceNamespace,
+        string referenceTypePath,
         int depth,
         out string value)
     {
@@ -511,8 +521,11 @@ internal static class Program
             }
 
             if (!IdentifierPathPattern.IsMatch(operand)) return false;
-            if (!TryResolveStringConstant(operand, source, constants, referenceNamespace, depth, out var constant))
+            if (!TryResolveStringConstant(
+                    operand, source, constants, referenceNamespace, referenceTypePath, depth, out var constant))
+            {
                 return false;
+            }
             builder.Append(constant);
         }
 
@@ -521,17 +534,19 @@ internal static class Program
     }
 
     /// <summary>
-    /// Resolves a constant reference the way the compiler binds it: a qualified path must match the
-    /// constant's full type path, or its type path inside the reference's namespace; an unqualified
-    /// name is accepted only when the file declares exactly one such constant. Anything ambiguous, in
-    /// another namespace, or not declared in the file is rejected, so a same-named local constant can
-    /// never stand in for an external one.
+    /// Resolves a constant reference the way the compiler binds it. A qualified path must match the
+    /// constant's full type path, or its type path inside the reference's namespace. An unqualified
+    /// name is only bound to a constant declared by the type that encloses the reference — the case
+    /// member attributes rely on — because a member of another type is not in scope for an
+    /// unqualified reference (`using static` can bind an external one instead). Anything ambiguous or
+    /// not provable from this file is rejected.
     /// </summary>
     private static bool TryResolveStringConstant(
         string path,
         string source,
         IReadOnlyList<ConstantDeclaration> constants,
         string referenceNamespace,
+        string referenceTypePath,
         int depth,
         out string value)
     {
@@ -550,6 +565,16 @@ internal static class Program
                         && string.Equals(candidate.Namespace, referenceNamespace, StringComparison.Ordinal)))
                 .ToList();
         }
+        else
+        {
+            if (referenceTypePath.Length == 0) return false;
+
+            candidates = candidates
+                .Where(candidate =>
+                    string.Equals(candidate.TypePath, referenceTypePath, StringComparison.Ordinal)
+                    && string.Equals(candidate.Namespace, referenceNamespace, StringComparison.Ordinal))
+                .ToList();
+        }
 
         if (candidates.Count != 1) return false;
 
@@ -562,9 +587,45 @@ internal static class Program
             source,
             constants,
             declaration.Namespace,
+            declaration.TypePath,
             depth + 1,
             out value);
     }
+
+    /// <summary>
+    /// The file's type declarations with the offset where each scope ends, outermost first when
+    /// combined with <see cref="TypePathAt"/>.
+    /// </summary>
+    private static List<TypeDeclaration> FindTypeDeclarations(IReadOnlyList<SourceLine> lines)
+    {
+        var types = new List<TypeDeclaration>();
+        for (var index = 0; index < lines.Count; index++)
+        {
+            var typeMatch = TypeDeclarationPattern.Match(lines[index].Text.TrimStart());
+            if (!typeMatch.Success) continue;
+
+            types.Add(new TypeDeclaration(
+                lines[index].Offset,
+                lines[index].Depth,
+                FindScopeEnd(lines, index),
+                typeMatch.Groups["name"].Value));
+        }
+
+        return types;
+    }
+
+    /// <summary>
+    /// The chain of types whose scope contains <paramref name="offset"/>, outermost first. Empty for
+    /// a declaration that sits at file scope (for example an attribute above a class).
+    /// </summary>
+    private static string TypePathAt(IReadOnlyList<TypeDeclaration> types, int offset, int depth) =>
+        string.Join('.',
+            types
+                .Where(type => type.Offset < offset && offset < type.End && type.Depth < depth)
+                .GroupBy(type => type.Depth)
+                .Select(group => group.OrderByDescending(type => type.Offset).First())
+                .OrderBy(type => type.Depth)
+                .Select(type => type.Name));
 
     /// <summary>
     /// Every <c>const string</c> declaration in the file with the namespace and the type path that
@@ -572,37 +633,17 @@ internal static class Program
     /// </summary>
     private static List<ConstantDeclaration> FindConstantDeclarations(
         IReadOnlyList<SourceLine> lines,
+        IReadOnlyList<TypeDeclaration> types,
         string fileNamespace,
         IReadOnlyList<NamespaceDeclaration> namespaces)
     {
-        var types = new List<(int Offset, int Depth, int End, string Name)>();
-        for (var index = 0; index < lines.Count; index++)
-        {
-            var typeMatch = TypeDeclarationPattern.Match(lines[index].Text.TrimStart());
-            if (!typeMatch.Success) continue;
-
-            types.Add((
-                lines[index].Offset,
-                lines[index].Depth,
-                FindScopeEnd(lines, index),
-                typeMatch.Groups["name"].Value));
-        }
-
         var declarations = new List<ConstantDeclaration>();
         foreach (var line in lines)
         {
             var constant = ConstantDeclarationPattern.Match(line.Text);
             if (!constant.Success) continue;
 
-            // The enclosing type chain: the nearest type at each lower depth whose scope still
-            // contains this line, outermost first.
-            var typePath = string.Join('.',
-                types
-                    .Where(type => type.Offset < line.Offset && line.Offset < type.End && type.Depth < line.Depth)
-                    .GroupBy(type => type.Depth)
-                    .Select(group => group.OrderByDescending(type => type.Offset).First())
-                    .OrderBy(type => type.Depth)
-                    .Select(type => type.Name));
+            var typePath = TypePathAt(types, line.Offset, line.Depth);
             if (typePath.Length == 0) continue;
 
             declarations.Add(new ConstantDeclaration(
@@ -961,6 +1002,8 @@ internal static class Program
     private sealed record Declaration(int Offset, int Depth, string Key);
 
     private sealed record NamespaceDeclaration(int Offset, int Depth, int End, string Name);
+
+    private sealed record TypeDeclaration(int Offset, int Depth, int End, string Name);
 
     private sealed record ConstantDeclaration(string Namespace, string TypePath, string Name, int InitializerStart)
     {
