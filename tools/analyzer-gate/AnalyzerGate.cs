@@ -43,13 +43,6 @@ internal static class Program
     private const string NoDeclaration = "<none>";
 
     /// <summary>
-    /// A suppression whose rule argument is not a single string literal. C# still honours it, so the
-    /// gate records it under this synthetic rule and reports it when it is new instead of silently
-    /// accepting a suppression it cannot read.
-    /// </summary>
-    internal const string NonLiteralRule = "<non-literal>";
-
-    /// <summary>
     /// The rules this repository's threshold configuration (`.editorconfig`, `CodeMetricsConfig.txt`)
     /// turns on. A suppression introduced for one of them would hide new debt from the gate.
     /// </summary>
@@ -74,14 +67,13 @@ internal static class Program
     private static readonly Regex RuleIdInAttributePattern =
         new(@"^(?<id>(?:CA|S)\d{4})(?::|$)", RegexOptions.CultureInvariant);
 
-    private static readonly Regex IdentifierPattern =
-        new("[A-Za-z_][A-Za-z0-9_]*", RegexOptions.CultureInvariant);
+    private static readonly Regex ConstantDeclarationPattern =
+        new(@"(?<![\w.])const\s+string\s+(?<name>[A-Za-z_][A-Za-z0-9_]*)\s*=", RegexOptions.CultureInvariant);
 
-    private static readonly Regex WhitespacePattern =
-        new(@"\s+", RegexOptions.CultureInvariant);
+    private static readonly Regex IdentifierPathPattern =
+        new("^[A-Za-z_][A-Za-z0-9_]*(?:\\.[A-Za-z_][A-Za-z0-9_]*)*$", RegexOptions.CultureInvariant);
 
-    private static readonly HashSet<string> NonIdentifierKeywords =
-        new(["const", "string", "null", "true", "false", "nameof", "typeof", "default"], StringComparer.Ordinal);
+    private const int MaxConstantEvaluationDepth = 8;
 
     /// <summary>
     /// A <c>#pragma warning disable|restore</c> directive. The <c>#</c> and the directive name may be
@@ -356,35 +348,36 @@ internal static class Program
     /// rule and by the declaration it covers, so a pre-existing suppression authorizes neither a
     /// second occurrence, nor the same rule moved to another member, nor a wider region created by a
     /// removed restore. Renaming a suppressed declaration therefore also fails the gate: the member
-    /// is expected to lose its suppression in the change that moves it.
+    /// is expected to lose its suppression in the change that moves it. A suppression whose rule
+    /// argument cannot be resolved to a literal value always fails, because the gate cannot tell
+    /// which rule it hides.
     /// </summary>
     internal static List<string> FindNewSuppressionsIn(string file, string? baselineSource, string currentSource)
     {
         var failures = new List<string>();
-        var current = SuppressionScopes(currentSource);
-        if (current.Count == 0) return failures;
+        var current = ScanSuppressions(currentSource);
 
-        var baseline = SuppressionScopes(baselineSource);
-        foreach (var ((rule, scope), count) in current)
+        foreach (var unresolvable in current.Unresolvable)
+        {
+            failures.Add(
+                $"{file}({unresolvable.Line}): the suppression rule argument `{unresolvable.Expression}` " +
+                $"cannot be resolved (covering {unresolvable.Scope}), so the gate cannot verify which rule it hides. " +
+                "Use a single string literal or constants the gate can read.");
+        }
+
+        if (current.Scopes.Count == 0) return failures;
+
+        var baseline = ScanSuppressions(baselineSource).Scopes;
+        foreach (var ((rule, scope), count) in current.Scopes)
         {
             var baselineCount = baseline.TryGetValue((rule, scope), out var known) ? known : 0;
             if (count <= baselineCount) continue;
 
-            if (rule.StartsWith(NonLiteralRule, StringComparison.Ordinal))
-            {
-                var expression = rule[(NonLiteralRule.Length + 1)..];
-                var separator = expression.IndexOf('|');
-                if (separator >= 0) expression = expression[..separator];
-
-                failures.Add(
-                    $"{file} adds a suppression with a non-literal rule argument `{expression}` covering {scope}. " +
-                    "Use a single string literal so the gate can verify it.");
-                continue;
-            }
-
+            var line = ScopeLine(currentSource, scope);
+            var location = line is null ? file : $"{file}({line})";
             failures.Add(baselineCount == 0
-                ? $"{file} adds a new {rule} suppression covering {scope}. Fix the finding instead of suppressing it."
-                : $"{file} adds another {rule} suppression covering {scope} (base: {baselineCount}, now: {count}). Fix the finding instead of suppressing it.");
+                ? $"{location}: adds a new {rule} suppression covering {scope}. Fix the finding instead of suppressing it."
+                : $"{location}: adds another {rule} suppression covering {scope} (base: {baselineCount}, now: {count}). Fix the finding instead of suppressing it.");
         }
 
         return failures;
@@ -396,16 +389,26 @@ internal static class Program
         return result.ExitCode == 0 ? result.StandardOutput : null;
     }
 
+    private sealed record SuppressionScan(
+        SortedDictionary<(string Rule, string Scope), int> Scopes,
+        IReadOnlyList<UnresolvableSuppression> Unresolvable);
+
+    private sealed record UnresolvableSuppression(int Line, string Scope, string Expression);
+
     /// <summary>
     /// Every gated-rule suppression in the source, keyed by rule and by the declaration it covers.
     /// Comments and literals are masked first, so text that only mentions a directive or an attribute
     /// cannot count, and a suppression is attributed to the declaration it applies to rather than to
     /// a line number that every edit would move.
     /// </summary>
-    internal static SortedDictionary<(string Rule, string Scope), int> SuppressionScopes(string? source)
+    internal static SortedDictionary<(string Rule, string Scope), int> SuppressionScopes(string? source) =>
+        ScanSuppressions(source).Scopes;
+
+    private static SuppressionScan ScanSuppressions(string? source)
     {
         var scopes = new SortedDictionary<(string Rule, string Scope), int>();
-        if (string.IsNullOrEmpty(source)) return scopes;
+        var unresolvable = new List<UnresolvableSuppression>();
+        if (string.IsNullOrEmpty(source)) return new SuppressionScan(scopes, unresolvable);
 
         var code = MaskLiteralsAndComments(source);
         // Attribute arguments hold the rule id as a string literal, so they are read from a variant
@@ -440,15 +443,13 @@ internal static class Program
             var ruleArgument = ReadRuleArgument(attribute.Arguments);
             if (ruleArgument is null) continue;
 
-            if (!TryDecodeStringLiteral(ruleArgument, out var ruleLiteral))
+            if (!TryEvaluateRuleArgument(ruleArgument, argumentsCode, out var ruleText))
             {
-                // A non-literal rule argument can name any rule once evaluated, so its identity is the
-                // expression itself plus the constants it references: editing either one fails the gate.
-                Increment(scopes, NonLiteralRuleKey(ruleArgument, argumentsCode), scope);
+                unresolvable.Add(new UnresolvableSuppression(LineAt(code, attribute.Start), scope, ruleArgument));
                 continue;
             }
 
-            foreach (Match id in RuleIdInAttributePattern.Matches(ruleLiteral))
+            foreach (Match id in RuleIdInAttributePattern.Matches(ruleText))
             {
                 if (IsGatedRule(id.Groups["id"].Value))
                 {
@@ -457,7 +458,110 @@ internal static class Program
             }
         }
 
-        return scopes;
+        return new SuppressionScan(scopes, unresolvable);
+    }
+
+    /// <summary>
+    /// Evaluates a suppression rule argument to the string the compiler sees: a single literal, a
+    /// concatenation of literals, or constants (including constants whose initializer is itself an
+    /// expression). Returns <c>false</c> when any part cannot be resolved, so the caller can reject
+    /// the suppression instead of assuming it hides nothing.
+    /// </summary>
+    private static bool TryEvaluateRuleArgument(string expression, string source, out string value) =>
+        TryEvaluateExpression(expression, source, 0, out value);
+
+    private static bool TryEvaluateExpression(string expression, string source, int depth, out string value)
+    {
+        value = string.Empty;
+        if (depth > MaxConstantEvaluationDepth) return false;
+
+        var parts = SplitTopLevel(expression, '+');
+        var builder = new StringBuilder();
+        foreach (var part in parts)
+        {
+            var operand = part.Trim();
+            if (operand.Length == 0) return false;
+
+            if (TryDecodeStringLiteral(operand, out var literal))
+            {
+                builder.Append(literal);
+                continue;
+            }
+
+            if (!IdentifierPathPattern.IsMatch(operand)) return false;
+            if (!TryResolveStringConstant(operand, source, depth, out var constant)) return false;
+            builder.Append(constant);
+        }
+
+        value = builder.ToString();
+        return true;
+    }
+
+    private static bool TryResolveStringConstant(string path, string source, int depth, out string value)
+    {
+        value = string.Empty;
+        var name = path[(path.LastIndexOf('.') + 1)..];
+
+        foreach (Match declaration in ConstantDeclarationPattern.Matches(source))
+        {
+            if (!string.Equals(declaration.Groups["name"].Value, name, StringComparison.Ordinal)) continue;
+
+            var start = declaration.Index + declaration.Length;
+            var end = FindStatementEnd(source, start);
+            if (end < 0) continue;
+
+            return TryEvaluateExpression(source[start..end], source, depth + 1, out value);
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// The index of the <c>;</c> that ends the statement starting at <paramref name="start"/>, or -1.
+    /// String literals are skipped so a semicolon inside one does not end the statement.
+    /// </summary>
+    private static int FindStatementEnd(string source, int start)
+    {
+        for (var index = start; index < source.Length; index++)
+        {
+            if (IsLiteralStart(source, index))
+            {
+                var end = MaskLiteral(source, index, new StringBuilder(), maskContent: true);
+                if (end > index)
+                {
+                    index = end - 1;
+                    continue;
+                }
+            }
+
+            if (source[index] == ';') return index;
+        }
+
+        return -1;
+    }
+
+    private static int LineAt(string source, int offset)
+    {
+        var line = 1;
+        for (var index = 0; index < offset && index < source.Length; index++)
+        {
+            if (source[index] == '\n') line++;
+        }
+
+        return line;
+    }
+
+    private static int? ScopeLine(string source, string scope)
+    {
+        if (scope == NoDeclaration) return null;
+
+        var lines = ReadLines(MaskLiteralsAndComments(source));
+        for (var index = 0; index < lines.Count; index++)
+        {
+            if (DeclarationKey(lines[index].Text) == scope) return index + 1;
+        }
+
+        return null;
     }
 
     private static IEnumerable<string> ExpandRule(string rule) =>
@@ -863,43 +967,10 @@ internal static class Program
     }
 
     /// <summary>
-    /// The identity of a suppression whose rule argument is not one resolvable literal. The key keeps
-    /// the normalized expression and the value of every in-file constant it references, so editing the
-    /// expression or the constant changes the key instead of hiding behind one generic entry.
-    /// </summary>
-    private static string NonLiteralRuleKey(string expression, string source)
-    {
-        var normalized = WhitespacePattern.Replace(expression, string.Empty);
-        var key = new StringBuilder(NonLiteralRule).Append(':').Append(normalized);
-
-        foreach (Match identifier in IdentifierPattern.Matches(expression))
-        {
-            var name = identifier.Value;
-            if (NonIdentifierKeywords.Contains(name)) continue;
-
-            key.Append('|').Append(name).Append('=')
-                .Append(ResolveStringConstant(source, name) ?? "?");
-        }
-
-        return key.ToString();
-    }
-
-    private static string? ResolveStringConstant(string source, string name)
-    {
-        var pattern = new Regex(
-            $@"\bconst\s+string\s+{Regex.Escape(name)}\s*=\s*(?<literal>@?""(?:[^""]|"""")*""|""(?:\\.|[^""\\])*"")",
-            RegexOptions.CultureInvariant);
-        var match = pattern.Match(source);
-        return match.Success && TryDecodeStringLiteral(match.Groups["literal"].Value, out var value)
-            ? value
-            : null;
-    }
-
-    /// <summary>
     /// Decodes one plain or verbatim string literal into the value the compiler sees, including escape
     /// sequences such as <c>\u0043</c>. Returns <c>false</c> for anything else (a concatenation, a
     /// constant, an interpolated string, or an escape the scanner cannot resolve), so the caller can
-    /// record the suppression as non-literal rather than missing it.
+    /// evaluate it as an expression or reject it.
     /// </summary>
     private static bool TryDecodeStringLiteral(string argument, out string value)
     {
@@ -996,16 +1067,21 @@ internal static class Program
         return true;
     }
 
-    private static List<string> SplitArguments(string arguments)
+    private static List<string> SplitArguments(string arguments) => SplitTopLevel(arguments, ',');
+
+    /// <summary>
+    /// Splits at a separator that appears outside parentheses/brackets/braces and string literals.
+    /// </summary>
+    private static List<string> SplitTopLevel(string text, char separator)
     {
         var parts = new List<string>();
         var start = 0;
         var depth = 0;
-        for (var index = 0; index < arguments.Length; index++)
+        for (var index = 0; index < text.Length; index++)
         {
-            if (IsLiteralStart(arguments, index))
+            if (IsLiteralStart(text, index))
             {
-                var end = MaskLiteral(arguments, index, new StringBuilder(), maskContent: true);
+                var end = MaskLiteral(text, index, new StringBuilder(), maskContent: true);
                 if (end > index)
                 {
                     index = end - 1;
@@ -1013,7 +1089,7 @@ internal static class Program
                 }
             }
 
-            switch (arguments[index])
+            switch (text[index])
             {
                 case '(' or '[' or '{':
                     depth++;
@@ -1021,14 +1097,14 @@ internal static class Program
                 case ')' or ']' or '}':
                     depth--;
                     break;
-                case ',' when depth == 0:
-                    parts.Add(arguments[start..index]);
+                case var current when current == separator && depth == 0:
+                    parts.Add(text[start..index]);
                     start = index + 1;
                     break;
             }
         }
 
-        parts.Add(arguments[start..]);
+        parts.Add(text[start..]);
         return parts;
     }
 

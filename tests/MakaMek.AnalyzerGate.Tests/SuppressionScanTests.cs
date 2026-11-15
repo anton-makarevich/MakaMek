@@ -259,7 +259,7 @@ public class SuppressionScanTests
     }
 
     [Fact]
-    public void SuppressionScopes_AttributeWithConcatenatedRuleArgument_IsReportedAsNonLiteral()
+    public void SuppressionScopes_AttributeWithConcatenatedRuleArgument_IsResolvedToTheRuleId()
     {
         const string source = """
             [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA" + "1506:Avoid excessive class coupling")]
@@ -270,9 +270,7 @@ public class SuppressionScanTests
 
         var scopes = Program.SuppressionScopes(source);
 
-        scopes.Keys.ShouldContain(key =>
-            key.Rule.StartsWith(Program.NonLiteralRule, StringComparison.Ordinal)
-            && key.Scope == "type:Example");
+        scopes.ShouldContainKey(("CA1506", "type:Example"));
     }
 
     [Fact]
@@ -323,7 +321,28 @@ public class SuppressionScanTests
 
         var failures = Program.FindNewSuppressionsIn("Example.cs", baseline, current);
 
-        failures.ShouldHaveSingleItem().ShouldContain("non-literal rule argument");
+        failures.ShouldHaveSingleItem().ShouldContain("CA1506");
+    }
+
+    [Fact]
+    public void FindNewSuppressionsIn_LiteralWhitespaceDifference_Fails()
+    {
+        const string baseline = """
+            [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA" + "15 06:Avoid excessive class coupling")]
+            public class Example
+            {
+            }
+            """;
+        const string current = """
+            [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA" + "1506:Avoid excessive class coupling")]
+            public class Example
+            {
+            }
+            """;
+
+        var failures = Program.FindNewSuppressionsIn("Example.cs", baseline, current);
+
+        failures.ShouldHaveSingleItem().ShouldContain("CA1506");
     }
 
     [Fact]
@@ -346,7 +365,71 @@ public class SuppressionScanTests
 
         var failures = Program.FindNewSuppressionsIn("Example.cs", baseline, current);
 
-        failures.ShouldHaveSingleItem().ShouldContain("non-literal rule argument");
+        failures.ShouldHaveSingleItem().ShouldContain("CA1506");
+    }
+
+    [Fact]
+    public void FindNewSuppressionsIn_EditedConstantWithConcatenatedInitializer_Fails()
+    {
+        const string baseline = """
+            [System.Diagnostics.CodeAnalysis.SuppressMessage("Maintainability", RuleIds.Id)]
+            public class Example
+            {
+            }
+
+            internal static class RuleIds
+            {
+                public const string Id = "CA" + "1822:Avoid unnecessary code";
+            }
+            """;
+        const string current = """
+            [System.Diagnostics.CodeAnalysis.SuppressMessage("Maintainability", RuleIds.Id)]
+            public class Example
+            {
+            }
+
+            internal static class RuleIds
+            {
+                public const string Id = "CA" + "1506:Avoid excessive class coupling";
+            }
+            """;
+
+        var failures = Program.FindNewSuppressionsIn("Example.cs", baseline, current);
+
+        failures.ShouldHaveSingleItem().ShouldContain("CA1506");
+    }
+
+    [Fact]
+    public void FindNewSuppressionsIn_UnresolvableRuleArgument_Fails()
+    {
+        const string current = """
+            [System.Diagnostics.CodeAnalysis.SuppressMessage("Maintainability", RuleIds.Id)]
+            public class Example
+            {
+            }
+            """;
+
+        var failures = Program.FindNewSuppressionsIn("Example.cs", null, current);
+
+        failures.ShouldHaveSingleItem().ShouldContain("cannot be resolved");
+        failures[0].ShouldContain("Example.cs(1)");
+        failures[0].ShouldContain("RuleIds.Id");
+    }
+
+    [Fact]
+    public void FindNewSuppressionsIn_NewSuppression_ReportsTheDeclarationLine()
+    {
+        const string current = """
+            // leading comment
+            [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1506:Avoid excessive class coupling")]
+            public class Example
+            {
+            }
+            """;
+
+        var failures = Program.FindNewSuppressionsIn("Example.cs", null, current);
+
+        failures.ShouldHaveSingleItem().ShouldContain("Example.cs(3)");
     }
 
     [Fact]
@@ -362,7 +445,7 @@ public class SuppressionScanTests
 
         var failures = Program.FindNewSuppressionsIn("Example.cs", null, current);
 
-        failures.ShouldHaveSingleItem().ShouldContain("non-literal rule argument");
+        failures.ShouldHaveSingleItem().ShouldContain("CA1506");
     }
 
     [Fact]
