@@ -14,7 +14,9 @@ namespace Sanet.MakaMek.Core.Models.Game.Mechanics.PhysicalAttack;
 /// Charge also needs it not destroyed and not prone; a DFA may land on a destroyed or prone unit
 /// (p. 150-151).</item>
 /// <item>Otherwise the first valid enemy in that hex is the replacement, which is attacked at +1 to
-/// hit. A Charge can replace with any unit; a DFA only with a Mech.</item>
+/// hit. A Charge can replace with any unit; a DFA only with a Mech. A unit still performing its own
+/// Charge is never a replacement, because its movement is unfinished (p. 148); a performer that has
+/// already landed is an ordinary occupant.</item>
 /// <item>Otherwise the attack automatically fails.</item>
 /// </list>
 /// Every candidate also has to satisfy the shared water predicate, so a target the declaration
@@ -77,11 +79,16 @@ public static class MovementAttackTargetSelector
 
     /// <summary>
     /// A replacement has to be a living enemy in the committed hex. A Charge replaces with any unit
-    /// type, a DFA only with a Mech.
+    /// type, a DFA only with a Mech. The declaration's pending-attack rule still applies: a unit
+    /// whose own Charge is unfinished cannot be attacked by a Charge or DFA (Total Warfare, p. 148).
+    /// A landed DFA performer keeps its declaration but is an ordinary occupant, so it stays
+    /// eligible; an airborne one is already excluded above.
     /// </summary>
     private static bool IsEligibleReplacement(IUnit unit, HexPosition destination,
         PhysicalAttackType attackType, IUnit attacker, IBattleMap map) =>
         unit is { IsDestroyed: false, IsAirborneDfaAttacker: false }
+        && unit.GetPendingAttackRestriction(attackType)
+            is not PhysicalAttackRestriction.TargetPerformingDisplacementAttack
         && IsInDestination(unit, destination)
         && attackType switch
         {

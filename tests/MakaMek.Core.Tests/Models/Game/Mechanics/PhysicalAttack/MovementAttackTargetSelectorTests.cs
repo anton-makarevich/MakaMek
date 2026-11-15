@@ -226,6 +226,68 @@ public class MovementAttackTargetSelectorTests
         selection.IsAutoFail.ShouldBeFalse();
     }
 
+    /// <summary>
+    /// A unit still performing its own Charge has unfinished movement, so it cannot be attacked by
+    /// another Charge even when only it occupies the committed hex (Total Warfare p.148).
+    /// </summary>
+    [Fact]
+    public void Select_WhenTheReplacementIsPerformingItsOwnCharge_AutoFails()
+    {
+        MoveElsewhere(_declaredTarget);
+        var charging = CreateMech();
+        _targetPlayer.AddUnit(charging);
+        charging.Deploy(new HexPosition(DestinationCoordinates, HexDirection.Bottom), null);
+        DeclareCharge(charging, _attacker);
+
+        var selection = MovementAttackTargetSelector.Select(_attacker, _declaredTarget.Id, PhysicalAttackType.Charge, AllUnits(), _map);
+
+        selection.Target.ShouldBeNull();
+        selection.IsAutoFail.ShouldBeTrue();
+    }
+
+    /// <summary>
+    /// The same unfinished-movement rule bars a Charge performer as a DFA replacement (Total
+    /// Warfare p.148-149).
+    /// </summary>
+    [Fact]
+    public void Select_Dfa_WhenTheReplacementIsPerformingItsOwnCharge_AutoFails()
+    {
+        var dfaAttacker = CreateMech();
+        _attackerPlayer.AddUnit(dfaAttacker);
+        dfaAttacker.Deploy(new HexPosition(ApproachCoordinates, HexDirection.Top, AirborneLevel: 4), null);
+        CommitDfa(dfaAttacker);
+        MoveElsewhere(_declaredTarget);
+        var charging = CreateMech();
+        _targetPlayer.AddUnit(charging);
+        charging.Deploy(new HexPosition(DestinationCoordinates, HexDirection.Bottom), null);
+        DeclareCharge(charging, dfaAttacker);
+
+        var selection = MovementAttackTargetSelector.Select(
+            dfaAttacker, _declaredTarget.Id, PhysicalAttackType.DFA, AllUnits(), _map);
+
+        selection.Target.ShouldBeNull();
+        selection.IsAutoFail.ShouldBeTrue();
+    }
+
+    /// <summary>
+    /// A landed DFA performer keeps its declaration but is an ordinary grounded occupant, so it can
+    /// still be the replacement target (Total Warfare p.149).
+    /// </summary>
+    [Fact]
+    public void Select_WhenTheReplacementIsALandedDfaPerformer_ReturnsIt()
+    {
+        MoveElsewhere(_declaredTarget);
+        var landed = CreateMech();
+        _targetPlayer.AddUnit(landed);
+        landed.Deploy(new HexPosition(DestinationCoordinates, HexDirection.Bottom), null);
+        DeclareDfa(landed, _attacker);
+
+        var selection = MovementAttackTargetSelector.Select(_attacker, _declaredTarget.Id, PhysicalAttackType.Charge, AllUnits(), _map);
+
+        selection.Target.ShouldBe(landed);
+        selection.IsReplacementTarget.ShouldBeTrue();
+    }
+
     [Fact]
     public void Select_WhenTheOccupantIsOnAnotherSurface_AutoFails()
     {
@@ -511,6 +573,14 @@ public class MovementAttackTargetSelectorTests
         mech.DeclarePhysicalAttack(new PhysicalAttackDeclarationData
         {
             AttackType = PhysicalAttackType.DFA,
+            AttackerLimbs = [],
+            TargetId = target.Id
+        });
+
+    private static void DeclareCharge(Mech mech, Mech target) =>
+        mech.DeclarePhysicalAttack(new PhysicalAttackDeclarationData
+        {
+            AttackType = PhysicalAttackType.Charge,
             AttackerLimbs = [],
             TargetId = target.Id
         });

@@ -390,7 +390,10 @@ public class PhysicalAttackResolutionPhase : GamePhase
             .SelectResolutionTarget(item.Attacker, item.Declaration, AllUnits(), map);
         if (selection.Target is not { } target)
         {
-            ResolveDfaAutoFail(item, declaredTarget);
+            // An attacker that must miss still crashes even when nobody holds the committed hex:
+            // the attack misses first, and the missing target only removes the target side (p. 149).
+            ResolveDfaAutoFail(item, declaredTarget,
+                attackerState == MovementAttackAttackerState.MustMiss);
             return;
         }
 
@@ -507,9 +510,11 @@ public class PhysicalAttackResolutionPhase : GamePhase
     /// is no longer at its approach hex) and grounds the attacker in the hex it committed to land in.
     /// The jump destination of a DFA is the target hex, so a failed attack never ends anywhere else;
     /// an occupied hex is resolved through the displacement pipeline. If no legal landing remains,
-    /// the attacker is destroyed. No damage and no fall (Total Warfare, p. 150).
+    /// the attacker is destroyed. No damage and no fall (Total Warfare, p. 150) — unless the attacker
+    /// had to miss anyway (prone, shutdown or unconscious), because then the miss still carries its
+    /// automatic two-level fall even though the target left the hex (p. 149-150).
     /// </summary>
-    private void ResolveDfaAutoFail(DfaQueueItem item, IUnit? target)
+    private void ResolveDfaAutoFail(DfaQueueItem item, IUnit? target, bool applyMissFall = false)
     {
         var landing = ResolveDfaLanding(item.Attacker);
         var noLanding = landing is null || landing.IsOverlapUnresolved;
@@ -518,13 +523,18 @@ public class PhysicalAttackResolutionPhase : GamePhase
             target,
             CreateDfaAutoResolution(
                 item,
-                noLanding ? DfaOutcome.AttackerDestroyedNoLanding : DfaOutcome.AutoFail));
+                noLanding ? DfaOutcome.AttackerDestroyedNoLanding
+                    : applyMissFall ? DfaOutcome.Miss : DfaOutcome.AutoFail));
 
         if (noLanding) return;
 
         var appliedLanding = ApplyDfaLanding(
-            item.Attacker, landing, DfaLandingKind.AutoFailLanding);
+            item.Attacker, landing,
+            applyMissFall ? DfaLandingKind.MissLanding : DfaLandingKind.AutoFailLanding);
         RollDominoEffects(appliedLanding?.DominoEffect);
+
+        // A landing that could not be resolved has already destroyed the attacker; it cannot fall.
+        if (applyMissFall && !item.Attacker.IsDestroyed) ApplyDfaFall(item.Attacker);
     }
 
     private static PhysicalAttackResolutionData CreateDfaAutoResolution(

@@ -131,7 +131,9 @@ is added.
   the attacker by completing the jump it already recorded (`DfaLandingCommand`): a hit lands it in
   the target's original hex, a miss or a destroyed target lands it there before the automatic
   two-level rear fall, and an auto-fail lands it in the declared target hex (the jump destination)
-  without damage or a fall.
+  without damage or a fall. An auto-fail still carries the miss fall when the attacker had to miss
+  anyway (prone, shutdown or unconscious), because that outcome is decided by the attacker, not by
+  the target's presence.
   The attacker always lands in the target hex: if a successful DFA's target cannot be displaced,
   the target is destroyed so the hex frees up — unless the impact destroyed the attacker first,
   which then never lands; if a missed DFA's target cannot be displaced, the attacker is destroyed.
@@ -147,11 +149,15 @@ is added.
   fell the declared target. If another enemy 'Mech stands in the committed target hex, the DFA
   resolves against it as a **replacement target at +1 to hit**; with no valid unit there the attack
   automatically fails and the attacker lands in the declared hex without damage or a fall (Total
-  Warfare, Initiative and Displacement). A unit performing a Death From Above is immune to physical
+  Warfare, Initiative and Displacement). That auto-fail only replaces the target side: a DFA the
+  attacker had to miss anyway (prone, shutdown or unconscious, p. 149) still lands and then takes
+  the automatic two-level fall. A unit performing a Death From Above is immune to physical
   attacks until it lands (p. 149), so an airborne performer is excluded both as the declared target
   and as a replacement: when the declared target is itself airborne, it is treated as absent, the
   replacement search runs and the attack auto-fails when nobody else holds the hex. A performer
-  that has already landed is an ordinary grounded occupant and may be the replacement.
+  that has already landed is an ordinary grounded occupant and may be the replacement, but a unit
+  still performing its own Charge is not, because its movement is unfinished until the Physical
+  Attack Phase (p. 148).
 * **Landing is a jump completion:** the attacker already recorded the full jump path, including the
   final leg into the target hex, during the Movement Phase; it only waits in the approach hex. The
   physical phase completes that move with a `DfaLandingCommand` (`DfaLandingKind`: attacker landing,
@@ -227,9 +233,10 @@ instead of being resolved.
   attacker rules. `MovementAttackValidator.GetAttackerState` reports whether the
   attacker can still attack, and `SelectResolutionTarget` returns the declared target, a
   replacement or an automatic failure through `MovementAttackTargetSelector`. The selector applies
-  the shared water predicate to both the declared target and the replacement. The UI target search
-  calls `GetPotentialTargets` on the same validator, so the highlighted targets and the resolved
-  ones cannot drift.
+  the shared water predicate and the pending-attack restriction (`TargetPerformingDisplacementAttack`)
+  to the replacement, so a unit whose own Charge is still unresolved never becomes the target. The
+  UI target search calls `GetPotentialTargets` on the same validator, so the highlighted targets and
+  the resolved ones cannot drift.
 * **Airborne stacking exemption in every displacement path:** `IsAirborneDfaAttacker`
   (`HasPendingMovementAttack` + `IsDfa` + an `AirborneLevel` on the position) is excluded from the
   occupant checks of `ChargeDisplacementResolver`, `PushDisplacementResolver` and the shared
