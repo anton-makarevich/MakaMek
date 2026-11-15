@@ -416,6 +416,7 @@ internal static class Program
         var argumentsCode = MaskComments(source);
         var lines = ReadLines(code);
         var declarations = FindDeclarations(lines);
+        var constants = FindConstantDeclarations(code);
 
         foreach (var (rule, start, end, depth) in FindPragmaRegions(lines, code.Length))
         {
@@ -443,7 +444,7 @@ internal static class Program
             var ruleArgument = ReadRuleArgument(attribute.Arguments);
             if (ruleArgument is null) continue;
 
-            if (!TryEvaluateRuleArgument(ruleArgument, argumentsCode, out var ruleText))
+            if (!TryEvaluateRuleArgument(ruleArgument, argumentsCode, constants, out var ruleText))
             {
                 unresolvable.Add(new UnresolvableSuppression(LineAt(code, attribute.Start), scope, ruleArgument));
                 continue;
@@ -467,10 +468,19 @@ internal static class Program
     /// expression). Returns <c>false</c> when any part cannot be resolved, so the caller can reject
     /// the suppression instead of assuming it hides nothing.
     /// </summary>
-    private static bool TryEvaluateRuleArgument(string expression, string source, out string value) =>
-        TryEvaluateExpression(expression, source, 0, out value);
+    private static bool TryEvaluateRuleArgument(
+        string expression,
+        string source,
+        IReadOnlyList<ConstantDeclaration> constants,
+        out string value) =>
+        TryEvaluateExpression(expression, source, constants, 0, out value);
 
-    private static bool TryEvaluateExpression(string expression, string source, int depth, out string value)
+    private static bool TryEvaluateExpression(
+        string expression,
+        string source,
+        IReadOnlyList<ConstantDeclaration> constants,
+        int depth,
+        out string value)
     {
         value = string.Empty;
         if (depth > MaxConstantEvaluationDepth) return false;
@@ -489,7 +499,7 @@ internal static class Program
             }
 
             if (!IdentifierPathPattern.IsMatch(operand)) return false;
-            if (!TryResolveStringConstant(operand, source, depth, out var constant)) return false;
+            if (!TryResolveStringConstant(operand, source, constants, depth, out var constant)) return false;
             builder.Append(constant);
         }
 
@@ -497,23 +507,80 @@ internal static class Program
         return true;
     }
 
-    private static bool TryResolveStringConstant(string path, string source, int depth, out string value)
+    /// <summary>
+    /// Resolves a constant reference the compiler would bind: a qualified path only matches a constant
+    /// declared in the type named by the qualifier, and an unqualified name only when the file
+    /// declares exactly one such constant. Anything ambiguous or not declared in the file is rejected,
+    /// so an unrelated constant with the same name can never stand in for an external one.
+    /// </summary>
+    private static bool TryResolveStringConstant(
+        string path,
+        string source,
+        IReadOnlyList<ConstantDeclaration> constants,
+        int depth,
+        out string value)
     {
         value = string.Empty;
-        var name = path[(path.LastIndexOf('.') + 1)..];
+        var segments = path.Split('.');
+        var name = segments[^1];
+        var qualifier = segments.Length > 1 ? segments[^2] : null;
 
-        foreach (Match declaration in ConstantDeclarationPattern.Matches(source))
+        var candidates = constants.Where(candidate => candidate.Name == name).ToList();
+        if (qualifier is not null)
         {
-            if (!string.Equals(declaration.Groups["name"].Value, name, StringComparison.Ordinal)) continue;
-
-            var start = declaration.Index + declaration.Length;
-            var end = FindStatementEnd(source, start);
-            if (end < 0) continue;
-
-            return TryEvaluateExpression(source[start..end], source, depth + 1, out value);
+            candidates = candidates
+                .Where(candidate => string.Equals(candidate.DeclaringType, qualifier, StringComparison.Ordinal))
+                .ToList();
         }
 
-        return false;
+        if (candidates.Count != 1) return false;
+
+        var declaration = candidates[0];
+        var end = FindStatementEnd(source, declaration.InitializerStart);
+        if (end < 0) return false;
+
+        return TryEvaluateExpression(
+            source[declaration.InitializerStart..end], source, constants, depth + 1, out value);
+    }
+
+    /// <summary>
+    /// Every <c>const string</c> declaration in the file with the type that declares it, so a
+    /// qualified reference can be bound to the right one.
+    /// </summary>
+    private static List<ConstantDeclaration> FindConstantDeclarations(string code)
+    {
+        var lines = ReadLines(code);
+
+        var types = new List<(int Offset, int Depth, string Name)>();
+        foreach (var line in lines)
+        {
+            var typeMatch = TypeDeclarationPattern.Match(line.Text.TrimStart());
+            if (typeMatch.Success)
+            {
+                types.Add((line.Offset, line.Depth, typeMatch.Groups["name"].Value));
+            }
+        }
+
+        var declarations = new List<ConstantDeclaration>();
+        foreach (var line in lines)
+        {
+            var constant = ConstantDeclarationPattern.Match(line.Text);
+            if (!constant.Success) continue;
+
+            // The nearest preceding type declared at a lower depth encloses this constant.
+            var declaringType = types
+                .Where(type => type.Offset < line.Offset && type.Depth < line.Depth)
+                .OrderByDescending(type => type.Offset)
+                .Select(type => type.Name)
+                .FirstOrDefault();
+
+            declarations.Add(new ConstantDeclaration(
+                declaringType,
+                constant.Groups["name"].Value,
+                line.Offset + constant.Index + constant.Length));
+        }
+
+        return declarations;
     }
 
     /// <summary>
@@ -778,6 +845,8 @@ internal static class Program
 
     private sealed record Declaration(int Offset, int Depth, string Key);
 
+    private sealed record ConstantDeclaration(string? DeclaringType, string Name, int InitializerStart);
+
     private sealed record PragmaStatement(int Offset, int Depth, bool IsDisable, IReadOnlyList<string> Rules);
 
     private static List<SourceLine> ReadLines(string code)
@@ -983,6 +1052,23 @@ internal static class Program
 
         var end = MaskLiteral(trimmed, 0, new StringBuilder(), maskContent: true);
         if (end <= offset + 1 || trimmed[end..].Trim().Length != 0) return false;
+
+        // Raw string literal ("""..."""), possibly with more delimiter quotes. A single-line raw
+        // string decodes to its content verbatim; the indentation rules of a multi-line raw string are
+        // not modelled, so it is rejected rather than decoded into a wrong value.
+        var quoteRun = 0;
+        while (offset + quoteRun < trimmed.Length && trimmed[offset + quoteRun] == '"') quoteRun++;
+        if (quoteRun >= 3)
+        {
+            var contentEnd = end - quoteRun;
+            if (contentEnd < offset + quoteRun) return false;
+
+            var rawContent = trimmed[(offset + quoteRun)..contentEnd];
+            if (rawContent.Contains('\n') || rawContent.Contains('\r')) return false;
+
+            value = rawContent;
+            return true;
+        }
 
         var content = trimmed[(offset + 1)..(end - 1)];
         if (offset == 1)

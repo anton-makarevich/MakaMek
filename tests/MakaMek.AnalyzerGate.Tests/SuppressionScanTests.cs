@@ -417,6 +417,150 @@ public class SuppressionScanTests
     }
 
     [Fact]
+    public void SuppressionScopes_AttributeWithRawStringRuleId_IsDetected()
+    {
+        const string source = """"
+            [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", """CA1506:Avoid excessive class coupling""")]
+            public class Example
+            {
+            }
+            """";
+
+        var scopes = Program.SuppressionScopes(source);
+
+        scopes.ShouldContainKey(("CA1506", "type:Example"));
+    }
+
+    [Fact]
+    public void FindNewSuppressionsIn_AttributeWithRawStringRuleId_Fails()
+    {
+        const string current = """"
+            [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", """CA1506:Avoid excessive class coupling""")]
+            public class Example
+            {
+            }
+            """";
+
+        var failures = Program.FindNewSuppressionsIn("Example.cs", null, current);
+
+        failures.ShouldHaveSingleItem().ShouldContain("CA1506");
+    }
+
+    [Fact]
+    public void FindNewSuppressionsIn_MultilineRawStringRuleArgument_Fails()
+    {
+        const string current = """"
+            [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", """
+                CA1506:Avoid excessive class coupling
+                """)]
+            public class Example
+            {
+            }
+            """";
+
+        var failures = Program.FindNewSuppressionsIn("Example.cs", null, current);
+
+        failures.ShouldHaveSingleItem().ShouldContain("cannot be resolved");
+    }
+
+    [Fact]
+    public void FindNewSuppressionsIn_EditedQualifiedConstant_ResolvesTheQualifiedDeclaration()
+    {
+        const string baseline = """
+            [System.Diagnostics.CodeAnalysis.SuppressMessage("Maintainability", RuleIds.Id)]
+            public class Example
+            {
+            }
+
+            internal static class OtherIds
+            {
+                public const string Id = "CA1822:Avoid unnecessary code";
+            }
+
+            internal static class RuleIds
+            {
+                public const string Id = "CA1822:Avoid unnecessary code";
+            }
+            """;
+        const string current = """
+            [System.Diagnostics.CodeAnalysis.SuppressMessage("Maintainability", RuleIds.Id)]
+            public class Example
+            {
+            }
+
+            internal static class OtherIds
+            {
+                public const string Id = "CA1822:Avoid unnecessary code";
+            }
+
+            internal static class RuleIds
+            {
+                public const string Id = "CA1506:Avoid excessive class coupling";
+            }
+            """;
+
+        var failures = Program.FindNewSuppressionsIn("Example.cs", baseline, current);
+
+        failures.ShouldHaveSingleItem().ShouldContain("CA1506");
+    }
+
+    [Fact]
+    public void FindNewSuppressionsIn_AmbiguousUnqualifiedConstant_Fails()
+    {
+        const string source = """
+            [System.Diagnostics.CodeAnalysis.SuppressMessage("Maintainability", Id)]
+            public class Example
+            {
+            }
+
+            internal static class OtherIds
+            {
+                public const string Id = "CA1822:Avoid unnecessary code";
+            }
+
+            internal static class RuleIds
+            {
+                public const string Id = "CA1506:Avoid excessive class coupling";
+            }
+            """;
+
+        var failures = Program.FindNewSuppressionsIn("Example.cs", null, source);
+
+        failures.ShouldHaveSingleItem().ShouldContain("cannot be resolved");
+    }
+
+    [Fact]
+    public void FindNewSuppressionsIn_ExternalQualifiedReference_DoesNotBindToALocalConstant()
+    {
+        const string baseline = """
+            [System.Diagnostics.CodeAnalysis.SuppressMessage("Maintainability", ExternalIds.Id)]
+            public class Example
+            {
+            }
+
+            internal static class RuleIds
+            {
+                public const string Id = "CA1822:Avoid unnecessary code";
+            }
+            """;
+        const string current = """
+            [System.Diagnostics.CodeAnalysis.SuppressMessage("Maintainability", ExternalIds.Id)]
+            public class Example
+            {
+            }
+
+            internal static class RuleIds
+            {
+                public const string Id = "CA1822:Avoid unnecessary code";
+            }
+            """;
+
+        var failures = Program.FindNewSuppressionsIn("Example.cs", baseline, current);
+
+        failures.ShouldHaveSingleItem().ShouldContain("cannot be resolved");
+    }
+
+    [Fact]
     public void FindNewSuppressionsIn_NewSuppression_ReportsTheDeclarationLine()
     {
         const string current = """
