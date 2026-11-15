@@ -74,6 +74,26 @@ public class MovementAttackValidatorTests
             .ShouldBe(MovementAttackAttackerState.CannotAttack);
     }
 
+    /// <summary>
+    /// A movement attack waits in the last translated hex of its move. A move that never changes
+    /// hex (only turns in place) has no approach position, so the pending attack cannot resolve
+    /// even though the unit itself is still standing.
+    /// </summary>
+    [Fact]
+    public void GetAttackerState_ForAChargeWhoseMoveHasNoTranslation_ReturnsCannotAttack()
+    {
+        var attacker = CreateDeployedMech(_attackerPlayer, ApproachCoordinates);
+        var position = new HexPosition(ApproachCoordinates, HexDirection.Top);
+        attacker.Move(MovementPath.CreateSingleSegmentPath(position, MovementType.Walk),
+            null,
+            true,
+            position);
+        attacker.MovementTaken!.GetLastTranslationIndex().ShouldBe(-1);
+
+        _sut.GetAttackerState(attacker, ChargeDeclaration)
+            .ShouldBe(MovementAttackAttackerState.CannotAttack);
+    }
+
     [Fact]
     public void GetAttackerState_ForADfaAboveItsApproach_ReturnsCanAttack()
     {

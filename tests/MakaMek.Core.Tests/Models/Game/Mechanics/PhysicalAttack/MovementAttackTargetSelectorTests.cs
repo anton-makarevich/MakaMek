@@ -442,6 +442,25 @@ public class MovementAttackTargetSelectorTests
         selection.IsAutoFail.ShouldBeTrue();
     }
 
+    /// <summary>
+    /// The selector only backs Charge and DFA. A declaration carrying any other attack type — a
+    /// programming error rather than a legal game state — must never silently resolve against an
+    /// occupant of the committed hex.
+    /// </summary>
+    [Fact]
+    public void Select_ForAnAttackTypeThatIsNotAMovementAttack_AutoFails()
+    {
+        var otherOccupant = CreateMech();
+        _targetPlayer.AddUnit(otherOccupant);
+        otherOccupant.Deploy(new HexPosition(DestinationCoordinates, HexDirection.Bottom), null);
+
+        var selection = MovementAttackTargetSelector.Select(
+            _attacker, _declaredTarget.Id, PhysicalAttackType.Punch, AllUnits(), _map);
+
+        selection.Target.ShouldBeNull();
+        selection.IsAutoFail.ShouldBeTrue();
+    }
+
     private static BattleMap CreateFlatMap()
     {
         var map = new BattleMap(10, 10);

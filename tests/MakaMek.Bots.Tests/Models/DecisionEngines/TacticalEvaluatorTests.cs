@@ -7,6 +7,7 @@ using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Utils;
+using Sanet.MakaMek.Core.Models.Units.Components;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Models.Units.Pilots;
 using Shouldly;
@@ -630,6 +631,105 @@ public class TacticalEvaluatorTests
 
         // Act & Assert
         airborne.ShouldNotBe(grounded);
+    }
+
+    /// <summary>
+    /// A unit in the enemy list that is not on the board (destroyed and removed, or still waiting
+    /// to deploy) has no position to shoot from or at, so it neither threatens the position nor
+    /// becomes a target.
+    /// </summary>
+    [Fact]
+    public void EvaluatePath_WhenAnEnemyHasNoPosition_IsIgnored()
+    {
+        // Arrange
+        var unit = MovementEngineTests.CreateTestMech();
+        var path = MovementPath.CreateSingleSegmentPath(
+            new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom));
+        var enemy = Substitute.For<IUnit>();
+        enemy.Position.Returns((HexPosition?)null);
+        enemy.Height.Returns(2);
+
+        // Act
+        var result = _sut.EvaluatePath(unit, path, [enemy]);
+
+        // Assert
+        result.DefensiveIndex.ShouldBe(0);
+        result.OffensiveIndex.ShouldBe(0);
+        result.EnemiesInRearArc.ShouldBe(0);
+        _battleMap.DidNotReceive().GetLineOfSight(
+            Arg.Any<HexPosition>(), Arg.Any<HexPosition>(), Arg.Any<int>(), Arg.Any<int>());
+    }
+
+    /// <summary>
+    /// An enemy weapon that cannot bear on the position is no threat, even with line of sight and
+    /// range: a rear-mounted weapon has nothing to shoot at a unit standing in front of it.
+    /// </summary>
+    [Fact]
+    public void EvaluatePath_WhenTheEnemyWeaponCannotBearOnThePosition_IsIgnored()
+    {
+        // Arrange
+        var unit = MovementEngineTests.CreateTestMech();
+        var path = MovementPath.CreateSingleSegmentPath(
+            new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom));
+
+        var enemy = MovementEngineTests.CreateTestMech();
+        var enemyPosition = new HexPosition(new HexCoordinates(1, 4), HexDirection.Top);
+        enemy.Move(MovementPath.CreateSingleSegmentPath(enemyPosition, MovementType.Walk), null);
+        enemy.Parts[PartLocation.RightTorso].TryAddComponent(new TestWeapon(
+            new WeaponDefinition("RearLaser", 5, 1, new WeaponRange(0, 3, 6, 9), WeaponType.Energy, 100,
+                MountingOptions: MountingOptions.Rear))).ShouldBeTrue();
+
+        _battleMap.GetLineOfSight(Arg.Any<HexPosition>(), Arg.Any<HexPosition>(), Arg.Any<int>(), Arg.Any<int>())
+            .Returns(LineOfSightResult.Unblocked(new HexCoordinates(1, 4), new HexCoordinates(1, 1)));
+        _toHitCalculator.GetToHitNumber(Arg.Any<AttackScenario>(), Arg.Any<Weapon>(), Arg.Any<IBattleMap>())
+            .Returns(8);
+
+        // Act
+        var result = _sut.EvaluatePath(unit, path, [enemy]);
+
+        // Assert
+        result.DefensiveIndex.ShouldBe(0);
+        _toHitCalculator.DidNotReceive().GetToHitNumber(
+            Arg.Any<AttackScenario>(), Arg.Any<Weapon>(), Arg.Any<IBattleMap>());
+    }
+
+    /// <summary>
+    /// A unit without a pilot cannot calculate a to-hit number, so it contributes no threat. This
+    /// covers ejected or not-yet-assigned pilots without throwing.
+    /// </summary>
+    [Fact]
+    public void EvaluatePath_WhenTheEnemyHasNoPilot_ContributesNoThreat()
+    {
+        // Arrange
+        var unit = MovementEngineTests.CreateTestMech();
+        var path = MovementPath.CreateSingleSegmentPath(
+            new HexPosition(new HexCoordinates(1, 1), HexDirection.Bottom));
+
+        var enemyPosition = new HexPosition(new HexCoordinates(1, 4), HexDirection.Top);
+        var weaponHost = MovementEngineTests.CreateTestMech();
+        weaponHost.Move(MovementPath.CreateSingleSegmentPath(enemyPosition, MovementType.Walk), null);
+        var weapon = new TestWeapon(new WeaponDefinition("TestLaser", 5, 1,
+            new WeaponRange(0, 3, 6, 9), WeaponType.Energy, 100));
+        weaponHost.Parts[PartLocation.RightArm].TryAddComponent(weapon).ShouldBeTrue();
+
+        var enemy = Substitute.For<IUnit>();
+        enemy.Position.Returns(enemyPosition);
+        enemy.Height.Returns(2);
+        enemy.GetAvailableWeapons().Returns([weapon]);
+        enemy.Pilot.Returns((IPilot?)null);
+
+        _battleMap.GetLineOfSight(Arg.Any<HexPosition>(), Arg.Any<HexPosition>(), Arg.Any<int>(), Arg.Any<int>())
+            .Returns(LineOfSightResult.Unblocked(new HexCoordinates(1, 4), new HexCoordinates(1, 1)));
+        _toHitCalculator.GetToHitNumber(Arg.Any<AttackScenario>(), Arg.Any<Weapon>(), Arg.Any<IBattleMap>())
+            .Returns(8);
+
+        // Act
+        var result = _sut.EvaluatePath(unit, path, [enemy]);
+
+        // Assert
+        result.DefensiveIndex.ShouldBe(0);
+        _toHitCalculator.DidNotReceive().GetToHitNumber(
+            Arg.Any<AttackScenario>(), Arg.Any<Weapon>(), Arg.Any<IBattleMap>());
     }
 
     private static Mech CreatePendingDfaTarget(HexPosition approach, HexPosition declaredTarget)
