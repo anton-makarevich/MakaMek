@@ -17,6 +17,10 @@ using Sanet.MakaMek.Map.Models;
 using Sanet.MakaMek.Map.Models.MovementCosts;
 using Sanet.MakaMek.Core.Models.Game.Rules;
 
+// Pre-existing class coupling in this type, not introduced by this change. It is tracked in
+// #1714 together with the baseline-aware analyzer gate that will make this suppression unnecessary.
+#pragma warning disable CA1506
+
 namespace Sanet.MakaMek.Core.Models.Units.Mechs;
 
 public class Mech : Unit
@@ -683,7 +687,11 @@ public class Mech : Unit
         }
     }
 
-    public bool IsProne => (Status & UnitStatus.Prone) == UnitStatus.Prone;
+    /// <summary>
+    /// Gets whether the Mech is prone. Only a Mech can be prone, so this is the only override of
+    /// <see cref="Unit.IsProne"/>.
+    /// </summary>
+    public override bool IsProne => (Status & UnitStatus.Prone) == UnitStatus.Prone;
 
     /// <summary>
     /// Gets the mech's height in levels. Standing mechs are height 2, prone mechs are height 1.

@@ -63,7 +63,7 @@ public abstract class BaseGame : IGame
     public IHeatEffectsCalculator HeatEffectsCalculator { get; }
     public IPhysicalAttackEligibility PhysicalAttackEligibility { get; }
     public IPhysicalAttackCalculator PhysicalAttackCalculator { get; }
-    public IMovementAttackDeclarationValidator MovementAttackDeclarationValidator { get; }
+    public IMovementAttackValidator MovementAttackValidator { get; }
 
     public int Turn
     {
@@ -125,7 +125,7 @@ public abstract class BaseGame : IGame
         IHeatEffectsCalculator heatEffectsCalculator,
         IPhysicalAttackEligibility physicalAttackEligibility,
         IPhysicalAttackCalculator physicalAttackCalculator,
-        IMovementAttackDeclarationValidator movementAttackDeclarationValidator,
+        IMovementAttackValidator movementAttackValidator,
         ILogger logger)
     {
         Logger = logger;
@@ -139,7 +139,7 @@ public abstract class BaseGame : IGame
         HeatEffectsCalculator = heatEffectsCalculator;
         PhysicalAttackEligibility = physicalAttackEligibility;
         PhysicalAttackCalculator = physicalAttackCalculator;
-        MovementAttackDeclarationValidator = movementAttackDeclarationValidator;
+        MovementAttackValidator = movementAttackValidator;
         CommandPublisher.Subscribe(HandleCommand);
     }
 

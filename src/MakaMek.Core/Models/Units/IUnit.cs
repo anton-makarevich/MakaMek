@@ -38,6 +38,12 @@ public interface IUnit
     UnitStatus Status { get; }
 
     /// <summary>
+    /// Gets whether the unit is prone. Rules code must read this property rather than testing
+    /// <see cref="Status"/> for the prone flag, so the meaning of the flag stays owned by the unit.
+    /// </summary>
+    bool IsProne { get; }
+
+    /// <summary>
     /// Gets whether the unit is destroyed. Returns true if the Destroyed flag is set, regardless of other flags.
     /// </summary>
     bool IsDestroyed { get; }

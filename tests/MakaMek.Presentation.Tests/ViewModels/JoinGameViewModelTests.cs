@@ -79,7 +79,7 @@ public class JoinGameViewModelTests
             _heatEffectsCalculator,
             new PhysicalAttackEligibility(),
             Substitute.For<IPhysicalAttackCalculator>(),
-            Substitute.For<IMovementAttackDeclarationValidator>(),
+            Substitute.For<IMovementAttackValidator>(),
             _mapFactory,
             _hashService,
             Substitute.For<ILogger<ClientGame>>());

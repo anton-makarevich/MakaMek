@@ -110,6 +110,12 @@ public abstract class Unit : IUnit
     public bool IsDestroyed => (_status & UnitStatus.Destroyed) == UnitStatus.Destroyed;
 
     /// <summary>
+    /// Gets whether the unit is prone. Keep the default
+    /// <c>false</c> and override it in their own type.
+    /// </summary>
+    public virtual bool IsProne => false;
+
+    /// <summary>
     /// Gets whether the unit is active. Returns true if the Active flag is set, regardless of other flags.
     /// </summary>
     public bool IsActive => (_status & UnitStatus.Active) == UnitStatus.Active;

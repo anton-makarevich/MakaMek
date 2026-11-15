@@ -44,13 +44,13 @@ public class ServerGame : BaseGame, IDisposable
         IHeatEffectsCalculator heatEffectsCalculator,
         IPhysicalAttackEligibility physicalAttackEligibility,
         IPhysicalAttackCalculator physicalAttackCalculator,
-        IMovementAttackDeclarationValidator movementAttackDeclarationValidator,
+        IMovementAttackValidator movementAttackValidator,
         IFallProcessor fallProcessor,
         IWeaponAttackResolver weaponAttackResolver,
         IPhysicalAttackResolver physicalAttackResolver,
         ILogger<ServerGame> logger,
         IPhaseManager? phaseManager = null)
-        : base(rulesProvider, mechFactory, commandPublisher, toHitCalculator, pilotingSkillCalculator, consciousnessCalculator, heatEffectsCalculator, physicalAttackEligibility, physicalAttackCalculator, movementAttackDeclarationValidator, logger)
+        : base(rulesProvider, mechFactory, commandPublisher, toHitCalculator, pilotingSkillCalculator, consciousnessCalculator, heatEffectsCalculator, physicalAttackEligibility, physicalAttackCalculator, movementAttackValidator, logger)
     {
         DiceRoller = diceRoller;
         DamageTransferCalculator = damageTransferCalculator;

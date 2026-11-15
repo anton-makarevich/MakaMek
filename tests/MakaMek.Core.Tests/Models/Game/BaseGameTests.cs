@@ -54,7 +54,7 @@ public sealed class BaseGameTests : BaseGame
         Substitute.For<IHeatEffectsCalculator>(),
         new PhysicalAttackEligibility(),
         Substitute.For<IPhysicalAttackCalculator>(),
-        Substitute.For<IMovementAttackDeclarationValidator>(),
+        Substitute.For<IMovementAttackValidator>(),
         Substitute.For<ILogger<BaseGame>>())
     {
         SetBattleMap(

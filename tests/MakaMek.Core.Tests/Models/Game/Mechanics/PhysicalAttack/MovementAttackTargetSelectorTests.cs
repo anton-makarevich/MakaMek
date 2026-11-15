@@ -17,7 +17,7 @@ using Shouldly;
 
 namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics.PhysicalAttack;
 
-public class ChargeTargetSelectorTests
+public class MovementAttackTargetSelectorTests
 {
     private static readonly HexCoordinates ApproachCoordinates = new(5, 5);
     private static readonly HexCoordinates DestinationCoordinates = new(5, 6);
@@ -28,7 +28,7 @@ public class ChargeTargetSelectorTests
     private readonly Mech _attacker;
     private readonly Mech _declaredTarget;
 
-    public ChargeTargetSelectorTests()
+    public MovementAttackTargetSelectorTests()
     {
         _attacker = CreateMech();
         _declaredTarget = CreateMech();
@@ -57,7 +57,7 @@ public class ChargeTargetSelectorTests
     [Fact]
     public void Select_WhenTheDeclaredTargetIsStillStandingInTheHex_ReturnsIt()
     {
-        var selection = ChargeTargetSelector.Select(_attacker, _declaredTarget.Id, AllUnits());
+        var selection = MovementAttackTargetSelector.Select(_attacker, _declaredTarget.Id, PhysicalAttackType.Charge, AllUnits());
 
         selection.Target.ShouldBe(_declaredTarget);
         selection.IsReplacementTarget.ShouldBeFalse();
@@ -69,7 +69,7 @@ public class ChargeTargetSelectorTests
     {
         _declaredTarget.SetProne();
 
-        var selection = ChargeTargetSelector.Select(_attacker, _declaredTarget.Id, AllUnits());
+        var selection = MovementAttackTargetSelector.Select(_attacker, _declaredTarget.Id, PhysicalAttackType.Charge, AllUnits());
 
         selection.Target.ShouldBeNull();
         selection.IsAutoFail.ShouldBeTrue();
@@ -85,7 +85,7 @@ public class ChargeTargetSelectorTests
                 [], [3, 4], PartLocation.Head)],
             HitDirection.Front);
 
-        var selection = ChargeTargetSelector.Select(_attacker, _declaredTarget.Id, AllUnits());
+        var selection = MovementAttackTargetSelector.Select(_attacker, _declaredTarget.Id, PhysicalAttackType.Charge, AllUnits());
 
         selection.Target.ShouldBeNull();
         selection.IsAutoFail.ShouldBeTrue();
@@ -96,7 +96,7 @@ public class ChargeTargetSelectorTests
     {
         MoveElsewhere(_declaredTarget);
 
-        var selection = ChargeTargetSelector.Select(_attacker, _declaredTarget.Id, AllUnits());
+        var selection = MovementAttackTargetSelector.Select(_attacker, _declaredTarget.Id, PhysicalAttackType.Charge, AllUnits());
 
         selection.Target.ShouldBeNull();
         selection.IsAutoFail.ShouldBeTrue();
@@ -110,7 +110,7 @@ public class ChargeTargetSelectorTests
         _targetPlayer.AddUnit(replacement);
         replacement.Deploy(new HexPosition(DestinationCoordinates, HexDirection.Bottom), null);
 
-        var selection = ChargeTargetSelector.Select(_attacker, _declaredTarget.Id, AllUnits());
+        var selection = MovementAttackTargetSelector.Select(_attacker, _declaredTarget.Id, PhysicalAttackType.Charge, AllUnits());
 
         selection.Target.ShouldBe(replacement);
         selection.IsReplacementTarget.ShouldBeTrue();
@@ -128,7 +128,7 @@ public class ChargeTargetSelectorTests
         first.Deploy(new HexPosition(DestinationCoordinates, HexDirection.Bottom), null);
         second.Deploy(new HexPosition(DestinationCoordinates, HexDirection.Bottom), null);
 
-        var selection = ChargeTargetSelector.Select(_attacker, _declaredTarget.Id, AllUnits());
+        var selection = MovementAttackTargetSelector.Select(_attacker, _declaredTarget.Id, PhysicalAttackType.Charge, AllUnits());
 
         selection.Target.ShouldBe(first);
         selection.IsReplacementTarget.ShouldBeTrue();
@@ -142,7 +142,7 @@ public class ChargeTargetSelectorTests
         _attackerPlayer.AddUnit(friendly);
         friendly.Deploy(new HexPosition(DestinationCoordinates, HexDirection.Bottom), null);
 
-        var selection = ChargeTargetSelector.Select(_attacker, _declaredTarget.Id, AllUnits());
+        var selection = MovementAttackTargetSelector.Select(_attacker, _declaredTarget.Id, PhysicalAttackType.Charge, AllUnits());
 
         selection.Target.ShouldBeNull();
         selection.IsAutoFail.ShouldBeTrue();
@@ -162,7 +162,7 @@ public class ChargeTargetSelectorTests
             new HexPosition(DestinationCoordinates, HexDirection.Bottom, AirborneLevel: 4), null);
         DeclareDfa(dfaPerformer, _attacker);
 
-        var selection = ChargeTargetSelector.Select(_attacker, dfaPerformer.Id, AllUnits());
+        var selection = MovementAttackTargetSelector.Select(_attacker, dfaPerformer.Id, PhysicalAttackType.Charge, AllUnits());
 
         selection.Target.ShouldBeNull();
         selection.IsAutoFail.ShouldBeTrue();
@@ -177,7 +177,7 @@ public class ChargeTargetSelectorTests
     {
         DeclareDfa(_declaredTarget, _attacker);
 
-        var selection = ChargeTargetSelector.Select(_attacker, _declaredTarget.Id, AllUnits());
+        var selection = MovementAttackTargetSelector.Select(_attacker, _declaredTarget.Id, PhysicalAttackType.Charge, AllUnits());
 
         selection.Target.ShouldBe(_declaredTarget);
         selection.IsReplacementTarget.ShouldBeFalse();
@@ -198,7 +198,7 @@ public class ChargeTargetSelectorTests
             new HexPosition(DestinationCoordinates, HexDirection.Bottom, AirborneLevel: 4), null);
         DeclareDfa(dfaPerformer, _attacker);
 
-        var selection = ChargeTargetSelector.Select(_attacker, _declaredTarget.Id, AllUnits());
+        var selection = MovementAttackTargetSelector.Select(_attacker, _declaredTarget.Id, PhysicalAttackType.Charge, AllUnits());
 
         selection.Target.ShouldBeNull();
         selection.IsReplacementTarget.ShouldBeFalse();
@@ -218,7 +218,7 @@ public class ChargeTargetSelectorTests
         replacement.Deploy(new HexPosition(DestinationCoordinates, HexDirection.Bottom), null);
         DeclareDfa(dfaPerformer, _attacker);
 
-        var selection = ChargeTargetSelector.Select(_attacker, _declaredTarget.Id, AllUnits());
+        var selection = MovementAttackTargetSelector.Select(_attacker, _declaredTarget.Id, PhysicalAttackType.Charge, AllUnits());
 
         selection.Target.ShouldBe(replacement);
         selection.IsReplacementTarget.ShouldBeTrue();
@@ -245,7 +245,7 @@ public class ChargeTargetSelectorTests
             true,
             new HexPosition(ApproachCoordinates, HexDirection.Top));
 
-        var selection = ChargeTargetSelector.Select(attacker, target.Id, AllUnits());
+        var selection = MovementAttackTargetSelector.Select(attacker, target.Id, PhysicalAttackType.Charge, AllUnits());
 
         selection.Target.ShouldBeNull();
         selection.IsAutoFail.ShouldBeTrue();
@@ -258,11 +258,125 @@ public class ChargeTargetSelectorTests
         _attackerPlayer.AddUnit(attacker);
         attacker.Deploy(new HexPosition(ApproachCoordinates, HexDirection.Top), null);
 
-        var selection = ChargeTargetSelector.Select(attacker, _declaredTarget.Id, AllUnits());
+        var selection = MovementAttackTargetSelector.Select(attacker, _declaredTarget.Id, PhysicalAttackType.Charge, AllUnits());
 
         selection.Target.ShouldBeNull();
         selection.IsAutoFail.ShouldBeTrue();
     }
+
+    /// <summary>
+    /// A DFA resolves against a prone target, unlike a charge (Total Warfare p.151).
+    /// </summary>
+    [Fact]
+    public void Select_Dfa_WhenTheDeclaredTargetIsProne_ReturnsIt()
+    {
+        var attacker = CreateMech();
+        var target = CreateMech();
+        _attackerPlayer.AddUnit(attacker);
+        _targetPlayer.AddUnit(target);
+        attacker.Deploy(new HexPosition(ApproachCoordinates, HexDirection.Top, AirborneLevel: 4), null);
+        target.Deploy(new HexPosition(DestinationCoordinates, HexDirection.Bottom), null);
+        target.SetProne();
+        CommitDfa(attacker);
+
+        var selection = MovementAttackTargetSelector.Select(
+            attacker, target.Id, PhysicalAttackType.DFA, [attacker, target]);
+
+        selection.Target.ShouldBe(target);
+        selection.IsReplacementTarget.ShouldBeFalse();
+        selection.IsAutoFail.ShouldBeFalse();
+    }
+
+    /// <summary>
+    /// A target destroyed in place still occupies the hex, so the DFA resolves against it and lands;
+    /// the impact becomes a miss instead of an automatic failure.
+    /// </summary>
+    [Fact]
+    public void Select_Dfa_WhenTheDeclaredTargetIsDestroyed_ReturnsIt()
+    {
+        var attacker = CreateMech();
+        var target = CreateMech();
+        _attackerPlayer.AddUnit(attacker);
+        _targetPlayer.AddUnit(target);
+        attacker.Deploy(new HexPosition(ApproachCoordinates, HexDirection.Top, AirborneLevel: 4), null);
+        target.Deploy(new HexPosition(DestinationCoordinates, HexDirection.Bottom), null);
+        target.ApplyDamage(
+            [new Sanet.MakaMek.Core.Data.Game.LocationHitData(
+                [new Sanet.MakaMek.Core.Data.Game.LocationDamageData(
+                    PartLocation.Head, 0, 50, true)],
+                [], [3, 4], PartLocation.Head)],
+            HitDirection.Front);
+        CommitDfa(attacker);
+
+        var selection = MovementAttackTargetSelector.Select(
+            attacker, target.Id, PhysicalAttackType.DFA, [attacker, target]);
+
+        selection.Target.ShouldBe(target);
+        selection.IsReplacementTarget.ShouldBeFalse();
+        selection.IsAutoFail.ShouldBeFalse();
+    }
+
+    /// <summary>
+    /// A DFA replacement has to be a Mech: a non-Mech enemy in the hex does not become the target,
+    /// unlike a charge, which accepts any unit type.
+    /// </summary>
+    [Fact]
+    public void Select_Dfa_WhenTheOnlyReplacementIsNotAMech_AutoFails()
+    {
+        var attacker = CreateMech();
+        attacker.Deploy(new HexPosition(ApproachCoordinates, HexDirection.Top, AirborneLevel: 4), null);
+        _attackerPlayer.AddUnit(attacker);
+        CommitDfa(attacker);
+        var vehicle = Substitute.For<IUnit>();
+        vehicle.Id.Returns(Guid.NewGuid());
+        vehicle.Owner.Returns(_targetPlayer);
+        vehicle.IsDeployed.Returns(true);
+        vehicle.Position.Returns(new HexPosition(DestinationCoordinates, HexDirection.Bottom));
+
+        var selection = MovementAttackTargetSelector.Select(
+            attacker, Guid.NewGuid(), PhysicalAttackType.DFA, [attacker, vehicle]);
+
+        selection.Target.ShouldBeNull();
+        selection.IsAutoFail.ShouldBeTrue();
+    }
+
+    /// <summary>
+    /// The p.149 immunity applies to a DFA replacement too: an airborne performer is skipped and the
+    /// grounded enemy in the same hex becomes the target.
+    /// </summary>
+    [Fact]
+    public void Select_Dfa_WhenTheReplacementSearchFindsAnAirbornePerformer_SkipsIt()
+    {
+        var attacker = CreateMech();
+        var airborne = CreateMech();
+        var grounded = CreateMech();
+        _attackerPlayer.AddUnit(attacker);
+        _targetPlayer.AddUnit(airborne);
+        _targetPlayer.AddUnit(grounded);
+        attacker.Deploy(new HexPosition(ApproachCoordinates, HexDirection.Top, AirborneLevel: 4), null);
+        airborne.Deploy(new HexPosition(DestinationCoordinates, HexDirection.Bottom, AirborneLevel: 4), null);
+        grounded.Deploy(new HexPosition(DestinationCoordinates, HexDirection.Bottom), null);
+        DeclareDfa(airborne, attacker);
+        CommitDfa(attacker);
+
+        var selection = MovementAttackTargetSelector.Select(
+            attacker, Guid.NewGuid(), PhysicalAttackType.DFA, [attacker, airborne, grounded]);
+
+        selection.Target.ShouldBe(grounded);
+        selection.IsReplacementTarget.ShouldBeTrue();
+    }
+
+    private static void CommitDfa(IUnit attacker) =>
+        attacker.Move(
+            new MovementPath(
+                [new PathSegment(
+                    new HexPosition(ApproachCoordinates, HexDirection.Top, AirborneLevel: 4),
+                    new HexPosition(DestinationCoordinates, HexDirection.Top),
+                    [new TerrainMovementCost { TerrainId = MakaMekTerrains.Clear, Value = 1 }])],
+                MovementType.Jump),
+            null,
+            true,
+            new HexPosition(ApproachCoordinates, HexDirection.Top, AirborneLevel: 4));
 
     private void MoveElsewhere(IUnit unit)
     {

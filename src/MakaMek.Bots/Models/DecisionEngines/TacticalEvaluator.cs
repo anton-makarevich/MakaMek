@@ -9,6 +9,10 @@ using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Map.Models;
 
+// Pre-existing class coupling in this type, not introduced by this change. It is tracked in
+// #1714 together with the baseline-aware analyzer gate that will make this suppression unnecessary.
+#pragma warning disable CA1506
+
 namespace Sanet.MakaMek.Bots.Models.DecisionEngines;
 
 /// <summary>
@@ -36,7 +40,7 @@ public class TacticalEvaluator : ITacticalEvaluator
         IReadOnlyList<IUnit> enemyUnits,
         ITurnState? turnState = null)
     {
-        var defensiveIndex = CalculateDefensiveIndex(path, enemyUnits, unit.Height, unit.Status.HasFlag(UnitStatus.Prone));
+        var defensiveIndex = CalculateDefensiveIndex(path, enemyUnits, unit.Height, unit.IsProne);
 
         var targetScores = EvaluateTargets(unit, path, enemyUnits, turnState);
         var offensiveIndex = targetScores
@@ -110,7 +114,7 @@ public class TacticalEvaluator : ITacticalEvaluator
                 allConfigs,
                 partConfigTypes,
                 target.Height,
-                target.Status.HasFlag(UnitStatus.Prone));
+                target.IsProne);
 
             if (viableWeapons.Count <= 0) continue;
 
@@ -146,7 +150,7 @@ public class TacticalEvaluator : ITacticalEvaluator
 
         return results;
     }
-    
+
     /// <summary>
     /// Calculates the defensive threat index for a position.
     /// Considers enemy weapons that can target this position and their hit probabilities.
@@ -154,7 +158,9 @@ public class TacticalEvaluator : ITacticalEvaluator
     /// <param name="defenderPath">The position to evaluate and path to get to it</param>
     /// <param name="enemyUnits">All enemy units</param>
     /// <param name="defenderHeight">Height of the unit at the position</param>
+    /// <param name="defenderIsProne">If defender is prone</param>
     /// <returns>Defensive threat index (lower is better)</returns>
+#pragma warning disable S3776 // pre-existing complexity, tracked in #1714
     private PathDefensiveScore CalculateDefensiveIndex(
         MovementPath defenderPath,
         IReadOnlyList<IUnit> enemyUnits,
@@ -228,12 +234,14 @@ public class TacticalEvaluator : ITacticalEvaluator
 
         return new PathDefensiveScore(defensiveIndex, enemiesInRearArc);
     }
-    
+
+#pragma warning restore S3776
+
     /// <summary>
     /// Builds the list of weapon configurations (no-rotation plus torso rotations) for an attacker at a given position.
     /// Computed once per attacker+position and reused across all targets.
     /// </summary>
-    private IReadOnlyList<WeaponConfiguration> BuildWeaponConfigurations(IUnit attacker, MovementPath attackerPath)
+    private static List<WeaponConfiguration> BuildWeaponConfigurations(IUnit attacker, MovementPath attackerPath)
     {
         var configOptions = attacker.GetWeaponsConfigurationOptions(attackerPath.Destination);
         var torsoConfigs = configOptions
@@ -255,6 +263,7 @@ public class TacticalEvaluator : ITacticalEvaluator
     /// <summary>
     /// Evaluates all weapons against a target and returns a list of viable weapons with hit probabilities
     /// </summary>
+#pragma warning disable S3776 // pre-existing complexity, tracked in #1714
     private Dictionary<WeaponConfiguration, List<WeaponEvaluationData>> EvaluateWeaponsForTarget(
         IUnit attacker,
         MovementPath attackerPath,
@@ -335,6 +344,8 @@ public class TacticalEvaluator : ITacticalEvaluator
 
         return configWeapons;
     }
+
+#pragma warning restore S3776
 
     /// <summary>
     /// Calculates hit probability for an enemy attacking the friendly unit at a hypothetical position.

@@ -442,7 +442,7 @@ public class PhysicalAttackCalculatorTests
         var (attacker, target) = CreateUnits(
             new HexPosition(2, 2, HexDirection.Bottom),
             new HexPosition(2, 3, HexDirection.Bottom));
-        target.Status.Returns(UnitStatus.Prone);
+        target.IsProne.Returns(true);
         _rules.GetProneTargetModifier(1).Returns(-2);
         var map = CreateMap();
 
@@ -684,7 +684,7 @@ public class PhysicalAttackCalculatorTests
             attackerPosition,
             targetPosition,
             MovementPath.CreateSingleSegmentPath(attackerPosition, MovementType.Jump));
-        target.Status.Returns(UnitStatus.Prone);
+        target.IsProne.Returns(true);
         var map = CreateMap();
 
         // Act

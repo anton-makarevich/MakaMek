@@ -130,7 +130,7 @@ public record AttackScenario
             TargetUnit = target,
             AttackerWaterDepth = attacker.Hex?.GetWaterDepth(),
             TargetWaterDepth = target.Hex?.GetWaterDepth(),
-            IsTargetProne = target.Status.HasFlag(UnitStatus.Prone)
+            IsTargetProne = target.IsProne
         };
     }
     

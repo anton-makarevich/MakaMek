@@ -165,7 +165,7 @@ public class AttackScenarioTests
     [Theory]
     [InlineData(UnitStatus.Prone, true)]
     [InlineData(UnitStatus.Active, false)]
-    public void FromUnits_SetsIsTargetProneFromTargetStatus(UnitStatus targetStatus, bool expectedIsProne)
+    public void FromUnits_SetsIsTargetProneFromTheTargetProneState(UnitStatus targetStatus, bool expectedIsProne)
     {
         // Arrange
         var attacker = Substitute.For<IUnit>();
@@ -182,7 +182,7 @@ public class AttackScenarioTests
 
         target.Position.Returns(position);
         target.MovementTaken.Returns(movementPath);
-        target.Status.Returns(targetStatus);
+        target.IsProne.Returns(targetStatus == UnitStatus.Prone);
 
         // Act
         var scenario = AttackScenario.FromUnits(attacker, target, PartLocation.RightArm);

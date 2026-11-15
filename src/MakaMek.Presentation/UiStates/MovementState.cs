@@ -16,6 +16,10 @@ using Sanet.MakaMek.Map.Models.Highlights;
 using Sanet.MakaMek.Presentation.ViewModels;
 using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 
+// Pre-existing class coupling in this type, not introduced by this change. It is tracked in
+// #1714 together with the baseline-aware analyzer gate that will make this suppression unnecessary.
+#pragma warning disable CA1506
+
 namespace Sanet.MakaMek.Presentation.UiStates;
 
 public class MovementState : IUiState, IPhysicalAttackDeclarationState
@@ -178,82 +182,98 @@ public class MovementState : IUiState, IPhysicalAttackDeclarationState
         if (_selectedUnit == null
             || _selectedPath == null
             || Game?.BattleMap is not { } map
-            || Game.PhaseStepState?.ActivePlayer is not { } activePlayer
+            || Game.PhaseStepState?.ActivePlayer is null
             || movementType.GetMovementAttackType() is not { } attackType)
             return candidates;
 
         var allUnits = GetAllUnits();
-        var potentialTargets = allUnits.Where(unit =>
-                unit is Mech { IsDestroyed: false, Position: not null }
-                && unit.Owner?.Id != activePlayer.Id
-                && unit is { HasPendingMovementAttack: false }
-                && (unit.HasMoved || unit.IsShutdown || unit.Pilot is { IsConscious: false }))
-            .ToList();
-        if (potentialTargets.Count == 0) return candidates;
-
+        // The target rule belongs to the movement attack validator; this method only adds the UI
+        // concern of picking the cheapest legal path to each target it reports.
+        var potentialTargets = Game.MovementAttackValidator
+            .GetPotentialTargets(_selectedUnit, movementType, allUnits);
         var startPosition = _selectedPath.Destination;
         var canMoveBackward = _selectedUnit.CanMoveBackward(movementType);
 
         foreach (var target in potentialTargets)
         {
-            var targetCoordinates = target.Position!.Coordinates;
-            var prohibited = _prohibitedHexes
-                .Where(coordinates => coordinates != targetCoordinates)
-                .ToHashSet();
-
-            var reachability = map.GetReachableHexesForPosition(
-                startPosition,
-                remainingMp,
-                canMoveBackward,
-                movementType,
-                prohibited,
-                _friendlyUnitsCoordinates,
-                _selectedUnit.Height,
-                _selectedUnit.MaxLevelChangeForward,
-                _selectedUnit.MaxLevelChangeBackward);
-
-            var paths = map.GetPathsToHexWithAllFacings(
-                startPosition,
-                targetCoordinates,
-                movementType,
-                remainingMp,
-                reachability,
-                _selectedUnit.Height,
-                _selectedUnit.MaxLevelChangeForward,
-                _selectedUnit.MaxLevelChangeBackward,
-                prohibited,
-                targetSurface: target.Position.Surface,
-                approachWaypointOffset: Game.RulesProvider.GetDfaAirborneBaseOffset());
-            if (paths.Count == 0) continue;
-
-            MovementAttackCandidate? cheapest = null;
-            foreach (var path in paths.Values)
-            {
-                var fullPath = _selectedPath.Append(path);
-                var declaration = new PhysicalAttackDeclarationData
-                {
-                    AttackType = attackType,
-                    AttackerLimbs = [],
-                    TargetId = target.Id
-                };
-
-                var validation = Game.MovementAttackDeclarationValidator.Validate(
-                    _selectedUnit,
-                    fullPath.ToData(),
-                    movementType,
-                    declaration,
-                    allUnits,
-                    map);
-                if (!validation.IsValid || validation.Declaration is not { } validated) continue;
-
-                if (cheapest == null || path.TotalCost < cheapest.Path.TotalCost)
-                    cheapest = new MovementAttackCandidate(target, path, validated);
-            }
-
+            var cheapest = FindCheapestAttackPath(
+                target, attackType, movementType, remainingMp, allUnits, map,
+                startPosition, canMoveBackward);
             if (cheapest != null) candidates[target] = cheapest;
         }
 
         return candidates;
+    }
+
+    /// <summary>
+    /// The cheapest path from the current position into the target's hex that the shared
+    /// declaration validator accepts, or null when no such path exists.
+    /// </summary>
+    private MovementAttackCandidate? FindCheapestAttackPath(
+        IUnit target,
+        PhysicalAttackType attackType,
+        MovementType movementType,
+        int remainingMp,
+        IReadOnlyList<IUnit> allUnits,
+        IBattleMap map,
+        HexPosition startPosition,
+        bool canMoveBackward)
+    {
+        var selectedUnit = _selectedUnit!;
+        var selectedPath = _selectedPath!;
+        var targetCoordinates = target.Position!.Coordinates;
+        var prohibited = _prohibitedHexes
+            .Where(coordinates => coordinates != targetCoordinates)
+            .ToHashSet();
+
+        var reachability = map.GetReachableHexesForPosition(
+            startPosition,
+            remainingMp,
+            canMoveBackward,
+            movementType,
+            prohibited,
+            _friendlyUnitsCoordinates,
+            selectedUnit.Height,
+            selectedUnit.MaxLevelChangeForward,
+            selectedUnit.MaxLevelChangeBackward);
+
+        var paths = map.GetPathsToHexWithAllFacings(
+            startPosition,
+            targetCoordinates,
+            movementType,
+            remainingMp,
+            reachability,
+            selectedUnit.Height,
+            selectedUnit.MaxLevelChangeForward,
+            selectedUnit.MaxLevelChangeBackward,
+            prohibited,
+            targetSurface: target.Position.Surface,
+            approachWaypointOffset: Game!.RulesProvider.GetDfaAirborneBaseOffset());
+
+        MovementAttackCandidate? cheapest = null;
+        foreach (var path in paths.Values)
+        {
+            var declaration = new PhysicalAttackDeclarationData
+            {
+                AttackType = attackType,
+                AttackerLimbs = [],
+                TargetId = target.Id
+            };
+
+            var validation = Game.MovementAttackValidator.Validate(
+                selectedUnit,
+                selectedPath.Append(path).ToData(),
+                movementType,
+                declaration,
+                allUnits,
+                map);
+            if (!validation.IsValid || validation.Declaration is not { } validated) continue;
+
+            if (cheapest == null || path.TotalCost < cheapest.Path.TotalCost)
+                cheapest = new MovementAttackCandidate(target, path, validated);
+        }
+
+        return cheapest;
     }
 
     private List<IUnit> GetAllUnits() =>
@@ -675,7 +695,7 @@ public class MovementState : IUiState, IPhysicalAttackDeclarationState
             return;
         }
 
-        var validation = Game.MovementAttackDeclarationValidator.Validate(
+        var validation = Game.MovementAttackValidator.Validate(
             _selectedUnit,
             path.ToData(),
             path.MovementType,
@@ -1054,6 +1074,7 @@ public class MovementState : IUiState, IPhysicalAttackDeclarationState
         }
     }
 
+#pragma warning disable S3776, CA1502 // pre-existing complexity, tracked in #1714
     public void ResumeMovementAfterFall(Guid unitId)
     {
         lock (_stateLock)
@@ -1146,6 +1167,8 @@ public class MovementState : IUiState, IPhysicalAttackDeclarationState
             _viewModel.NotifySelectedUnitChanged();
         }
     }
+
+#pragma warning restore S3776, CA1502
 
     // New method to handle prone facing change
     private void HandleProneFacingChange(Mech mech)

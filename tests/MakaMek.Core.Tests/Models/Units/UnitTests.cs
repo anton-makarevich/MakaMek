@@ -3019,6 +3019,17 @@ public class UnitTests
     }
     
     [Fact]
+    public void IsProne_ShouldReturnFalse_EvenWhenTheStatusContainsTheProneFlag()
+    {
+        // Arrange: only a Mech can be prone, so the base implementation never reports it.
+        var unit = CreateTestUnit();
+        unit.SetStatusForTesting(UnitStatus.Prone);
+
+        // Act + Assert
+        unit.IsProne.ShouldBeFalse();
+    }
+
+    [Fact]
     public void IsOutOfCommission_ShouldReturnFalse_ByDefault()
     {
         // Arrange

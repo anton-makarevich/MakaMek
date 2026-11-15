@@ -173,7 +173,7 @@ public class MovementStateTests
         _game.PilotingSkillCalculator.Returns(_pilotingSkillCalculator);
         _game.ToHitCalculator.Returns(_toHitCalculator);
         _game.RulesProvider.Returns(_rulesProvider);
-        _game.MovementAttackDeclarationValidator.Returns(new MovementAttackDeclarationValidator());
+        _game.MovementAttackValidator.Returns(new MovementAttackValidator());
         _game.TurnPhase.Returns(PhaseNames.Movement);
         _game.PhaseStepState.Returns(new PhaseStepState(PhaseNames.Movement, _player, 1));
         _game.CanActivePlayerAct.Returns(true);

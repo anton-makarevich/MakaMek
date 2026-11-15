@@ -213,7 +213,7 @@ instead of being resolved.
   `TargetPerformingDisplacementAttack` restriction, and another Charge or DFA is rejected by
   `MovementAttackDeclarationValidator`.
 * **Charge resolution (issue [#1706](https://github.com/anton-makarevich/MakaMek/issues/1706)):**
-  `ChargeTargetSelector` applies the immunity at resolution time too, using the same
+  `MovementAttackTargetSelector` applies the immunity at resolution time too, using the same
   `IsAirborneDfaAttacker` predicate. An airborne pending-DFA 'Mech is never the declared target and
   never a replacement target, so when it is the only airborne occupant of the committed destination
   hex the charge automatically fails: no to-hit roll, no damage and no charge
@@ -223,6 +223,12 @@ instead of being resolved.
   occupant: it does not count for stacking, and cannot be displaced while it is in the air. A
   performer that has already landed is a grounded unit and a legal target, declared or replacement
   (§3.1: the immunity ends when it lands).
+* **One target rule for Charge and DFA:** the resolution phase never restates the target or
+  attacker rules. `MovementAttackDeclarationValidator.GetAttackerState` reports whether the
+  attacker can still attack, and `SelectResolutionTarget` returns the declared target, a
+  replacement or an automatic failure through `MovementAttackTargetSelector`. The UI target search
+  calls `GetPotentialTargets` on the same validator, so the highlighted targets and the resolved
+  ones cannot drift.
 * **Airborne stacking exemption in every displacement path:** `IsAirborneDfaAttacker`
   (`HasPendingMovementAttack` + `IsDfa` + an `AirborneLevel` on the position) is excluded from the
   occupant checks of `ChargeDisplacementResolver`, `PushDisplacementResolver` and the shared
@@ -238,7 +244,8 @@ instead of being resolved.
 Charge and DFA are declared while the unit moves, so the Movement Phase owns the declaration and
 `MovementState` drives it. It uses the same `MovementAttackDeclarationValidator` instance as the
 server (`IGame.MovementAttackDeclarationValidator`), so a highlighted target is exactly one the
-server accepts.
+server accepts. The target prefilter is `GetPotentialTargets` on that validator: the UI adds only
+pathfinding and the cheapest-path choice, never its own eligibility rule.
 
 1. The player selects a unit and a movement type (Walk/Run for Charge, Jump for DFA).
 2. Reachable hexes are highlighted as usual. In addition, every enemy 'Mech that has completed its

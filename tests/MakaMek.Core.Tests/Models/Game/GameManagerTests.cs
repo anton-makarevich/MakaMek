@@ -85,7 +85,7 @@ public class GameManagerTests : IDisposable
             heatEffectsCalculator,
             new PhysicalAttackEligibility(),
             Substitute.For<IPhysicalAttackCalculator>(),
-            Substitute.For<IMovementAttackDeclarationValidator>(),
+            Substitute.For<IMovementAttackValidator>(),
             fallProcessor,
             Substitute.For<IWeaponAttackResolver>(),
             Substitute.For<IPhysicalAttackResolver>(),
