@@ -320,7 +320,7 @@ internal sealed partial class MtfLocationDataParser
         int maxSlots = int.MaxValue) =>
         FindConsecutiveSlots(component, location, startSlot, _locationSlotComponents, processedSlots, maxSlots);
 
-    private static List<LocationSlotAssignment> FindConsecutiveSlots(
+    internal static List<LocationSlotAssignment> FindConsecutiveSlots(
         MakaMekComponent component,
         PartLocation location,
         int startSlot,
