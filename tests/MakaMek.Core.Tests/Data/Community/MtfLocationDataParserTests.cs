@@ -60,6 +60,21 @@ public class MtfLocationDataParserTests
     }
 
     [Fact]
+    public void Parse_RearArmorOnly_CreatesMainLocationAndSetsRearValue()
+    {
+        // Act
+        var (_, armor) = Parse([
+            "Armor:Standard",
+            "RTR Armor:4"
+        ]);
+
+        // Assert
+        armor.Count.ShouldBe(1);
+        armor[PartLocation.RightTorso].RearArmor.ShouldBe(4);
+        armor[PartLocation.RightTorso].FrontArmor.ShouldBe(0);
+    }
+
+    [Fact]
     public void Parse_IgnoresArmorLinesThatDoNotMatchThePattern()
     {
         // Act

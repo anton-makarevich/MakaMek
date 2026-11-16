@@ -100,13 +100,10 @@ internal sealed partial class MtfLocationDataParser
         if (!_armorValues.ContainsKey(location))
             _armorValues[location] = new ArmorLocation();
 
-        // Rear armor is stored on the main location, so a rear line both creates and fills it.
+        // Rear armor is stored on the main location, which ParseLocation already resolved.
         if (MtfComponentMapping.IsRearArmor(locationText))
         {
-            var mainLocation = MtfComponentMapping.GetMainLocationForRear(locationText);
-            if (!_armorValues.ContainsKey(mainLocation))
-                _armorValues[mainLocation] = new ArmorLocation();
-            _armorValues[mainLocation].RearArmor = value;
+            _armorValues[location].RearArmor = value;
             return;
         }
 
@@ -115,7 +112,7 @@ internal sealed partial class MtfLocationDataParser
 
     private void StartLocation(string locationText)
     {
-        if (!MtfComponentMapping.TryParseLocation(locationText, out var location)) return;
+        var location = MtfComponentMapping.ParseLocation(locationText);
 
         _currentLocation = location;
         _currentSlotIndex = 0; // Reset slot index for a new location
@@ -205,7 +202,7 @@ internal sealed partial class MtfLocationDataParser
     private (int size, ComponentSpecificData? specificData) GetComponentSizeAndData(
         MakaMekComponent component,
         Dictionary<string, string> mechData,
-        ComponentOptions? options = null)
+        ComponentOptions options)
     {
         var specificData = GetSpecificData(component, mechData, options);
         var definition = _componentProvider.GetDefinition(component, specificData);
@@ -217,7 +214,7 @@ internal sealed partial class MtfLocationDataParser
     private static ComponentSpecificData? GetSpecificData(
         MakaMekComponent component,
         Dictionary<string, string> mechData,
-        ComponentOptions? options)
+        ComponentOptions options)
     {
         if (component == MakaMekComponent.Engine
             && mechData.TryGetValue("engine-rating", out var ratingStr)
@@ -229,11 +226,11 @@ internal sealed partial class MtfLocationDataParser
         }
 
         // Handle rear-facing weapons
-        if (options?.IsRearFacing == true)
+        if (options.IsRearFacing)
             return new WeaponStateData(MountingOptions.Rear);
 
         // Handle ammo mass/rounds multiplier
-        return options is { MassRoundsMultiplier: not 1m }
+        return options.MassRoundsMultiplier != 1m
             ? new AmmoStateData(null, options.MassRoundsMultiplier)
             : null;
     }
