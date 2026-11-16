@@ -1,15 +1,12 @@
 using Sanet.MakaMek.Bots.Data;
 using Sanet.MakaMek.Bots.Exceptions;
-using Sanet.MakaMek.Core.Data.Game.Commands.Client;
+using Sanet.MakaMek.Bots.Models.Logger;
+using Sanet.MakaMek.Bots.Models.Movement;
 using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Players;
-using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Core.Models.Units;
-using Sanet.MakaMek.Core.Models.Units.Mechs;
-using System.Collections.Concurrent;
 using Microsoft.Extensions.Logging;
-using Sanet.MakaMek.Bots.Models.Logger;
 using Sanet.MakaMek.Map.Models;
 
 namespace Sanet.MakaMek.Bots.Models.DecisionEngines;
@@ -20,14 +17,25 @@ namespace Sanet.MakaMek.Bots.Models.DecisionEngines;
 public class MovementEngine : IBotDecisionEngine
 {
     private readonly IClientGame _clientGame;
-    private readonly ITacticalEvaluator _evaluator;
-    private readonly Random _random;
+    private readonly IUnitPriorityCalculator _priorityCalculator;
+    private readonly IMovementPathPlanner _pathPlanner;
+    private readonly IMovementCommandSender _commands;
 
+    /// <summary>
+    /// Creates the engine with the default movement evaluation graph. Prefer the constructor that
+    /// takes explicit <see cref="MovementEvaluationComponents"/> when composing the bot.
+    /// </summary>
     public MovementEngine(IClientGame clientGame, ITacticalEvaluator evaluator, Random? random = null)
+        : this(clientGame, MovementEvaluationComponents.CreateDefault(clientGame, evaluator, random))
+    {
+    }
+
+    public MovementEngine(IClientGame clientGame, MovementEvaluationComponents components)
     {
         _clientGame = clientGame;
-        _evaluator = evaluator;
-        _random = random ?? new Random();
+        _priorityCalculator = components.PriorityCalculator;
+        _pathPlanner = components.PathPlanner;
+        _commands = components.CommandSender;
     }
 
     public async Task MakeDecision(IPlayer player, ITurnState? turnState = null, BotSettings settings = default)
@@ -36,7 +44,7 @@ public class MovementEngine : IBotDecisionEngine
         try
         {
             // 1. Get all friendly units that haven't moved
-            var myUnitsToMove = turnState?.PhaseActiveUnitId != null 
+            var myUnitsToMove = turnState?.PhaseActiveUnitId != null
                 ? player.AliveUnits
                     .Where(u => u.Id == turnState.PhaseActiveUnitId)
                     .ToList()
@@ -50,11 +58,11 @@ public class MovementEngine : IBotDecisionEngine
                 _clientGame.Logger.LogNoUnitsToMove(player.Name);
                 return;
             }
-            
+
             var immobileUnit = myUnitsToMove.FirstOrDefault(u => u.IsImmobile);
             if (immobileUnit != null)
             {
-                await SkipTurn(player, immobileUnit);
+                await _commands.SkipTurn(player, immobileUnit);
                 return;
             }
 
@@ -81,7 +89,7 @@ public class MovementEngine : IBotDecisionEngine
             var scoredUnits = myUnitsToMove.Select(u => new
                 {
                     Unit = u,
-                    Priority = CalculateUnitPriority(u, state)
+                    Priority = _priorityCalculator.CalculatePriority(u, state)
                 })
                 .OrderByDescending(u => u.Priority)
                 .ThenByDescending(u => u.Unit.Id) // Deterministic tie-breaker
@@ -90,7 +98,10 @@ public class MovementEngine : IBotDecisionEngine
             var bestCandidate = scoredUnits.First();
             unitToMove = bestCandidate.Unit;
 
-            _clientGame.Logger.LogSelectedUnitWithRoleAndPriority(unitToMove.Name, unitToMove.GetTacticalRole(), bestCandidate.Priority);
+            _clientGame.Logger.LogSelectedUnitWithRoleAndPriority(
+                unitToMove.Name,
+                unitToMove.GetTacticalRole(),
+                bestCandidate.Priority);
 
             // 5. Execute Move for a selected unit
             await ExecuteMoveForUnit(player, unitToMove, enemyUnits, friendlyPositions, turnState, settings);
@@ -105,233 +116,40 @@ public class MovementEngine : IBotDecisionEngine
         {
             // Log error but don't throw - graceful degradation for unexpected errors
             _clientGame.Logger.LogError(ex, "MovementEngine error for player {PlayerName}: {Message}", player.Name, ex.Message);
-            await SkipTurn(player, unitToMove);
+            await _commands.SkipTurn(player, unitToMove);
         }
-    }
-
-    private double CalculateUnitPriority(IUnit unit, MovementPhaseState state)
-    {
-        double priority = 0;
-
-        // 1. Role Score
-        var role = unit.GetTacticalRole();
-        
-        // Handle Fallen/Prone units
-        if (unit is Mech { IsProne: true })
-        {
-            return 0; // Always last
-        }
-
-        priority += role switch
-        {
-            UnitTacticalRole.LrmBoat => 90,
-            UnitTacticalRole.Scout => 20,
-            UnitTacticalRole.Jumper => 25,
-            UnitTacticalRole.Brawler => 30,
-            _ => 50 // Default for others
-        };
-
-        // Check for 0 movement options (if detectable easily, for now relying on roles)
-        // If we want to strictly follow "Units with 0 movement options: 80", we'd need to check reachability.
-        // Skipping expensive check for now as per "0 for now will be introduced later" for situation modifier, 
-        // effectively treating "0 options" as a situation.
-
-        // 2. Initiative Modifier
-        if (state.EnemyUnitsRemaining == 0)
-        {
-            // We are moving last/late (no enemies left to move)
-            priority += 30;
-        }
-        else
-        {
-            // Enemies still have moves
-            if (role == UnitTacticalRole.Brawler)
-            {
-                priority -= 30;
-            }
-        }
-
-        return priority;
     }
 
     /// <summary>
     /// Executes movement for a unit using intelligent position evaluation
     /// </summary>
     private async Task ExecuteMoveForUnit(
-        IPlayer player, 
-        IUnit unit, 
+        IPlayer player,
+        IUnit unit,
         IReadOnlyList<IUnit> enemyUnits,
         IReadOnlySet<HexCoordinates> friendlyPositions,
         ITurnState? turnState,
         BotSettings settings)
     {
         // Handle prone mechs - try to stand up
-        if (unit is Mech { IsProne: true } mech && mech.CanStandup())
-        {
-            await AttemptStandup(player, mech);
+        if (await _commands.TryStandUp(player, unit))
             return;
-        }
 
         if (_clientGame.BattleMap == null || unit.Position == null)
         {
-            await SkipTurn(player, unit);
+            await _commands.SkipTurn(player, unit);
             return;
         }
 
-        // Get occupied hexes (exclude the moving unit itself)
-        var occupiedHexes = GetOccupiedHexes(unit);
-
-        // Determine available movement types for this unit
-        var availableMovementTypes = unit.GetAvailableMovementTypes();
-
-        // Evaluate all candidate positions with all available movement types
-        var candidateScores = new List<PositionScore>();
-
-        foreach (var movementType in availableMovementTypes)
+        var bestPath = _pathPlanner.SelectBestPath(unit, enemyUnits, friendlyPositions, turnState, settings);
+        if (bestPath == null)
         {
-            // Get all reachable hexes for this movement type
-            var reachabilityData = _clientGame.BattleMap.GetReachableHexesForUnit(
-                unit,
-                movementType,
-                occupiedHexes,
-                friendlyPositions);
-
-            var reachablePaths = new List<MovementPath>();
-
-            // Process all reachable hexes (both forward and backward)
-            foreach (var coordinates in reachabilityData.AllReachableCoordinates)
-            {
-                var paths = _clientGame.BattleMap.GetPathsToHexWithAllFacings(
-                    unit.Position,
-                    coordinates,
-                    movementType,
-                    unit.GetMovementPoints(movementType),
-                    reachabilityData,
-                    unit.Height,
-                    unit.MaxLevelChangeForward,
-                    unit.MaxLevelChangeBackward,
-                    occupiedHexes,
-                    PathFindingMode.Longest,
-                    approachWaypointOffset: _clientGame.RulesProvider.GetDfaAirborneBaseOffset());
-
-                reachablePaths.AddRange(paths.Values);
-            }
-
-            // Evaluate each path with controlled concurrency
-            const int maxConcurrency = 20;
-            var scores = new ConcurrentBag<PositionScore>();
-
-            Parallel.ForEach(reachablePaths, new ParallelOptions { MaxDegreeOfParallelism = maxConcurrency },
-                (path, _) =>
-                {
-                    try
-                    {
-                        var score = _evaluator.EvaluatePath(unit, path, enemyUnits, turnState);
-                        scores.Add(score);
-                    }
-                    catch (Exception ex)
-                    {
-                        // Log and continue - don't let one bad path evaluation stop all evaluations
-                        _clientGame.Logger.LogError(ex, "Failed to evaluate path to {Position}: {Message}", path.Destination.Coordinates, ex.Message);
-                    }
-                });
-            
-            candidateScores.AddRange(scores);
-        }
-
-        // If no valid paths, stand still
-        if (candidateScores.Count == 0)
-        {
-            await SkipTurn(player, unit);
+            // If no valid paths, stand still
+            await _commands.SkipTurn(player, unit);
             return;
         }
 
-        // Select the path with the best combined score
-        // Use aggressiveness index to create a smooth gradient between offensive and defensive preferences
-        var bestScores = candidateScores
-            .Select(s => new
-            {
-                Score = s,
-                CombinedScore = settings.AggressivenessIndex * s.OffensiveIndex - (1 - settings.AggressivenessIndex) * s.DefensiveIndex
-            })
-            .OrderBy(x => x.Score.EnemiesInRearArc)
-            .ThenByDescending(x => x.CombinedScore)
-            .ThenByDescending(x => x.Score.Path.HexesTraveled)
-            .Select(x => x.Score);
-        
-        var bestScore = bestScores
-            .First(); // TODO: for different difficulty levels we can take random of first N
-
-        _clientGame.Logger.LogUnitMovingToPositionUsingMovementTypeWithOffensiveDefensiveAndEnemiesInRearArc(unit.Name,
-            bestScore.Position.Coordinates,
-            bestScore.MovementType,
-            bestScore.OffensiveIndex,
-            bestScore.DefensiveIndex,
-            bestScore.EnemiesInRearArc);
-        
         // Execute the move using the stored path (no need to recalculate)
-        await MoveUnit(player, unit, bestScore.Path);
-    }
-
-    /// <summary>
-    /// Gets the coordinates of all occupied hexes (deployed units except the specified moving unit)
-    /// </summary>
-    private HashSet<HexCoordinates> GetOccupiedHexes(IUnit movingUnit)
-    {
-        return _clientGame.Players
-            .SelectMany(p => p.Units)
-            .Where(u => u is { IsDeployed: true, Position: not null } && u.Id != movingUnit.Id)
-            .Select(u => u.Position!.Coordinates)
-            .ToHashSet();
-    }
-
-    private async Task AttemptStandup(IPlayer player, Mech mech)
-    {
-        // Select a random facing direction
-        var newFacing = HexDirectionExtensions.AllDirections[_random.Next(HexDirectionExtensions.AllDirections.Length)];
-
-        var command = new TryStandupCommand
-        {
-            GameOriginId = _clientGame.Id,
-            PlayerId = player.Id,
-            UnitId = mech.Id,
-            NewFacing = newFacing,
-            MovementTypeAfterStandup = MovementType.Walk
-        };
-
-        await _clientGame.TryStandupUnit(command);
-    }
-
-    private async Task MoveUnit(IPlayer player, IUnit unit, MovementPath path)
-    {
-        var command = new MoveUnitCommand
-        {
-            GameOriginId = _clientGame.Id,
-            PlayerId = player.Id,
-            UnitId = unit.Id,
-            MovementType = path.MovementType,
-            MovementPath = path.ToData()
-        };
-
-        await _clientGame.MoveUnit(command);
-    }
-
-    private async Task SkipTurn(IPlayer player, IUnit? unit)
-    {
-        // Find any unit that hasn't moved yet (fallback)
-        var unmovedUnit = unit ?? player.AliveUnits.FirstOrDefault(u => !u.HasMoved);
-        var position = unmovedUnit?.Position;
-        if (unmovedUnit == null || position == null)
-        {
-            throw new BotDecisionException(
-                $"No unmoved units available for player {player.Name}",
-                nameof(MovementEngine),
-                player.Id);
-        }
-
-        // Send a StandingStill movement command
-        await MoveUnit(player, unmovedUnit, MovementPath.CreateSingleSegmentPath(position));
+        await _commands.Move(player, unit, bestPath);
     }
 }
-
-
