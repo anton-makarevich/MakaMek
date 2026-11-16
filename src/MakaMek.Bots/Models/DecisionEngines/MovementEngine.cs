@@ -2,11 +2,11 @@ using Sanet.MakaMek.Bots.Data;
 using Sanet.MakaMek.Bots.Exceptions;
 using Sanet.MakaMek.Bots.Models.Logger;
 using Sanet.MakaMek.Bots.Models.Movement;
-using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Units;
 using Microsoft.Extensions.Logging;
+using Sanet.MakaMek.Bots.Models.Evaluation;
 using Sanet.MakaMek.Map.Models;
 
 namespace Sanet.MakaMek.Bots.Models.DecisionEngines;

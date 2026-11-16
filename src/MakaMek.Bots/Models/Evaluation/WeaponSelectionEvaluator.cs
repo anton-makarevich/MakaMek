@@ -1,7 +1,6 @@
 using Sanet.MakaMek.Bots.Data;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Units;
-using Sanet.MakaMek.Core.Utils;
 
 namespace Sanet.MakaMek.Bots.Models.Evaluation;
 

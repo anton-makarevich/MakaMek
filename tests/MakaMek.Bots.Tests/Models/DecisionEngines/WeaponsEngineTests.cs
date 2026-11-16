@@ -3,6 +3,7 @@ using Sanet.MakaMek.Bots.Data;
 using Sanet.MakaMek.Bots.Exceptions;
 using Sanet.MakaMek.Bots.Models;
 using Sanet.MakaMek.Bots.Models.DecisionEngines;
+using Sanet.MakaMek.Bots.Models.Evaluation;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Models.Game;
