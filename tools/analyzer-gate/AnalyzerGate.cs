@@ -361,6 +361,7 @@ internal static class Program
         foreach (var (project, files) in projects)
         {
             var projectAliases = FindProjectGlobalAliases(repoRoot, project);
+            var baselineAliases = FindBaselineProjectGlobalAliases(repoRoot, baseRef, project);
             foreach (var file in files)
             {
                 var path = Path.Combine(repoRoot, file);
@@ -370,7 +371,8 @@ internal static class Program
                     file,
                     ReadAtBase(repoRoot, baseRef, file),
                     File.ReadAllText(path),
-                    projectAliases));
+                    projectAliases,
+                    baselineAliases));
             }
         }
 
@@ -408,6 +410,52 @@ internal static class Program
     }
 
     /// <summary>
+    /// The project-wide aliases as they were at the base ref. An alias that changes meaning between
+    /// revisions changes whether an attribute suppresses anything, so the baseline scan must not use
+    /// the current alias set. Only files that mention a global using are read from git.
+    /// </summary>
+    internal static List<string> FindBaselineProjectGlobalAliases(
+        string repoRoot,
+        string baseRef,
+        string projectFile)
+    {
+        var projectDirectory = Path.GetDirectoryName(NormalizePath(projectFile));
+        if (string.IsNullOrEmpty(projectDirectory))
+        {
+            return [];
+        }
+
+        var result = Run(
+            "git",
+            ["grep", "-l", "-E", "global[[:space:]]+using", baseRef, "--", "*.cs"],
+            repoRoot);
+        if (result.ExitCode != 0)
+        {
+            return [];
+        }
+
+        var prefix = projectDirectory + "/";
+        var pathPrefix = baseRef + ":";
+        var aliases = new SortedSet<string>(StringComparer.Ordinal);
+        foreach (var line in result.StandardOutput.Split(
+                     ['\n', '\r'],
+                     StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            if (!line.StartsWith(pathPrefix, StringComparison.Ordinal)) continue;
+
+            var file = NormalizePath(line[pathPrefix.Length..]);
+            if (!file.StartsWith(prefix, StringComparison.Ordinal)) continue;
+
+            var source = ReadAtBase(repoRoot, baseRef, file);
+            if (source is null) continue;
+
+            aliases.UnionWith(FindSuppressMessageAliases(MaskLiteralsAndComments(source), globalOnly: true));
+        }
+
+        return [.. aliases];
+    }
+
+    /// <summary>
     /// The suppressions a file added relative to the base ref. Each suppression is identified by its
     /// rule and by the declaration it covers, plus the attribute usage target, Scope and Target when
     /// the attribute names them, so a pre-existing suppression authorizes neither a second
@@ -421,7 +469,8 @@ internal static class Program
         string file,
         string? baselineSource,
         string currentSource,
-        IReadOnlyCollection<string>? projectAliases = null)
+        IReadOnlyCollection<string>? projectAliases = null,
+        IReadOnlyCollection<string>? baselineProjectAliases = null)
     {
         var failures = new List<string>();
         var current = ScanSuppressions(currentSource, projectAliases);
@@ -436,7 +485,7 @@ internal static class Program
 
         if (current.Scopes.Count == 0) return failures;
 
-        var baseline = ScanSuppressions(baselineSource, projectAliases).Scopes;
+        var baseline = ScanSuppressions(baselineSource, baselineProjectAliases ?? projectAliases).Scopes;
         foreach (var ((rule, scope), count) in current.Scopes)
         {
             var baselineCount = baseline.TryGetValue((rule, scope), out var known) ? known : 0;
@@ -920,7 +969,7 @@ internal static class Program
         Unknown
     }
 
-    private sealed record ConditionalLine(string Chain, bool IsActive);
+    private sealed record ConditionalLine(string Chain, bool IsActive, bool IsCertain);
 
     private sealed class ConditionalFrame
     {
@@ -953,7 +1002,7 @@ internal static class Program
     {
         var states = new List<ConditionalLine>(lines.Count);
         var stack = new List<ConditionalFrame>();
-        var symbols = new Dictionary<string, bool>(StringComparer.Ordinal);
+        var symbols = new Dictionary<string, ConditionTruth>(StringComparer.Ordinal);
 
         foreach (var line in lines)
         {
@@ -989,7 +1038,9 @@ internal static class Program
 
             var active = stack.All(frame =>
                 !frame.EarlierBranchTrue && frame.BranchTruth != ConditionTruth.False);
-            states.Add(new ConditionalLine(string.Join('&', stack.Select(frame => frame.Chain)), active));
+            var certain = stack.All(frame =>
+                !frame.EarlierBranchTrue && frame.BranchTruth == ConditionTruth.True);
+            states.Add(new ConditionalLine(string.Join('&', stack.Select(frame => frame.Chain)), active, certain));
 
             if (TryDirective(trimmed, "#endif", out _))
             {
@@ -999,15 +1050,24 @@ internal static class Program
 
             if (!active) continue;
 
+            // A definition inside a branch that may or may not be compiled cannot be recorded as
+            // unconditional: a later `#if !SYMBOL` must stay potentially active when the enclosing
+            // condition is unknown.
             if (TryDirective(trimmed, "#define", out var defined))
             {
                 var symbol = FirstWord(defined);
-                if (symbol.Length > 0) symbols[symbol] = true;
+                if (symbol.Length > 0)
+                {
+                    symbols[symbol] = certain ? ConditionTruth.True : ConditionTruth.Unknown;
+                }
             }
             else if (TryDirective(trimmed, "#undef", out var undefined))
             {
                 var symbol = FirstWord(undefined);
-                if (symbol.Length > 0) symbols[symbol] = false;
+                if (symbol.Length > 0)
+                {
+                    symbols[symbol] = certain ? ConditionTruth.False : ConditionTruth.Unknown;
+                }
             }
         }
 
@@ -1049,7 +1109,7 @@ internal static class Program
     /// </summary>
     private static ConditionTruth EvaluateCondition(
         string expression,
-        IReadOnlyDictionary<string, bool> symbols)
+        IReadOnlyDictionary<string, ConditionTruth> symbols)
     {
         var tokens = TokenizeCondition(expression);
         var index = 0;
@@ -1060,7 +1120,7 @@ internal static class Program
     private static ConditionTruth? ParseOr(
         IReadOnlyList<string> tokens,
         ref int index,
-        IReadOnlyDictionary<string, bool> symbols)
+        IReadOnlyDictionary<string, ConditionTruth> symbols)
     {
         var left = ParseAnd(tokens, ref index, symbols);
         while (left is not null && Peek(tokens, index) == "||")
@@ -1077,7 +1137,7 @@ internal static class Program
     private static ConditionTruth? ParseAnd(
         IReadOnlyList<string> tokens,
         ref int index,
-        IReadOnlyDictionary<string, bool> symbols)
+        IReadOnlyDictionary<string, ConditionTruth> symbols)
     {
         var left = ParseEquality(tokens, ref index, symbols);
         while (left is not null && Peek(tokens, index) == "&&")
@@ -1094,7 +1154,7 @@ internal static class Program
     private static ConditionTruth? ParseEquality(
         IReadOnlyList<string> tokens,
         ref int index,
-        IReadOnlyDictionary<string, bool> symbols)
+        IReadOnlyDictionary<string, ConditionTruth> symbols)
     {
         var left = ParseUnary(tokens, ref index, symbols);
         while (left is not null && Peek(tokens, index) is "==" or "!=")
@@ -1112,7 +1172,7 @@ internal static class Program
     private static ConditionTruth? ParseUnary(
         IReadOnlyList<string> tokens,
         ref int index,
-        IReadOnlyDictionary<string, bool> symbols)
+        IReadOnlyDictionary<string, ConditionTruth> symbols)
     {
         if (Peek(tokens, index) != "!") return ParsePrimary(tokens, ref index, symbols);
 
@@ -1124,7 +1184,7 @@ internal static class Program
     private static ConditionTruth? ParsePrimary(
         IReadOnlyList<string> tokens,
         ref int index,
-        IReadOnlyDictionary<string, bool> symbols)
+        IReadOnlyDictionary<string, ConditionTruth> symbols)
     {
         var token = Peek(tokens, index);
         if (token is null) return null;
@@ -1142,9 +1202,7 @@ internal static class Program
         if (token == "false") return ConditionTruth.False;
         if (!IsIdentifier(token)) return null;
 
-        return symbols.TryGetValue(token, out var defined)
-            ? defined ? ConditionTruth.True : ConditionTruth.False
-            : ConditionTruth.Unknown;
+        return symbols.TryGetValue(token, out var value) ? value : ConditionTruth.Unknown;
     }
 
     private static string? Peek(IReadOnlyList<string> tokens, int index) =>
@@ -1251,7 +1309,7 @@ internal static class Program
             index = line;
         }
 
-        return index < states.Count ? states[index] : new ConditionalLine(string.Empty, true);
+        return index < states.Count ? states[index] : new ConditionalLine(string.Empty, true, true);
     }
 
     private static IEnumerable<string> ExpandRule(string rule) =>
@@ -1477,7 +1535,7 @@ internal static class Program
         public string FullPath => Namespace.Length == 0 ? TypePath : $"{Namespace}.{TypePath}";
     }
 
-    private sealed record PragmaStatement(int Offset, int Depth, string Context, bool IsDisable, IReadOnlyList<string> Rules);
+    private sealed record PragmaStatement(int Offset, int Depth, string Context, bool IsCertain, bool IsDisable, IReadOnlyList<string> Rules);
 
     private static List<SourceLine> ReadLines(string code)
     {
@@ -1613,6 +1671,7 @@ internal static class Program
                 line.Offset,
                 line.Depth,
                 conditionalStates[index].Chain,
+                conditionalStates[index].IsCertain,
                 match.Groups["action"].Value == "disable",
                 ParseRules(match.Groups["rules"].Value)));
         }
@@ -1636,6 +1695,10 @@ internal static class Program
 
                 continue;
             }
+
+            // A restore inside a branch that may not be compiled cannot close every path: if the
+            // branch is skipped the suppression keeps widening, so the region is left open.
+            if (!directive.IsCertain) continue;
 
             var closingRules = directive.Rules.Contains(AnySuppression)
                 ? open.Keys.ToList()

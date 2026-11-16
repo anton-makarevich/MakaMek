@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using AnalyzerGate;
 using Shouldly;
 
@@ -138,6 +139,35 @@ public class SuppressionScanTests
             {
             #pragma warning disable S3776
                 public void First() { }
+                public void Second() { }
+            }
+            """;
+
+        var failures = Program.FindNewSuppressionsIn("Example.cs", baseline, current);
+
+        failures.ShouldHaveSingleItem().ShouldContain("member:Example.Second");
+    }
+
+    [Fact]
+    public void FindNewSuppressionsIn_ConditionalRestore_DoesNotNarrowTheSuppression_Fails()
+    {
+        const string baseline = """
+            public class Example
+            {
+            #pragma warning disable S3776
+                public void First() { }
+            #pragma warning restore S3776
+                public void Second() { }
+            }
+            """;
+        const string current = """
+            public class Example
+            {
+            #pragma warning disable S3776
+                public void First() { }
+            #if FEATURE
+            #pragma warning restore S3776
+            #endif
                 public void Second() { }
             }
             """;
@@ -941,6 +971,48 @@ public class SuppressionScanTests
     }
 
     [Fact]
+    public void FindNewSuppressionsIn_SymbolDefinedInMaybeActiveBranch_KeepsSuppressionActive()
+    {
+        const string source = """
+            #if SWITCH
+            #define HIDE
+            #endif
+
+            public class Example
+            {
+            #if !HIDE
+            #pragma warning disable S3776
+                public void Run() { }
+            #pragma warning restore S3776
+            #endif
+            }
+            """;
+
+        var failures = Program.FindNewSuppressionsIn("Example.cs", null, source);
+
+        failures.ShouldHaveSingleItem().ShouldContain("S3776");
+    }
+
+    [Fact]
+    public void FindNewSuppressionsIn_SymbolDefinedUnconditionally_HidesTheSuppressedBranch()
+    {
+        const string source = """
+            #define HIDE
+
+            public class Example
+            {
+            #if !HIDE
+            #pragma warning disable S3776
+                public void Run() { }
+            #pragma warning restore S3776
+            #endif
+            }
+            """;
+
+        Program.FindNewSuppressionsIn("Example.cs", null, source).ShouldBeEmpty();
+    }
+
+    [Fact]
     public void FindNewSuppressionsIn_SymbolDefinitionThatActivatesSuppression_Fails()
     {
         const string baseline = """
@@ -1057,6 +1129,63 @@ public class SuppressionScanTests
     }
 
     [Fact]
+    public void FindNewSuppressionsIn_AliasBecomingSuppressMessage_Fails()
+    {
+        const string baseline = """
+            public class Example
+            {
+                [Hidden("Maintainability", "CA1506:Avoid excessive class coupling")]
+                public void Run() { }
+            }
+            """;
+        const string current = """
+            public class Example
+            {
+                // comment edit only
+                [Hidden("Maintainability", "CA1506:Avoid excessive class coupling")]
+                public void Run() { }
+            }
+            """;
+
+        var failures = Program.FindNewSuppressionsIn(
+            "Example.cs",
+            baseline,
+            current,
+            projectAliases: ["Hidden"],
+            baselineProjectAliases: []);
+
+        failures.ShouldHaveSingleItem().ShouldContain("CA1506");
+    }
+
+    [Fact]
+    public void FindNewSuppressionsIn_UnchangedAliasWithCommentEdit_Passes()
+    {
+        const string baseline = """
+            public class Example
+            {
+                [Hidden("Maintainability", "CA1506:Avoid excessive class coupling")]
+                public void Run() { }
+            }
+            """;
+        const string current = """
+            public class Example
+            {
+                // comment edit only
+                [Hidden("Maintainability", "CA1506:Avoid excessive class coupling")]
+                public void Run() { }
+            }
+            """;
+
+        Program.FindNewSuppressionsIn(
+                "Example.cs",
+                baseline,
+                current,
+                projectAliases: ["Hidden"],
+                baselineProjectAliases: ["Hidden"])
+            .ShouldBeEmpty();
+    }
+
+    [Fact]
     public void FindNewSuppressionsIn_NewSuppression_ReportsTheDeclarationLine()
     {
         const string current = """
@@ -1123,6 +1252,70 @@ public class SuppressionScanTests
             """;
 
         Program.FindNewSuppressionsIn("Example.cs", source, source).ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void FindBaselineProjectGlobalAliases_ReadsTheBaseRevision()
+    {
+        var root = Path.Combine(Path.GetTempPath(), $"makamek-gate-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(root);
+        try
+        {
+            RunGit(root, "init", "--quiet");
+            RunGit(root, "config", "user.email", "gate@example.invalid");
+            RunGit(root, "config", "user.name", "Gate Tests");
+            File.WriteAllText(
+                Path.Combine(root, "Aliases.cs"),
+                "global using Hidden = Custom.NoOpAttribute;");
+            File.WriteAllText(Path.Combine(root, "Example.csproj"), "<Project />");
+            RunGit(root, "add", "--all");
+            RunGit(root, "commit", "--quiet", "--message", "baseline");
+
+            File.WriteAllText(
+                Path.Combine(root, "Aliases.cs"),
+                "global using Hidden = System.Diagnostics.CodeAnalysis.SuppressMessageAttribute;");
+
+            Program.FindBaselineProjectGlobalAliases(root, "HEAD", "Example.csproj").ShouldBeEmpty();
+            Program.FindProjectGlobalAliases(root, "Example.csproj").ShouldContain("Hidden");
+        }
+        finally
+        {
+            try
+            {
+                Directory.Delete(root, recursive: true);
+            }
+            catch (IOException)
+            {
+                // A leftover temp directory is harmless.
+            }
+            catch (UnauthorizedAccessException)
+            {
+                // A leftover temp directory is harmless.
+            }
+        }
+    }
+
+    private static void RunGit(string workingDirectory, params string[] arguments)
+    {
+        var startInfo = new ProcessStartInfo("git")
+        {
+            WorkingDirectory = workingDirectory,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false
+        };
+        foreach (var argument in arguments)
+        {
+            startInfo.ArgumentList.Add(argument);
+        }
+
+        using var process = Process.Start(startInfo)!;
+        var output = process.StandardOutput.ReadToEnd() + process.StandardError.ReadToEnd();
+        process.WaitForExit();
+        if (process.ExitCode != 0)
+        {
+            throw new InvalidOperationException($"git {string.Join(' ', arguments)} failed: {output}");
+        }
     }
 
     [Fact]
