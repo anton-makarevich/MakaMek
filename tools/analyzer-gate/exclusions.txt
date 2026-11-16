@@ -43,5 +43,9 @@ src/MakaMek.Presentation/ViewModels/BattleMapViewModel.cs:CA1506:BattleMapViewMo
 # to the CA1502 threshold.
 src/MakaMek.Presentation/ViewModels/BattleMapViewModel.cs:CA1502:ProcessCommand
 #
-# temporary: type coupling fixed by #1726 in this stack
+# TacticalEvaluator (43 types across 19 namespaces; the threshold is 40): pre-existing coupling,
+# unchanged by the diff that removes the file-level `#pragma warning disable CA1506` the base ref
+# carried. It cannot be reduced there: the extraction of the scoring terms is behaviour-preserving
+# and must not move logic between collaborators, while getting below 41 needs those terms split into
+# injected components. #1726 in this stack performs that split and removes this entry.
 src/MakaMek.Bots/Models/DecisionEngines/TacticalEvaluator.cs:CA1506:TacticalEvaluator
