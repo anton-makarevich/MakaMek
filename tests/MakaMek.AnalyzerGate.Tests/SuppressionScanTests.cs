@@ -820,6 +820,36 @@ public class SuppressionScanTests
     }
 
     [Fact]
+    public void FindNewSuppressionsIn_ChangedAssemblySuppressionScope_Fails()
+    {
+        const string baseline = """
+            [assembly: System.Diagnostics.CodeAnalysis.SuppressMessage("Maintainability", "CA1506:Avoid excessive class coupling", Scope = "member", Target = "~M:Example.First")]
+            """;
+        const string current = """
+            [assembly: System.Diagnostics.CodeAnalysis.SuppressMessage("Maintainability", "CA1506:Avoid excessive class coupling", Scope = "type", Target = "~M:Example.First")]
+            """;
+
+        var failures = Program.FindNewSuppressionsIn("GlobalSuppressions.cs", baseline, current);
+
+        failures.ShouldHaveSingleItem().ShouldContain("scope:type");
+    }
+
+    [Fact]
+    public void FindNewSuppressionsIn_ChangedAssemblySuppressionUsageTarget_Fails()
+    {
+        const string baseline = """
+            [assembly: System.Diagnostics.CodeAnalysis.SuppressMessage("Maintainability", "CA1506:Avoid excessive class coupling", Scope = "member", Target = "~M:Example.First")]
+            """;
+        const string current = """
+            [module: System.Diagnostics.CodeAnalysis.SuppressMessage("Maintainability", "CA1506:Avoid excessive class coupling", Scope = "member", Target = "~M:Example.First")]
+            """;
+
+        var failures = Program.FindNewSuppressionsIn("GlobalSuppressions.cs", baseline, current);
+
+        failures.ShouldHaveSingleItem().ShouldContain("attribute:module");
+    }
+
+    [Fact]
     public void FindNewSuppressionsIn_ActivatedConditionalSuppression_Fails()
     {
         const string baseline = """

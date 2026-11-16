@@ -85,6 +85,13 @@ internal static class Program
         @"\busing\s+(?<alias>[A-Za-z_][A-Za-z0-9_]*)\s*=\s*(?:global::)?(?:[A-Za-z_][A-Za-z0-9_]*\.)*SuppressMessageAttribute\s*;",
         RegexOptions.CultureInvariant);
 
+    /// <summary>
+    /// The <c>[assembly: </c>-style usage target that precedes an attribute name in an attribute list.
+    /// </summary>
+    private static readonly Regex AttributeUsageTargetPattern = new(
+        @"^\[\s*(?<target>[A-Za-z_][A-Za-z0-9_]*)\s*:\s*$",
+        RegexOptions.CultureInvariant);
+
     private const int MaxConstantEvaluationDepth = 8;
 
     /// <summary>
@@ -357,12 +364,13 @@ internal static class Program
 
     /// <summary>
     /// The suppressions a file added relative to the base ref. Each suppression is identified by its
-    /// rule and by the declaration it covers, so a pre-existing suppression authorizes neither a
-    /// second occurrence, nor the same rule moved to another member, nor a wider region created by a
-    /// removed restore. Renaming a suppressed declaration therefore also fails the gate: the member
-    /// is expected to lose its suppression in the change that moves it. A suppression whose rule
-    /// argument cannot be resolved to a literal value always fails, because the gate cannot tell
-    /// which rule it hides.
+    /// rule and by the declaration it covers, plus the attribute usage target, Scope and Target when
+    /// the attribute names them, so a pre-existing suppression authorizes neither a second
+    /// occurrence, nor the same rule moved to another member or another assembly-level Target, nor a
+    /// wider region created by a removed restore. Renaming a suppressed declaration therefore also
+    /// fails the gate: the member is expected to lose its suppression in the change that moves it. A
+    /// suppression whose rule, Scope or Target argument cannot be resolved to a literal value always
+    /// fails, because the gate cannot tell what it hides.
     /// </summary>
     internal static List<string> FindNewSuppressionsIn(string file, string? baselineSource, string currentSource)
     {
@@ -372,8 +380,8 @@ internal static class Program
         foreach (var unresolvable in current.Unresolvable)
         {
             failures.Add(
-                $"{file}({unresolvable.Line}): the suppression rule argument `{unresolvable.Expression}` " +
-                $"cannot be resolved (covering {unresolvable.Scope}), so the gate cannot verify which rule it hides. " +
+                $"{file}({unresolvable.Line}): the suppression {unresolvable.Kind} argument `{unresolvable.Expression}` " +
+                $"cannot be resolved (covering {unresolvable.Scope}), so the gate cannot verify what it hides. " +
                 "Use a single string literal or constants the gate can read.");
         }
 
@@ -405,7 +413,7 @@ internal static class Program
         SortedDictionary<(string Rule, string Scope), int> Scopes,
         IReadOnlyList<UnresolvableSuppression> Unresolvable);
 
-    private sealed record UnresolvableSuppression(int Line, string Scope, string Expression);
+    private sealed record UnresolvableSuppression(int Line, string Scope, string Kind, string Expression);
 
     /// <summary>
     /// Every gated-rule suppression in the source, keyed by rule and by the declaration it covers.
@@ -458,29 +466,47 @@ internal static class Program
         {
             var scope = ScopeAfter(declarations, attribute.End);
             var context = ConditionalContextAt(lines, conditionalContexts, attribute.Start);
-            var target = ReadNamedArgument(attribute.Arguments, "Target");
-            var scopeArgument = ReadNamedArgument(attribute.Arguments, "Scope");
+            var referenceNamespace = NamespaceAt(lines, fileNamespace, namespaces, attribute.Start);
+            var referenceTypePath = TypePathAt(types, attribute.Start, DepthAt(lines, attribute.Start));
 
-            string identity;
-            if (target is not null)
+            // The declaration a suppression is attached to is not enough on its own: an
+            // assembly-level suppression names its target method in Target, and Scope narrows the
+            // kind of API. Both belong to the identity, otherwise changing Target moves the
+            // suppression from one method to another without changing anything the gate sees.
+            var identity = scope;
+            if (attribute.AttributeTarget.Length > 0)
             {
-                if (!TryDecodeStringLiteral(target, out var targetValue) || !targetValue.StartsWith('~'))
+                identity += $" attribute:{attribute.AttributeTarget}";
+            }
+
+            var scopeArgument = ReadNamedArgument(attribute.Arguments, "Scope");
+            if (scopeArgument is not null)
+            {
+                if (!TryEvaluateRuleArgument(
+                        scopeArgument, argumentsCode, constants, referenceNamespace, referenceTypePath,
+                        out var scopeValue))
                 {
                     unresolvable.Add(new UnresolvableSuppression(
-                        LineAt(code, attribute.Start), scope, $"Target = {target}"));
+                        LineAt(code, attribute.Start), scope, "Scope", scopeArgument));
                     continue;
                 }
 
-                identity = $"target:{Compact(targetValue)}";
-            }
-            else
-            {
-                identity = scope;
+                identity += $" scope:{Compact(scopeValue)}";
             }
 
-            if (scopeArgument is not null && TryDecodeStringLiteral(scopeArgument, out var scopeValue))
+            var targetArgument = ReadNamedArgument(attribute.Arguments, "Target");
+            if (targetArgument is not null)
             {
-                identity += $" scope:{Compact(scopeValue)}";
+                if (!TryEvaluateRuleArgument(
+                        targetArgument, argumentsCode, constants, referenceNamespace, referenceTypePath,
+                        out var targetValue))
+                {
+                    unresolvable.Add(new UnresolvableSuppression(
+                        LineAt(code, attribute.Start), scope, "Target", targetArgument));
+                    continue;
+                }
+
+                identity += $" target:{Compact(targetValue)}";
             }
 
             identity = AppendContext(identity, context);
@@ -488,8 +514,6 @@ internal static class Program
             var ruleArgument = ReadRuleArgument(attribute.Arguments);
             if (ruleArgument is null) continue;
 
-            var referenceNamespace = NamespaceAt(lines, fileNamespace, namespaces, attribute.Start);
-            var referenceTypePath = TypePathAt(types, attribute.Start, DepthAt(lines, attribute.Start));
             if (!TryEvaluateRuleArgument(
                     ruleArgument,
                     argumentsCode,
@@ -498,7 +522,7 @@ internal static class Program
                     referenceTypePath,
                     out var ruleText))
             {
-                unresolvable.Add(new UnresolvableSuppression(LineAt(code, attribute.Start), scope, ruleArgument));
+                unresolvable.Add(new UnresolvableSuppression(LineAt(code, attribute.Start), scope, "rule", ruleArgument));
                 continue;
             }
 
@@ -1307,7 +1331,7 @@ internal static class Program
         return ids.Where(IsGatedRule).Select(id => id.ToUpperInvariant()).ToList();
     }
 
-    private static IEnumerable<(int Start, int End, string Arguments)> FindSuppressMessageAttributes(
+    private static IEnumerable<(int Start, int End, string Arguments, string AttributeTarget)> FindSuppressMessageAttributes(
         string code,
         string argumentsCode,
         IReadOnlyCollection<string> aliases)
@@ -1325,8 +1349,23 @@ internal static class Program
             var closeParenthesis = FindMatchingParenthesis(code, openParenthesis);
             if (closeParenthesis < 0) continue;
 
-            yield return (match.Index, closeParenthesis, argumentsCode[(openParenthesis + 1)..closeParenthesis]);
+            yield return (match.Index, closeParenthesis, argumentsCode[(openParenthesis + 1)..closeParenthesis],
+                AttributeUsageTarget(code, match.Index));
         }
+    }
+
+    /// <summary>
+    /// The usage target of an attribute (<c>assembly</c>, <c>module</c>, ...), or an empty string for
+    /// an attribute attached to a declaration. The target is part of the suppression identity, so a
+    /// suppression moved between usage targets is not treated as unchanged.
+    /// </summary>
+    private static string AttributeUsageTarget(string code, int nameIndex)
+    {
+        var openBracket = code.LastIndexOf('[', nameIndex);
+        if (openBracket < 0) return string.Empty;
+
+        var match = AttributeUsageTargetPattern.Match(code[openBracket..nameIndex]);
+        return match.Success ? match.Groups["target"].Value : string.Empty;
     }
 
     /// <summary>
