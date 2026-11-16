@@ -2,19 +2,10 @@ using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
-using Sanet.MakaMek.Core.Data.Game.Mechanics;
-using Sanet.MakaMek.Core.Data.Game.Mechanics.PilotingSkillRollContexts;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Displacement;
-using Sanet.MakaMek.Core.Models.Game.Mechanics.Movement.Actions;
-using Sanet.MakaMek.Core.Models.Game.Mechanics.Movement.Interrupters;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.Movement;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.PhysicalAttack;
-using Sanet.MakaMek.Core.Models.Units;
-using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Map.Models;
-
-// Pre-existing class coupling in this type, not introduced by this change. The gate is
-// zero-tolerance for changed code, so remove this suppression when the type is next split.
-#pragma warning disable CA1506
 
 namespace Sanet.MakaMek.Core.Models.Game.Phases;
 
@@ -26,6 +17,8 @@ public class MovementPhase(
 {
     private readonly IMovementAttackValidator _validator =
         validator ?? game.MovementAttackValidator;
+    private readonly MovementInterruptRunner _interruptRunner = new(game, dominoEffectResolver);
+    private readonly MovementStandupResolver _standupResolver = new(game);
     private Guid? _deferredMovementUnitId;
     private bool _requestDeferStepConsumption;
 
@@ -161,23 +154,6 @@ public class MovementPhase(
         return null;
     }
 
-    private readonly IReadOnlyList<IMovementInterruptHandler> _segmentInterruptHandlers =
-    [
-        new BridgeCollapseInterruptHandler(dominoEffectResolver),
-        new SkidInterruptHandler(),
-        new WaterEntryInterruptHandler(),
-        new RubbleEntryInterruptHandler()
-    ];
-
-    private readonly IReadOnlyList<IMovementInterruptHandler> _landingInterruptHandlers =
-    [
-        new BridgeCollapseInterruptHandler(dominoEffectResolver),
-        new JumpDamageInterruptHandler(),
-        new WaterEntryInterruptHandler(),
-        new RubbleEntryInterruptHandler()
-    ];
-
-#pragma warning disable S3776 // pre-existing complexity of the interrupt walk; remove when this member is next changed
     private void ProcessMoveCommand(MoveUnitCommand moveCommand)
     {
         var player = Game.Players.FirstOrDefault(p => p.Id == moveCommand.PlayerId);
@@ -190,24 +166,11 @@ public class MovementPhase(
 
         if (unit != null && moveCommand.MovementType != MovementType.Jump)
         {
-            for (var i = 0; i < moveCommand.MovementPath.Count; i++)
+            var interrupt = _interruptRunner.RunSegmentInterrupts(unit, interruptCommand);
+            if (interrupt is { } stoppingOutcome)
             {
-                foreach (var handler in _segmentInterruptHandlers)
-                {
-                    var context = new MovementInterruptContext
-                    {
-                        MoveCommand = interruptCommand,
-                        SegmentIndex = i,
-                        Unit = unit,
-                        Game = Game
-                    };
-
-                    var result = handler.Check(context);
-                    if (result == null) continue;
-
-                    if (ProcessInterruptResult(result, unit))
-                        return;
-                }
+                _requestDeferStepConsumption = stoppingOutcome.DeferStepConsumption;
+                return;
             }
         }
 
@@ -223,101 +186,15 @@ public class MovementPhase(
         // Jump landing: evaluate landing hex hazards
         if (moveCommand is { MovementType: MovementType.Jump, MovementPath.Count: > 0 })
         {
-            var context = new MovementInterruptContext
-            {
-                MoveCommand = interruptCommand,
-                SegmentIndex = moveCommand.MovementPath.Count - 1,
-                Unit = unit!,
-                Game = Game,
-                IsLandingCheck = true
-            };
-
-            foreach (var handler in _landingInterruptHandlers)
-            {
-                var result = handler.Check(context);
-                if (result == null) continue;
-
-                if (ProcessInterruptResult(result, unit!)) break;
-            }
+            var landingInterrupt = _interruptRunner.RunLandingInterrupts(unit!, interruptCommand);
+            if (landingInterrupt is { } landingOutcome)
+                _requestDeferStepConsumption = landingOutcome.DeferStepConsumption;
         }
-    }
-
-#pragma warning restore S3776
-
-    private bool ProcessInterruptResult(MovementInterruptResult result, IUnit unit)
-    {
-        var commands = new List<IGameCommand>();
-        bool? deferAfterFall = null;
-        foreach (var action in result.GameActions)
-        {
-            commands.AddRange(action.Process(Game));
-            if (unit is Mech fallingMech && action is ApplyFallAction)
-                deferAfterFall = fallingMech.CanStandup();
-            if (action is ApplySkidAction)
-                deferAfterFall = false;
-        }
-
-        foreach (var cmd in commands)
-            Game.CommandPublisher.PublishCommand(cmd);
-
-        if (!result.ShouldStop) return false;
-        _requestDeferStepConsumption = deferAfterFall ?? result.DeferStepConsumption;
-        return true;
     }
 
     private void ProcessStandupCommand(TryStandupCommand tryStandUpCommand)
     {
-        // Find the unit
-        var player = Game.Players.FirstOrDefault(p => p.Id == tryStandUpCommand.PlayerId);
-
-        if (player?.Units.FirstOrDefault(u => u.Id == tryStandUpCommand.UnitId) is not Mech unit)
-        {
-            Game.CommandPublisher.PublishCommand(new ErrorCommand
-            {
-                GameOriginId = Game.Id,
-                IdempotencyKey = tryStandUpCommand.IdempotencyKey,
-                ErrorCode = ErrorCode.InvalidGameState,
-                Timestamp = DateTime.UtcNow
-            });
-            Game.Logger.LogWarning("Unit not found");
-            return;
-        }
-        
-        var broadcastCommand = tryStandUpCommand with
-        {
-            GameOriginId = Game.Id
-        };
-        Game.CommandPublisher.PublishCommand(broadcastCommand);
-
-        // Check if the unit can stand up (has sufficient MP, pilot is conscious, etc.)
-        if (!unit.CanStandup() || unit.Position == null)
-        {
-            return; // Cannot stand up
-        }
-
-        // Use the FallProcessor to process the standup attempt and get context data
-        var fallContextData = Game.FallProcessor.ProcessMovementAttempt(
-            unit, new PilotingSkillRollContext(PilotingSkillRollType.StandupAttempt), Game, MovementType.StandingStill);
-        
-        var movementTypeAfterStandup = tryStandUpCommand.MovementTypeAfterStandup;
-        
-        // Create and publish the appropriate command based on the result
-        if (fallContextData.IsFalling)
-        {
-            // Standup failed - fall
-            var fallCommand = fallContextData.ToMechFallCommand();
-            var action = new ApplyFallAction(unit, fallCommand);
-            foreach (var cmd in action.Process(Game))
-                Game.CommandPublisher.PublishCommand(cmd);
-        }
-        else
-        {
-            // Standup succeeded - stand up
-            var standUpCommand = fallContextData.ToMechStandUpCommand(tryStandUpCommand.NewFacing, movementTypeAfterStandup);
-            if (standUpCommand == null) return;
-            Game.OnMechStandUp(standUpCommand.Value);
-            Game.CommandPublisher.PublishCommand(standUpCommand);
-        }
+        _standupResolver.Process(tryStandUpCommand);
     }
 
     public override PhaseNames Name => PhaseNames.Movement;

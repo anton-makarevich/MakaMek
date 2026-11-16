@@ -1,4 +1,3 @@
-using System.Reflection;
 using NSubstitute;
 using Shouldly;
 using Sanet.MakaMek.Core.Data.Community;
@@ -337,40 +336,33 @@ public class MtfDataProviderTests
     }
 
     [Fact]
-    public void FindConsecutiveSlotsInLocation_WhenSlotAlreadyProcessed_ReturnsEmptyAssignments()
+    public void LoadMechFromTextData_ShouldThrow_WhenArmorLocationIsUnknown()
     {
-        // Arrange
+        // Arrange - an armor line naming a location the game does not model must abort the import
+        // instead of silently dropping that armor.
+        var customMtfData = _locustMtfData.ToArray();
+        var armorLineIndex = Array.FindIndex(
+            customMtfData, line => line.StartsWith("LA Armor:", StringComparison.Ordinal));
+        armorLineIndex.ShouldBeGreaterThanOrEqualTo(0);
+        customMtfData[armorLineIndex] = "Turret Armor:4";
         var sut = new MtfDataProvider(_componentProvider);
-        var locationSlotComponents = new Dictionary<PartLocation, SortedDictionary<int, (MakaMekComponent component, ComponentOptions options)>>
-        {
-            [PartLocation.LeftArm] = new()
-            {
-                [0] = (MakaMekComponent.MachineGun, new ComponentOptions())
-            }
-        };
-        var processedSlots = new HashSet<(PartLocation, int)>
-        {
-            (PartLocation.LeftArm, 0)
-        };
 
-        var method = typeof(MtfDataProvider).GetMethod(
-            "FindConsecutiveSlotsInLocation",
-            BindingFlags.Instance | BindingFlags.NonPublic);
-        method.ShouldNotBeNull();
+        // Act & Assert
+        Should.Throw<ArgumentException>(() => sut.LoadMechFromTextData(customMtfData))
+            .Message.ShouldContain("Unknown location: Turret");
+    }
 
-        // Act
-        var result = method.Invoke(sut, [
-            MakaMekComponent.MachineGun,
-            PartLocation.LeftArm,
-            0,
-            locationSlotComponents,
-            processedSlots,
-            1
-        ]) as List<LocationSlotAssignment>;
+    [Fact]
+    public void LoadMechFromTextData_ShouldThrow_WhenEquipmentLabelIsUnknown()
+    {
+        // Arrange - the equipment scanner must not skip a label it cannot map, because the mech
+        // would silently lose that weapon.
+        var customMtfData = ReplaceShadowHawkAc5With("ER PPC", expectedSize: 1);
+        var sut = new MtfDataProvider(_componentProvider);
 
-        // Assert
-        result.ShouldNotBeNull();
-        result.ShouldBeEmpty();
+        // Act & Assert
+        Should.Throw<NotImplementedException>(() => sut.LoadMechFromTextData(customMtfData))
+            .Message.ShouldContain("Unknown MTF component: ER PPC");
     }
 
     private string[] ReplaceShadowHawkAc5With(string mtfLabel, int expectedSize)
@@ -399,6 +391,8 @@ public class MtfDataProviderTests
     [InlineData("IS Ammo LRM-15", MakaMekComponent.ISAmmoLRM15)]
     [InlineData("IS Ammo LRM-20", MakaMekComponent.ISAmmoLRM20)]
     [InlineData("Small Laser", MakaMekComponent.SmallLaser)]
+    [InlineData("ISSmallLaser", MakaMekComponent.SmallLaser)]
+    [InlineData("ISMediumLaser", MakaMekComponent.MediumLaser)]
     [InlineData("Large Laser", MakaMekComponent.LargeLaser)]
     [InlineData("PPC", MakaMekComponent.PPC)]
     [InlineData("Flamer", MakaMekComponent.Flamer)]

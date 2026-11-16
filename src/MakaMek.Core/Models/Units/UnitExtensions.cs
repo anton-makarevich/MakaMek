@@ -1,5 +1,4 @@
 using Sanet.MakaMek.Core.Data.Game.Mechanics.PhysicalAttacks;
-using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Map.Models;
 
