@@ -17,8 +17,8 @@ using Sanet.MakaMek.Map.Models;
 using Sanet.MakaMek.Map.Models.MovementCosts;
 using Sanet.MakaMek.Core.Models.Game.Rules;
 
-// Pre-existing class coupling in this type, not introduced by this change. It is tracked in
-// #1714 together with the baseline-aware analyzer gate that will make this suppression unnecessary.
+// Pre-existing class coupling in this type, not introduced by this change. The gate is
+// zero-tolerance for changed code, so remove this suppression when the type is next split.
 #pragma warning disable CA1506
 
 namespace Sanet.MakaMek.Core.Models.Units.Mechs;

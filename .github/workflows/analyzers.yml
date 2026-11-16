@@ -13,6 +13,7 @@ on:
       - '.globalconfig'
       - 'CodeMetricsConfig.txt'
       - 'mise.toml'
+      - 'tools/analyzer-gate/**'
       - '.github/workflows/analyzers.yml'
 
 jobs:
@@ -36,6 +37,9 @@ jobs:
         uses: jdx/mise-action@v5
         with:
           install: false
+
+      - name: Test the analyzer gate itself
+        run: dotnet test tests/MakaMek.AnalyzerGate.Tests/MakaMek.AnalyzerGate.Tests.csproj
 
       - name: Verify analyzers on changed files
         env:

@@ -16,8 +16,8 @@ using Sanet.MakaMek.Map.Models.Highlights;
 using Sanet.MakaMek.Presentation.ViewModels;
 using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 
-// Pre-existing class coupling in this type, not introduced by this change. It is tracked in
-// #1714 together with the baseline-aware analyzer gate that will make this suppression unnecessary.
+// Pre-existing class coupling in this type, not introduced by this change. The gate is
+// zero-tolerance for changed code, so remove this suppression when the type is next split.
 #pragma warning disable CA1506
 
 namespace Sanet.MakaMek.Presentation.UiStates;
@@ -1074,7 +1074,7 @@ public class MovementState : IUiState, IPhysicalAttackDeclarationState
         }
     }
 
-#pragma warning disable S3776, CA1502 // pre-existing complexity, tracked in #1714
+#pragma warning disable S3776, CA1502 // pre-existing complexity; remove this suppression when the member is next changed
     public void ResumeMovementAfterFall(Guid unitId)
     {
         lock (_stateLock)

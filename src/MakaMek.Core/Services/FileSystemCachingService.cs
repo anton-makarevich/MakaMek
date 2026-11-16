@@ -3,8 +3,6 @@ using System.Text;
 using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Services;
 
-#pragma warning disable CA1873
-
 namespace Sanet.MakaMek.Core.Services;
 
 /// <summary>

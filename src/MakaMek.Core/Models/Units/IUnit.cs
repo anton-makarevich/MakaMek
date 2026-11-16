@@ -6,9 +6,6 @@ using Sanet.MakaMek.Core.Events;
 using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers;
-using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Attack;
-using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Penalties.HeatPenalties;
-using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Penalties.MovementPenalties;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Models.Units.Components;
@@ -16,13 +13,10 @@ using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Core.Models.Units.Pilots;
 using Sanet.MakaMek.Map.Models;
 
-// Pre-existing class coupling in this type, not introduced by this change. It is tracked in
-// #1714 together with the baseline-aware analyzer gate that will make this suppression unnecessary.
-#pragma warning disable CA1506
 
 namespace Sanet.MakaMek.Core.Models.Units;
 
-public interface IUnit
+public interface IUnit : IUnitHeatPenalties
 {
     string Chassis { get; }
     string Model { get; }
@@ -104,10 +98,6 @@ public interface IUnit
     bool CanHavePartialCover { get; }
 
     int DamageReducedMovement { get; }
-    HeatMovementPenalty? MovementHeatPenalty { get; }
-    HeatRollModifier? AttackHeatPenalty { get; }
-    EngineHeatPenalty? EngineHeatPenalty { get; }
-    IReadOnlyList<RollModifier> MovementModifiers { get; }
     int AvailableWalkingPoints { get; }
     int AvailableRunningPoints { get; }
     int AvailableJumpingPoints { get; }

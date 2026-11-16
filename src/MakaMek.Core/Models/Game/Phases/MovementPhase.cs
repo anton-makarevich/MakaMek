@@ -12,8 +12,8 @@ using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Map.Models;
 
-// Pre-existing class coupling in this type, not introduced by this change. It is tracked in
-// #1714 together with the baseline-aware analyzer gate that will make this suppression unnecessary.
+// Pre-existing class coupling in this type, not introduced by this change. The gate is
+// zero-tolerance for changed code, so remove this suppression when the type is next split.
 #pragma warning disable CA1506
 
 namespace Sanet.MakaMek.Core.Models.Game.Phases;
@@ -177,7 +177,7 @@ public class MovementPhase(
         new RubbleEntryInterruptHandler()
     ];
 
-#pragma warning disable S3776 // pre-existing complexity of the interrupt walk, tracked in #1714
+#pragma warning disable S3776 // pre-existing complexity of the interrupt walk; remove when this member is next changed
     private void ProcessMoveCommand(MoveUnitCommand moveCommand)
     {
         var player = Game.Players.FirstOrDefault(p => p.Id == moveCommand.PlayerId);
