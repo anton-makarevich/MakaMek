@@ -63,6 +63,9 @@ public sealed class MovementPathPlanner(
             .OrderBy(x => x.Score.EnemiesInRearArc)
             .ThenByDescending(x => x.CombinedScore)
             .ThenByDescending(x => x.Score.Path.HexesTraveled)
+            // The scores come from an unordered bag, so restore the movement-type preference the
+            // per-type evaluation used to give: on a full tie Walk wins, then Run, then Jump.
+            .ThenBy(x => (int)x.Score.MovementType)
             .Select(x => x.Score)
             .First(); // TODO: for different difficulty levels we can take random of first N
 
