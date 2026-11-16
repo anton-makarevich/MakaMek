@@ -13,10 +13,25 @@ public sealed class UnitSnapshotFactory : IUnitSnapshotFactory
     public UnitSnapshot Create(IUnit unit)
     {
         var position = unit.Position;
-        var movementPath = unit.MovementTaken
-                           ?? (position == null ? null : MovementPath.CreateSingleSegmentPath(position));
+        return Build(
+            unit,
+            position,
+            ResolveMovementPath(unit, position),
+            unit.GetAvailableWeapons(),
+            includeConfigurations: false);
+    }
 
-        return Build(unit, position, movementPath, unit.GetAvailableWeapons(), includeConfigurations: false);
+    public UnitSnapshot CreateForTarget(IUnit unit)
+    {
+        // Offensive evaluation reads only identity, position, path, height and the prone flag,
+        // so skip the per-weapon projection it would never look at.
+        var position = unit.Position;
+        return Build(
+            unit,
+            position,
+            ResolveMovementPath(unit, position),
+            [],
+            includeConfigurations: false);
     }
 
     public UnitSnapshot CreateForAttacker(IUnit unit, MovementPath attackerPath)
@@ -30,6 +45,10 @@ public sealed class UnitSnapshotFactory : IUnitSnapshotFactory
 
         return Build(unit, attackerPath.Destination, attackerPath, weapons, includeConfigurations: true);
     }
+
+    private static MovementPath? ResolveMovementPath(IUnit unit, HexPosition? position)
+        => unit.MovementTaken
+           ?? (position == null ? null : MovementPath.CreateSingleSegmentPath(position));
 
     private static UnitSnapshot Build(
         IUnit unit,

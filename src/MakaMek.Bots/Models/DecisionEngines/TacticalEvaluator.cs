@@ -93,7 +93,7 @@ public class TacticalEvaluator : ITacticalEvaluator
 
         foreach (var target in potentialTargets)
         {
-            var targetSnapshot = _snapshots.Create(target);
+            var targetSnapshot = _snapshots.CreateForTarget(target);
             if (targetSnapshot.Position == null)
                 continue;
 

@@ -14,6 +14,12 @@ public interface IUnitSnapshotFactory
     UnitSnapshot Create(IUnit unit);
 
     /// <summary>
+    /// Projects a unit as an offensive target: only the state offensive evaluation reads
+    /// (identity, position, movement path, height and prone flag), without its weapons.
+    /// </summary>
+    UnitSnapshot CreateForTarget(IUnit unit);
+
+    /// <summary>
     /// Projects a unit as an attacker at the destination of <paramref name="attackerPath"/>,
     /// including the weapon configurations available from that position.
     /// </summary>
