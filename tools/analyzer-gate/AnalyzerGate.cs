@@ -1792,22 +1792,31 @@ internal static class Program
 
     private static string Relativize(string path)
     {
-        var normalized = path.Replace('\\', '/');
+        var normalized = NormalizePath(path);
         var marker = normalized.LastIndexOf("/src/", StringComparison.Ordinal);
         return marker >= 0 ? normalized[(marker + 1)..] : normalized;
     }
 
-    private static string NormalizePath(string path) => path.Replace('\\', '/');
+    /// <summary>
+    /// The separator-independent spelling of a path. Path semantics (relative segments, absolute
+    /// paths, case) are handled by <see cref="Path"/>; this only picks "/" as the one spelling used
+    /// for comparisons and messages, because git, the allowlist file and the analyzer report do not
+    /// agree on a separator. On Unix a backslash is a legal filename character, so only the
+    /// platform's directory separator is rewritten.
+    /// </summary>
+    private static string NormalizePath(string path) =>
+        Path.DirectorySeparatorChar == Path.AltDirectorySeparatorChar
+            ? path
+            : path.Replace(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
 
     /// <summary>
     /// A repository-relative path for an explicit argument, so `./src/x.cs`, an absolute path and
     /// `src/x.cs` all address the same file instead of being skipped as outside the library.
+    /// <see cref="Path.GetFullPath(string, string)"/> anchors the argument to the repository root,
+    /// and <see cref="Path.GetRelativePath"/> resolves it back to the form the rest of the gate uses.
     /// </summary>
-    internal static string CanonicalizePath(string repoRoot, string path)
-    {
-        var combined = Path.IsPathRooted(path) ? path : Path.Combine(repoRoot, path);
-        return NormalizePath(Path.GetRelativePath(repoRoot, Path.GetFullPath(combined)));
-    }
+    internal static string CanonicalizePath(string repoRoot, string path) =>
+        NormalizePath(Path.GetRelativePath(repoRoot, Path.GetFullPath(path, repoRoot)));
 
     private static IEnumerable<string> NullSeparated(string text) =>
         text.Split('\0', StringSplitOptions.RemoveEmptyEntries);
