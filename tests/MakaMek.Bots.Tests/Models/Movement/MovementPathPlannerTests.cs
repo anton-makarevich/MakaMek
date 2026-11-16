@@ -84,6 +84,56 @@ public class MovementPathPlannerTests
         result.ShouldBeNull();
     }
 
+    [Fact]
+    public void SelectBestPath_WhenOnePathEvaluationThrows_ShouldStillUseTheRemainingScores()
+    {
+        // Arrange
+        var failingPath = CreatePath(MovementType.Run);
+        var validPath = CreatePath(MovementType.Walk);
+        _candidateProvider.GetCandidatePaths(_unit, Arg.Any<IReadOnlySet<HexCoordinates>>())
+            .Returns(new List<MovementPath> { failingPath, validPath });
+
+        _tacticalEvaluator
+            .EvaluatePath(_unit, failingPath, Arg.Any<IReadOnlyList<IUnit>>(), Arg.Any<ITurnState>())
+            .Returns(_ => throw new InvalidOperationException("Path evaluation failed"));
+        _tacticalEvaluator
+            .EvaluatePath(_unit, validPath, Arg.Any<IReadOnlyList<IUnit>>(), Arg.Any<ITurnState>())
+            .Returns(new PositionScore
+            {
+                Position = Destination,
+                MovementType = MovementType.Walk,
+                Path = validPath,
+                OffensiveIndex = 10,
+                DefensiveIndex = 5,
+                EnemiesInRearArc = 0
+            });
+
+        // Act
+        var result = _sut.SelectBestPath(_unit, [], new HashSet<HexCoordinates>(), null, new BotSettings(1.0f));
+
+        // Assert - a single failed evaluation must not discard the paths that scored successfully
+        result.ShouldBeSameAs(validPath);
+    }
+
+    [Fact]
+    public void SelectBestPath_WhenEveryPathEvaluationThrows_ShouldReturnNull()
+    {
+        // Arrange
+        var failingPath = CreatePath(MovementType.Walk);
+        _candidateProvider.GetCandidatePaths(_unit, Arg.Any<IReadOnlySet<HexCoordinates>>())
+            .Returns(new List<MovementPath> { failingPath });
+
+        _tacticalEvaluator
+            .EvaluatePath(_unit, failingPath, Arg.Any<IReadOnlyList<IUnit>>(), Arg.Any<ITurnState>())
+            .Returns(_ => throw new InvalidOperationException("Path evaluation failed"));
+
+        // Act
+        var result = _sut.SelectBestPath(_unit, [], new HashSet<HexCoordinates>(), null, new BotSettings(1.0f));
+
+        // Assert
+        result.ShouldBeNull();
+    }
+
     private static MovementPath CreatePath(MovementType movementType)
     {
         var segment = new PathSegment(

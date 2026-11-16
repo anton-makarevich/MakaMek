@@ -3,6 +3,7 @@ using Sanet.MakaMek.Bots.Data;
 using Sanet.MakaMek.Bots.Exceptions;
 using Sanet.MakaMek.Bots.Models;
 using Sanet.MakaMek.Bots.Models.DecisionEngines;
+using Sanet.MakaMek.Bots.Models.Movement;
 using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Units.Components;
@@ -767,6 +768,39 @@ public class MovementEngineTests
         
         // Assert
         commandCaptured.ShouldBeTrue();
+        capturedCommand.MovementType.ShouldBe(MovementType.StandingStill);
+    }
+
+    [Fact]
+    public async Task MakeDecision_WhenAnExceptionOccursBeforeAUnitIsSelected_ShouldSkipTurnWithAnUnmovedUnit()
+    {
+        // Arrange - a failure outside path evaluation (here priority calculation) must still
+        // degrade gracefully instead of leaving the phase without a command.
+        var unit = CreateMockUnit(hasMoved: false, isDeployed: true);
+        _player.AliveUnits.Returns([unit]);
+        _clientGame.Players.Returns([_player]);
+
+        var priorityCalculator = Substitute.For<IUnitPriorityCalculator>();
+        priorityCalculator.CalculatePriority(Arg.Any<IUnit>(), Arg.Any<MovementPhaseState>())
+            .Returns(_ => throw new InvalidOperationException("Priority calculation failed"));
+
+        var components = new MovementEvaluationComponents(
+            Substitute.For<IMoveCandidateProvider>(),
+            priorityCalculator,
+            Substitute.For<IMovementPathPlanner>(),
+            new MovementCommandSender(_clientGame));
+        var sut = new MovementEngine(_clientGame, components);
+
+        MoveUnitCommand capturedCommand = default;
+        var commandCaptured = false;
+        await _clientGame.MoveUnit(Arg.Do<MoveUnitCommand>(cmd => { capturedCommand = cmd; commandCaptured = true; }));
+
+        // Act
+        await sut.MakeDecision(_player, _turnState);
+
+        // Assert - unitToMove is still null, so SkipTurn falls back to the first unmoved unit
+        commandCaptured.ShouldBeTrue();
+        capturedCommand.UnitId.ShouldBe(unit.Id);
         capturedCommand.MovementType.ShouldBe(MovementType.StandingStill);
     }
     
