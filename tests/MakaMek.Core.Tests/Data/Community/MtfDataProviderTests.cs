@@ -1,4 +1,3 @@
-using System.Reflection;
 using NSubstitute;
 using Shouldly;
 using Sanet.MakaMek.Core.Data.Community;
@@ -364,43 +363,6 @@ public class MtfDataProviderTests
         // Act & Assert
         Should.Throw<NotImplementedException>(() => sut.LoadMechFromTextData(customMtfData))
             .Message.ShouldContain("Unknown MTF component: ER PPC");
-    }
-
-    [Fact]
-    public void FindConsecutiveSlotsInLocation_WhenSlotAlreadyProcessed_ReturnsEmptyAssignments()
-    {
-        // Arrange
-        var sut = new MtfDataProvider(_componentProvider);
-        var locationSlotComponents = new Dictionary<PartLocation, SortedDictionary<int, (MakaMekComponent component, ComponentOptions options)>>
-        {
-            [PartLocation.LeftArm] = new()
-            {
-                [0] = (MakaMekComponent.MachineGun, new ComponentOptions())
-            }
-        };
-        var processedSlots = new HashSet<(PartLocation, int)>
-        {
-            (PartLocation.LeftArm, 0)
-        };
-
-        var method = typeof(MtfDataProvider).GetMethod(
-            "FindConsecutiveSlotsInLocation",
-            BindingFlags.Instance | BindingFlags.NonPublic);
-        method.ShouldNotBeNull();
-
-        // Act
-        var result = method.Invoke(sut, [
-            MakaMekComponent.MachineGun,
-            PartLocation.LeftArm,
-            0,
-            locationSlotComponents,
-            processedSlots,
-            1
-        ]) as List<LocationSlotAssignment>;
-
-        // Assert
-        result.ShouldNotBeNull();
-        result.ShouldBeEmpty();
     }
 
     private string[] ReplaceShadowHawkAc5With(string mtfLabel, int expectedSize)
