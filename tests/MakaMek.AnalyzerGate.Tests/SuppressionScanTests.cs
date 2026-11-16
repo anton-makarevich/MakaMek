@@ -994,6 +994,30 @@ public class SuppressionScanTests
     }
 
     [Fact]
+    public void FindNewSuppressionsIn_SymbolDefinedInElifAfterUnknownBranch_StaysUncertain()
+    {
+        const string source = """
+            #if SWITCH
+            #elif true
+            #define HIDE
+            #endif
+
+            public class Example
+            {
+            #if !HIDE
+            #pragma warning disable S3776
+                public void Run() { }
+            #pragma warning restore S3776
+            #endif
+            }
+            """;
+
+        var failures = Program.FindNewSuppressionsIn("Example.cs", null, source);
+
+        failures.ShouldHaveSingleItem().ShouldContain("S3776");
+    }
+
+    [Fact]
     public void FindNewSuppressionsIn_SymbolDefinedUnconditionally_HidesTheSuppressedBranch()
     {
         const string source = """
@@ -1258,40 +1282,76 @@ public class SuppressionScanTests
     public void FindBaselineProjectGlobalAliases_ReadsTheBaseRevision()
     {
         var root = Path.Combine(Path.GetTempPath(), $"makamek-gate-{Guid.NewGuid():N}");
-        Directory.CreateDirectory(root);
+        var projectDirectory = Path.Combine(root, "src", "Project");
+        Directory.CreateDirectory(projectDirectory);
         try
         {
             RunGit(root, "init", "--quiet");
             RunGit(root, "config", "user.email", "gate@example.invalid");
             RunGit(root, "config", "user.name", "Gate Tests");
             File.WriteAllText(
-                Path.Combine(root, "Aliases.cs"),
+                Path.Combine(projectDirectory, "Aliases.cs"),
                 "global using Hidden = Custom.NoOpAttribute;");
-            File.WriteAllText(Path.Combine(root, "Example.csproj"), "<Project />");
+            File.WriteAllText(Path.Combine(projectDirectory, "Project.csproj"), "<Project />");
             RunGit(root, "add", "--all");
             RunGit(root, "commit", "--quiet", "--message", "baseline");
 
             File.WriteAllText(
-                Path.Combine(root, "Aliases.cs"),
+                Path.Combine(projectDirectory, "Aliases.cs"),
                 "global using Hidden = System.Diagnostics.CodeAnalysis.SuppressMessageAttribute;");
 
-            Program.FindBaselineProjectGlobalAliases(root, "HEAD", "Example.csproj").ShouldBeEmpty();
-            Program.FindProjectGlobalAliases(root, "Example.csproj").ShouldContain("Hidden");
+            Program.FindBaselineProjectGlobalAliases(root, "HEAD", "src/Project/Project.csproj").ShouldBeEmpty();
+            Program.FindProjectGlobalAliases(root, "src/Project/Project.csproj").ShouldContain("Hidden");
         }
         finally
         {
-            try
-            {
-                Directory.Delete(root, recursive: true);
-            }
-            catch (IOException)
-            {
-                // A leftover temp directory is harmless.
-            }
-            catch (UnauthorizedAccessException)
-            {
-                // A leftover temp directory is harmless.
-            }
+            DeleteDirectory(root);
+        }
+    }
+
+    [Fact]
+    public void FindBaselineProjectGlobalAliases_ReadsAliasSplitAcrossLines()
+    {
+        var root = Path.Combine(Path.GetTempPath(), $"makamek-gate-{Guid.NewGuid():N}");
+        var projectDirectory = Path.Combine(root, "src", "Project");
+        Directory.CreateDirectory(projectDirectory);
+        try
+        {
+            RunGit(root, "init", "--quiet");
+            RunGit(root, "config", "user.email", "gate@example.invalid");
+            RunGit(root, "config", "user.name", "Gate Tests");
+            File.WriteAllText(
+                Path.Combine(projectDirectory, "Aliases.cs"),
+                """
+                global
+                using Hidden = System.Diagnostics.CodeAnalysis.SuppressMessageAttribute;
+                """);
+            File.WriteAllText(Path.Combine(projectDirectory, "Project.csproj"), "<Project />");
+            RunGit(root, "add", "--all");
+            RunGit(root, "commit", "--quiet", "--message", "baseline");
+
+            Program.FindBaselineProjectGlobalAliases(root, "HEAD", "src/Project/Project.csproj")
+                .ShouldContain("Hidden");
+        }
+        finally
+        {
+            DeleteDirectory(root);
+        }
+    }
+
+    private static void DeleteDirectory(string path)
+    {
+        try
+        {
+            Directory.Delete(path, recursive: true);
+        }
+        catch (IOException)
+        {
+            // A leftover temp directory is harmless.
+        }
+        catch (UnauthorizedAccessException)
+        {
+            // A leftover temp directory is harmless.
         }
     }
 

@@ -419,15 +419,19 @@ internal static class Program
         string baseRef,
         string projectFile)
     {
-        var projectDirectory = Path.GetDirectoryName(NormalizePath(projectFile));
-        if (string.IsNullOrEmpty(projectDirectory))
+        var projectDirectory = NormalizePath(
+            Path.GetDirectoryName(NormalizePath(projectFile)) ?? string.Empty);
+        if (projectDirectory.Length == 0)
         {
             return [];
         }
 
+        // git grep is line-oriented, so it must not be asked to match `global using`: C# allows the
+        // two tokens on separate lines. The type name is a single token, so it finds every file that
+        // could declare the alias, and the multiline-capable regex then reads the real declaration.
         var result = Run(
             "git",
-            ["grep", "-l", "-E", "global[[:space:]]+using", baseRef, "--", "*.cs"],
+            ["grep", "-l", "-F", "SuppressMessageAttribute", baseRef, "--", "*.cs"],
             repoRoot);
         if (result.ExitCode != 0)
         {
@@ -977,7 +981,6 @@ internal static class Program
         {
             Chain = chain;
             BranchTruth = branchTruth;
-            AllPreviousFalse = branchTruth == ConditionTruth.False;
         }
 
         public string Chain { get; set; }
@@ -986,7 +989,12 @@ internal static class Program
 
         public bool EarlierBranchTrue { get; set; }
 
-        public bool AllPreviousFalse { get; set; }
+        /// <summary>
+        /// Every sibling branch before the current one is provably false. Vacuously true for the
+        /// <c>#if</c> branch; an unknown earlier branch keeps it false, so a later <c>#elif</c> is
+        /// potentially active but never certain.
+        /// </summary>
+        public bool AllPreviousFalse { get; set; } = true;
     }
 
     /// <summary>
@@ -1039,7 +1047,9 @@ internal static class Program
             var active = stack.All(frame =>
                 !frame.EarlierBranchTrue && frame.BranchTruth != ConditionTruth.False);
             var certain = stack.All(frame =>
-                !frame.EarlierBranchTrue && frame.BranchTruth == ConditionTruth.True);
+                !frame.EarlierBranchTrue
+                && frame.AllPreviousFalse
+                && frame.BranchTruth == ConditionTruth.True);
             states.Add(new ConditionalLine(string.Join('&', stack.Select(frame => frame.Chain)), active, certain));
 
             if (TryDirective(trimmed, "#endif", out _))
