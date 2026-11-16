@@ -81,6 +81,10 @@ internal static class Program
         @"^\s*namespace\s+(?<name>[A-Za-z_][A-Za-z0-9_.]*)\s*\{?\s*$",
         RegexOptions.CultureInvariant);
 
+    private static readonly Regex SuppressMessageAliasPattern = new(
+        @"\busing\s+(?<alias>[A-Za-z_][A-Za-z0-9_]*)\s*=\s*(?:global::)?(?:[A-Za-z_][A-Za-z0-9_]*\.)*SuppressMessageAttribute\s*;",
+        RegexOptions.CultureInvariant);
+
     private const int MaxConstantEvaluationDepth = 8;
 
     /// <summary>
@@ -134,7 +138,7 @@ internal static class Program
             }
             else
             {
-                explicitFiles.Add(NormalizePath(arg));
+                explicitFiles.Add(CanonicalizePath(repoRoot, arg));
             }
         }
 
@@ -427,8 +431,9 @@ internal static class Program
         var declarations = FindDeclarations(lines, types, code);
         var (fileNamespace, namespaces) = FindNamespaces(lines);
         var constants = FindConstantDeclarations(lines, types, fileNamespace, namespaces);
+        var conditionalContexts = FindConditionalContexts(lines);
 
-        foreach (var (rule, start, end, depth) in FindPragmaRegions(lines, code.Length))
+        foreach (var (rule, start, end, depth, context) in FindPragmaRegions(lines, code.Length, conditionalContexts))
         {
             var covered = declarations
                 .Where(declaration =>
@@ -443,14 +448,43 @@ internal static class Program
             {
                 foreach (var scope in covered)
                 {
-                    Increment(scopes, suppressedRule, scope);
+                    Increment(scopes, suppressedRule, AppendContext(scope, context));
                 }
             }
         }
 
-        foreach (var attribute in FindSuppressMessageAttributes(code, argumentsCode))
+        var aliases = FindSuppressMessageAliases(code);
+        foreach (var attribute in FindSuppressMessageAttributes(code, argumentsCode, aliases))
         {
             var scope = ScopeAfter(declarations, attribute.End);
+            var context = ConditionalContextAt(lines, conditionalContexts, attribute.Start);
+            var target = ReadNamedArgument(attribute.Arguments, "Target");
+            var scopeArgument = ReadNamedArgument(attribute.Arguments, "Scope");
+
+            string identity;
+            if (target is not null)
+            {
+                if (!TryDecodeStringLiteral(target, out var targetValue) || !targetValue.StartsWith('~'))
+                {
+                    unresolvable.Add(new UnresolvableSuppression(
+                        LineAt(code, attribute.Start), scope, $"Target = {target}"));
+                    continue;
+                }
+
+                identity = $"target:{Compact(targetValue)}";
+            }
+            else
+            {
+                identity = scope;
+            }
+
+            if (scopeArgument is not null && TryDecodeStringLiteral(scopeArgument, out var scopeValue))
+            {
+                identity += $" scope:{Compact(scopeValue)}";
+            }
+
+            identity = AppendContext(identity, context);
+
             var ruleArgument = ReadRuleArgument(attribute.Arguments);
             if (ruleArgument is null) continue;
 
@@ -472,7 +506,7 @@ internal static class Program
             {
                 if (IsGatedRule(id.Groups["id"].Value))
                 {
-                    Increment(scopes, id.Groups["id"].Value.ToUpperInvariant(), scope);
+                    Increment(scopes, id.Groups["id"].Value.ToUpperInvariant(), identity);
                 }
             }
         }
@@ -778,16 +812,83 @@ internal static class Program
 
     private static int? ScopeLine(string source, string scope)
     {
+        scope = BaseScope(scope);
         if (scope == NoDeclaration) return null;
 
-        var lines = ReadLines(MaskLiteralsAndComments(source));
+        var code = MaskLiteralsAndComments(source);
+        var lines = ReadLines(code);
         var types = FindTypeDeclarations(lines);
         for (var index = 0; index < lines.Count; index++)
         {
-            if (DeclarationKey(lines[index], types, MaskLiteralsAndComments(source)) == scope) return index + 1;
+            if (DeclarationKey(lines[index], types, code) == scope) return index + 1;
         }
 
         return null;
+    }
+
+    private static string BaseScope(string scope)
+    {
+        var marker = scope.IndexOf(" [", StringComparison.Ordinal);
+        return marker < 0 ? scope : scope[..marker];
+    }
+
+    private static string AppendContext(string scope, string context) =>
+        context.Length == 0 ? scope : $"{scope} [{context}]";
+
+    /// <summary>
+    /// The enclosing <c>#if/#elif/#else</c> chain of each line. A suppression inside conditional
+    /// compilation carries its condition in its identity, so changing the condition (for example
+    /// <c>#if false</c> to <c>#if true</c>) activates a different suppression instead of an
+    /// unchanged one.
+    /// </summary>
+    private static List<string> FindConditionalContexts(IReadOnlyList<SourceLine> lines)
+    {
+        var contexts = new List<string>(lines.Count);
+        var stack = new List<string>();
+
+        foreach (var line in lines)
+        {
+            var trimmed = line.Text.Trim();
+            if (trimmed.StartsWith("#if", StringComparison.Ordinal)
+                && (trimmed.Length == 3 || char.IsWhiteSpace(trimmed[3])))
+            {
+                stack.Add("if:" + Compact(trimmed[3..]));
+            }
+            else if (trimmed.StartsWith("#elif", StringComparison.Ordinal)
+                     && (trimmed.Length == 5 || char.IsWhiteSpace(trimmed[5])))
+            {
+                if (stack.Count > 0) stack[^1] = "elif:" + Compact(trimmed[5..]);
+            }
+            else if (trimmed == "#else" && stack.Count > 0)
+            {
+                stack[^1] = "else";
+            }
+
+            contexts.Add(string.Join('/', stack));
+
+            if (trimmed.StartsWith("#endif", StringComparison.Ordinal)
+                && (trimmed.Length == 6 || char.IsWhiteSpace(trimmed[6]))
+                && stack.Count > 0)
+            {
+                stack.RemoveAt(stack.Count - 1);
+            }
+        }
+
+        return contexts;
+    }
+
+    private static string ConditionalContextAt(
+        IReadOnlyList<SourceLine> lines,
+        IReadOnlyList<string> contexts,
+        int offset)
+    {
+        var index = 0;
+        for (var line = 0; line < lines.Count && lines[line].Offset <= offset; line++)
+        {
+            index = line;
+        }
+
+        return index < contexts.Count ? contexts[index] : string.Empty;
     }
 
     private static IEnumerable<string> ExpandRule(string rule) =>
@@ -1013,7 +1114,7 @@ internal static class Program
         public string FullPath => Namespace.Length == 0 ? TypePath : $"{Namespace}.{TypePath}";
     }
 
-    private sealed record PragmaStatement(int Offset, int Depth, bool IsDisable, IReadOnlyList<string> Rules);
+    private sealed record PragmaStatement(int Offset, int Depth, string Context, bool IsDisable, IReadOnlyList<string> Rules);
 
     private static List<SourceLine> ReadLines(string code)
     {
@@ -1129,25 +1230,28 @@ internal static class Program
     private static string JoinPath(string prefix, string name) =>
         prefix.Length == 0 ? name : $"{prefix}.{name}";
 
-    private static List<(string Rule, int Start, int End, int Depth)> FindPragmaRegions(
+    private static List<(string Rule, int Start, int End, int Depth, string Context)> FindPragmaRegions(
         IReadOnlyList<SourceLine> lines,
-        int codeLength)
+        int codeLength,
+        IReadOnlyList<string> conditionalContexts)
     {
         var directives = new List<PragmaStatement>();
-        foreach (var line in lines)
+        for (var index = 0; index < lines.Count; index++)
         {
+            var line = lines[index];
             var match = PragmaDirectivePattern.Match(line.Text);
             if (!match.Success) continue;
 
             directives.Add(new PragmaStatement(
                 line.Offset,
                 line.Depth,
+                conditionalContexts[index],
                 match.Groups["action"].Value == "disable",
                 ParseRules(match.Groups["rules"].Value)));
         }
 
-        var open = new Dictionary<string, Stack<(int Start, int Depth)>>(StringComparer.Ordinal);
-        var regions = new List<(string Rule, int Start, int End, int Depth)>();
+        var open = new Dictionary<string, Stack<(int Start, int Depth, string Context)>>(StringComparer.Ordinal);
+        var regions = new List<(string Rule, int Start, int End, int Depth, string Context)>();
         foreach (var directive in directives.OrderBy(directive => directive.Offset))
         {
             if (directive.IsDisable)
@@ -1156,11 +1260,11 @@ internal static class Program
                 {
                     if (!open.TryGetValue(rule, out var stack))
                     {
-                        stack = new Stack<(int Start, int Depth)>();
+                        stack = new Stack<(int Start, int Depth, string Context)>();
                         open[rule] = stack;
                     }
 
-                    stack.Push((directive.Offset, directive.Depth));
+                    stack.Push((directive.Offset, directive.Depth, directive.Context));
                 }
 
                 continue;
@@ -1172,8 +1276,8 @@ internal static class Program
             foreach (var rule in closingRules)
             {
                 if (!open.TryGetValue(rule, out var stack) || stack.Count == 0) continue;
-                var (start, depth) = stack.Pop();
-                regions.Add((rule, start, directive.Offset, depth));
+                var (start, depth, context) = stack.Pop();
+                regions.Add((rule, start, directive.Offset, depth, context));
             }
         }
 
@@ -1181,8 +1285,8 @@ internal static class Program
         {
             while (stack.Count > 0)
             {
-                var (start, depth) = stack.Pop();
-                regions.Add((rule, start, codeLength, depth));
+                var (start, depth, context) = stack.Pop();
+                regions.Add((rule, start, codeLength, depth, context));
             }
         }
 
@@ -1205,41 +1309,54 @@ internal static class Program
 
     private static IEnumerable<(int Start, int End, string Arguments)> FindSuppressMessageAttributes(
         string code,
-        string argumentsCode)
+        string argumentsCode,
+        IReadOnlyCollection<string> aliases)
     {
-        const string attributeName = "SuppressMessage";
-        var searchIndex = 0;
-        while (searchIndex < code.Length)
+        var names = new List<string> { "SuppressMessage", "SuppressMessageAttribute" };
+        names.AddRange(aliases);
+
+        var pattern = new Regex(
+            $@"(?<![\w.])(?:[A-Za-z_][A-Za-z0-9_]*\.)*(?:{string.Join("|", names.Select(Regex.Escape))})\s*\(",
+            RegexOptions.CultureInvariant);
+
+        foreach (Match match in pattern.Matches(code))
         {
-            var nameIndex = code.IndexOf(attributeName, searchIndex, StringComparison.Ordinal);
-            if (nameIndex < 0) yield break;
-
-            var openParenthesis = code.IndexOf('(', nameIndex + attributeName.Length);
-            if (openParenthesis < 0) yield break;
-
+            var openParenthesis = match.Index + match.Length - 1;
             var closeParenthesis = FindMatchingParenthesis(code, openParenthesis);
-            if (closeParenthesis < 0)
-            {
-                searchIndex = nameIndex + 1;
-                continue;
-            }
+            if (closeParenthesis < 0) continue;
 
-            yield return (nameIndex, closeParenthesis, argumentsCode[(openParenthesis + 1)..closeParenthesis]);
-            searchIndex = closeParenthesis + 1;
+            yield return (match.Index, closeParenthesis, argumentsCode[(openParenthesis + 1)..closeParenthesis]);
         }
     }
 
     /// <summary>
-    /// Reads the <c>checkId</c> argument of a <c>[SuppressMessage]</c> attribute. <c>NonLiteral</c> is
-    /// returned when the argument is not exactly one string literal (a concatenation, a constant, an
-    /// interpolated string): the compiler still honours such a suppression, so the gate records it
-    /// instead of silently missing it.
+    /// Aliases that name <c>SuppressMessageAttribute</c>, so an attribute written through an alias is
+    /// still recognized.
     /// </summary>
+    private static List<string> FindSuppressMessageAliases(string code)
+    {
+        var aliases = new List<string>();
+        foreach (Match match in SuppressMessageAliasPattern.Matches(code))
+        {
+            aliases.Add(match.Groups["alias"].Value);
+        }
+
+        return aliases;
+    }
+
     /// <summary>
-    /// The <c>checkId</c> argument of a <c>[SuppressMessage]</c> attribute: positional or named, with
-    /// nested parentheses and string literals respected. Returns <c>null</c> when the attribute does
-    /// not carry a rule argument.
+    /// A named argument of an attribute (<c>Name = value</c> or <c>Name: value</c>), or <c>null</c>.
     /// </summary>
+    private static string? ReadNamedArgument(string arguments, string name)
+    {
+        foreach (var argument in SplitArguments(arguments))
+        {
+            if (TryStripArgumentName(argument.Trim(), name, out var value)) return value;
+        }
+
+        return null;
+    }
+
     private static string? ReadRuleArgument(string arguments)
     {
         var positional = new List<string>();
@@ -1379,7 +1496,7 @@ internal static class Program
         if (!argument.StartsWith(name, StringComparison.Ordinal)) return false;
 
         var rest = argument[name.Length..].TrimStart();
-        if (rest.Length == 0 || rest[0] != ':') return false;
+        if (rest.Length == 0 || (rest[0] != ':' && rest[0] != '=')) return false;
 
         value = rest[1..].Trim();
         return true;
@@ -1642,6 +1759,16 @@ internal static class Program
     }
 
     private static string NormalizePath(string path) => path.Replace('\\', '/');
+
+    /// <summary>
+    /// A repository-relative path for an explicit argument, so `./src/x.cs`, an absolute path and
+    /// `src/x.cs` all address the same file instead of being skipped as outside the library.
+    /// </summary>
+    internal static string CanonicalizePath(string repoRoot, string path)
+    {
+        var combined = Path.IsPathRooted(path) ? path : Path.Combine(repoRoot, path);
+        return NormalizePath(Path.GetRelativePath(repoRoot, Path.GetFullPath(combined)));
+    }
 
     private static IEnumerable<string> NullSeparated(string text) =>
         text.Split('\0', StringSplitOptions.RemoveEmptyEntries);

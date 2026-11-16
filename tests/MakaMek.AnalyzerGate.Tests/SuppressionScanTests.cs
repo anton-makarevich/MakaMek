@@ -782,6 +782,108 @@ public class SuppressionScanTests
     }
 
     [Fact]
+    public void CanonicalizePath_EquivalentSpellings_ReturnTheRepositoryRelativePath()
+    {
+        var root = Path.GetFullPath(Path.Combine(Path.GetTempPath(), "makamek-gate-root"));
+
+        Program.CanonicalizePath(root, "src/MakaMek.Core/A.cs").ShouldBe("src/MakaMek.Core/A.cs");
+        Program.CanonicalizePath(root, "./src/MakaMek.Core/A.cs").ShouldBe("src/MakaMek.Core/A.cs");
+        Program.CanonicalizePath(root, Path.Combine(root, "src", "MakaMek.Core", "A.cs"))
+            .ShouldBe("src/MakaMek.Core/A.cs");
+    }
+
+    [Fact]
+    public void FindNewSuppressionsIn_MovedAssemblySuppressionTarget_Fails()
+    {
+        const string baseline = """
+            [assembly: System.Diagnostics.CodeAnalysis.SuppressMessage("Maintainability", "CA1506:Avoid excessive class coupling", Scope = "member", Target = "~M:Example.First")]
+            """;
+        const string current = """
+            [assembly: System.Diagnostics.CodeAnalysis.SuppressMessage("Maintainability", "CA1506:Avoid excessive class coupling", Scope = "member", Target = "~M:Example.Second")]
+            """;
+
+        var failures = Program.FindNewSuppressionsIn("GlobalSuppressions.cs", baseline, current);
+
+        failures.ShouldHaveSingleItem().ShouldContain("target:~M:Example.Second");
+    }
+
+    [Fact]
+    public void FindNewSuppressionsIn_UnresolvableSuppressionTarget_Fails()
+    {
+        const string source = """
+            [assembly: System.Diagnostics.CodeAnalysis.SuppressMessage("Maintainability", "CA1506:Avoid excessive class coupling", Scope = "member", Target = nameof(Example.First))]
+            """;
+
+        var failures = Program.FindNewSuppressionsIn("GlobalSuppressions.cs", null, source);
+
+        failures.ShouldHaveSingleItem().ShouldContain("cannot be resolved");
+    }
+
+    [Fact]
+    public void FindNewSuppressionsIn_ActivatedConditionalSuppression_Fails()
+    {
+        const string baseline = """
+            public class Example
+            {
+            #if false
+            #pragma warning disable S3776
+                public void Run() { }
+            #pragma warning restore S3776
+            #endif
+            }
+            """;
+        const string current = """
+            public class Example
+            {
+            #if true
+            #pragma warning disable S3776
+                public void Run() { }
+            #pragma warning restore S3776
+            #endif
+            }
+            """;
+
+        var failures = Program.FindNewSuppressionsIn("Example.cs", baseline, current);
+
+        failures.ShouldHaveSingleItem().ShouldContain("[if:true]");
+    }
+
+    [Fact]
+    public void FindNewSuppressionsIn_UnchangedConditionalSuppression_Passes()
+    {
+        const string source = """
+            public class Example
+            {
+            #if DEBUG
+            #pragma warning disable S3776
+                public void Run() { }
+            #pragma warning restore S3776
+            #endif
+            }
+            """;
+
+        Program.FindNewSuppressionsIn("Example.cs", source, source).ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void FindNewSuppressionsIn_AliasedSuppressMessageAttribute_Fails()
+    {
+        const string source = """
+            using Hidden = System.Diagnostics.CodeAnalysis.SuppressMessageAttribute;
+
+            public class Example
+            {
+                [Hidden("Maintainability", "CA1506:Avoid excessive class coupling")]
+                public void Run() { }
+            }
+            """;
+
+        var failures = Program.FindNewSuppressionsIn("Example.cs", null, source);
+
+        failures.ShouldHaveSingleItem().ShouldContain("CA1506");
+    }
+
+    [Fact]
     public void FindNewSuppressionsIn_NewSuppression_ReportsTheDeclarationLine()
     {
         const string current = """
