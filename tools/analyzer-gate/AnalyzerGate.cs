@@ -82,7 +82,11 @@ internal static class Program
         RegexOptions.CultureInvariant);
 
     private static readonly Regex SuppressMessageAliasPattern = new(
-        @"\busing\s+(?<alias>[A-Za-z_][A-Za-z0-9_]*)\s*=\s*(?:global::)?(?:[A-Za-z_][A-Za-z0-9_]*\.)*SuppressMessageAttribute\s*;",
+        @"\b(?:global\s+)?using\s+(?<alias>[A-Za-z_][A-Za-z0-9_]*)\s*=\s*(?:global::)?(?:[A-Za-z_][A-Za-z0-9_]*\.)*SuppressMessageAttribute\s*;",
+        RegexOptions.CultureInvariant);
+
+    private static readonly Regex GlobalSuppressMessageAliasPattern = new(
+        @"\bglobal\s+using\s+(?<alias>[A-Za-z_][A-Za-z0-9_]*)\s*=\s*(?:global::)?(?:[A-Za-z_][A-Za-z0-9_]*\.)*SuppressMessageAttribute\s*;",
         RegexOptions.CultureInvariant);
 
     /// <summary>
@@ -200,9 +204,10 @@ internal static class Program
         var excluded = new List<Finding>();
         var failures = new List<Finding>();
 
-        // A diff must not hide new debt behind a suppression the base ref did not have.
-        var suppressionFailures = FindNewSuppressions(
-            repoRoot, baseRef, projects.Values.SelectMany(files => files));
+        // A diff must not hide new debt behind a suppression the base ref did not have. A global
+        // alias lives in another file of the same project, so the suppression scan needs the files
+        // grouped by project rather than as one flat list.
+        var suppressionFailures = FindNewSuppressions(repoRoot, baseRef, projects);
         foreach (var failure in suppressionFailures)
         {
             Console.Error.WriteLine($"ERROR: {failure}");
@@ -343,23 +348,63 @@ internal static class Program
     }
 
     /// <summary>
-    /// Suppressions a changed file added relative to the base ref.
+    /// Suppressions a changed file added relative to the base ref. Project-wide aliases are collected
+    /// first, because a <c>global using</c> alias declared in one file applies to every file of the
+    /// project that references it.
     /// </summary>
-    private static List<string> FindNewSuppressions(string repoRoot, string baseRef, IEnumerable<string> files)
+    private static List<string> FindNewSuppressions(
+        string repoRoot,
+        string baseRef,
+        SortedDictionary<string, List<string>> projects)
     {
         var failures = new List<string>();
-        foreach (var file in files)
+        foreach (var (project, files) in projects)
         {
-            var path = Path.Combine(repoRoot, file);
-            if (!File.Exists(path)) continue;
+            var projectAliases = FindProjectGlobalAliases(repoRoot, project);
+            foreach (var file in files)
+            {
+                var path = Path.Combine(repoRoot, file);
+                if (!File.Exists(path)) continue;
 
-            failures.AddRange(FindNewSuppressionsIn(
-                file,
-                ReadAtBase(repoRoot, baseRef, file),
-                File.ReadAllText(path)));
+                failures.AddRange(FindNewSuppressionsIn(
+                    file,
+                    ReadAtBase(repoRoot, baseRef, file),
+                    File.ReadAllText(path),
+                    projectAliases));
+            }
         }
 
         return failures;
+    }
+
+    /// <summary>
+    /// The aliases that name <see cref="System.Diagnostics.CodeAnalysis.SuppressMessageAttribute"/> in
+    /// a project's <c>global using</c> directives. The scan is project-wide because the alias is
+    /// declared in one file and used in another; generated folders are ignored.
+    /// </summary>
+    internal static List<string> FindProjectGlobalAliases(string repoRoot, string projectFile)
+    {
+        var projectDirectory = Path.GetDirectoryName(Path.Combine(repoRoot, projectFile));
+        if (string.IsNullOrEmpty(projectDirectory) || !Directory.Exists(projectDirectory))
+        {
+            return [];
+        }
+
+        var aliases = new SortedSet<string>(StringComparer.Ordinal);
+        foreach (var path in Directory.EnumerateFiles(projectDirectory, "*.cs", SearchOption.AllDirectories))
+        {
+            var segments = Path.GetRelativePath(projectDirectory, path)
+                .Split([Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar], StringSplitOptions.RemoveEmptyEntries);
+            if (segments.Any(segment => segment is "bin" or "obj"))
+            {
+                continue;
+            }
+
+            aliases.UnionWith(
+                FindSuppressMessageAliases(MaskLiteralsAndComments(File.ReadAllText(path)), globalOnly: true));
+        }
+
+        return [.. aliases];
     }
 
     /// <summary>
@@ -372,10 +417,14 @@ internal static class Program
     /// suppression whose rule, Scope or Target argument cannot be resolved to a literal value always
     /// fails, because the gate cannot tell what it hides.
     /// </summary>
-    internal static List<string> FindNewSuppressionsIn(string file, string? baselineSource, string currentSource)
+    internal static List<string> FindNewSuppressionsIn(
+        string file,
+        string? baselineSource,
+        string currentSource,
+        IReadOnlyCollection<string>? projectAliases = null)
     {
         var failures = new List<string>();
-        var current = ScanSuppressions(currentSource);
+        var current = ScanSuppressions(currentSource, projectAliases);
 
         foreach (var unresolvable in current.Unresolvable)
         {
@@ -387,7 +436,7 @@ internal static class Program
 
         if (current.Scopes.Count == 0) return failures;
 
-        var baseline = ScanSuppressions(baselineSource).Scopes;
+        var baseline = ScanSuppressions(baselineSource, projectAliases).Scopes;
         foreach (var ((rule, scope), count) in current.Scopes)
         {
             var baselineCount = baseline.TryGetValue((rule, scope), out var known) ? known : 0;
@@ -424,7 +473,7 @@ internal static class Program
     internal static SortedDictionary<(string Rule, string Scope), int> SuppressionScopes(string? source) =>
         ScanSuppressions(source).Scopes;
 
-    private static SuppressionScan ScanSuppressions(string? source)
+    private static SuppressionScan ScanSuppressions(string? source, IReadOnlyCollection<string>? projectAliases = null)
     {
         var scopes = new SortedDictionary<(string Rule, string Scope), int>();
         var unresolvable = new List<UnresolvableSuppression>();
@@ -439,9 +488,9 @@ internal static class Program
         var declarations = FindDeclarations(lines, types, code);
         var (fileNamespace, namespaces) = FindNamespaces(lines);
         var constants = FindConstantDeclarations(lines, types, fileNamespace, namespaces);
-        var conditionalContexts = FindConditionalContexts(lines);
+        var conditionalStates = FindConditionalStates(lines);
 
-        foreach (var (rule, start, end, depth, context) in FindPragmaRegions(lines, code.Length, conditionalContexts))
+        foreach (var (rule, start, end, depth, context) in FindPragmaRegions(lines, code.Length, conditionalStates))
         {
             var covered = declarations
                 .Where(declaration =>
@@ -462,10 +511,15 @@ internal static class Program
         }
 
         var aliases = FindSuppressMessageAliases(code);
+        if (projectAliases is not null) aliases.AddRange(projectAliases);
+        aliases = [.. aliases.Distinct(StringComparer.Ordinal)];
         foreach (var attribute in FindSuppressMessageAttributes(code, argumentsCode, aliases))
         {
+            var conditional = ConditionalStateAt(lines, conditionalStates, attribute.Start);
+            if (!conditional.IsActive) continue;
+
             var scope = ScopeAfter(declarations, attribute.End);
-            var context = ConditionalContextAt(lines, conditionalContexts, attribute.Start);
+            var context = conditional.Chain;
             var referenceNamespace = NamespaceAt(lines, fileNamespace, namespaces, attribute.Start);
             var referenceTypePath = TypePathAt(types, attribute.Start, DepthAt(lines, attribute.Start));
 
@@ -859,51 +913,336 @@ internal static class Program
     private static string AppendContext(string scope, string context) =>
         context.Length == 0 ? scope : $"{scope} [{context}]";
 
-    /// <summary>
-    /// The enclosing <c>#if/#elif/#else</c> chain of each line. A suppression inside conditional
-    /// compilation carries its condition in its identity, so changing the condition (for example
-    /// <c>#if false</c> to <c>#if true</c>) activates a different suppression instead of an
-    /// unchanged one.
-    /// </summary>
-    private static List<string> FindConditionalContexts(IReadOnlyList<SourceLine> lines)
+    private enum ConditionTruth
     {
-        var contexts = new List<string>(lines.Count);
-        var stack = new List<string>();
+        False,
+        True,
+        Unknown
+    }
+
+    private sealed record ConditionalLine(string Chain, bool IsActive);
+
+    private sealed class ConditionalFrame
+    {
+        public ConditionalFrame(string chain, ConditionTruth branchTruth)
+        {
+            Chain = chain;
+            BranchTruth = branchTruth;
+            AllPreviousFalse = branchTruth == ConditionTruth.False;
+        }
+
+        public string Chain { get; set; }
+
+        public ConditionTruth BranchTruth { get; set; }
+
+        public bool EarlierBranchTrue { get; set; }
+
+        public bool AllPreviousFalse { get; set; }
+    }
+
+    /// <summary>
+    /// The conditional-compilation state of each line: the full <c>#if/#elif/#else</c> chain, with
+    /// the truth the preprocessor assigns to every branch (in-file <c>#define</c>/<c>#undef</c>
+    /// included), and whether the line is provably inactive. Both are needed: an inactive suppression
+    /// is not recorded at all, while a condition change that leaves a suppression potentially active
+    /// still changes the chain, so a newly effective suppression cannot be mistaken for an unchanged
+    /// one. A symbol the file does not define is unknown, never false, because it may come from the
+    /// project file.
+    /// </summary>
+    private static List<ConditionalLine> FindConditionalStates(IReadOnlyList<SourceLine> lines)
+    {
+        var states = new List<ConditionalLine>(lines.Count);
+        var stack = new List<ConditionalFrame>();
+        var symbols = new Dictionary<string, bool>(StringComparer.Ordinal);
 
         foreach (var line in lines)
         {
             var trimmed = line.Text.Trim();
-            if (trimmed.StartsWith("#if", StringComparison.Ordinal)
-                && (trimmed.Length == 3 || char.IsWhiteSpace(trimmed[3])))
+
+            if (TryDirective(trimmed, "#if", out var expression))
             {
-                stack.Add("if:" + Compact(trimmed[3..]));
+                var truth = EvaluateCondition(expression, symbols);
+                stack.Add(new ConditionalFrame($"if:{Compact(expression)}:{TruthName(truth)}", truth));
             }
-            else if (trimmed.StartsWith("#elif", StringComparison.Ordinal)
-                     && (trimmed.Length == 5 || char.IsWhiteSpace(trimmed[5])))
+            else if (TryDirective(trimmed, "#elif", out expression) && stack.Count > 0)
             {
-                if (stack.Count > 0) stack[^1] = "elif:" + Compact(trimmed[5..]);
+                var frame = stack[^1];
+                frame.EarlierBranchTrue |= frame.BranchTruth == ConditionTruth.True;
+                frame.AllPreviousFalse &= frame.BranchTruth == ConditionTruth.False;
+                var truth = frame.EarlierBranchTrue
+                    ? ConditionTruth.False
+                    : EvaluateCondition(expression, symbols);
+                frame.BranchTruth = truth;
+                frame.Chain += $"/elif:{Compact(expression)}:{TruthName(truth)}";
             }
-            else if (trimmed == "#else" && stack.Count > 0)
+            else if (TryDirective(trimmed, "#else", out _) && stack.Count > 0)
             {
-                stack[^1] = "else";
+                var frame = stack[^1];
+                frame.EarlierBranchTrue |= frame.BranchTruth == ConditionTruth.True;
+                frame.AllPreviousFalse &= frame.BranchTruth == ConditionTruth.False;
+                var truth = frame.EarlierBranchTrue
+                    ? ConditionTruth.False
+                    : frame.AllPreviousFalse ? ConditionTruth.True : ConditionTruth.Unknown;
+                frame.BranchTruth = truth;
+                frame.Chain += $"/else:{TruthName(truth)}";
             }
 
-            contexts.Add(string.Join('/', stack));
+            var active = stack.All(frame =>
+                !frame.EarlierBranchTrue && frame.BranchTruth != ConditionTruth.False);
+            states.Add(new ConditionalLine(string.Join('&', stack.Select(frame => frame.Chain)), active));
 
-            if (trimmed.StartsWith("#endif", StringComparison.Ordinal)
-                && (trimmed.Length == 6 || char.IsWhiteSpace(trimmed[6]))
-                && stack.Count > 0)
+            if (TryDirective(trimmed, "#endif", out _))
             {
-                stack.RemoveAt(stack.Count - 1);
+                if (stack.Count > 0) stack.RemoveAt(stack.Count - 1);
+                continue;
+            }
+
+            if (!active) continue;
+
+            if (TryDirective(trimmed, "#define", out var defined))
+            {
+                var symbol = FirstWord(defined);
+                if (symbol.Length > 0) symbols[symbol] = true;
+            }
+            else if (TryDirective(trimmed, "#undef", out var undefined))
+            {
+                var symbol = FirstWord(undefined);
+                if (symbol.Length > 0) symbols[symbol] = false;
             }
         }
 
-        return contexts;
+        return states;
     }
 
-    private static string ConditionalContextAt(
+    private static bool TryDirective(string trimmed, string directive, out string arguments)
+    {
+        if (trimmed.StartsWith(directive, StringComparison.Ordinal)
+            && (trimmed.Length == directive.Length || char.IsWhiteSpace(trimmed[directive.Length])))
+        {
+            arguments = trimmed[directive.Length..].Trim();
+            return true;
+        }
+
+        arguments = string.Empty;
+        return false;
+    }
+
+    private static string FirstWord(string value)
+    {
+        var end = 0;
+        while (end < value.Length && !char.IsWhiteSpace(value[end])) end++;
+        return value[..end];
+    }
+
+    private static string TruthName(ConditionTruth truth) => truth switch
+    {
+        ConditionTruth.True => "true",
+        ConditionTruth.False => "false",
+        _ => "unknown"
+    };
+
+    /// <summary>
+    /// Evaluates a C# preprocessor condition. <c>true</c>, <c>false</c>, <c>!</c>, <c>&amp;&amp;</c>,
+    /// <c>||</c>, <c>==</c>, <c>!=</c> and parentheses are supported; anything else makes the
+    /// expression unknown, which keeps the chain (and therefore the suppression identity) sensitive
+    /// to the expression text.
+    /// </summary>
+    private static ConditionTruth EvaluateCondition(
+        string expression,
+        IReadOnlyDictionary<string, bool> symbols)
+    {
+        var tokens = TokenizeCondition(expression);
+        var index = 0;
+        var truth = ParseOr(tokens, ref index, symbols);
+        return truth is not null && index == tokens.Count ? truth.Value : ConditionTruth.Unknown;
+    }
+
+    private static ConditionTruth? ParseOr(
+        IReadOnlyList<string> tokens,
+        ref int index,
+        IReadOnlyDictionary<string, bool> symbols)
+    {
+        var left = ParseAnd(tokens, ref index, symbols);
+        while (left is not null && Peek(tokens, index) == "||")
+        {
+            index++;
+            var right = ParseAnd(tokens, ref index, symbols);
+            if (right is null) return null;
+            left = Or(left.Value, right.Value);
+        }
+
+        return left;
+    }
+
+    private static ConditionTruth? ParseAnd(
+        IReadOnlyList<string> tokens,
+        ref int index,
+        IReadOnlyDictionary<string, bool> symbols)
+    {
+        var left = ParseEquality(tokens, ref index, symbols);
+        while (left is not null && Peek(tokens, index) == "&&")
+        {
+            index++;
+            var right = ParseEquality(tokens, ref index, symbols);
+            if (right is null) return null;
+            left = And(left.Value, right.Value);
+        }
+
+        return left;
+    }
+
+    private static ConditionTruth? ParseEquality(
+        IReadOnlyList<string> tokens,
+        ref int index,
+        IReadOnlyDictionary<string, bool> symbols)
+    {
+        var left = ParseUnary(tokens, ref index, symbols);
+        while (left is not null && Peek(tokens, index) is "==" or "!=")
+        {
+            var equal = tokens[index] == "==";
+            index++;
+            var right = ParseUnary(tokens, ref index, symbols);
+            if (right is null) return null;
+            left = Equality(left.Value, right.Value, equal);
+        }
+
+        return left;
+    }
+
+    private static ConditionTruth? ParseUnary(
+        IReadOnlyList<string> tokens,
+        ref int index,
+        IReadOnlyDictionary<string, bool> symbols)
+    {
+        if (Peek(tokens, index) != "!") return ParsePrimary(tokens, ref index, symbols);
+
+        index++;
+        var inner = ParseUnary(tokens, ref index, symbols);
+        return inner is null ? null : Not(inner.Value);
+    }
+
+    private static ConditionTruth? ParsePrimary(
+        IReadOnlyList<string> tokens,
+        ref int index,
+        IReadOnlyDictionary<string, bool> symbols)
+    {
+        var token = Peek(tokens, index);
+        if (token is null) return null;
+
+        index++;
+        if (token == "(")
+        {
+            var inner = ParseOr(tokens, ref index, symbols);
+            if (inner is null || Peek(tokens, index) != ")") return null;
+            index++;
+            return inner;
+        }
+
+        if (token == "true") return ConditionTruth.True;
+        if (token == "false") return ConditionTruth.False;
+        if (!IsIdentifier(token)) return null;
+
+        return symbols.TryGetValue(token, out var defined)
+            ? defined ? ConditionTruth.True : ConditionTruth.False
+            : ConditionTruth.Unknown;
+    }
+
+    private static string? Peek(IReadOnlyList<string> tokens, int index) =>
+        index < tokens.Count ? tokens[index] : null;
+
+    private static bool IsIdentifier(string token) =>
+        token.Length > 0
+        && (char.IsLetter(token[0]) || token[0] == '_')
+        && token.All(character => char.IsLetterOrDigit(character) || character == '_');
+
+    private static ConditionTruth And(ConditionTruth left, ConditionTruth right) =>
+        left == ConditionTruth.False || right == ConditionTruth.False
+            ? ConditionTruth.False
+            : left == ConditionTruth.True && right == ConditionTruth.True
+                ? ConditionTruth.True
+                : ConditionTruth.Unknown;
+
+    private static ConditionTruth Or(ConditionTruth left, ConditionTruth right) =>
+        left == ConditionTruth.True || right == ConditionTruth.True
+            ? ConditionTruth.True
+            : left == ConditionTruth.False && right == ConditionTruth.False
+                ? ConditionTruth.False
+                : ConditionTruth.Unknown;
+
+    private static ConditionTruth Not(ConditionTruth value) => value switch
+    {
+        ConditionTruth.True => ConditionTruth.False,
+        ConditionTruth.False => ConditionTruth.True,
+        _ => ConditionTruth.Unknown
+    };
+
+    private static ConditionTruth Equality(ConditionTruth left, ConditionTruth right, bool equal)
+    {
+        if (left == ConditionTruth.Unknown || right == ConditionTruth.Unknown) return ConditionTruth.Unknown;
+        return left == right == equal ? ConditionTruth.True : ConditionTruth.False;
+    }
+
+    private static List<string> TokenizeCondition(string expression)
+    {
+        var tokens = new List<string>();
+        for (var index = 0; index < expression.Length;)
+        {
+            var current = expression[index];
+            if (char.IsWhiteSpace(current))
+            {
+                index++;
+                continue;
+            }
+
+            if (current is '(' or ')')
+            {
+                tokens.Add(current.ToString());
+                index++;
+                continue;
+            }
+
+            if (index + 1 < expression.Length)
+            {
+                var pair = expression.Substring(index, 2);
+                if (pair is "&&" or "||" or "==" or "!=")
+                {
+                    tokens.Add(pair);
+                    index += 2;
+                    continue;
+                }
+            }
+
+            if (current == '!')
+            {
+                tokens.Add("!");
+                index++;
+                continue;
+            }
+
+            if (char.IsLetterOrDigit(current) || current == '_')
+            {
+                var start = index;
+                while (index < expression.Length
+                       && (char.IsLetterOrDigit(expression[index]) || expression[index] == '_'))
+                {
+                    index++;
+                }
+
+                tokens.Add(expression[start..index]);
+                continue;
+            }
+
+            // A token the grammar does not understand makes the whole expression unknown.
+            tokens.Add("\0");
+            index++;
+        }
+
+        return tokens;
+    }
+
+    private static ConditionalLine ConditionalStateAt(
         IReadOnlyList<SourceLine> lines,
-        IReadOnlyList<string> contexts,
+        IReadOnlyList<ConditionalLine> states,
         int offset)
     {
         var index = 0;
@@ -912,7 +1251,7 @@ internal static class Program
             index = line;
         }
 
-        return index < contexts.Count ? contexts[index] : string.Empty;
+        return index < states.Count ? states[index] : new ConditionalLine(string.Empty, true);
     }
 
     private static IEnumerable<string> ExpandRule(string rule) =>
@@ -1257,7 +1596,7 @@ internal static class Program
     private static List<(string Rule, int Start, int End, int Depth, string Context)> FindPragmaRegions(
         IReadOnlyList<SourceLine> lines,
         int codeLength,
-        IReadOnlyList<string> conditionalContexts)
+        IReadOnlyList<ConditionalLine> conditionalStates)
     {
         var directives = new List<PragmaStatement>();
         for (var index = 0; index < lines.Count; index++)
@@ -1266,10 +1605,14 @@ internal static class Program
             var match = PragmaDirectivePattern.Match(line.Text);
             if (!match.Success) continue;
 
+            // A directive in a provably inactive #if branch is not compiled, so it neither suppresses
+            // nor opens a region.
+            if (!conditionalStates[index].IsActive) continue;
+
             directives.Add(new PragmaStatement(
                 line.Offset,
                 line.Depth,
-                conditionalContexts[index],
+                conditionalStates[index].Chain,
                 match.Groups["action"].Value == "disable",
                 ParseRules(match.Groups["rules"].Value)));
         }
@@ -1370,12 +1713,14 @@ internal static class Program
 
     /// <summary>
     /// Aliases that name <c>SuppressMessageAttribute</c>, so an attribute written through an alias is
-    /// still recognized.
+    /// still recognized. With <paramref name="globalOnly"/>, only <c>global using</c> aliases are
+    /// returned: those are the ones another file of the project can use.
     /// </summary>
-    private static List<string> FindSuppressMessageAliases(string code)
+    private static List<string> FindSuppressMessageAliases(string code, bool globalOnly = false)
     {
+        var pattern = globalOnly ? GlobalSuppressMessageAliasPattern : SuppressMessageAliasPattern;
         var aliases = new List<string>();
-        foreach (Match match in SuppressMessageAliasPattern.Matches(code))
+        foreach (Match match in pattern.Matches(code))
         {
             aliases.Add(match.Groups["alias"].Value);
         }

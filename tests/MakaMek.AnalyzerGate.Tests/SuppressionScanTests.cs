@@ -875,7 +875,119 @@ public class SuppressionScanTests
 
         var failures = Program.FindNewSuppressionsIn("Example.cs", baseline, current);
 
-        failures.ShouldHaveSingleItem().ShouldContain("[if:true]");
+        failures.ShouldHaveSingleItem().ShouldContain("if:true:true");
+    }
+
+    [Fact]
+    public void FindNewSuppressionsIn_ActivatedElseBranchSuppression_Fails()
+    {
+        const string baseline = """
+            public class Example
+            {
+            #if true
+            #else
+            #pragma warning disable S3776
+            #endif
+                public void Run() { }
+            #pragma warning restore S3776
+            }
+            """;
+        const string current = """
+            public class Example
+            {
+            #if false
+            #else
+            #pragma warning disable S3776
+            #endif
+                public void Run() { }
+            #pragma warning restore S3776
+            }
+            """;
+
+        var failures = Program.FindNewSuppressionsIn("Example.cs", baseline, current);
+
+        failures.ShouldHaveSingleItem().ShouldContain("if:false:false/else:true");
+    }
+
+    [Fact]
+    public void FindNewSuppressionsIn_ActivatedElifBranchSuppression_Fails()
+    {
+        const string baseline = """
+            public class Example
+            {
+            #if true
+            #elif true
+            #pragma warning disable S3776
+            #endif
+                public void Run() { }
+            #pragma warning restore S3776
+            }
+            """;
+        const string current = """
+            public class Example
+            {
+            #if false
+            #elif true
+            #pragma warning disable S3776
+            #endif
+                public void Run() { }
+            #pragma warning restore S3776
+            }
+            """;
+
+        var failures = Program.FindNewSuppressionsIn("Example.cs", baseline, current);
+
+        failures.ShouldHaveSingleItem().ShouldContain("if:false:false/elif:true:true");
+    }
+
+    [Fact]
+    public void FindNewSuppressionsIn_SymbolDefinitionThatActivatesSuppression_Fails()
+    {
+        const string baseline = """
+            public class Example
+            {
+            #if FEATURE
+            #pragma warning disable S3776
+                public void Run() { }
+            #pragma warning restore S3776
+            #endif
+            }
+            """;
+        const string current = """
+            #define FEATURE
+
+            public class Example
+            {
+            #if FEATURE
+            #pragma warning disable S3776
+                public void Run() { }
+            #pragma warning restore S3776
+            #endif
+            }
+            """;
+
+        var failures = Program.FindNewSuppressionsIn("Example.cs", baseline, current);
+
+        failures.ShouldHaveSingleItem().ShouldContain("if:FEATURE:true");
+    }
+
+    [Fact]
+    public void FindNewSuppressionsIn_SuppressionInInactiveSymbolBranch_IsNotRecorded()
+    {
+        const string source = """
+            #undef FEATURE
+
+            public class Example
+            {
+            #if FEATURE
+            #pragma warning disable S3776
+                public void Run() { }
+            #pragma warning restore S3776
+            #endif
+            }
+            """;
+
+        Program.FindNewSuppressionsIn("Example.cs", null, source).ShouldBeEmpty();
     }
 
     [Fact]
@@ -911,6 +1023,37 @@ public class SuppressionScanTests
         var failures = Program.FindNewSuppressionsIn("Example.cs", null, source);
 
         failures.ShouldHaveSingleItem().ShouldContain("CA1506");
+    }
+
+    [Fact]
+    public void FindNewSuppressionsIn_GlobalAliasFromAnotherFile_Fails()
+    {
+        var root = Path.Combine(Path.GetTempPath(), $"makamek-gate-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(root);
+        try
+        {
+            File.WriteAllText(
+                Path.Combine(root, "Aliases.cs"),
+                "global using Hidden = System.Diagnostics.CodeAnalysis.SuppressMessageAttribute;");
+            const string source = """
+                public class Example
+                {
+                    [Hidden("Maintainability", "CA1506:Avoid excessive class coupling")]
+                    public void Run() { }
+                }
+                """;
+            File.WriteAllText(Path.Combine(root, "Example.cs"), source);
+
+            var aliases = Program.FindProjectGlobalAliases(root, "Example.csproj");
+
+            aliases.ShouldContain("Hidden");
+            Program.FindNewSuppressionsIn("Example.cs", null, source, aliases)
+                .ShouldHaveSingleItem().ShouldContain("CA1506");
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
     }
 
     [Fact]
