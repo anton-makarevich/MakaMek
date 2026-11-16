@@ -1,10 +1,9 @@
 using Sanet.MakaMek.Bots.Data;
-using Sanet.MakaMek.Bots.Models.Evaluation;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Map.Models;
 
-namespace Sanet.MakaMek.Bots.Models.DecisionEngines;
+namespace Sanet.MakaMek.Bots.Models.Evaluation;
 
 /// <summary>
 /// Evaluates tactical situations for movement and weapon decisions by delegating the scoring

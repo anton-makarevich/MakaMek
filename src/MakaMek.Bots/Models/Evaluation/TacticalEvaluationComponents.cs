@@ -3,7 +3,7 @@ using Sanet.MakaMek.Core.Models.Game;
 namespace Sanet.MakaMek.Bots.Models.Evaluation;
 
 /// <summary>
-/// Composition of the collaborators that <see cref="DecisionEngines.TacticalEvaluator"/> delegates to.
+/// Composition of the collaborators that <see cref="TacticalEvaluator"/> delegates to.
 /// </summary>
 /// <param name="Snapshots">Projects unit state into immutable evaluation snapshots.</param>
 /// <param name="DefensiveValue">Scores the defensive value of a position.</param>
