@@ -1,0 +1,29 @@
+using Sanet.MakaMek.Core.Models.Units;
+using Sanet.MakaMek.Core.Models.Units.Mechs;
+using Shouldly;
+
+namespace Sanet.MakaMek.Core.Tests.Models.Units.Mechs;
+
+public class MechStructureExtensionsTests
+{
+    [Theory]
+    [InlineData(PartLocation.LeftArm, PartLocation.LeftTorso)]
+    [InlineData(PartLocation.RightArm, PartLocation.RightTorso)]
+    [InlineData(PartLocation.LeftLeg, PartLocation.LeftTorso)]
+    [InlineData(PartLocation.RightLeg, PartLocation.RightTorso)]
+    [InlineData(PartLocation.LeftTorso, PartLocation.CenterTorso)]
+    [InlineData(PartLocation.RightTorso, PartLocation.CenterTorso)]
+    [InlineData(PartLocation.Head, null)]
+    [InlineData(PartLocation.CenterTorso, null)]
+    public void GetDamageTransferLocation_TransfersToTheAdjacentPart(PartLocation location, PartLocation? expected)
+    {
+        // Arrange
+        var sut = new Mech("Test", "TST-1A", 50, []);
+
+        // Act
+        var transferLocation = sut.GetDamageTransferLocation(location);
+
+        // Assert
+        transferLocation.ShouldBe(expected);
+    }
+}
