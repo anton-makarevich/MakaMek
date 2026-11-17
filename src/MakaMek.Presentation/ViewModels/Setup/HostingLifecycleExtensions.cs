@@ -25,13 +25,16 @@ public static class HostingLifecycleExtensions
         /// </summary>
         public void ResetHostingState(SetupDependencies deps)
         {
+            // Clear the multiplayer/hosting locks before selecting the default mode: the user may
+            // still be marked as hosting from the previous visit, which blocks CanChangeHostMode.
+            controller.SetMultiplayerEnabled(false);
+            controller.ClearHostingState();
+
             var defaultMode = deps.GameManager.CanStartLanServer ? HostMode.Lan : HostMode.Online;
             if (controller.CurrentHostMode != defaultMode)
             {
                 controller.ApplyHostMode(defaultMode);
             }
-            controller.SetMultiplayerEnabled(false);
-            controller.ClearHostingState();
         }
 
         /// <summary>
@@ -77,7 +80,7 @@ public static class HostingLifecycleExtensions
             controller.SubscribeAndCreateLocalGame(deps);
 
             // Update server IP initially if needed
-            controller.NotifyChanged(nameof(HostingSetupController.CanStartLanServer));
+            controller.NotifyChanged(nameof(StartNewGameViewModel.ServerIpAddress));
         }
 
         private async Task InitializeOnlineLobbyAndSubscribe(
@@ -121,6 +124,11 @@ public static class HostingLifecycleExtensions
                 cancellationToken,
                 () => controller.IsOnlineMode,
                 () => controller.IsDisposed);
+            // The lookup may straddle a cancellation/disposal/mode switch, in which case a newer
+            // lookup may already own the row; only the current one may apply its result.
+            if (cancellationToken.IsCancellationRequested || controller.IsDisposed || !controller.IsOnlineMode)
+                return;
+
             controller.ActiveHub = entry;
             if (entry != null)
             {

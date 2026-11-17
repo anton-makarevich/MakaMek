@@ -103,6 +103,8 @@ public sealed class JoinSetupController : SetupState, IAsyncDisposable
             field = value;
             NotifyPropertyChanged();
             NotifyPropertyChanged(nameof(JoinStatusText));
+            (JoinRoomCommand as AsyncCommand)?.RaiseCanExecuteChanged();
+            NotifyPropertyChanged(nameof(JoinGameViewModel.CanJoin));
         }
     }
 

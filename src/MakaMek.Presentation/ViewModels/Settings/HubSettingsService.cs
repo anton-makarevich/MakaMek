@@ -18,14 +18,14 @@ public sealed class HubSettingsService
     private readonly IRelayHubConfigurationProvider _hubConfigurationProvider;
     private readonly IRelayRoomClient _relayRoomClient;
     private readonly ILocalizationService _localizationService;
-    private readonly ILogger _logger;
+    private readonly ILogger<HubSettingsService> _logger;
     private Task? _selectHubTask;
 
     public HubSettingsService(
         IRelayHubConfigurationProvider hubConfigurationProvider,
         IRelayRoomClient relayRoomClient,
         ILocalizationService localizationService,
-        ILogger logger)
+        ILogger<HubSettingsService> logger)
     {
         _hubConfigurationProvider = hubConfigurationProvider;
         _relayRoomClient = relayRoomClient;

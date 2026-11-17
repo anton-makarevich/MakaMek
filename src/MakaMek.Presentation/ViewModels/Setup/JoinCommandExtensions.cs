@@ -59,7 +59,7 @@ public static class JoinCommandExtensions
                     // Navigation to the battle map happens when the game actually starts.
                     var lobbyPreviewMap = deps.MapFactory.CreateFromData(setBattleMapCommand.MapData);
                     await controller.ApplyLobbyPreview(lobbyPreviewMap);
-                    return;
+                    break;
 
                 case ChangePhaseCommand phaseCommand:
                     // The game start signal: navigate to the battle map once the phase leaves Start
@@ -79,7 +79,7 @@ public static class JoinCommandExtensions
                     if (controller.CommandStreamHandler is { } handler) deps.CommandPublisher.Unsubscribe(handler);
 
                     await navigationService!.NavigateToViewModelAsync(battleMapViewModel);
-                    return;
+                    break;
             }
 
             // Refresh bindings
@@ -88,10 +88,18 @@ public static class JoinCommandExtensions
 
         private async Task ApplyLobbyPreview(BattleMap? map)
         {
-            await controller.Preview.UpdateAsync(map);
+            // Publish the new map and clear the stale image before rendering, so the view never
+            // shows the previous map's preview while the new one is being generated.
+            controller.Preview.BeginUpdate(map);
             controller.NotifyExternal(nameof(JoinSetupController.PreviewMap));
-            controller.NotifyExternal(nameof(JoinSetupController.PreviewImage));
             controller.NotifyExternal(nameof(JoinSetupController.HasLobbyMapPreview));
+            controller.NotifyExternal(nameof(JoinSetupController.PreviewImage));
+
+            await controller.Preview.RenderAsync();
+            if (controller.Preview.Map != null)
+            {
+                controller.NotifyExternal(nameof(JoinSetupController.PreviewImage));
+            }
         }
     }
 }

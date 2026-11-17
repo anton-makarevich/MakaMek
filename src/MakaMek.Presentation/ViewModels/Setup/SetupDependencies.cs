@@ -25,7 +25,5 @@ public sealed record SetupDependencies(
     ILogger Logger,
     IMapPreviewRenderer MapPreviewRenderer,
     IBattleMapFactory MapFactory,
-    IMapResourceProvider MapResourceProvider,
-    IFileService FileService,
     IGameConnector GameConnector,
     GameSetupSession Session);

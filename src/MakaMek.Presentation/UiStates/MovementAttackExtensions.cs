@@ -18,7 +18,6 @@ public static class MovementAttackExtensions
     extension(MovementState state)
     {
 
-
     public void UpdateMovementAttackCandidates(MovementType movementType, int remainingMp)
     {
         state._movementAttackCandidates = state.FindMovementAttackCandidates(movementType, remainingMp);
@@ -139,24 +138,5 @@ public static class MovementAttackExtensions
         return cheapest;
     }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     }
 }
-
-
-
-

@@ -21,7 +21,7 @@ public sealed class AvailableMapsService
     private readonly IMapPreviewRenderer _previewRenderer;
     private readonly IFileService _fileService;
     private readonly IDispatcherService _dispatcherService;
-    private readonly ILogger _logger;
+    private readonly ILogger<AvailableMapsService> _logger;
 
     public AvailableMapsService(
         IMapResourceProvider mapResourceProvider,
@@ -29,7 +29,7 @@ public sealed class AvailableMapsService
         IMapPreviewRenderer previewRenderer,
         IFileService fileService,
         IDispatcherService dispatcherService,
-        ILogger logger)
+        ILogger<AvailableMapsService> logger)
     {
         _mapResourceProvider = mapResourceProvider;
         _mapFactory = mapFactory;

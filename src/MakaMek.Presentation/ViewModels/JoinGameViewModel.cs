@@ -25,7 +25,7 @@ namespace Sanet.MakaMek.Presentation.ViewModels;
 /// their bound state, owns the commands and refreshes them when the controller reports a connection
 /// transition.
 /// </summary>
-public class JoinGameViewModel : NewGameViewModel, ISetupNotificationSink
+public class JoinGameViewModel : NewGameViewModel, ISetupNotificationSink, IAsyncDisposable
 {
     private readonly JoinSetupController _controller;
     private readonly ILocalizationService _localizationService;
@@ -67,8 +67,6 @@ public class JoinGameViewModel : NewGameViewModel, ISetupNotificationSink
             logger,
             mapPreviewRenderer,
             mapFactory,
-            MapResourceProvider: null!,
-            FileService: null!,
             gameConnector,
             Session);
         _controller = new JoinSetupController(deps, this);

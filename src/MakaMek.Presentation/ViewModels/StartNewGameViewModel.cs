@@ -1,4 +1,5 @@
 using System.Windows.Input;
+using AsyncAwaitBestPractices.MVVM;
 using Microsoft.Extensions.Logging;
 using Sanet.Localization;
 using Sanet.MakaMek.Assets.Services;
@@ -24,7 +25,7 @@ namespace Sanet.MakaMek.Presentation.ViewModels;
 /// <see cref="HostingSetupController"/> and <see cref="HostingLifecycleExtensions"/>; this screen
 /// forwards their bound state and owns only the player-lobby template hooks.
 /// </summary>
-public class StartNewGameViewModel : NewGameViewModel, ISetupNotificationSink
+public class StartNewGameViewModel : NewGameViewModel, ISetupNotificationSink, IDisposable
 {
     private readonly HostingSetupController _controller;
     private readonly SetupDependencies _deps;
@@ -38,8 +39,7 @@ public class StartNewGameViewModel : NewGameViewModel, ISetupNotificationSink
         IBattleMapFactory mapFactory,
         IFileCachingService cachingService,
         IMapPreviewRenderer mapPreviewRenderer,
-        IMapResourceProvider mapResourceProvider,
-        IFileService fileService,
+        MapConfigViewModel mapConfig,
         IBotManager botManager,
         ILogger<StartNewGameViewModel> logger,
         ILocalizationService localizationService,
@@ -69,19 +69,9 @@ public class StartNewGameViewModel : NewGameViewModel, ISetupNotificationSink
             logger,
             mapPreviewRenderer,
             mapFactory,
-            mapResourceProvider,
-            fileService,
             null!,
             Session);
 
-        var mapConfig = new MapConfigViewModel(
-            mapPreviewRenderer,
-            mapFactory,
-            mapResourceProvider,
-            fileService,
-            logger,
-            dispatcherService,
-            localizationService);
         _controller = new HostingSetupController(_deps, mapConfig, this);
         _controller.CommandStreamHandler = HandleServerCommand;
     }
@@ -199,7 +189,8 @@ public class StartNewGameViewModel : NewGameViewModel, ISetupNotificationSink
 
     public void ToggleNetworkSection() => _controller.ToggleNetworkSection();
 
-    public ICommand StartGameCommand => _controller.GetStartGameCommand(NavigationService);
+    public ICommand StartGameCommand =>
+        new AsyncCommand(() => _controller.StartGameAsync(NavigationService, _deps, MapConfig));
 
     public async Task InitializeLobbyAndSubscribe(CancellationToken cancellationToken)
     {

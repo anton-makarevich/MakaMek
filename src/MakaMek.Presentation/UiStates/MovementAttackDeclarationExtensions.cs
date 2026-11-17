@@ -143,5 +143,3 @@ public static class MovementAttackDeclarationExtensions
     }
     }
 }
-
-

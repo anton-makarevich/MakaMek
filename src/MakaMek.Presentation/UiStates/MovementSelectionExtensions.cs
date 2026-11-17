@@ -19,7 +19,6 @@ public static class MovementSelectionExtensions
     extension(MovementState state)
     {
 
-
     public void ClearHighlighting()
     {
         if (state._reachabilityData != null)
@@ -27,8 +26,6 @@ public static class MovementSelectionExtensions
         state._reachabilityData = null;
         state.ClearMovementAttackHighlights();
     }
-
-
 
     public void HighlightReachableHexes()
     {
@@ -62,18 +59,6 @@ public static class MovementSelectionExtensions
 
         state._viewModel.NotifyStateChanged();
     }
-
-
-
-
-
-
-
-
-
-
-
-
 
     public int GetRemainingMovementPoints()
     {
@@ -109,7 +94,7 @@ public static class MovementSelectionExtensions
     {
         var unit = state._viewModel.Units.FirstOrDefault(u => u.Position?.Coordinates == hex.Coordinates);
         if (unit == null) return false;
-        
+
         if (unit == state._selectedUnit)
         {
             if (state.CurrentMovementStep != MovementStep.SelectingUnit) return false;
@@ -119,7 +104,7 @@ public static class MovementSelectionExtensions
 
         if (unit.Owner?.Id != state._viewModel.Game?.PhaseStepState?.ActivePlayer.Id) return false;
         if (!state.CanSelectUnit(unit)) return false;
-        
+
         state.SelectedUnit = null;
         state.SelectedUnit = unit;
         return true;
@@ -161,7 +146,7 @@ public static class MovementSelectionExtensions
             state.ResetUnitSelection();
             return;
         }
-        
+
         var availableSurfaces = state._reachabilityData.Value
             .GetReachableSurfacesForCoordinate(hex.Coordinates)
             .DistinctBy(s => s.Surface)
@@ -204,7 +189,7 @@ public static class MovementSelectionExtensions
     {
         var targetHex = (state._step as SelectingSurfaceStep)?.TargetHex;
         if (targetHex == null) return;
-        
+
         state._movementPoints = state.GetRemainingMovementPoints();
         var startPosition = state._selectedPath!.Destination;
         state._possibleDirections = state.Game!.BattleMap?.GetPathsToHexWithAllFacings(
@@ -223,34 +208,5 @@ public static class MovementSelectionExtensions
         state.TransitionTo(new SelectingDirectionStep(state, targetHex));
     }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-

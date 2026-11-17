@@ -18,22 +18,20 @@ public sealed class AssetProviderSettingsService
     private readonly IUnitCachingService _unitCachingService;
     private readonly ITerrainAssetService _terrainAssetService;
     private readonly ILocalizationService _localizationService;
-    private readonly ILogger _logger;
-    private readonly string _cachedCountFormat;
+    private readonly ILogger<AssetProviderSettingsService> _logger;
 
     public AssetProviderSettingsService(
         IAssetProviderConfigurationProvider assetProviderConfigurationProvider,
         IUnitCachingService unitCachingService,
         ITerrainAssetService terrainAssetService,
         ILocalizationService localizationService,
-        ILogger logger)
+        ILogger<AssetProviderSettingsService> logger)
     {
         _assetProviderConfigurationProvider = assetProviderConfigurationProvider;
         _unitCachingService = unitCachingService;
         _terrainAssetService = terrainAssetService;
         _localizationService = localizationService;
         _logger = logger;
-        _cachedCountFormat = localizationService.GetString("Settings_Data_Providers_Count");
     }
 
     /// <summary>
@@ -47,6 +45,7 @@ public sealed class AssetProviderSettingsService
     {
         try
         {
+            var cachedCountFormat = _localizationService.GetString("Settings_Data_Providers_Count");
             var providers = await _assetProviderConfigurationProvider.GetProviders();
             var activeCounts = providers
                 .Where(p => p.IsActive)
@@ -64,7 +63,7 @@ public sealed class AssetProviderSettingsService
                     onToggleActive: onToggleActive,
                     onRemove: onRemove,
                     onSaved: onSaved,
-                    cachedCountFormat: _cachedCountFormat)
+                    cachedCountFormat: cachedCountFormat)
                 {
                     CanDeactivate = canDeactivate
                 };

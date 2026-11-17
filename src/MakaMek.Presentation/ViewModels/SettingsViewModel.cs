@@ -4,12 +4,9 @@ using AsyncAwaitBestPractices;
 using AsyncAwaitBestPractices.MVVM;
 using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Assets.Configuration;
-using Sanet.MakaMek.Assets.Services;
-using Sanet.Transport.SignalR.Client.Relay;
 using Sanet.Localization;
 using Sanet.MakaMek.Presentation.ViewModels.Settings;
 using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
-using Sanet.MakaMek.Services;
 using Sanet.MVVM.Core.ViewModels;
 
 namespace Sanet.MakaMek.Presentation.ViewModels;
@@ -25,38 +22,24 @@ public class SettingsViewModel : BaseViewModel
     private HubEntryViewModel? _selectedHub;
 
     /// <summary>
-    /// Creates the settings screen. The trailing coordinator parameters are resolved by the
-    /// composition root; the per-source service parameters are kept so existing construction sites
-    /// stay source-compatible and are only used to build the coordinators when they are not injected.
+    /// Creates the settings screen. The section coordinators are resolved by the composition root's
+    /// settings-services registration; this screen only binds their results and forwards the row
+    /// commands.
     /// </summary>
     public SettingsViewModel(
-        IFileCachingService fileCachingService,
-        IUnitCachingService unitCachingService,
-        ITerrainAssetService terrainAssetService,
         ILocalizationService localizationService,
-        IRelayHubConfigurationProvider hubConfigurationProvider,
-        IRelayRoomClient relayRoomClient,
-        IAssetProviderConfigurationProvider assetProviderConfigurationProvider,
         AssetLoadingViewModel assetLoadingViewModel,
-        ILogger<SettingsViewModel> logger,
-        HubSettingsService? hubSettings = null,
-        AssetProviderSettingsService? assetProviderSettings = null,
-        AssetCacheService? assetCache = null)
+        HubSettingsService hubSettings,
+        AssetProviderSettingsService assetProviderSettings,
+        AssetCacheService assetCache,
+        ILogger<SettingsViewModel> logger)
     {
         _localizationService = localizationService;
         _assetLoadingViewModel = assetLoadingViewModel;
         _logger = logger;
-        _hubSettings = hubSettings
-            ?? new HubSettingsService(hubConfigurationProvider, relayRoomClient, localizationService, logger);
-        _assetProviderSettings = assetProviderSettings
-            ?? new AssetProviderSettingsService(
-                assetProviderConfigurationProvider,
-                unitCachingService,
-                terrainAssetService,
-                localizationService,
-                logger);
-        _assetCache = assetCache
-            ?? new AssetCacheService(fileCachingService, unitCachingService, terrainAssetService);
+        _hubSettings = hubSettings;
+        _assetProviderSettings = assetProviderSettings;
+        _assetCache = assetCache;
 
         ClearCacheCommand = new AsyncCommand(ClearCacheAsync);
         AddHubCommand = new AsyncCommand(AddHubAsync);
@@ -135,7 +118,7 @@ public class SettingsViewModel : BaseViewModel
 
     private async Task RemoveHubAsync(HubEntryViewModel? entry)
     {
-        if (entry is null) return;
+        if (entry is null || entry.IsBuiltIn) return;
 
         await _hubSettings.RemoveAsync(entry);
         await LoadHubsAsync();
@@ -193,13 +176,17 @@ public class SettingsViewModel : BaseViewModel
             OnAssetProviderRemove,
             OnAssetProviderSaved);
 
+        // Keep the rows the user can see when the catalogue read fails: a transient provider
+        // error must not empty the section.
+        if (!snapshot.Succeeded) return false;
+
         AssetProviders.Clear();
         foreach (var provider in snapshot.Providers)
         {
             AssetProviders.Add(provider);
         }
 
-        return snapshot.Succeeded;
+        return true;
     }
 
     private async Task OnAssetProviderToggleActive(AssetProviderEntryViewModel entry)

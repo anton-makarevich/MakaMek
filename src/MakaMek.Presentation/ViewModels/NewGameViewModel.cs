@@ -229,10 +229,17 @@ public abstract class NewGameViewModel : BaseViewModel
     }
 
     /// <summary>
-    /// Adds the default player automatically when the view loads
+    /// Adds the default player automatically when the view loads, then raises the same notifications as
+    /// <see cref="AddPlayer"/> because the lobby state changed.
     /// </summary>
-    private Task AddDefaultPlayer() =>
-        _session.AddDefaultPlayerAsync(CreatePlayerViewModel, CanAddPlayer);
+    private async Task AddDefaultPlayer()
+    {
+        var added = await _session.AddDefaultPlayerAsync(CreatePlayerViewModel, () => CanAddPlayer);
+        if (!added) return;
+
+        NotifyPropertyChanged(nameof(CanAddPlayer));
+        OnPlayersChanged();
+    }
 
     /// <summary>
     /// Handles player name changes for the default player

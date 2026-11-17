@@ -172,6 +172,32 @@ public class JoinGameViewModelTests
     }
 
     [Fact]
+    public async Task ConnectCommand_NotifiesConnectionStateOnlyAfterLanConnectionCompletes()
+    {
+        // Arrange
+        _sut.ServerIp = "127.0.0.1";
+        var connectTcs = new TaskCompletionSource<bool>();
+        _gameConnector.ConnectToLan(Arg.Any<string>()).Returns(connectTcs.Task);
+        var changedProps = new List<string?>();
+        _sut.PropertyChanged += (_, e) => changedProps.Add(e.PropertyName);
+
+        // Act - the connector is still connecting
+        _sut.ConnectCommand.Execute(null);
+
+        // Assert - no refresh may be raised before the connection completes
+        changedProps.ShouldNotContain(nameof(JoinGameViewModel.IsConnected));
+
+        // Act - complete the connection
+        _connectorConnected = true;
+        connectTcs.SetResult(true);
+        await Task.Delay(100);
+
+        // Assert - the dependent state is refreshed once connected
+        changedProps.ShouldContain(nameof(JoinGameViewModel.IsConnected));
+        _sut.IsConnected.ShouldBeTrue();
+    }
+
+    [Fact]
     public async Task ConnectToServer_DelegatesToConnector()
     {
         // Arrange

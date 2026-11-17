@@ -78,7 +78,7 @@ public class MovementState : IUiState, IPhysicalAttackDeclarationState
             .Where(u=>u.Owner?.Id != _viewModel.Game.PhaseStepState?.ActivePlayer.Id && u.Position!=null)
             .Select(u => u.Position!.Coordinates)
             .ToHashSet();
-        
+
         _friendlyUnitsCoordinates = _viewModel.Units
             .Where(u=>u.Owner?.Id == _viewModel.Game.PhaseStepState?.ActivePlayer.Id && u.Position!=null)
             .Select(u => u.Position!.Coordinates)
@@ -86,53 +86,6 @@ public class MovementState : IUiState, IPhysicalAttackDeclarationState
 
         _step = this.CreateInitialStep();
     }
-    
-
-    
-
-
-
-
-
-
-    /// <summary>
-    /// Finds every enemy Mech the selected unit can legally charge or DFA from the current path
-    /// state, keeping the cheapest validated path per target, and highlights their hexes with the
-    /// same attack highlight the weapon phase uses.
-    /// </summary>
-
-
-
-
-    /// <summary>
-    /// Captures the fixed inputs of a candidate search, or returns <c>false</c> when the state is not
-    /// ready to search (no selected unit or path, no map, no active player, or a non-attacking move).
-    /// </summary>
-
-
-    /// <summary>
-    /// Live enemy Mechs that have finished acting this turn and are not already mid-attack.
-    /// </summary>
-
-
-    /// <summary>
-    /// The cheapest continuation path from the current path state that reaches <paramref name="target"/>
-    /// and passes the shared declaration validator, or <c>null</c> when no path qualifies.
-    /// </summary>
-
-
-    /// <summary>
-    /// All facings the unit can take to reach <paramref name="target"/> from the current path state.
-    /// </summary>
-
-
-
-
-
-
-
-
-
 
     public IUnit? SelectedUnit
     {
@@ -175,49 +128,6 @@ public class MovementState : IUiState, IPhysicalAttackDeclarationState
             _step.HandleFacingSelection(direction);
         }
     }
-
-
-
-
-
-
-
-
-
-
-
-
-    
-
-
-    /// <summary>
-    /// Handles an enemy hex click during normal target selection. Returns true when the hex holds an
-    /// enemy unit, whether or not it is a legal movement-attack target: an ineligible enemy is
-    /// ignored so the current movement selection stays intact.
-    /// </summary>
-
-
-
-
-    /// <summary>
-    /// Opens the shared declaration panel for a legal Charge or DFA without showing the direction
-    /// selector: the chosen path already fixes the approach hex and facing.
-    /// </summary>
-
-
-
-
-
-
-    /// <summary>
-    /// Revalidates the pending declaration before submitting it: the target may have moved or been
-    /// destroyed between the preview and the confirmation. A stale declaration leaves the unit
-    /// unmoved and returns to target selection.
-    /// </summary>
-
-
-
-
     /// <inheritdoc />
     public bool IsDeclarationOpen => CurrentMovementStep == MovementStep.ConfirmMovementAttack;
 
@@ -245,7 +155,7 @@ public class MovementState : IUiState, IPhysicalAttackDeclarationState
     public bool IsActionRequired =>
         this.CanHumanPlayerAct() &&
         CurrentMovementStep != MovementStep.Completed;
-    
+
     public bool CanExecutePlayerAction => CurrentMovementStep is MovementStep.ConfirmMovement
         or MovementStep.ConfirmMovementAttack;
 
@@ -256,8 +166,6 @@ public class MovementState : IUiState, IPhysicalAttackDeclarationState
         _ => string.Empty
     };
 
-
-    
     public MovementStep CurrentMovementStep => _step.Step;
 
     public void ExecutePlayerAction()
@@ -267,15 +175,6 @@ public class MovementState : IUiState, IPhysicalAttackDeclarationState
             _step.ExecutePlayerAction();
         }
     }
-
-
-
-
-
-
-
-
-
     // TODO that should be a part of UnitPresentationExtensions
     public IEnumerable<StateAction> GetAvailableActions()
     {
@@ -298,56 +197,11 @@ public class MovementState : IUiState, IPhysicalAttackDeclarationState
                 // Post-fall: MovementTaken being non-null means the unit was already moving when it fell.
                 // Lock the standup to the originally declared movement type
                 return mech.MovementTaken != null
-                    ? this.GetLockedProneActions(mech) 
+                    ? this.GetLockedProneActions(mech)
                     : this.GetStartOfPhaseProneActions(mech);
             }
 
             return this.GetNormalActions();
         }
     }
-
-
-
-
-
-
-
-    // A method to handle standup attempts
-
-
-    // New method to handle standup with direction selection
-
-
-    // Method to resume movement after successful standup
-
-
-
-
-    /// <summary>
-    /// Makes the fallen unit the selected one. Selection may have been cleared by a state refresh, in
-    /// which case the fallen unit is adopted when it belongs to the active player. Returns
-    /// <c>false</c> when the command cannot be resumed, after logging why.
-    /// </summary>
-
-
-    /// <summary>
-    /// The fall left the unit standing (or off the map): submit the current position and end movement.
-    /// </summary>
-
-
-    /// <summary>
-    /// Rebuilds the path as a single segment at the mech's current position. A missing path means the
-    /// fall was processed by a state that lost it (e.g. recreated after a phase-step update), so the
-    /// movement type comes from the unit's own movement instead.
-    /// </summary>
-
-
-    // New method to handle prone facing change
 }
-
-
-
-
-
-
-

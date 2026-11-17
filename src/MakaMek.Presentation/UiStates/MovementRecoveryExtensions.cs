@@ -52,13 +52,13 @@ public static class MovementRecoveryExtensions
                 NewFacing = direction,
                 MovementTypeAfterStandup = state._selectedPath.MovementType
             };
-            
+
             // Hide the selectors; the movement path context is kept so that a fall from
             // this failed standup attempt can resume movement (see state.ResumeMovementAfterFall)
             state._viewModel.HideDirectionSelector();
             state._viewModel.HideSurfaceSelector();
             state._viewModel.NotifyStateChanged();
-            
+
             // Publish the command
             state._viewModel.Game.TryStandupUnit(standupCommand);
         }
@@ -149,7 +149,7 @@ public static class MovementRecoveryExtensions
 
         var currentFacing = mech.Facing;
         if (currentFacing == null) return;
-        
+
         state._selectedPath = new MovementPath([
             new PathSegment(mech.Position, mech.Position, [])],
             MovementType.Walk);
@@ -168,9 +168,9 @@ public static class MovementRecoveryExtensions
         {
             var rotatedDirectionCw = currentFacing.Value.Rotate(steps);
             AddToPossibleDirections(rotatedDirectionCw, steps);
-        
+
             if (steps == 3) break; // We don't want to duplicate an opposite direction
-        
+
             var rotatedDirectionCcw = currentFacing.Value.Rotate(-steps);
             AddToPossibleDirections(rotatedDirectionCcw, steps);
         }
@@ -195,7 +195,7 @@ public static class MovementRecoveryExtensions
                 state._selectedUnit = stoodUpUnit;
                 state._builder.SetUnit(stoodUpUnit);
             }
-            
+
             // Check if the unit is no longer prone (standup was successful)
             if (state._selectedPath?.MovementType == null ||
                 state._selectedUnit is not Mech { IsProne: false, Position: not null } mech) return;
@@ -206,7 +206,7 @@ public static class MovementRecoveryExtensions
                 state.CompleteMovement();
                 return;
             }
-            
+
             state._isPostStandupMovement = true; // Mark that this unit is in post-standup movement state
             state._selectedPath = new MovementPath([
                 new PathSegment(mech.Position, mech.Position, [])],
@@ -254,9 +254,3 @@ public static class MovementRecoveryExtensions
     }
     }
 }
-
-
-
-
-
-

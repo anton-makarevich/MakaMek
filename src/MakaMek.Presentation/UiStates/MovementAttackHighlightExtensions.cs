@@ -115,5 +115,3 @@ public static class MovementAttackHighlightExtensions
     }
     }
 }
-
-

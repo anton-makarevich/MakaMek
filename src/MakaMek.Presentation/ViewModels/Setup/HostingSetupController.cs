@@ -71,7 +71,7 @@ public sealed class HostingSetupController : SetupState, IDisposable
             field = value;
             NotifyPropertyChanged();
             (EnableMultiplayerCommand as AsyncCommand)?.RaiseCanExecuteChanged();
-            NotifyPropertyChanged(nameof(HostMode));
+            NotifyPropertyChanged(nameof(StartNewGameViewModel.HostingStatusText));
             NotifyPropertyChanged(nameof(CanChangeHostMode));
             NotifyPropertyChanged(nameof(IsLanDetailsVisible));
             NotifyPropertyChanged(nameof(IsConnectionBannerVisible));
@@ -163,6 +163,7 @@ public sealed class HostingSetupController : SetupState, IDisposable
             field = value;
             NotifyPropertyChanged();
             NotifyPropertyChanged(nameof(IsOnlineDetailsVisible));
+            NotifyPropertyChanged(nameof(StartNewGameViewModel.HostingStatusText));
             (CopyRoomCodeCommand as AsyncCommand)?.RaiseCanExecuteChanged();
         }
     }
@@ -178,6 +179,7 @@ public sealed class HostingSetupController : SetupState, IDisposable
             if (field == value) return; // Reject no-op when unchanged
             field = value;
             NotifyPropertyChanged();
+            NotifyPropertyChanged(nameof(StartNewGameViewModel.HostingStatusText));
         }
     }
 
@@ -192,6 +194,7 @@ public sealed class HostingSetupController : SetupState, IDisposable
             if (field == value) return; // Reject no-op when unchanged
             field = value;
             NotifyPropertyChanged();
+            NotifyPropertyChanged(nameof(StartNewGameViewModel.CopyRoomCodeStatusText));
         }
     }
 
@@ -203,6 +206,7 @@ public sealed class HostingSetupController : SetupState, IDisposable
             if (field == value) return; // Reject no-op when unchanged
             field = value;
             NotifyPropertyChanged();
+            NotifyPropertyChanged(nameof(StartNewGameViewModel.HostingStatusText));
         }
     }
 
@@ -253,12 +257,6 @@ public sealed class HostingSetupController : SetupState, IDisposable
     public Task HandleCommandAsync(IGameCommand command) =>
         new LobbyCommandHandler(_deps.GameManager, _deps.Session)
             .HandleAsync(command, name => NotifyChanged(name));
-
-    /// <summary>
-    /// Builds the start-game command for the supplied navigation service.
-    /// </summary>
-    public ICommand GetStartGameCommand(INavigationService navigationService) =>
-        new AsyncCommand(() => this.StartGameAsync(navigationService, _deps, _mapConfig));
 
     private Task ExecuteEnableMultiplayer() => this.CancelAndRestartServerAsync(_deps);
 

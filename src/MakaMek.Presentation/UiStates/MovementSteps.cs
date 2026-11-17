@@ -51,7 +51,7 @@ namespace Sanet.MakaMek.Presentation.UiStates;
             if (!State.CanHumanPlayerAct()) return;
             if (State._selectedUnit?.Position == null) return;
             if (State.CurrentMovementStep != MovementStep.SelectingMovementType) return;
-            
+
             if (movementType == MovementType.StandingStill)
             {
                 // For standing still, we create an empty movement path
@@ -163,13 +163,13 @@ namespace Sanet.MakaMek.Presentation.UiStates;
         {
             var remainingMp = State.GetRemainingMovementPoints();
             var movementType = State._selectedPath?.MovementType;
-            
+
             // Check if we can continue movement (walk/run with remaining MPs)
             if (movementType is MovementType.Walk or MovementType.Run && remainingMp > 0)
             {
                 return State._viewModel.LocalizationService.GetString("Action_ConfirmOrSelectNextHex");
             }
-            
+
             // No more movement possible, just confirm
             return State._viewModel.LocalizationService.GetString("Action_ConfirmMovement");
         }
@@ -239,7 +239,3 @@ namespace Sanet.MakaMek.Presentation.UiStates;
         public override MovementStep Step => MovementStep.Completed;
         public override string ActionLabel => string.Empty;
     }
-
-
-
-

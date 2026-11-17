@@ -126,16 +126,21 @@ public sealed class GameSetupSession
     }
 
     /// <summary>
-    /// Adds the cached/created default player when the screen allows it.
+    /// Adds the cached/created default player when the screen allows it. Admission is evaluated again
+    /// after the cache read because the lobby may have filled up while it was pending.
     /// </summary>
-    public async Task AddDefaultPlayerAsync(
+    /// <returns><c>true</c> when a player was actually added.</returns>
+    public async Task<bool> AddDefaultPlayerAsync(
         Func<Player, bool, PlayerViewModel> createPlayerViewModel,
-        bool canAddPlayer)
+        Func<bool> canAddPlayer)
     {
-        if (!canAddPlayer) return;
+        if (!canAddPlayer()) return false;
 
         var defaultPlayer = await _defaultPlayerStore.LoadOrCreateAsync(LocalGame?.Logger);
+        if (!canAddPlayer()) return false;
+
         await AddPlayerAsync(defaultPlayer, PlayerControlType.Human, createPlayerViewModel, canAddPlayer: true);
+        return true;
     }
 
     /// <summary>

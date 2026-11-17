@@ -29,15 +29,17 @@ public sealed class LobbyMapPreview : IDisposable
     public bool HasMap => Map != null;
 
     /// <summary>
-    /// Applies a new lobby map and renders its preview. Returns the property names whose bindings
-    /// changed so the caller can re-raise them.
+    /// Applies a new lobby map and drops the previous preview image immediately. Call
+    /// <see cref="RenderAsync"/> afterwards to build the new preview; the caller re-raises the bound
+    /// properties in between so the cleared image is visible while rendering.
     /// </summary>
-    public async Task UpdateAsync(BattleMap? map)
+    public void BeginUpdate(BattleMap? map)
     {
         Map = map;
 
         _previewCts?.Cancel();
         _previewCts?.Dispose();
+        _previewCts = null;
 
         // Drop the previous preview image immediately: a null replacement, a cancelled
         // render, or a render that returns null must never leave a stale map's image on
@@ -47,16 +49,24 @@ public sealed class LobbyMapPreview : IDisposable
 
         if (map == null)
         {
-            _previewCts = null;
             return;
         }
 
         _previewCts = new CancellationTokenSource();
+    }
+
+    /// <summary>
+    /// Renders the preview for the map applied by <see cref="BeginUpdate"/>.
+    /// </summary>
+    public async Task RenderAsync()
+    {
+        if (Map == null || _previewCts == null) return;
+
         var token = _previewCts.Token;
 
         try
         {
-            var newPreview = await _previewRenderer.GeneratePreview(map, cancellationToken: token);
+            var newPreview = await _previewRenderer.GeneratePreview(Map, cancellationToken: token);
             if (!token.IsCancellationRequested && newPreview != null)
             {
                 _previewImage = newPreview;

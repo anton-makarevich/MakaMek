@@ -42,13 +42,13 @@ public static class JoinLifecycleExtensions
             return controller.Retry(deps);
         }
 
-        public Task ConnectToLan(SetupDependencies deps, string serverIp, string serverAddress)
+        public async Task ConnectToLan(SetupDependencies deps, string serverIp, string serverAddress)
         {
             controller.InvalidatePendingClipboardRead();
 
             try
             {
-                return controller.ConnectCore(deps, serverIp, serverAddress);
+                await controller.ConnectCore(deps, serverIp, serverAddress);
             }
             finally
             {

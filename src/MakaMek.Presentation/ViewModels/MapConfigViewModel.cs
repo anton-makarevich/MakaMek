@@ -6,11 +6,8 @@ using AsyncAwaitBestPractices.MVVM;
 using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Core.Services;
 using Sanet.Localization;
-using Sanet.MakaMek.Map.Factories;
 using Sanet.MakaMek.Map.Models;
-using Sanet.MakaMek.Map.Services;
 using Sanet.MakaMek.Presentation.ViewModels.Maps;
-using Sanet.MakaMek.Services;
 using Sanet.MVVM.Core.ViewModels;
 
 namespace Sanet.MakaMek.Presentation.ViewModels;
@@ -28,34 +25,21 @@ public class MapConfigViewModel : BindableBase, IDisposable
     private readonly AvailableMapsService _availableMaps;
     private readonly IDisposable? _previewSubscription;
     private readonly Subject<MapParameterChange> _mapParametersChanged = new();
-    private readonly ILogger _logger;
+    private readonly ILogger<MapConfigViewModel> _logger;
     private readonly ILocalizationService _localizationService;
 
     /// <summary>
-    /// Creates the map config screen. The trailing services are resolved by the composition root;
-    /// the per-source parameters are kept so existing construction sites stay source-compatible and
-    /// are only used to build the services when they are not injected.
+    /// Creates the map config screen. The map services are resolved by the composition root; this
+    /// screen only coordinates their results and the parameter state.
     /// </summary>
     public MapConfigViewModel(
-        IMapPreviewRenderer previewRenderer,
-        IBattleMapFactory mapFactory,
-        IMapResourceProvider mapResourceProvider,
-        IFileService fileService,
-        ILogger logger,
-        IDispatcherService dispatcherService,
-        ILocalizationService localizationService,
-        MapGenerationService? mapGeneration = null,
-        AvailableMapsService? availableMaps = null)
+        MapGenerationService mapGeneration,
+        AvailableMapsService availableMaps,
+        ILogger<MapConfigViewModel> logger,
+        ILocalizationService localizationService)
     {
-        _mapGeneration = mapGeneration ?? new MapGenerationService(mapFactory, previewRenderer);
-        _availableMaps = availableMaps
-            ?? new AvailableMapsService(
-                mapResourceProvider,
-                mapFactory,
-                previewRenderer,
-                fileService,
-                dispatcherService,
-                logger);
+        _mapGeneration = mapGeneration;
+        _availableMaps = availableMaps;
         _logger = logger;
         _localizationService = localizationService;
 
