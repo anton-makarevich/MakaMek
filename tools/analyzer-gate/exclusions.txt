@@ -42,11 +42,4 @@ src/MakaMek.Presentation/ViewModels/BattleMapViewModel.cs:CA1506:BattleMapViewMo
 # bindings. Scoping the entry to this declaration keeps every other method in the file subject
 # to the CA1502 threshold.
 src/MakaMek.Presentation/ViewModels/BattleMapViewModel.cs:CA1502:ProcessCommand
-#
-# temporary: type coupling fixed by #1721 in this stack
-# The UiState refactor in #1719 removes the method-level complexity of these types, but their
-# class coupling (MovementState 86, PhysicalAttackState 53, WeaponsAttackState 68) is the #1721
-# extraction epic and must not be duplicated here.
-src/MakaMek.Presentation/UiStates/MovementState.cs:CA1506:MovementState
-src/MakaMek.Presentation/UiStates/PhysicalAttackState.cs:CA1506:PhysicalAttackState
-src/MakaMek.Presentation/UiStates/WeaponsAttackState.cs:CA1506:WeaponsAttackState
+

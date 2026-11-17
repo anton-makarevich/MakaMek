@@ -9,6 +9,7 @@ using Sanet.Transport.SignalR.Client.Relay;
 using Sanet.Localization;
 using Sanet.MakaMek.TestHelpers;
 using Sanet.MakaMek.Presentation.ViewModels;
+using Sanet.MakaMek.Presentation.ViewModels.Settings;
 using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 using Sanet.MakaMek.Services;
 using Sanet.MVVM.Core.Services;
@@ -27,6 +28,8 @@ public class SettingsViewModelTests
     private readonly ILocalizationService _localizationService = TestLocalizationService.Create();
     private readonly IDispatcherService _dispatcherService = Substitute.For<IDispatcherService>();
     private ILogger<SettingsViewModel> _logger = null!;
+    private readonly ILogger<HubSettingsService> _hubLogger = Substitute.For<ILogger<HubSettingsService>>();
+    private readonly ILogger<AssetProviderSettingsService> _assetProviderLogger = Substitute.For<ILogger<AssetProviderSettingsService>>();
     private SettingsViewModel _sut = null!;
 
     private static async Task WaitFor(Func<bool> condition, int timeoutMs = 1000, int intervalMs = 50)
@@ -52,14 +55,20 @@ public class SettingsViewModelTests
             _assetProviderConfigurationProvider,
             Substitute.For<IResourceStreamProviderFactory>());
         _sut = new SettingsViewModel(
-            _fileCachingService,
-            _unitCachingService,
-            _terrainAssetService,
             _localizationService,
-            _hubConfigurationProvider,
-            _relayRoomClient,
-            _assetProviderConfigurationProvider,
             assetLoadingViewModel,
+            new HubSettingsService(
+                _hubConfigurationProvider,
+                _relayRoomClient,
+                _localizationService,
+                _hubLogger),
+            new AssetProviderSettingsService(
+                _assetProviderConfigurationProvider,
+                _unitCachingService,
+                _terrainAssetService,
+                _localizationService,
+                _assetProviderLogger),
+            new AssetCacheService(_fileCachingService, _unitCachingService, _terrainAssetService),
             _logger);
     }
 
@@ -520,7 +529,7 @@ public class SettingsViewModelTests
 
         // Assert
         await _hubConfigurationProvider.Received(1).AddHub(Arg.Any<HubConfigData>());
-        _logger.Received(1).Log(
+        _hubLogger.Received(1).Log(
             LogLevel.Error,
             Arg.Any<EventId>(),
             Arg.Is<object>(o => o.ToString()!.Contains("Failed to add hub")),
@@ -678,7 +687,7 @@ public class SettingsViewModelTests
 
         // Assert
         entry.Status.ShouldBe(HubStatus.Offline);
-        _logger.Received(1).Log(
+        _hubLogger.Received(1).Log(
             LogLevel.Error,
             Arg.Any<EventId>(),
             Arg.Is<object>(o => o.ToString()!.Contains("probe failed")),
@@ -913,10 +922,10 @@ public class SettingsViewModelTests
 
         // Act
         _sut.AttachHandlers();
-        await WaitFor(() => _logger.ReceivedCalls().Any());
+        await WaitFor(() => _assetProviderLogger.ReceivedCalls().Any());
 
         // Assert
-        _logger.Received(1).Log(
+        _assetProviderLogger.Received(1).Log(
             LogLevel.Error,
             Arg.Any<EventId>(),
             Arg.Is<object>(o => o.ToString()!.Contains("Failed to load asset providers")),
@@ -946,7 +955,7 @@ public class SettingsViewModelTests
         await ((IAsyncCommand)entry.ToggleActiveCommand).ExecuteAsync();
 
         // Assert
-        _logger.Received(1).Log(
+        _assetProviderLogger.Received(1).Log(
             LogLevel.Warning,
             Arg.Any<EventId>(),
             Arg.Is<object>(o => o.ToString()!.Contains("Cannot toggle provider")),
@@ -976,7 +985,7 @@ public class SettingsViewModelTests
         await ((IAsyncCommand)entry.ToggleActiveCommand).ExecuteAsync();
 
         // Assert
-        _logger.Received(1).Log(
+        _assetProviderLogger.Received(1).Log(
             LogLevel.Error,
             Arg.Any<EventId>(),
             Arg.Is<object>(o => o.ToString()!.Contains("Failed to toggle provider")),
@@ -1006,7 +1015,7 @@ public class SettingsViewModelTests
         await ((IAsyncCommand<AssetProviderEntryViewModel>)_sut.RemoveAssetProviderCommand).ExecuteAsync(entry);
 
         // Assert
-        _logger.Received(1).Log(
+        _assetProviderLogger.Received(1).Log(
             LogLevel.Warning,
             Arg.Any<EventId>(),
             Arg.Is<object>(o => o.ToString()!.Contains("Cannot remove provider")),
@@ -1036,7 +1045,7 @@ public class SettingsViewModelTests
         await ((IAsyncCommand<AssetProviderEntryViewModel>)_sut.RemoveAssetProviderCommand).ExecuteAsync(entry);
 
         // Assert
-        _logger.Received(1).Log(
+        _assetProviderLogger.Received(1).Log(
             LogLevel.Error,
             Arg.Any<EventId>(),
             Arg.Is<object>(o => o.ToString()!.Contains("Failed to remove provider")),
@@ -1143,7 +1152,7 @@ public class SettingsViewModelTests
         await ((IAsyncCommand)_sut.AddProviderCommand).ExecuteAsync();
 
         // Assert
-        _logger.Received(1).Log(
+        _assetProviderLogger.Received(1).Log(
             LogLevel.Error,
             Arg.Any<EventId>(),
             Arg.Is<object>(o => o.ToString()!.Contains("Failed to add asset provider")),
@@ -1179,7 +1188,7 @@ public class SettingsViewModelTests
 
         // Assert: the provider was persisted once; the failed reload is logged, not thrown
         await _assetProviderConfigurationProvider.Received(1).AddProvider(Arg.Any<AssetProviderConfigData>());
-        _logger.Received(1).Log(
+        _assetProviderLogger.Received(1).Log(
             LogLevel.Error,
             Arg.Any<EventId>(),
             Arg.Is<object>(o => o.ToString()!.Contains("Failed to load asset providers")),
@@ -1429,7 +1438,7 @@ public class SettingsViewModelTests
         // The failed write keeps the edited values and leaves the editor open for retry
         entry.IsEditing.ShouldBeTrue();
         entry.EditableUrlOrPath.ShouldBe("https://updated");
-        _logger.Received(1).Log(
+        _assetProviderLogger.Received(1).Log(
             LogLevel.Warning,
             Arg.Any<EventId>(),
             Arg.Is<object>(o => o.ToString()!.Contains("Cannot update provider")),
@@ -1459,12 +1468,46 @@ public class SettingsViewModelTests
         // The failed write keeps the edited values and leaves the editor open for retry
         entry.IsEditing.ShouldBeTrue();
         entry.EditableUrlOrPath.ShouldBe("https://updated");
-        _logger.Received(1).Log(
+        _assetProviderLogger.Received(1).Log(
             LogLevel.Error,
             Arg.Any<EventId>(),
             Arg.Is<object>(o => o.ToString()!.Contains("Failed to update provider")),
             Arg.Any<Exception>(),
             Arg.Any<Func<object, Exception?, string>>()!);
+    }
+
+    [Fact]
+    public async Task SaveProviderCommand_WhenReloadAfterSaveFails_ThrowsAndKeepsEditorOpen()
+    {
+        // Arrange - the write succeeds, but the follow-up catalogue read fails
+        var providers = new List<AssetProviderConfigData>
+        {
+            new("local", ProviderType.Filesystem, AssetType.Units, "/assets/units", IsActive: true, IsDefault: false, SortOrder: 2)
+        };
+        _assetProviderConfigurationProvider.GetProviders()
+            .Returns(
+                _ => Task.FromResult<IReadOnlyList<AssetProviderConfigData>>(providers.ToArray()),
+                _ => Task.FromException<IReadOnlyList<AssetProviderConfigData>>(new Exception("reload failed")));
+        _assetProviderConfigurationProvider.UpdateProvider(Arg.Any<string>(), Arg.Any<AssetProviderConfigData>())
+            .Returns(Task.CompletedTask);
+        CreateSut();
+        _sut.AttachHandlers();
+        await WaitFor(() => _sut.AssetProviders.Count == 1);
+        var entry = _sut.AssetProviders.Single();
+        await entry.StartEditing();
+        entry.EditableUrlOrPath = "https://updated";
+
+        // Act & Assert - a save followed by a failed reload is reported as a failed save
+        var exception = await Should.ThrowAsync<InvalidOperationException>(
+            () => ((IAsyncCommand)entry.SaveCommand).ExecuteAsync());
+
+        exception.Message.ShouldBe("Failed to reload asset providers after save");
+        // The editor stays open with the pending values instead of closing on a stale list
+        entry.IsEditing.ShouldBeTrue();
+        entry.EditableUrlOrPath.ShouldBe("https://updated");
+        await _assetProviderConfigurationProvider.Received(1).UpdateProvider(
+            "local",
+            Arg.Is<AssetProviderConfigData>(p => p.UrlOrPath == "https://updated"));
     }
 
     [Fact]

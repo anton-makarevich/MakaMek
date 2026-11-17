@@ -4,49 +4,42 @@ using AsyncAwaitBestPractices;
 using AsyncAwaitBestPractices.MVVM;
 using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Assets.Configuration;
-using Sanet.MakaMek.Assets.Services;
-using Sanet.Transport.SignalR.Client.Relay;
 using Sanet.Localization;
+using Sanet.MakaMek.Presentation.ViewModels.Settings;
 using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
-using Sanet.MakaMek.Services;
 using Sanet.MVVM.Core.ViewModels;
 
 namespace Sanet.MakaMek.Presentation.ViewModels;
 
 public class SettingsViewModel : BaseViewModel
 {
-    private readonly IFileCachingService _fileCachingService;
-    private readonly IUnitCachingService _unitCachingService;
-    private readonly ITerrainAssetService _terrainAssetService;
     private readonly ILocalizationService _localizationService;
-    private readonly IRelayHubConfigurationProvider _hubConfigurationProvider;
-    private readonly IRelayRoomClient _relayRoomClient;
-    private readonly IAssetProviderConfigurationProvider _assetProviderConfigurationProvider;
+    private readonly HubSettingsService _hubSettings;
+    private readonly AssetProviderSettingsService _assetProviderSettings;
+    private readonly AssetCacheService _assetCache;
     private readonly AssetLoadingViewModel _assetLoadingViewModel;
     private readonly ILogger<SettingsViewModel> _logger;
     private HubEntryViewModel? _selectedHub;
-    private Task? _selectHubTask;
 
+    /// <summary>
+    /// Creates the settings screen. The section coordinators are resolved by the composition root's
+    /// settings-services registration; this screen only binds their results and forwards the row
+    /// commands.
+    /// </summary>
     public SettingsViewModel(
-        IFileCachingService fileCachingService,
-        IUnitCachingService unitCachingService,
-        ITerrainAssetService terrainAssetService,
         ILocalizationService localizationService,
-        IRelayHubConfigurationProvider hubConfigurationProvider,
-        IRelayRoomClient relayRoomClient,
-        IAssetProviderConfigurationProvider assetProviderConfigurationProvider,
         AssetLoadingViewModel assetLoadingViewModel,
+        HubSettingsService hubSettings,
+        AssetProviderSettingsService assetProviderSettings,
+        AssetCacheService assetCache,
         ILogger<SettingsViewModel> logger)
     {
-        _fileCachingService = fileCachingService;
-        _unitCachingService = unitCachingService;
-        _terrainAssetService = terrainAssetService;
         _localizationService = localizationService;
-        _hubConfigurationProvider = hubConfigurationProvider;
-        _relayRoomClient = relayRoomClient;
-        _assetProviderConfigurationProvider = assetProviderConfigurationProvider;
         _assetLoadingViewModel = assetLoadingViewModel;
         _logger = logger;
+        _hubSettings = hubSettings;
+        _assetProviderSettings = assetProviderSettings;
+        _assetCache = assetCache;
 
         ClearCacheCommand = new AsyncCommand(ClearCacheAsync);
         AddHubCommand = new AsyncCommand(AddHubAsync);
@@ -80,33 +73,8 @@ public class SettingsViewModel : BaseViewModel
             _selectedHub = value;
             NotifyPropertyChanged();
             if (value is null) return;
-            EnqueueSelect(value.Id);
+            _hubSettings.Select(value.Id);
         }
-    }
-
-    private void EnqueueSelect(string id)
-    {
-        var previous = _selectHubTask;
-        var task = SelectHubChainedAsync(previous, id);
-        _selectHubTask = task;
-        task.SafeFireAndForget();
-    }
-
-    private async Task SelectHubChainedAsync(Task? previous, string id)
-    {
-        if (previous != null)
-        {
-            try
-            {
-                await previous;
-            }
-            catch
-            {
-                // A failed earlier selection must not block or poison later selections.
-            }
-        }
-
-        await _hubConfigurationProvider.SelectHub(id);
     }
 
     // Localized string properties
@@ -142,89 +110,38 @@ public class SettingsViewModel : BaseViewModel
 
     private async Task AddHubAsync()
     {
-        var dialog = new AddHubViewModel(_localizationService);
-        dialog.SetNavigationService(NavigationService);
-        var result = await NavigationService.ShowViewModelForResultAsync<AddHubViewModel, AddHubResult?>(dialog);
-
-        if (result is null) return;
-
-        var hub = new HubConfigData(
-            Guid.NewGuid().ToString("N"),
-            result.Name,
-            result.BaseUrl,
-            result.ApiKey,
-            false);
-        try
+        if (await _hubSettings.AddAsync(NavigationService))
         {
-            await _hubConfigurationProvider.AddHub(hub);
+            await LoadHubsAsync();
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to add hub {HubName}", hub.Name);
-        }
-
-        await LoadHubsAsync();
     }
 
     private async Task RemoveHubAsync(HubEntryViewModel? entry)
     {
         if (entry is null || entry.IsBuiltIn) return;
 
-        await _hubConfigurationProvider.RemoveHub(entry.Id);
+        await _hubSettings.RemoveAsync(entry);
         await LoadHubsAsync();
     }
 
     private async Task OnHubSaved(HubEntryViewModel entry)
     {
-        var pending = entry.PendingHub;
-        await _hubConfigurationProvider.UpdateHub(entry.Id, pending.Name, pending.BaseUrl, pending.ApiKey);
-
+        await _hubSettings.SaveAsync(entry);
         await LoadHubsAsync();
     }
 
     private async Task LoadHubsAsync()
     {
-        var hubs = await _hubConfigurationProvider.GetHubs();
-        var activeHubId = await _hubConfigurationProvider.GetActiveHubId();
+        var snapshot = await _hubSettings.LoadAsync(OnHubSaved);
 
         Hubs.Clear();
-        foreach (var hub in hubs)
+        foreach (var hub in snapshot.Hubs)
         {
-            Hubs.Add(new HubEntryViewModel(
-                hub,
-                isNew: false,
-                onSaved: OnHubSaved,
-                checkStatus: CheckHubStatusAsync));
+            Hubs.Add(hub);
         }
 
-        _selectedHub = Hubs.FirstOrDefault(h => h.Id == activeHubId);
+        _selectedHub = Hubs.FirstOrDefault(h => h.Id == snapshot.ActiveHubId);
         NotifyPropertyChanged(nameof(SelectedHub));
-
-        // Fire-and-forget probes so the list renders immediately; badges settle in place.
-        foreach (var hub in Hubs)
-        {
-            hub.RefreshStatusAsync().SafeFireAndForget(
-                ex => _logger.LogError(ex, "Error refreshing hub status"));
-        }
-    }
-
-    private async Task<HubStatus> CheckHubStatusAsync(HubEntryViewModel entry, CancellationToken cancellationToken)
-    {
-        try
-        {
-            var options = new RelayClientOptions
-            {
-                BaseUrl = entry.BaseUrl,
-                ApiKey = entry.ApiKey
-            };
-            var error = await _relayRoomClient.Health(cancellationToken, options);
-            return error == null ? HubStatus.Online : HubStatus.Offline;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Hub status probe failed for hub {HubName}", entry.Name);
-            return HubStatus.Offline;
-        }
     }
 
     private async Task ClearCacheAsync()
@@ -234,10 +151,7 @@ public class SettingsViewModel : BaseViewModel
         {
             DataStatus = _localizationService.GetString("Settings_Data_Clearing");
 
-            // Clear all caches
-            await _fileCachingService.ClearCache();
-            await _unitCachingService.ClearCache();
-            await _terrainAssetService.ClearCache();
+            await _assetCache.ClearAllAsync();
 
             foreach (var provider in AssetProviders)
                 provider.CachedCount = 0;
@@ -257,85 +171,37 @@ public class SettingsViewModel : BaseViewModel
 
     private async Task<bool> LoadAssetProvidersAsync()
     {
-        try
-        {
-            var providers = await _assetProviderConfigurationProvider.GetProviders();
-            var activeCounts = providers
-                .Where(p => p.IsActive)
-                .GroupBy(p => p.AssetType)
-                .ToDictionary(g => g.Key, g => g.Count());
-            var cachedCountFormat = _localizationService.GetString("Settings_Data_Providers_Count");
+        var snapshot = await _assetProviderSettings.LoadAsync(
+            OnAssetProviderToggleActive,
+            OnAssetProviderRemove,
+            OnAssetProviderSaved);
 
-            AssetProviders.Clear();
-            foreach (var provider in providers)
-            {
-                var canDeactivate = provider.IsActive
-                    ? activeCounts.GetValueOrDefault(provider.AssetType, 0) > 1
-                    : true;
-                var entry = new AssetProviderEntryViewModel(
-                    provider,
-                    onToggleActive: OnAssetProviderToggleActive,
-                    onRemove: OnAssetProviderRemove,
-                    onSaved: OnAssetProviderSaved,
-                    cachedCountFormat: cachedCountFormat)
-                {
-                    CanDeactivate = canDeactivate
-                };
-                entry.CachedCount = await GetProviderCachedCountAsync(provider);
-                AssetProviders.Add(entry);
-            }
-            return true;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to load asset providers");
-            return false;
-        }
-    }
+        // Keep the rows the user can see when the catalogue read fails: a transient provider
+        // error must not empty the section.
+        if (!snapshot.Succeeded) return false;
 
-    private async Task<int> GetProviderCachedCountAsync(AssetProviderConfigData provider)
-    {
-        return provider.AssetType switch
+        AssetProviders.Clear();
+        foreach (var provider in snapshot.Providers)
         {
-            AssetType.Units => await _unitCachingService.GetCachedCount(provider.Id),
-            AssetType.Hexes => await _terrainAssetService.GetCachedCount(provider.Id),
-            _ => 0
-        };
+            AssetProviders.Add(provider);
+        }
+
+        return true;
     }
 
     private async Task OnAssetProviderToggleActive(AssetProviderEntryViewModel entry)
     {
-        try
+        if (await _assetProviderSettings.ToggleActiveAsync(entry))
         {
-            await _assetProviderConfigurationProvider.SetProviderActive(entry.Id, !entry.IsActive);
             await LoadAssetProvidersAsync();
-        }
-        catch (InvalidOperationException ex)
-        {
-            _logger.LogWarning(ex, "Cannot toggle provider {ProviderId}", entry.Id);
-            // Re-sync the list so row visuals match the persisted active state.
-            await LoadAssetProvidersAsync();
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to toggle provider {ProviderId}", entry.Id);
         }
     }
 
     private async Task OnAssetProviderRemove(AssetProviderEntryViewModel entry)
     {
-        try
+        if (await _assetProviderSettings.RemoveAsync(entry))
         {
-            await _assetProviderConfigurationProvider.RemoveProvider(entry.Id);
             await LoadAssetProvidersAsync();
-        }
-        catch (InvalidOperationException ex)
-        {
-            _logger.LogWarning(ex, "Cannot remove provider {ProviderId}", entry.Id);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to remove provider {ProviderId}", entry.Id);
         }
     }
 
@@ -348,20 +214,7 @@ public class SettingsViewModel : BaseViewModel
 
     private async Task OnAssetProviderSaved(AssetProviderEntryViewModel entry)
     {
-        try
-        {
-            await _assetProviderConfigurationProvider.UpdateProvider(entry.Id, entry.PendingProvider);
-        }
-        catch (InvalidOperationException ex)
-        {
-            _logger.LogWarning(ex, "Cannot update provider {ProviderId}", entry.Id);
-            throw;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to update provider {ProviderId}", entry.Id);
-            throw;
-        }
+        await _assetProviderSettings.SaveAsync(entry);
 
         // The write succeeded but the reload failed: report the save as failed so the editor
         // stays open with the pending values instead of closing on a stale list.
@@ -373,31 +226,9 @@ public class SettingsViewModel : BaseViewModel
 
     private async Task AddProviderAsync()
     {
-        var dialog = new AddProviderViewModel(ProviderTypes, AssetTypes, _localizationService);
-        dialog.SetNavigationService(NavigationService);
-        var result = await NavigationService.ShowViewModelForResultAsync<AddProviderViewModel, AddProviderResult?>(dialog);
-
-        if (result is null) return;
-
-        try
+        if (await _assetProviderSettings.AddAsync(NavigationService))
         {
-            var providers = await _assetProviderConfigurationProvider.GetProviders();
-            var nextSortOrder = providers.Count == 0 ? 0 : providers.Max(p => p.SortOrder) + 1;
-            var provider = new AssetProviderConfigData(
-                Guid.NewGuid().ToString("N"),
-                result.ProviderType,
-                result.AssetType,
-                result.UrlOrPath,
-                IsActive: true,
-                IsDefault: false,
-                nextSortOrder);
-
-            await _assetProviderConfigurationProvider.AddProvider(provider);
             await LoadAssetProvidersAsync();
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to add asset provider");
         }
     }
 

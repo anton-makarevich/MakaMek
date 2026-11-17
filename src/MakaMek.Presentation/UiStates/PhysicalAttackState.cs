@@ -1,10 +1,7 @@
-using Sanet.MakaMek.Core.Data.Game.Commands.Client;
-using Sanet.MakaMek.Core.Data.Game.Mechanics.PhysicalAttacks;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.PhysicalAttack;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Map.Models;
-using Sanet.MakaMek.Map.Models.Highlights;
 using Sanet.MakaMek.Presentation.ViewModels;
 using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 
@@ -27,21 +24,14 @@ namespace Sanet.MakaMek.Presentation.UiStates;
 /// </remarks>
 public class PhysicalAttackState : IUiState, ICombatSelectionRoles, IPhysicalAttackDeclarationState
 {
-    private static readonly List<PhysicalAttackType> SupportedAttackTypes =
-        PhysicalAttackDefinitions.Supported.Select(definition => definition.AttackType).ToList();
-
     private static readonly IReadOnlyList<PhysicalAttackOptionViewModel> NoOptions = [];
 
     private readonly BattleMapViewModel _viewModel;
     private readonly Lock _stateLock = new();
     private readonly PhysicalAttackSelectionPolicy _selectionPolicy;
     private readonly PhysicalAttackOptionBuilder _optionBuilder;
-
-    /// <summary>
-    /// The enemies the attacker can reach with at least one supported attack type. Replaced as a
-    /// whole under the lock, never mutated in place, so a reader always sees a consistent set.
-    /// </summary>
-    private HashSet<IUnit> _reachableTargets = [];
+    private readonly PhysicalAttackTargeting _targeting;
+    private readonly PhysicalAttackDeclarationSubmitter _submitter;
 
     private IReadOnlyList<PhysicalAttackOptionViewModel> _options = NoOptions;
     private PhysicalAttackStep _currentStep = PhysicalAttackStep.SelectingUnit;
@@ -130,12 +120,15 @@ public class PhysicalAttackState : IUiState, ICombatSelectionRoles, IPhysicalAtt
     internal PhysicalAttackState(
         BattleMapViewModel viewModel,
         PhysicalAttackSelectionPolicy selectionPolicy,
-        PhysicalAttackOptionBuilder optionBuilder)
+        PhysicalAttackOptionBuilder optionBuilder,
+        PhysicalAttackTargeting? targeting = null)
     {
         Game = viewModel.Game! ?? throw new InvalidOperationException("Game is not client game");
         _viewModel = viewModel;
         _selectionPolicy = selectionPolicy;
         _optionBuilder = optionBuilder;
+        _targeting = targeting ?? new PhysicalAttackTargeting();
+        _submitter = new PhysicalAttackDeclarationSubmitter();
         if (Game.PhaseStepState?.ActivePlayer == null)
         {
             throw new InvalidOperationException("Active player is null");
@@ -250,9 +243,9 @@ public class PhysicalAttackState : IUiState, ICombatSelectionRoles, IPhysicalAtt
             _currentStep,
             candidate,
             this.CanHumanPlayerAct(),
-            isFriendly: candidate is not null && IsFriendly(candidate),
-            canActAsAttacker: () => candidate is not null && CanActAsAttacker(candidate),
-            isReachable: candidate is not null && _reachableTargets.Contains(candidate),
+            isFriendly: candidate is not null && _targeting.IsFriendly(candidate, Game),
+            canActAsAttacker: () => candidate is not null && _targeting.CanActAsAttacker(candidate, Game, _viewModel.Units),
+            isReachable: candidate is not null && _targeting.IsReachable(candidate),
             isCurrentTarget: ReferenceEquals(candidate, _selectedTarget));
 
     public void HandleUnitSelectionFromList(IUnit? unit)
@@ -264,7 +257,7 @@ public class PhysicalAttackState : IUiState, ICombatSelectionRoles, IPhysicalAtt
     {
         if (!this.CanHumanPlayerAct()) return;
 
-        var unit = FindUnitOnHex(hex);
+        var unit = PhysicalAttackTargeting.FindUnitOnHex(_viewModel.Units, hex);
 
         switch (CurrentStep)
         {
@@ -281,7 +274,7 @@ public class PhysicalAttackState : IUiState, ICombatSelectionRoles, IPhysicalAtt
             case PhysicalAttackStep.Declaration:
                 // Another reachable enemy rebuilds the rows; anything else closes the dialog and
                 // returns to target selection without losing the attacker.
-                if (unit != null && !IsFriendly(unit) && _reachableTargets.Contains(unit))
+                if (unit != null && !_targeting.IsFriendly(unit, Game) && _targeting.IsReachable(unit))
                     SelectedUnit = unit;
                 else if (unit == null || !ReferenceEquals(unit, _selectedTarget))
                     CloseDeclaration();
@@ -304,7 +297,7 @@ public class PhysicalAttackState : IUiState, ICombatSelectionRoles, IPhysicalAtt
         lock (_stateLock)
         {
             return _currentStep is PhysicalAttackStep.SelectingUnit or PhysicalAttackStep.TargetSelection
-                   && CanActAsAttacker(unit);
+                   && _targeting.CanActAsAttacker(unit, Game, _viewModel.Units);
         }
     }
 
@@ -312,23 +305,14 @@ public class PhysicalAttackState : IUiState, ICombatSelectionRoles, IPhysicalAtt
     {
         lock (_stateLock)
         {
-            if (_attacker == null) return [];
-
-            return _currentStep switch
-            {
-                PhysicalAttackStep.TargetSelection =>
-                    [new StateAction(GetString("Action_SkipAttack"), true, Skip)],
-                PhysicalAttackStep.Declaration =>
-                [
-                    new StateAction(
-                        _selectedAttackType != null
-                            ? GetString("Action_DeclareAttack")
-                            : GetString("Action_SkipAttack"),
-                        true,
-                        ConfirmDeclaration)
-                ],
-                _ => []
-            };
+            return PhysicalAttackActionBuilder.Build(
+                _currentStep,
+                _attacker != null,
+                _selectedAttackType != null,
+                GetString("Action_SkipAttack"),
+                GetString("Action_DeclareAttack"),
+                Skip,
+                ConfirmDeclaration);
         }
     }
 
@@ -346,9 +330,9 @@ public class PhysicalAttackState : IUiState, ICombatSelectionRoles, IPhysicalAtt
             Options = NoOptions;
             SelectedAttackType = null;
             CurrentStep = PhysicalAttackStep.TargetSelection;
-            RebuildReachableTargets();
+            _targeting.Rebuild(_attacker, Game, _viewModel.Units);
             _viewModel.ClearHighlights();
-            HighlightValidTargets();
+            _targeting.Highlight(_attacker, Game, _viewModel, GetString);
             _viewModel.NotifyStateChanged();
         }
     }
@@ -373,12 +357,12 @@ public class PhysicalAttackState : IUiState, ICombatSelectionRoles, IPhysicalAtt
         IUnit? attacker;
         lock (_stateLock) attacker = _attacker;
 
-        if (attacker == null || Game.BattleMap is null) return NoOptions;
+        if (attacker == null) return NoOptions;
 
         return _optionBuilder.Build(
             attacker,
             target,
-            GetAllUnits(),
+            _targeting.GetAllUnits(Game),
             OnOptionSelectionChanged);
     }
 
@@ -412,96 +396,11 @@ public class PhysicalAttackState : IUiState, ICombatSelectionRoles, IPhysicalAtt
             ResetAttackerDependentState();
 
         Attacker = value;
-        RebuildReachableTargets();
+        _targeting.Rebuild(Attacker, Game, _viewModel.Units);
         _viewModel.ClearHighlights();
-        HighlightValidTargets();
+        _targeting.Highlight(Attacker, Game, _viewModel, GetString);
         CurrentStep = PhysicalAttackStep.TargetSelection;
         _viewModel.NotifyStateChanged();
-    }
-
-    private void RebuildReachableTargets()
-    {
-        var reachable = new HashSet<IUnit>();
-        if (Attacker is { } attacker && Game.BattleMap is { } map)
-        {
-            // The eligibility policy filters enemies, destroyed units and targets it cannot reach;
-            // the UI only collects the candidates that report a usable limb.
-            foreach (var candidate in _viewModel.Units)
-            {
-                if (SupportedAttackTypes.Any(attackType =>
-                        Game.PhysicalAttackEligibility
-                            .GetEligibleLimbs(attacker, candidate, attackType, map).Count > 0))
-                    reachable.Add(candidate);
-            }
-        }
-
-        lock (_stateLock) _reachableTargets = reachable;
-    }
-
-    /// <summary>
-    /// A unit can act as the attacker while it belongs to the active player and the eligibility
-    /// policy still reports an option for it. The policy owns the "not destroyed, not already
-    /// committed" rules.
-    /// </summary>
-    private bool CanActAsAttacker(IUnit unit) =>
-        unit.Owner?.Id == Game.PhaseStepState?.ActivePlayer.Id
-        && HasAnyOption(unit);
-
-    private bool IsFriendly(IUnit unit) => unit.Owner?.Id == Game.PhaseStepState?.ActivePlayer.Id;
-
-    private bool HasAnyOption(IUnit unit)
-    {
-        if (Game.BattleMap is not { } map) return false;
-
-        // Evaluated against the candidate, not the current attacker: this runs before the
-        // candidate becomes the attacker. The policy filters enemies and unit states itself.
-        return Game.PhysicalAttackEligibility.HasAnyOption(unit, _viewModel.Units, map);
-    }
-
-    private List<IUnit> GetAllUnits() => Game.Players.SelectMany(player => player.Units).ToList();
-
-    private IUnit? FindUnitOnHex(Hex hex) =>
-        _viewModel.Units.FirstOrDefault(unit => unit.Position?.Coordinates == hex.Coordinates);
-
-    /// <summary>
-    /// Highlights every hex that holds a unit the attacker can reach with any supported attack
-    /// type. The labels are the localized attack type names, matching the weapon reach highlight
-    /// convention.
-    /// </summary>
-    private void HighlightValidTargets()
-    {
-        if (Attacker is not { } attacker || Game.BattleMap is not { } map) return;
-
-        var hexHighlights = new Dictionary<HexCoordinates, HashSet<string>>();
-
-        foreach (var enemy in _reachableTargets)
-        {
-            var labels = new HashSet<string>();
-            foreach (var attackType in SupportedAttackTypes)
-            {
-                if (Game.PhysicalAttackEligibility.GetEligibleLimbs(attacker, enemy, attackType, map).Count == 0)
-                    continue;
-
-                labels.Add(GetString($"PhysicalAttackType_{attackType}"));
-            }
-
-            if (labels.Count == 0) continue;
-            hexHighlights[enemy.Position!.Coordinates] = labels;
-        }
-
-        if (hexHighlights.Count == 0)
-        {
-            _viewModel.ClearHighlights();
-            return;
-        }
-
-        var highlights = new Dictionary<HexCoordinates, IHexHighlightType>(hexHighlights.Count);
-        foreach (var (coordinates, labels) in hexHighlights)
-            highlights[coordinates] = new AttackReachableHighlight([
-                .. labels.OrderBy(label => label, StringComparer.InvariantCulture)
-            ]);
-
-        _viewModel.HighlightRegions(highlights);
     }
 
     private void ResetAttackerDependentState()
@@ -509,7 +408,7 @@ public class PhysicalAttackState : IUiState, ICombatSelectionRoles, IPhysicalAtt
         SelectedTarget = null;
         Options = NoOptions;
         SelectedAttackType = null;
-        lock (_stateLock) _reachableTargets = new HashSet<IUnit>();
+        lock (_stateLock) _targeting.Reset();
         _viewModel.ClearHighlights();
     }
 
@@ -552,59 +451,36 @@ public class PhysicalAttackState : IUiState, ICombatSelectionRoles, IPhysicalAtt
             || option?.SelectedVariant?.Limbs is not { Count: > 0 } limbs)
             return;
 
-        if (Game.BattleMap is not { } map) return;
-
-        var eligibleLimbs = Game.PhysicalAttackEligibility.GetEligibleLimbs(attacker, target, type, map);
-        if (!limbs.All(eligibleLimbs.Contains)) return;
-
-        if (Game.PhysicalAttackEligibility.GetDeclarationRestriction(
-                attacker, target, type, map, GetAllUnits()) is not null)
+        if (!_submitter.TryDeclare(Game, attacker, target, type, limbs, _targeting.GetAllUnits(Game)))
             return;
 
-        SubmitDeclaration(new PhysicalAttackDeclarationData
-        {
-            AttackType = type,
-            AttackerLimbs = limbs.ToList(),
-            TargetId = target.Id
-        });
+        ReturnToAttackerSelection();
     }
 
     private void Skip()
     {
         if (!this.CanHumanPlayerAct()) return;
 
-        lock (_stateLock)
-        {
-            if (_attacker == null) return;
-            SubmitDeclaration(null);
-        }
-    }
-
-    /// <summary>
-    /// Sends the declaration (or the no-attack command when <paramref name="declaration"/> is null)
-    /// and returns to attacker selection. The server advances the turn order on that command.
-    /// </summary>
-    private void SubmitDeclaration(PhysicalAttackDeclarationData? declaration)
-    {
         IUnit? attacker;
         lock (_stateLock) attacker = _attacker;
         if (attacker == null) return;
 
-        var command = new PhysicalAttackCommand
-        {
-            GameOriginId = Game.Id,
-            PlayerId = Game.PhaseStepState!.Value.ActivePlayer.Id,
-            UnitId = attacker.Id,
-            Declaration = declaration
-        };
+        _submitter.Submit(Game, attacker, null);
+        ReturnToAttackerSelection();
+    }
 
-        Game.DeclarePhysicalAttack(command);
-
+    private void ReturnToAttackerSelection()
+    {
         Attacker = null;
         ResetAttackerDependentState();
         CurrentStep = PhysicalAttackStep.SelectingUnit;
         _viewModel.NotifyStateChanged();
     }
-
     private string GetString(string key) => _viewModel.LocalizationService.GetString(key);
 }
+
+
+
+
+
+
