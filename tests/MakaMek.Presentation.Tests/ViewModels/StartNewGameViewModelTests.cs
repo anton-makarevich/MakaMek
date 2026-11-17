@@ -1170,6 +1170,36 @@ public async Task MapReselection_DuringDebounce_RestartsWindow_AndSendsLatestMap
         await restartTask;
     }
 
+    [Theory]
+    [InlineData(true, "LAN enabled")]
+    [InlineData(false, "Starting hosted game...")]
+    public async Task HostingStatusText_WhenLanHostingEnabled_ReflectsTheServerState(
+        bool isLanServerRunning,
+        string expectedText)
+    {
+        // Arrange - a LAN-capable platform where hosting was enabled by the player
+        _localizationService.GetString("Hosting_LanEnabled").Returns("LAN enabled");
+        _localizationService.GetString("Hosting_Starting").Returns("Starting hosted game...");
+        var gameManager = Substitute.For<IGameManager>();
+        gameManager.CanStartLanServer.Returns(true);
+        gameManager.IsLanServerRunning.Returns(isLanServerRunning);
+        gameManager.ServerGameId.Returns(Guid.NewGuid());
+        var commandPublisher = Substitute.For<ICommandPublisher>();
+        _gameFactory.CreateClientGame(commandPublisher).Returns(_clientGame);
+        var sut = CreateSut(gameManager, commandPublisher);
+        sut.SetNavigationService(_navigationService);
+        sut.AttachHandlers();
+
+        // Act
+        await ((IAsyncCommand)sut.EnableMultiplayerCommand).ExecuteAsync();
+
+        // Assert - LAN hosting is reported as running only once the server is up
+        sut.IsMultiplayerEnabled.ShouldBeTrue();
+        sut.IsLanMode.ShouldBeTrue();
+        sut.HostingError.ShouldBeNull();
+        sut.HostingStatusText.ShouldBe(expectedText);
+    }
+
     [Fact]
     public void CanChangeHostMode_WhenNoPlayersJoined_IsTrue()
     {

@@ -1477,6 +1477,40 @@ public class SettingsViewModelTests
     }
 
     [Fact]
+    public async Task SaveProviderCommand_WhenReloadAfterSaveFails_ThrowsAndKeepsEditorOpen()
+    {
+        // Arrange - the write succeeds, but the follow-up catalogue read fails
+        var providers = new List<AssetProviderConfigData>
+        {
+            new("local", ProviderType.Filesystem, AssetType.Units, "/assets/units", IsActive: true, IsDefault: false, SortOrder: 2)
+        };
+        _assetProviderConfigurationProvider.GetProviders()
+            .Returns(
+                _ => Task.FromResult<IReadOnlyList<AssetProviderConfigData>>(providers.ToArray()),
+                _ => Task.FromException<IReadOnlyList<AssetProviderConfigData>>(new Exception("reload failed")));
+        _assetProviderConfigurationProvider.UpdateProvider(Arg.Any<string>(), Arg.Any<AssetProviderConfigData>())
+            .Returns(Task.CompletedTask);
+        CreateSut();
+        _sut.AttachHandlers();
+        await WaitFor(() => _sut.AssetProviders.Count == 1);
+        var entry = _sut.AssetProviders.Single();
+        await entry.StartEditing();
+        entry.EditableUrlOrPath = "https://updated";
+
+        // Act & Assert - a save followed by a failed reload is reported as a failed save
+        var exception = await Should.ThrowAsync<InvalidOperationException>(
+            () => ((IAsyncCommand)entry.SaveCommand).ExecuteAsync());
+
+        exception.Message.ShouldBe("Failed to reload asset providers after save");
+        // The editor stays open with the pending values instead of closing on a stale list
+        entry.IsEditing.ShouldBeTrue();
+        entry.EditableUrlOrPath.ShouldBe("https://updated");
+        await _assetProviderConfigurationProvider.Received(1).UpdateProvider(
+            "local",
+            Arg.Is<AssetProviderConfigData>(p => p.UrlOrPath == "https://updated"));
+    }
+
+    [Fact]
     public async Task SaveProviderCommand_WhenCancelled_InvokesCancelCallbackAndKeepsEntryInList()
     {
         // Arrange

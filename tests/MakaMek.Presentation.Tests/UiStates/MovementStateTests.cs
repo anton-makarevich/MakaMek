@@ -2535,6 +2535,43 @@ public class MovementStateTests
     }
 
     [Fact]
+    public void SelectedUnitSetter_DoesNotSelectUnit_WhenItHasAlreadyMoved()
+    {
+        // Arrange - a friendly unit has already completed its move this phase
+        BindViewModelCurrentStateTo(_sut, _battleMapViewModel);
+        SetPhase(PhaseNames.Movement);
+        SetActivePlayer();
+        var mech = _unit1 as Mech;
+        mech!.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top), null);
+        mech.Move(MovementPath.CreateSingleSegmentPath(mech.Position!), null, isCompleted: true);
+        mech.HasMoved.ShouldBeTrue();
+
+        // Act
+        _battleMapViewModel.SelectedUnit = mech;
+
+        // Assert - a unit cannot be selected for a second move in the same phase
+        _battleMapViewModel.SelectedUnit.ShouldBeNull();
+    }
+
+    [Fact]
+    public void SelectedUnitSetter_DoesNotSelectUnit_WhenItIsDestroyed()
+    {
+        // Arrange - the unit was destroyed while the lobby/unit list still shows it
+        BindViewModelCurrentStateTo(_sut, _battleMapViewModel);
+        SetPhase(PhaseNames.Movement);
+        SetActivePlayer();
+        var mech = _unit1 as Mech;
+        mech!.Deploy(new HexPosition(new HexCoordinates(1, 1), HexDirection.Top), null);
+        mech.MarkDestroyed();
+
+        // Act
+        _battleMapViewModel.SelectedUnit = mech;
+
+        // Assert - a destroyed unit cannot be selected for movement
+        _battleMapViewModel.SelectedUnit.ShouldBeNull();
+    }
+
+    [Fact]
     public void StandupWithZeroRemainingMp_CompletesMovement_WithCompletedCommand()
     {
         SetPhase(PhaseNames.Movement);
