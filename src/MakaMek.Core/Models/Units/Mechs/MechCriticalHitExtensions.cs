@@ -1,5 +1,4 @@
 using Sanet.MakaMek.Core.Data.Game;
-using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
 
@@ -7,9 +6,10 @@ namespace Sanet.MakaMek.Core.Models.Units.Mechs;
 
 /// <summary>
 /// Resolves the critical-hit rolls of a 'Mech location: how many hits the roll produces, which
-/// slots they land on, and whether the location is blown off. Extracted from <see cref="Mech"/>.
+/// slots they land on, and whether the location is blown off. Exposed as behavior on
+/// <see cref="Mech"/>.
 /// </summary>
-internal static class MechCriticalHitCalculator
+internal static class MechCriticalHitExtensions
 {
     /// <summary>
     /// Maximum number of slot-roll attempts before falling back to a uniform pick.
@@ -22,38 +22,40 @@ internal static class MechCriticalHitCalculator
     /// </summary>
     private const int TwoDiceOutcomes = 36;
 
-    /// <summary>
-    /// Calculates critical hit data for a specific location and damage.
-    /// </summary>
-    public static LocationCriticalHitsData? Calculate(
-        Mech mech,
-        PartLocation location,
-        IDiceRoller diceRoller,
-        IDamageTransferCalculator damageTransferCalculator)
+    extension(Mech mech)
     {
-        mech.Parts.TryGetValue(location, out var part);
-        if (part is not { CurrentStructure: > 0 })
-            return null;
-
-        var critRoll = diceRoller.Roll2D6()
-            .Select(d => d.Result)
-            .ToArray();
-        var numCrits = GetNumCriticalHits(critRoll.Sum());
-        ComponentHitData[]? hitComponents = null;
-
-        // Check if the location can be blown off (head or limbs on a roll of 12)
-        var isBlownOff = part.CanBeBlownOff && numCrits == 3;
-        if (isBlownOff)
+        /// <summary>
+        /// Calculates critical hit data for a specific location and damage.
+        /// </summary>
+        public LocationCriticalHitsData? ResolveCriticalHits(
+            PartLocation location,
+            IDiceRoller diceRoller,
+            IDamageTransferCalculator damageTransferCalculator)
         {
-            return new LocationCriticalHitsData(location, critRoll, 0, null, isBlownOff);
-        }
+            mech.Parts.TryGetValue(location, out var part);
+            if (part is not { CurrentStructure: > 0 })
+                return null;
 
-        if (numCrits > 0)
-        {
-            hitComponents = DetermineCriticalHitSlots(part, numCrits, diceRoller, damageTransferCalculator);
-        }
+            var critRoll = diceRoller.Roll2D6()
+                .Select(d => d.Result)
+                .ToArray();
+            var numCrits = GetNumCriticalHits(critRoll.Sum());
+            ComponentHitData[]? hitComponents = null;
 
-        return new LocationCriticalHitsData(location, critRoll, numCrits, hitComponents, isBlownOff);
+            // Check if the location can be blown off (head or limbs on a roll of 12)
+            var isBlownOff = part.CanBeBlownOff && numCrits == 3;
+            if (isBlownOff)
+            {
+                return new LocationCriticalHitsData(location, critRoll, 0, null, isBlownOff);
+            }
+
+            if (numCrits > 0)
+            {
+                hitComponents = DetermineCriticalHitSlots(part, numCrits, diceRoller, damageTransferCalculator);
+            }
+
+            return new LocationCriticalHitsData(location, critRoll, numCrits, hitComponents, isBlownOff);
+        }
     }
 
     /// <summary>
@@ -61,7 +63,7 @@ internal static class MechCriticalHitCalculator
     /// </summary>
     /// <param name="roll">The 2d6 roll result</param>
     /// <returns>Number of critical hits (0-3)</returns>
-    public static int GetNumCriticalHits(int roll)
+    internal static int GetNumCriticalHits(int roll)
     {
         // 2–7: 0, 8–9: 1, 10–11: 2, 12: 3 (always return 3 for roll of 12)
         return roll switch

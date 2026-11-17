@@ -7,8 +7,8 @@ using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Attack;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Penalties.HeatPenalties;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Penalties.MovementPenalties;
+using Sanet.MakaMek.Core.Models.Game.Mechanics.Movement;
 using Sanet.MakaMek.Core.Models.Game.Rules;
-using Sanet.MakaMek.Core.Models.Units.Components.Internal;
 using Sanet.MakaMek.Map.Models;
 
 namespace Sanet.MakaMek.Core.Models.Units.Mechs;
@@ -30,9 +30,9 @@ public class Mech : Unit
     public int PossibleTorsoRotation { get; }
     public bool CanFlipArms { get; }
 
-    public HexDirection? TorsoDirection => MechTorsoController.GetTorsoDirection(this);
+    public HexDirection? TorsoDirection => this.TorsoFacing;
 
-    public bool HasUsedTorsoTwist => MechTorsoController.HasUsedTorsoTwist(this);
+    public bool HasUsedTorsoTwist => this.HasTorsoTwist;
 
     public Mech(
         string chassis,
@@ -51,7 +51,7 @@ public class Mech : Unit
     }
 
     public override int GetMovementPoints(MovementType type) =>
-        MechMobilityRules.GetMovementPoints(this, type, ModifiedMovement);
+        this.GetMovementPointsFor(type, ModifiedMovement);
     
     public override IReadOnlyList<MovementType> GetAvailableMovementTypes()
     {
@@ -65,7 +65,7 @@ public class Mech : Unit
 
     public bool CanRotateTorso=> PossibleTorsoRotation > 0 && !HasUsedTorsoTwist;
 
-    public void RotateTorso(HexDirection newFacing) => MechTorsoController.RotateTorso(this, newFacing);
+    public void RotateTorso(HexDirection newFacing) => this.RotateTorsosTo(newFacing);
 
     /// <summary>
     /// Determines if a weapon configuration is currently applied to this mech
@@ -73,86 +73,85 @@ public class Mech : Unit
     /// <param name="config">The weapon configuration to check</param>
     /// <returns>True if the configuration is applied, false otherwise</returns>
     public override bool IsWeaponConfigurationApplied(WeaponConfiguration config) =>
-        MechWeaponConfigurationApplier.IsApplied(this, config);
+        this.IsConfigurationApplied(config);
 
     public override void UpdateDestroyedStatus()
     {
-        if (MechStructureRules.IsPilotLost(this))
+        if (this.IsPilotLost)
         {
             Status = UnitStatus.Destroyed;
             return;
         }
-        if (MechStructureRules.IsHeadDestroyed(this))
+        if (this.IsHeadDestroyed)
         {
             Status = UnitStatus.Destroyed;
             return;
         }
-        if (MechStructureRules.IsCenterTorsoDestroyed(this))
+        if (this.IsCenterTorsoDestroyed)
         {
             Status = UnitStatus.Destroyed;
         }
 
-        MechStructureRules.BlowOffArmOnTorsoDestruction(this, PartLocation.LeftTorso, PartLocation.LeftArm);
-        MechStructureRules.BlowOffArmOnTorsoDestruction(this, PartLocation.RightTorso, PartLocation.RightArm);
+        this.BlowOffArmOnTorsoDestruction(PartLocation.LeftTorso, PartLocation.LeftArm);
+        this.BlowOffArmOnTorsoDestruction(PartLocation.RightTorso, PartLocation.RightArm);
     }
 
     public override PartLocation? GetTransferLocation(PartLocation location) =>
-        MechStructureRules.GetTransferLocation(location);
+        this.GetDamageTransferLocation(location);
 
     public override void ApplyWeaponConfiguration(WeaponConfiguration weaponConfiguration) =>
-        MechWeaponConfigurationApplier.Apply(this, weaponConfiguration);
+        this.ApplyConfiguration(weaponConfiguration);
     
-    public override int EngineHeatSinks => MechHeatEffects.GetEngineHeatSinks(this);
+    public override int EngineHeatSinks => this.GetEngineHeatSinkCount();
 
     protected override int GetWaterHeatDissipationBonus(IRulesProvider rulesProvider) =>
-        MechHeatEffects.GetWaterHeatDissipationBonus(this, rulesProvider);
+        this.CalculateWaterHeatDissipationBonus(rulesProvider);
 
     /// <summary>
     /// Gets the heat penalty caused by engine damage
     /// </summary>
-    public override EngineHeatPenalty? EngineHeatPenalty => MechHeatEffects.GetEngineHeatPenalty(this);
+    public override EngineHeatPenalty? EngineHeatPenalty => this.GetEngineHeatPenalty();
 
     /// <summary>
     /// Determines if this Mech can fire weapons. Returns false if sensors are destroyed (2 critical hits).
     /// </summary>
-    public override bool CanFireWeapons =>
-        base.CanFireWeapons && MechStructureRules.AreSensorsAvailable(this);
+    public override bool CanFireWeapons => base.CanFireWeapons && this.AreSensorsAvailable;
 
-    protected override void ApplyHeatEffects() => MechHeatEffects.ApplyHeatEffects(this);
+    protected override void ApplyHeatEffects() => this.ApplyHeatDamage();
     
     // Calculate movement penalty based on current heat
-    public override HeatMovementPenalty? MovementHeatPenalty => MechHeatEffects.GetMovementHeatPenalty(CurrentHeat);
+    public override HeatMovementPenalty? MovementHeatPenalty => MechHeatExtensions.GetMovementHeatPenalty(CurrentHeat);
 
-    public override int DamageReducedMovement => MechMovementModifierCalculator.GetDamageReducedMovement(this, BaseMovement);
+    public override int DamageReducedMovement => this.GetDamageReducedMovementValue(BaseMovement);
     
     // Calculate attack penalty based on current heat
-    public override HeatRollModifier? AttackHeatPenalty => MechHeatEffects.GetAttackHeatPenalty(CurrentHeat);
+    public override HeatRollModifier? AttackHeatPenalty => MechHeatExtensions.GetAttackHeatPenalty(CurrentHeat);
 
     /// <summary>
     /// Gets all movement penalties currently affecting this mech as a property for UI binding
     /// </summary>
-    public override IReadOnlyList<RollModifier> MovementModifiers => MechMovementModifierCalculator.Calculate(this, BaseMovement);
+    public override IReadOnlyList<RollModifier> MovementModifiers => this.CalculateMovementModifiers(BaseMovement);
 
     /// <summary>
     /// Gets all attack penalties currently affecting this mech
     /// </summary>
     public override IReadOnlyList<RollModifier> GetAttackModifiers(PartLocation location) =>
-        MechAttackModifierCalculator.Calculate(this, location);
+        this.CalculateAttackModifiers(location);
 
-    public override int CalculateBattleValue() => MechStructureRules.CalculateBattleValue(this);
+    public override int CalculateBattleValue() => this.GetBattleValue();
 
     public override bool CanMoveBackward(MovementType type) => type == MovementType.Walk;
     
-    public bool CanJump => MechMobilityRules.CanJump(this);
+    public bool CanJump => this.IsJumpPossible;
     
-    public bool CanRun => MechMobilityRules.CanRun(this);
+    public bool CanRun => this.IsRunPossible;
     
-    public bool CanStandup() => MechMobilityRules.CanStandup(this);
+    public bool CanStandup() => this.IsStandUpPossible();
 
     /// <summary>
     /// Determines if a piloting skill roll is required for jumping due to damage
     /// </summary>
-    public bool IsPsrForJumpRequired() => MechMobilityRules.IsPsrForJumpRequired(this);
+    public bool IsPsrForJumpRequired() => this.RequiresJumpPsr();
 
     public void SetProne(HexDirection? facing = null)
     {
@@ -160,12 +159,10 @@ public class Mech : Unit
         Status |= UnitStatus.Prone;
     }
 
-    private bool IsGyroAvailable => MechMobilityRules.IsGyroAvailable(this);
-
     /// <summary>
     /// Determines if the mech can change its facing while prone
     /// </summary>
-    public bool CanChangeFacingWhileProne() => MechMobilityRules.CanChangeFacingWhileProne(this);
+    public bool CanChangeFacingWhileProne() => this.IsFacingChangeWhilePronePossible();
 
     public void StandUp(HexDirection newFacing)
     {
@@ -182,8 +179,9 @@ public class Mech : Unit
         StandupAttempts++;
         movementType ??= MovementTaken?.MovementType;
         if (Position == null || movementType == null) return; 
-        MovementTaken ??= MechMovementTags.CreateSingleSegmentPath(Position, movementType.Value);
-        MovementTaken = MechMovementTags.TagStandupAttempt(MovementTaken, standupCost);
+        MovementTaken = (MovementTaken
+                ?? MovementPath.CreateSingleSegmentPath(Position, movementType.Value))
+            .TagStandupAttempt(standupCost);
     }
 
     public void ApplyFall(MechFallCommand fallCommand)
@@ -196,7 +194,7 @@ public class Mech : Unit
             Pilot?.Hit();
         }
 
-        MovementTaken = MechMovementTags.TagFall(MovementTaken);
+        MovementTaken = MovementTaken?.TagFall();
     }
 
     public void ApplySkid(MechSkidCommand skidCommand)
@@ -213,14 +211,14 @@ public class Mech : Unit
         {
             base.Position = value;
             // Reset torso rotation when the position changes
-            MechTorsoController.ResetTorsos(this);
+            this.ResetTorsos();
         }
     }
 
     /// <summary>
     /// Determines if the mech is immobile based on the rules:
     /// </summary>
-    public override bool IsImmobile => MechStructureRules.IsImmobile(this);
+    public override bool IsImmobile => this.IsMechImmobile;
 
     /// <summary>
     /// Gets whether the Mech is prone. Only a Mech can be prone, so this is the only override of
@@ -265,7 +263,7 @@ public class Mech : Unit
         StandupAttempts = 0;
 
         // Reset torso rotation
-        MechTorsoController.ResetTorsos(this);
+        this.ResetTorsos();
     }
 
     /// <summary>
@@ -279,13 +277,13 @@ public class Mech : Unit
         PartLocation location, 
         IDiceRoller diceRoller,
         IDamageTransferCalculator damageTransferCalculator) =>
-        MechCriticalHitCalculator.Calculate(this, location, diceRoller, damageTransferCalculator);
+        this.ResolveCriticalHits(location, diceRoller, damageTransferCalculator);
 
     /// <summary>
     /// Determines the number of critical hits based on the roll
     /// </summary>
     /// <param name="roll">The 2d6 roll result</param>
     /// <returns>Number of critical hits (0-3)</returns>
-    internal int GetNumCriticalHits(int roll) => MechCriticalHitCalculator.GetNumCriticalHits(roll);
+    internal int GetNumCriticalHits(int roll) => MechCriticalHitExtensions.GetNumCriticalHits(roll);
 }
 

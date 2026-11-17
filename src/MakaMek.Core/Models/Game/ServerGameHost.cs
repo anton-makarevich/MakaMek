@@ -24,10 +24,24 @@ internal sealed class ServerGameHost
         IGameFactory gameFactory,
         ILocalizationService localizationService,
         ICommandLoggerFactory commandLoggerFactory)
+        : this(
+            commandPublisher,
+            gameFactory,
+            new CommandLoggingSession(commandPublisher, commandLoggerFactory, localizationService))
+    {
+    }
+
+    /// <summary>
+    /// Receives the command logging session directly so it can be supplied by tests or a factory.
+    /// </summary>
+    internal ServerGameHost(
+        ICommandPublisher commandPublisher,
+        IGameFactory gameFactory,
+        CommandLoggingSession logging)
     {
         _commandPublisher = commandPublisher;
         _gameFactory = gameFactory;
-        _logging = new CommandLoggingSession(commandPublisher, commandLoggerFactory, localizationService);
+        _logging = logging;
     }
 
     public Guid? GameId => _serverGame?.Id;

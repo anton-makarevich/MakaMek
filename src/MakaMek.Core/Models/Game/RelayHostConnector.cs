@@ -3,7 +3,6 @@ using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Core.Services.Transport.Relay;
 using Sanet.Transport;
-using Sanet.Transport.SignalR.Client.Factories;
 using Sanet.Transport.SignalR.Client.Relay;
 
 namespace Sanet.MakaMek.Core.Models.Game;
@@ -225,8 +224,10 @@ internal sealed class RelayHostConnector(
                 relayOptions.CreatePublisherOptions(roomCode, ticket),
                 cancellationToken);
 
-            commandPublisher.Adapter.AddPublisher(publisher);
+            // Own the publisher before registering it so the failure cleanup below can still
+            // remove and dispose it if AddPublisher or the status forwarder throws.
             _publisher = publisher;
+            commandPublisher.Adapter.AddPublisher(publisher);
             forwarder?.Start(commandPublisher.Adapter);
 
             if (await MarkRoomReadyAsync(roomCode, sessionToken, relayOptions, cancellationToken))

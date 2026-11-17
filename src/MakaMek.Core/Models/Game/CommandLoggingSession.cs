@@ -1,4 +1,3 @@
-using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Services.Logging;
 using Sanet.MakaMek.Core.Services.Logging.Factories;

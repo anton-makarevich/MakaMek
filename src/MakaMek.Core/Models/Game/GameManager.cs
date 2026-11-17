@@ -2,11 +2,9 @@ using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Core.Models.Game.Factories;
 using Sanet.MakaMek.Core.Services.Logging.Factories;
 using Sanet.MakaMek.Core.Services.Transport;
-using Sanet.MakaMek.Core.Services.Transport.Relay;
 using Sanet.Localization;
 using Sanet.MakaMek.Map.Models;
 using Sanet.Transport;
-using Sanet.Transport.SignalR.Client.Factories;
 using Sanet.Transport.SignalR.Client.Relay;
 
 namespace Sanet.MakaMek.Core.Models.Game;
@@ -35,17 +33,34 @@ public class GameManager : IGameManager
         IPublisherFactory? relayPublisherFactory = null,
         IRelayHubConfigurationProvider? relayHubConfigurationProvider = null,
         IOnlineStatusForwarder? onlineStatusForwarder = null)
+        : this(
+            new RelayHostConnector(
+                commandPublisher,
+                relayRoomClient,
+                relayPublisherFactory,
+                relayHubConfigurationProvider,
+                onlineStatusForwarder,
+                logger),
+            new LanHostController(commandPublisher, networkHostService, logger),
+            new ServerGameHost(commandPublisher, gameFactory, localizationService, commandLoggerFactory),
+            logger)
+    {
+    }
+
+    /// <summary>
+    /// Wires the lifecycle collaborators directly so they can be supplied by tests or a factory
+    /// instead of being built from the manager's own dependencies.
+    /// </summary>
+    internal GameManager(
+        RelayHostConnector relay,
+        LanHostController lan,
+        ServerGameHost server,
+        ILogger<GameManager> logger)
     {
         _logger = logger;
-        _relay = new RelayHostConnector(
-            commandPublisher,
-            relayRoomClient,
-            relayPublisherFactory,
-            relayHubConfigurationProvider,
-            onlineStatusForwarder,
-            logger);
-        _lan = new LanHostController(commandPublisher, networkHostService, logger);
-        _server = new ServerGameHost(commandPublisher, gameFactory, localizationService, commandLoggerFactory);
+        _relay = relay;
+        _lan = lan;
+        _server = server;
     }
 
     public async Task ResetForNewGame()

@@ -7,61 +7,64 @@ namespace Sanet.MakaMek.Core.Models.Units.Mechs;
 
 /// <summary>
 /// Builds the attack modifiers a 'Mech carries from heat, being prone or skidding, damaged
-/// sensors and arm actuator critical hits. Extracted from <see cref="Mech"/> so the mech only
-/// exposes the values and this class owns the component knowledge.
+/// sensors and arm actuator critical hits. Exposed as behavior on <see cref="Mech"/> so the mech
+/// only carries the values and this class owns the component knowledge.
 /// </summary>
-internal static class MechAttackModifierCalculator
+internal static class MechAttackModifierExtensions
 {
-    /// <summary>
-    /// Gets all attack penalties currently affecting the mech.
-    /// </summary>
-    public static IReadOnlyList<RollModifier> Calculate(Mech mech, PartLocation location)
+    extension(Mech mech)
     {
-        var penalties = new List<RollModifier>();
-
-        // Heat attack penalty
-        if (mech.AttackHeatPenalty != null)
+        /// <summary>
+        /// Gets all attack penalties currently affecting the mech.
+        /// </summary>
+        public IReadOnlyList<RollModifier> CalculateAttackModifiers(PartLocation location)
         {
-            penalties.Add(mech.AttackHeatPenalty);
-        }
+            var penalties = new List<RollModifier>();
 
-        // Prone firing penalty
-        if (mech.IsProne)
-        {
-            penalties.Add(new ProneAttackerModifier
+            // Heat attack penalty
+            if (mech.AttackHeatPenalty != null)
             {
-                Value = ProneAttackerModifier.DefaultValue // +2 modifier for firing while prone
-            });
-        }
+                penalties.Add(mech.AttackHeatPenalty);
+            }
 
-        // Skidding penalty
-        if (mech.IsSkidding)
-        {
-            penalties.Add(new SkiddingAttackerModifier
+            // Prone firing penalty
+            if (mech.IsProne)
             {
-                Value = SkiddingAttackerModifier.DefaultValue // +1 modifier for skidding
-            });
+                penalties.Add(new ProneAttackerModifier
+                {
+                    Value = ProneAttackerModifier.DefaultValue // +2 modifier for firing while prone
+                });
+            }
+
+            // Skidding penalty
+            if (mech.IsSkidding)
+            {
+                penalties.Add(new SkiddingAttackerModifier
+                {
+                    Value = SkiddingAttackerModifier.DefaultValue // +1 modifier for skidding
+                });
+            }
+
+            // Add sensor hit modifier for Mechs
+            var sensors = mech.GetAllComponents<Sensors>().FirstOrDefault(s => s.Hits > 0);
+            if (sensors != null)
+            {
+                var sensorsHitModifier = SensorHitModifier.Create(sensors.Hits);
+                if (sensorsHitModifier != null) penalties.Add(sensorsHitModifier);
+            }
+
+            // Arm critical hit modifiers
+            var armCriticalModifiers = GetArmCriticalHitModifiers(mech, location);
+            penalties.AddRange(armCriticalModifiers);
+
+            return penalties;
         }
-
-        // Add sensor hit modifier for Mechs
-        var sensors = mech.GetAllComponents<Sensors>().FirstOrDefault(s => s.Hits > 0);
-        if (sensors != null)
-        {
-            var sensorsHitModifier = SensorHitModifier.Create(sensors.Hits);
-            if (sensorsHitModifier != null) penalties.Add(sensorsHitModifier);
-        }
-
-        // Arm critical hit modifiers
-        var armCriticalModifiers = GetArmCriticalHitModifiers(mech, location);
-        penalties.AddRange(armCriticalModifiers);
-
-        return penalties;
     }
 
     /// <summary>
     /// Gets all arm critical hit modifiers for the mech.
     /// </summary>
-    private static IEnumerable<RollModifier> GetArmCriticalHitModifiers(Mech mech, PartLocation location)
+    private static List<RollModifier> GetArmCriticalHitModifiers(Mech mech, PartLocation location)
     {
         // Check the requested arm
         var arm = mech.Parts.Values.OfType<Arm>()
