@@ -52,6 +52,4 @@ public sealed class LocalGameConnector
 
         _session.CreateAndInitializeLocalGame(localPublisher ?? _commandPublisher, _gameManager.ServerGameId);
     }
-
-    public void Unsubscribe(Action<IGameCommand> handler) => _commandPublisher.Unsubscribe(handler);
 }

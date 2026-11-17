@@ -1,8 +1,5 @@
-using Sanet.MakaMek.Core.Models.Map;
 using Sanet.MakaMek.Map.Models;
-using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Map.Data;
-using Sanet.MakaMek.Map.Models;
 using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 
 namespace Sanet.MakaMek.Presentation.UiStates;

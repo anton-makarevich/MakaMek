@@ -1,5 +1,3 @@
-using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
-
 namespace Sanet.MakaMek.Presentation.UiStates;
 
 /// <summary>

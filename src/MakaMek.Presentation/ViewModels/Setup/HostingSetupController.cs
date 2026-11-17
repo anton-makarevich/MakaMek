@@ -3,7 +3,6 @@ using System.Windows.Input;
 using AsyncAwaitBestPractices.MVVM;
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
-using Sanet.MVVM.Core.Services;
 
 namespace Sanet.MakaMek.Presentation.ViewModels.Setup;
 
@@ -215,19 +214,13 @@ public sealed class HostingSetupController : SetupState, IDisposable
     /// </summary>
     public bool HasJoinedPlayers => _deps.Session.HasJoinedPlayers;
 
-    internal SetupDependencies Dependencies => _deps;
-
     internal CancellationTokenSource? InitCts
     {
         get => _initCts;
         set => _initCts = value;
     }
 
-    internal bool IsDisposed
-    {
-        get => _isDisposed;
-        set => _isDisposed = value;
-    }
+    internal bool IsDisposed => _isDisposed;
 
     internal bool IsHostingActive
     {

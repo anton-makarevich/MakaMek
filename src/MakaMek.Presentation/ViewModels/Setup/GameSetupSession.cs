@@ -4,13 +4,11 @@ using Sanet.MakaMek.Assets.Services;
 using Sanet.MakaMek.Bots.Models;
 using Sanet.MakaMek.Bots.Services;
 using Sanet.MakaMek.Core.Data.Game.Commands;
-using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Players;
 using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Factories;
 using Sanet.MakaMek.Core.Models.Game.Players;
-using Sanet.MakaMek.Core.Services;
 using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
@@ -150,22 +148,6 @@ public sealed class GameSetupSession
         _defaultPlayerStore.SaveAsync(playerData, LocalGame?.Logger);
 
     /// <summary>
-    /// The local player's data, falling back to a fresh default player.
-    /// </summary>
-    public PlayerData GetLocalPlayerData()
-    {
-        var localPlayer = Players.FirstOrDefault(p => p.IsLocalPlayer);
-        return localPlayer != null
-            ? new PlayerData
-            {
-                Id = localPlayer.Player.Id,
-                Name = localPlayer.Player.Name,
-                Tint = localPlayer.Player.Tint
-            }
-            : PlayerData.CreateDefault();
-    }
-
-    /// <summary>
     /// Publishes the local player's join (and registers its bot when it is one).
     /// </summary>
     public void PublishJoinCommand(PlayerViewModel playerVm)
@@ -203,15 +185,6 @@ public sealed class GameSetupSession
         LocalGame = _gameFactory.CreateClientGame(publisher, serverGameId);
         _botManager.Initialize(LocalGame, new DecisionEngineProvider(LocalGame));
         return LocalGame;
-    }
-
-    /// <summary>
-    /// Releases the local game, if any.
-    /// </summary>
-    public void DisposeLocalGame()
-    {
-        LocalGame?.Dispose();
-        LocalGame = null;
     }
 
     /// <summary>

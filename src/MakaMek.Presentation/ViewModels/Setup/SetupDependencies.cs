@@ -4,7 +4,6 @@ using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Services;
 using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Map.Factories;
-using Sanet.MakaMek.Map.Services;
 using Sanet.MakaMek.Services;
 using Sanet.Transport.SignalR.Client.Relay;
 

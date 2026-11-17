@@ -1,13 +1,6 @@
 using Microsoft.Extensions.Logging;
-using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
-using Sanet.MakaMek.Core.Data.Game.Commands.Server;
-using Sanet.MakaMek.Core.Models.Game.Phases;
-using Sanet.MakaMek.Core.Models.Game.Players;
-using Sanet.MakaMek.Core.Services.Transport;
-using Sanet.MakaMek.Map.Models;
 using Sanet.MakaMek.Presentation.Models.Logger;
-using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 using Sanet.Transport.SignalR.Client.Relay;
 
 namespace Sanet.MakaMek.Presentation.ViewModels.Setup;

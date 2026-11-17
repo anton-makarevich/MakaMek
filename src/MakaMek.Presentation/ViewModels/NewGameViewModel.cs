@@ -1,7 +1,6 @@
 using System.Collections.ObjectModel;
 using System.Windows.Input;
 using AsyncAwaitBestPractices;
-using AsyncAwaitBestPractices.MVVM;
 using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Assets.Services;
 using Sanet.MakaMek.Bots.Models;
@@ -11,7 +10,6 @@ using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Factories;
 using Sanet.MakaMek.Core.Models.Game.Players;
-using Sanet.MakaMek.Core.Services;
 using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Presentation.ViewModels.Setup;
@@ -30,23 +28,12 @@ namespace Sanet.MakaMek.Presentation.ViewModels;
 public abstract class NewGameViewModel : BaseViewModel
 {
     private readonly GameSetupSession _session;
-    protected readonly ICommandPublisher _commandPublisher;
-    private readonly IDispatcherService _dispatcherService;
     protected readonly ILogger _logger;
 
     /// <summary>
     /// The local player lobby, shared with the setup session.
     /// </summary>
     protected ObservableCollection<PlayerViewModel> _players => _session.Players;
-
-    /// <summary>
-    /// The local client game mirrored by the setup screen, or <c>null</c> before it is created.
-    /// </summary>
-    protected ClientGame? _localGame
-    {
-        get => _session.LocalGame;
-        set => _session.LocalGame = value;
-    }
 
     public ICommand? AddPlayerCommand { get; protected set; }
     public ICommand? AddBotCommand { get; protected set; }
@@ -68,8 +55,6 @@ public abstract class NewGameViewModel : BaseViewModel
         IImageService imageService,
         GameSetupSession? session = null)
     {
-        _commandPublisher = commandPublisher;
-        _dispatcherService = dispatcherService;
         _logger = logger;
         _session = session
             ?? new GameSetupSession(
@@ -86,8 +71,6 @@ public abstract class NewGameViewModel : BaseViewModel
         AddPlayerCommand = SetupCommands.CreatePlayerCommand(() => AddPlayer());
         AddBotCommand = SetupCommands.CreatePlayerCommand(() => AddPlayer(controlType: PlayerControlType.Bot));
     }
-
-    protected IDispatcherService DispatcherService => _dispatcherService;
 
     /// <summary>
     /// The number of players currently in the lobby.
@@ -120,14 +103,6 @@ public abstract class NewGameViewModel : BaseViewModel
     protected abstract Task HandleCommandInternal(IGameCommand command);
 
     /// <summary>
-    /// Creates the local <see cref="ClientGame"/> through the setup session, which also constructs a
-    /// <see cref="DecisionEngineProvider"/> for it and initializes the bot manager. Any previously
-    /// created local game is disposed first so the setup is safe to run repeatedly.
-    /// </summary>
-    protected void CreateAndInitializeLocalGame(Guid? serverGameId = null, ICommandPublisher? publisherOverride = null) =>
-        _session.CreateAndInitializeLocalGame(publisherOverride ?? _commandPublisher, serverGameId);
-
-    /// <summary>
     /// Publishes the local player's join when this screen may publish commands.
     /// </summary>
     protected void PublishJoinCommand(PlayerViewModel playerVm)
@@ -147,15 +122,10 @@ public abstract class NewGameViewModel : BaseViewModel
         _session.PublishSetReadyCommand(playerVm);
     }
 
-    /// <summary>
-    /// Resolves the local player's data, falling back to a fresh default player.
-    /// </summary>
-    protected PlayerData GetLocalPlayerData() => _session.GetLocalPlayerData();
-
     // Common properties
     public ObservableCollection<PlayerViewModel> Players => _players;
 
-    internal ClientGame? LocalGame => _localGame;
+    internal ClientGame? LocalGame => _session.LocalGame;
 
     /// <summary>
     /// The shared setup session, used by the derived screens to wire their coordinators.

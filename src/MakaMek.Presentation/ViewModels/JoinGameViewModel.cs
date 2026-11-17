@@ -6,15 +6,12 @@ using Sanet.MakaMek.Bots.Models;
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Factories;
-using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Services;
 using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Map.Factories;
 using Sanet.MakaMek.Map.Models;
-using Sanet.MakaMek.Map.Services;
 using Sanet.MakaMek.Presentation.ViewModels.Setup;
-using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 using Sanet.MakaMek.Services;
 
 namespace Sanet.MakaMek.Presentation.ViewModels;

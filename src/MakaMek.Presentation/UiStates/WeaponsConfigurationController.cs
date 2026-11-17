@@ -1,9 +1,7 @@
-using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Units;
-using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Map.Models;
 using Sanet.MakaMek.Presentation.ViewModels;
 
@@ -25,8 +23,6 @@ public sealed class WeaponsConfigurationController
         _viewModel = viewModel;
         _game = game;
     }
-
-    public IReadOnlyList<HexDirection> AvailableDirections => _availableDirections;
 
     public void UpdateAvailableDirections(IUnit? attacker)
     {
@@ -65,16 +61,6 @@ public sealed class WeaponsConfigurationController
         };
 
         _game.ConfigureUnitWeapons(command);
-    }
-
-    /// <summary>
-    /// Shows the direction selector for the attacker's torso rotation.
-    /// </summary>
-    public void ShowDirectionSelector(IUnit attacker)
-    {
-        if (attacker.Position == null) return;
-        UpdateAvailableDirections(attacker);
-        _viewModel.ShowDirectionSelector(attacker.Position.Coordinates, _availableDirections);
     }
 
     public void HideDirectionSelector() => _viewModel.HideDirectionSelector();

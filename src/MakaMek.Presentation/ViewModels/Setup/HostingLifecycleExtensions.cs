@@ -1,6 +1,5 @@
 using AsyncAwaitBestPractices;
 using Microsoft.Extensions.Logging;
-using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 using Sanet.MVVM.Core.Services;
 
 namespace Sanet.MakaMek.Presentation.ViewModels.Setup;

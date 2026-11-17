@@ -4,7 +4,6 @@ using System.Reactive.Subjects;
 using AsyncAwaitBestPractices;
 using AsyncAwaitBestPractices.MVVM;
 using Microsoft.Extensions.Logging;
-using Sanet.MakaMek.Core.Services;
 using Sanet.Localization;
 using Sanet.MakaMek.Map.Models;
 using Sanet.MakaMek.Presentation.ViewModels.Maps;

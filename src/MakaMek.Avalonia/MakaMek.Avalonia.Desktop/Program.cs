@@ -5,7 +5,6 @@ using Sanet.MakaMek.Avalonia.Desktop.DependencyInjection;
 using Sanet.MVVM.DI.Avalonia.Extensions;
 using Velopack;
 #if DEBUG
-using AvaloniaUI.DiagnosticsSupport;
 #endif
 
 namespace Sanet.MakaMek.Avalonia.Desktop;

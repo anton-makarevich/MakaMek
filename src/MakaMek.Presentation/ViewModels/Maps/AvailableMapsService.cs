@@ -80,12 +80,6 @@ public sealed class AvailableMapsService
     }
 
     /// <summary>
-    /// Shows the open-file dialog and returns the selected file's name and raw content.
-    /// </summary>
-    public Task<(string? Name, string? Content)> PickMapFileAsync(string dialogTitle) =>
-        _fileService.OpenFile(dialogTitle);
-
-    /// <summary>
     /// Shows the open-file dialog, parses the selected map and renders its preview. Returns
     /// <c>null</c> when the dialog was cancelled or the file holds no map.
     /// </summary>

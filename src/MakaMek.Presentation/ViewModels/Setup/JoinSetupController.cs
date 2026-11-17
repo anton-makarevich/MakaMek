@@ -157,7 +157,6 @@ public sealed class JoinSetupController : SetupState, IAsyncDisposable
                                       && _deps.GameConnector.CanReconnect
                                       && ConnectionStatus.IsConnectionDegraded;
 
-    internal SetupDependencies Dependencies => _deps;
     internal LobbyMapPreview Preview => _preview;
 
     internal CancellationTokenSource? ActiveJoinCts

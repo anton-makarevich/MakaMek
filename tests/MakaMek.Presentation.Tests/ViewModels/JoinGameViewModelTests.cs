@@ -982,11 +982,11 @@ public class JoinGameViewModelTests
                     throw new Exception("Simulated initialization failure");
             });
 
-        // Act - first call creates _localGame but fails during initialization
+        // Act - first call creates the local game but fails during initialization
         EnableLanConnect();
         _sut.ConnectCommand.Execute(null);
 
-        // First attempt left _localGame set but not disposed and IsConnected=false
+        // First attempt left the local game set but not disposed and IsConnected=false
         _clientGame.IsDisposed.ShouldBeFalse();
         _sut.IsConnected.ShouldBeFalse();
 
