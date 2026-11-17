@@ -160,51 +160,17 @@ public sealed class MovementPlaybackTimeline
         var items = Classify(segments);
         if (items.Count == 0) return [];
 
-        var totalDistance = items.Where(item => !item.IsTurn).Sum(item => item.Length);
-        var totalTurnSteps = items.Where(item => item.IsTurn).Sum(item => item.TurnSteps);
-
-        double turnTime;
-        double translationTime;
-        if (totalDistance <= MinimumPixelDistance)
-        {
-            turnTime = durationMilliseconds;
-            translationTime = 0;
-        }
-        else
-        {
-            turnTime = Math.Min(totalTurnSteps * TurnStepMilliseconds, durationMilliseconds * MaxTurnShare);
-            translationTime = durationMilliseconds - turnTime;
-        }
-
+        var timing = ComputeTiming(items, durationMilliseconds);
         var phases = new List<MovementPlaybackPhase>(items.Count);
         var time = 0d;
         var signedDistance = 0d;
 
         foreach (var item in items)
         {
-            var slot = item.IsTurn
-                ? (totalTurnSteps > 0 ? turnTime * item.TurnSteps / totalTurnSteps : 0)
-                : (totalDistance > 0 ? translationTime * item.Length / totalDistance : 0);
-
-            var fromDistance = signedDistance;
-            var toDistance = item.IsTurn
-                ? signedDistance
-                : signedDistance + (item.IsReversed ? -item.Length : item.Length);
-
-            phases.Add(new MovementPlaybackPhase(
-                time,
-                time + slot,
-                item.From,
-                item.To,
-                item.FromFacingDegrees,
-                item.ToFacingDegrees,
-                item.IsTurn,
-                item.IsReversed,
-                fromDistance,
-                toDistance));
-
-            time += slot;
-            signedDistance = toDistance;
+            var phase = CreatePhase(item, time, signedDistance, timing);
+            phases.Add(phase);
+            time = phase.EndMilliseconds;
+            signedDistance = phase.SignedDistanceAtEnd;
         }
 
         // Absorb floating-point drift so the last phase lands exactly on the fixed duration.
@@ -215,6 +181,67 @@ public sealed class MovementPlaybackTimeline
         }
 
         return phases;
+    }
+
+    /// <summary>
+    /// Splits the fixed duration between turns and translation: turns get a small fixed slot each,
+    /// capped at a share of the total, and translation takes the rest. A path with no real distance
+    /// spends the whole duration turning.
+    /// </summary>
+    private static PhaseTiming ComputeTiming(IReadOnlyList<PhaseItem> items, double durationMilliseconds)
+    {
+        var totalDistance = items.Where(item => !item.IsTurn).Sum(item => item.Length);
+        var totalTurnSteps = items.Where(item => item.IsTurn).Sum(item => item.TurnSteps);
+
+        if (totalDistance <= MinimumPixelDistance)
+        {
+            return new PhaseTiming(totalDistance, totalTurnSteps, durationMilliseconds, 0);
+        }
+
+        var turnTime = Math.Min(totalTurnSteps * TurnStepMilliseconds, durationMilliseconds * MaxTurnShare);
+        return new PhaseTiming(totalDistance, totalTurnSteps, turnTime, durationMilliseconds - turnTime);
+    }
+
+    private static MovementPlaybackPhase CreatePhase(
+        PhaseItem item,
+        double time,
+        double signedDistance,
+        PhaseTiming timing)
+    {
+        var slot = ResolveSlot(item, timing);
+        var toDistance = item.IsTurn
+            ? signedDistance
+            : signedDistance + (item.IsReversed ? -item.Length : item.Length);
+
+        return new MovementPlaybackPhase(
+            time,
+            time + slot,
+            item.From,
+            item.To,
+            item.FromFacingDegrees,
+            item.ToFacingDegrees,
+            item.IsTurn,
+            item.IsReversed,
+            signedDistance,
+            toDistance);
+    }
+
+    /// <summary>
+    /// The share of the clock this item owns: turns split the turn time, translation splits the
+    /// translation time in proportion to distance.
+    /// </summary>
+    private static double ResolveSlot(PhaseItem item, PhaseTiming timing)
+    {
+        if (item.IsTurn)
+        {
+            return timing.TotalTurnSteps > 0
+                ? timing.TurnTime * item.TurnSteps / timing.TotalTurnSteps
+                : 0;
+        }
+
+        return timing.TotalDistance > 0
+            ? timing.TranslationTime * item.Length / timing.TotalDistance
+            : 0;
     }
 
     private static List<PhaseItem> Classify(IReadOnlyList<PathSegmentData> segments)
@@ -303,4 +330,10 @@ public sealed class MovementPlaybackTimeline
         int TurnSteps,
         double Length,
         bool IsReversed);
+
+    private readonly record struct PhaseTiming(
+        double TotalDistance,
+        int TotalTurnSteps,
+        double TurnTime,
+        double TranslationTime);
 }

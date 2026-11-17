@@ -1,7 +1,6 @@
 using System.Numerics;
 using CUE4Parse.UE4.Assets.Exports.Animation;
 using CUE4Parse.UE4.Objects.Core.Math;
-using CUE4Parse.Utils;
 using CUE4Parse_Conversion.Animations;
 using CUE4Parse_Conversion.Writers.ActorX.Structs.Animations;
 using MakaMek.Tools.MW5Extractor.Reporting;

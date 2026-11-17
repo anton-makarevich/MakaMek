@@ -157,9 +157,12 @@ public class WeaponsAttackStateTests
         // Ensure test units have owners set
         _player.AddUnit(_unit1);
         _player.AddUnit(_unit2);
-        _sut = new WeaponsAttackState(_battleMapViewModel);
+        _sut = CreateState();
         BindViewModelCurrentStateTo(_sut, _battleMapViewModel);
     }
+
+    private WeaponsAttackState CreateState() =>
+        new(_battleMapViewModel, new WeaponsAttackSelectionPolicy(), new WeaponRangeAnalyzer());
 
     private void AddPlayerUnits(Guid joinCommandIdempotencyKey)
     {
@@ -237,7 +240,7 @@ public class WeaponsAttackStateTests
         _game.PhaseStepState.ShouldBeNull();
 
         // Act & Assert
-        Should.Throw<InvalidOperationException>(() => new WeaponsAttackState(_battleMapViewModel));
+        Should.Throw<InvalidOperationException>(() => CreateState());
     }
 
     [Fact]

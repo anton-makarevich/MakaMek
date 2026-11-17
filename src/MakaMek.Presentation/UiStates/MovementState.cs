@@ -16,10 +16,6 @@ using Sanet.MakaMek.Map.Models.Highlights;
 using Sanet.MakaMek.Presentation.ViewModels;
 using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 
-// Pre-existing class coupling in this type, not introduced by this change. The gate is
-// zero-tolerance for changed code, so remove this suppression when the type is next split.
-#pragma warning disable CA1506
-
 namespace Sanet.MakaMek.Presentation.UiStates;
 
 public class MovementState : IUiState, IPhysicalAttackDeclarationState
@@ -1074,46 +1070,11 @@ public class MovementState : IUiState, IPhysicalAttackDeclarationState
         }
     }
 
-#pragma warning disable S3776, CA1502 // pre-existing complexity; remove this suppression when the member is next changed
     public void ResumeMovementAfterFall(Guid unitId)
     {
         lock (_stateLock)
         {
-            var activePlayerId = Game?.PhaseStepState?.ActivePlayer.Id;
-            if (_selectedUnit == null)
-            {
-                // Selection may have been cleared by a state refresh; adopt the fallen unit if it is known
-                var fallenUnit = _viewModel.Units.FirstOrDefault(u => u.Id == unitId);
-                if (fallenUnit == null)
-                {
-                    Game?.Logger.LogWarning(
-                        "ResumeMovementAfterFall: unit {UnitId} not found among alive units", unitId);
-                    return;
-                }
-                if (fallenUnit.Owner?.Id != activePlayerId)
-                {
-                    Game?.Logger.LogWarning(
-                        "Resume movement after fall ignored: unit {UnitId} is not controlled by the active player", unitId);
-                    return;
-                }
-                _selectedUnit = fallenUnit;
-                _builder.SetUnit(fallenUnit);
-            }
-            else if (_selectedUnit.Id != unitId)
-            {
-                Game?.Logger.LogWarning(
-                    "Resume movement after fall ignored: command unit {CommandUnit} does not match movement state's selected unit {StateUnit}",
-                    unitId,
-                    _selectedUnit.Id);
-                return;
-            }
-
-            if (_selectedUnit.Owner?.Id != activePlayerId)
-            {
-                Game?.Logger.LogWarning(
-                    "Resume movement after fall ignored: unit {UnitId} is not controlled by the active player", unitId);
-                return;
-            }
+            if (!TryAdoptFallenUnit(unitId)) return;
 
             if (_selectedUnit is not Mech mech)
             {
@@ -1124,34 +1085,11 @@ public class MovementState : IUiState, IPhysicalAttackDeclarationState
 
             if (mech.Position == null || !mech.IsProne)
             {
-                Game?.Logger.LogWarning(
-                    "Resume movement after fall: unit {UnitId} is {Reason}, ending movement",
-                    unitId,
-                    mech.Position == null ? "not positioned" : "not prone");
-                if (mech.Position != null)
-                {
-                    _builder.SetUnit(_selectedUnit);
-                    _builder.SetMovementPath(MovementPath.CreateSingleSegmentPath(mech.Position));
-                }
-                CompleteMovement();
+                CompleteMovementAfterFailedFall(mech, unitId);
                 return;
             }
 
-            if (_selectedPath == null)
-            {
-                // The fall was processed by a state that lost its movement path (e.g. recreated after a
-                // phase-step update). Rebuild it at the mech's current position.
-                Game?.Logger.LogWarning(
-                    "Resume movement after fall: no movement path in state for unit {UnitId}, rebuilding at current position",
-                    unitId);
-                _selectedPath = MovementPath.CreateSingleSegmentPath(
-                    mech.Position,
-                    mech.MovementTaken?.MovementType ?? MovementType.Walk);
-            }
-            else
-            {
-                _selectedPath = MovementPath.CreateSingleSegmentPath(mech.Position, _selectedPath.MovementType);
-            }
+            _selectedPath = RebuildPathAtCurrentPosition(mech, unitId);
 
             if (!mech.CanStandup())
             {
@@ -1162,13 +1100,94 @@ public class MovementState : IUiState, IPhysicalAttackDeclarationState
             }
 
             _deferredMovementUnitId = unitId;
-            
+
             TransitionTo(new SelectingMovementTypeStep(this));
             _viewModel.NotifySelectedUnitChanged();
         }
     }
 
-#pragma warning restore S3776, CA1502
+    /// <summary>
+    /// Makes the fallen unit the selected one. Selection may have been cleared by a state refresh, in
+    /// which case the fallen unit is adopted when it belongs to the active player. Returns
+    /// <c>false</c> when the command cannot be resumed, after logging why.
+    /// </summary>
+    private bool TryAdoptFallenUnit(Guid unitId)
+    {
+        var activePlayerId = Game?.PhaseStepState?.ActivePlayer.Id;
+
+        if (_selectedUnit == null)
+        {
+            var fallenUnit = _viewModel.Units.FirstOrDefault(u => u.Id == unitId);
+            if (fallenUnit == null)
+            {
+                Game?.Logger.LogWarning(
+                    "ResumeMovementAfterFall: unit {UnitId} not found among alive units", unitId);
+                return false;
+            }
+
+            if (fallenUnit.Owner?.Id != activePlayerId)
+            {
+                Game?.Logger.LogWarning(
+                    "Resume movement after fall ignored: unit {UnitId} is not controlled by the active player", unitId);
+                return false;
+            }
+
+            _selectedUnit = fallenUnit;
+            _builder.SetUnit(fallenUnit);
+        }
+        else if (_selectedUnit.Id != unitId)
+        {
+            Game?.Logger.LogWarning(
+                "Resume movement after fall ignored: command unit {CommandUnit} does not match movement state's selected unit {StateUnit}",
+                unitId,
+                _selectedUnit.Id);
+            return false;
+        }
+
+        if (_selectedUnit.Owner?.Id == activePlayerId) return true;
+
+        Game?.Logger.LogWarning(
+            "Resume movement after fall ignored: unit {UnitId} is not controlled by the active player", unitId);
+        return false;
+    }
+
+    /// <summary>
+    /// The fall left the unit standing (or off the map): submit the current position and end movement.
+    /// </summary>
+    private void CompleteMovementAfterFailedFall(Mech mech, Guid unitId)
+    {
+        Game?.Logger.LogWarning(
+            "Resume movement after fall: unit {UnitId} is {Reason}, ending movement",
+            unitId,
+            mech.Position == null ? "not positioned" : "not prone");
+
+        if (mech.Position != null)
+        {
+            _builder.SetUnit(_selectedUnit);
+            _builder.SetMovementPath(MovementPath.CreateSingleSegmentPath(mech.Position));
+        }
+
+        CompleteMovement();
+    }
+
+    /// <summary>
+    /// Rebuilds the path as a single segment at the mech's current position. A missing path means the
+    /// fall was processed by a state that lost it (e.g. recreated after a phase-step update), so the
+    /// movement type comes from the unit's own movement instead.
+    /// </summary>
+    private MovementPath RebuildPathAtCurrentPosition(Mech mech, Guid unitId)
+    {
+        if (_selectedPath != null)
+            return MovementPath.CreateSingleSegmentPath(mech.Position!, _selectedPath.MovementType);
+
+        Game?.Logger.LogWarning(
+            "Resume movement after fall: no movement path in state for unit {UnitId}, rebuilding at current position",
+            unitId);
+
+        return MovementPath.CreateSingleSegmentPath(
+            mech.Position!,
+            mech.MovementTaken?.MovementType ?? MovementType.Walk);
+    }
 
     // New method to handle prone facing change
     private void HandleProneFacingChange(Mech mech)

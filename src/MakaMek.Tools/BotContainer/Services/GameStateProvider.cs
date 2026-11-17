@@ -1,4 +1,3 @@
-using Sanet.MakaMek.Bots.Models.DecisionEngines;
 using Sanet.MakaMek.Bots.Models.Evaluation;
 using Sanet.MakaMek.Core.Models.Game;
 

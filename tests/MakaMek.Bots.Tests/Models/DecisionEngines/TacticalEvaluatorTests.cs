@@ -1,7 +1,6 @@
 using NSubstitute;
 using Sanet.MakaMek.Bots.Data;
 using Sanet.MakaMek.Bots.Models;
-using Sanet.MakaMek.Bots.Models.DecisionEngines;
 using Sanet.MakaMek.Bots.Models.Evaluation;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Units;
