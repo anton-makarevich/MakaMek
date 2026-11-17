@@ -198,57 +198,34 @@ public static class CoreServices
         // (MAKAMEK_RELAY_BASE_URL / MAKAMEK_RELAY_API_KEY) and persists user-defined hubs.
         services.AddSingleton<IRelayHubConfigurationProvider, RelayHubConfigurationProvider>();
 
-        // Asset provider configuration — seeds the default bucket/github provider and persists
-        // user-defined providers (see issues #1332 / #1333). Bucket and GitHub are mutually
-        // exclusive defaults: bucket when it is configured at build time (release/prod),
-        // GitHub otherwise (dev fallback).
+        // Asset provider configuration — seeds the built-in data bucket provider and persists
+        // user-defined providers (see issues #1332 / #1333). The bucket is the only built-in
+        // source: the GitHub Contents API is rate limited for anonymous callers
+        // (60 requests/hour/IP), so it is available as an optional provider added in Settings
+        // (e.g. to test unreleased assets from a branch) rather than as a default.
         services.AddSingleton<IAssetProviderConfigurationProvider>(sp =>
         {
             var cachingService = sp.GetRequiredService<IFileCachingService>();
             var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
-            var defaults = new List<AssetProviderConfigData>();
-            if (BucketDefaults.IsConfigured)
+            var defaults = new List<AssetProviderConfigData>
             {
-                defaults.Add(
-                    new AssetProviderConfigData(
-                        "bucket",
-                        ProviderType.Bucket,
-                        AssetType.Units,
-                        BucketDefaults.BaseUrl,
-                        IsActive: true,
-                        IsDefault: true,
-                        SortOrder: 0));
-                defaults.Add(
-                    new AssetProviderConfigData(
-                        "bucket-hexes",
-                        ProviderType.Bucket,
-                        AssetType.Hexes,
-                        BucketDefaults.BaseUrl,
-                        IsActive: true,
-                        IsDefault: true,
-                        SortOrder: 0));
-            }
-            else
-            {
-                defaults.Add(
-                    new AssetProviderConfigData(
-                        "github",
-                        ProviderType.GitHub,
-                        AssetType.Units,
-                        GitHubDefaults.BaseUrl,
-                        IsActive: true,
-                        IsDefault: true,
-                        SortOrder: 0));
-                defaults.Add(
-                    new AssetProviderConfigData(
-                        "github-hexes",
-                        ProviderType.GitHub,
-                        AssetType.Hexes,
-                        GitHubDefaults.BaseUrl,
-                        IsActive: true,
-                        IsDefault: true,
-                        SortOrder: 0));
-            }
+                new(
+                    "bucket",
+                    ProviderType.Bucket,
+                    AssetType.Units,
+                    BucketDefaults.BaseUrl,
+                    IsActive: true,
+                    IsDefault: true,
+                    SortOrder: 0),
+                new(
+                    "bucket-hexes",
+                    ProviderType.Bucket,
+                    AssetType.Hexes,
+                    BucketDefaults.BaseUrl,
+                    IsActive: true,
+                    IsDefault: true,
+                    SortOrder: 0)
+            };
             return new AssetProviderConfigurationProvider(
                 defaults,
                 cachingService,

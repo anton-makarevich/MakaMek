@@ -80,14 +80,14 @@ return await Deployment.RunAsync(() =>
         ["bucketName"] = bucket.Name,
         ["customDomain"] = r2CustomDomain.Domain,
         // Public base URL for the deploy-data-release workflow; set the repo
-        // variable vars.DATA_R2_BASE_URL to this value.
+        // variable vars.DATA_BUCKET_BASE_URL to this value.
         ["baseUrl"] = Output.Format($"https://{r2CustomDomain.Domain}"),
         // S3 API endpoint used by the deploy-data-release workflow
         // (aws s3 sync --endpoint-url <s3Endpoint>).
         ["s3Endpoint"] = Output.Format($"https://{accountId}.r2.cloudflarestorage.com"),
         // After the first 'up': enable public access (dashboard -> bucket ->
         // Settings -> Public Access) and set the repo variable
-        // vars.DATA_R2_BASE_URL to the baseUrl output above. Then create an R2
+        // vars.DATA_BUCKET_BASE_URL to the baseUrl output above. Then create an R2
         // API token (S3 credentials) for the CI upload and store it as the repo
         // secrets R2_ACCESS_KEY_ID / R2_SECRET_ACCESS_KEY alongside
         // CLOUDFLARE_R2_BUCKET. The Cloudflare API does not expose S3 token

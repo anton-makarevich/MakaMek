@@ -4,6 +4,7 @@
 // resource provider fetches only its own listing. Used by deploy-data-release.yml.
 // Run with: dotnet run --file .github/scripts/generate-data-manifest.cs -- data <version>
 #:project $(MSBuildStartupDirectory)/src/MakaMek.Assets/MakaMek.Assets.csproj
+using System.Globalization;
 using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -29,15 +30,15 @@ static IEnumerable<string> Walk(string dir)
 
 var dataDir = args.Length > 0 ? args[0] : "data";
 var manifestVersion = args.Length > 1 ? args[1] : "1";
-var baseUrl = Environment.GetEnvironmentVariable("DATA_R2_BASE_URL");
+var baseUrl = Environment.GetEnvironmentVariable("DATA_BUCKET_BASE_URL");
 
 if (string.IsNullOrEmpty(baseUrl))
 {
-    Console.Error.WriteLine("DATA_R2_BASE_URL is not set.");
+    Console.Error.WriteLine("DATA_BUCKET_BASE_URL is not set.");
     return 1;
 }
 
-var normalizedBase = baseUrl.TrimEnd('/');
+var normalizedBase = baseUrl.Trim().TrimEnd('/');
 
 if (!Directory.Exists(dataDir))
 {
@@ -80,7 +81,7 @@ try
         var manifest = new DataManifest
         {
             Version = manifestVersion,
-            GeneratedAtUtc = DateTime.UtcNow.ToString("yyyy-MM-dd'T'HH:mm:ss.fff'Z'"),
+            GeneratedAtUtc = DateTime.UtcNow.ToString("yyyy-MM-dd'T'HH:mm:ss.fff'Z'", CultureInfo.InvariantCulture),
             FileCount = entries.Count,
             Files = entries,
         };
