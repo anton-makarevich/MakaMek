@@ -572,6 +572,26 @@ public class GameManagerTests : IDisposable
     }
 
     [Fact]
+    public async Task InitializeLocalLobby_WhenCancelledDuringReset_ReturnsFalseAndDoesNotCreateServerGame()
+    {
+        // Arrange
+        using var cts = new CancellationTokenSource();
+        _networkHostService.IsRunning.Returns(true);
+        _networkHostService.Stop().Returns(_ =>
+        {
+            cts.Cancel();
+            return Task.CompletedTask;
+        });
+        // Act
+        var result = await _sut.InitializeLocalLobby(cts.Token);
+
+        // Assert
+        result.ShouldBeFalse();
+        _gameFactory.DidNotReceive().CreateServerGame(_commandPublisher);
+        _sut.ServerGameId.ShouldBeNull();
+    }
+
+    [Fact]
     public async Task InitializeLocalLobby_DoesNotStartLanHost()
     {
         // Act

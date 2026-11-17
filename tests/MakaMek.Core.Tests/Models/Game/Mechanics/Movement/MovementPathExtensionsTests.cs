@@ -3,6 +3,7 @@ using Sanet.MakaMek.Core.Data.Game.Mechanics.PhysicalAttacks;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Movement;
 using Sanet.MakaMek.Map.Models;
+using Sanet.MakaMek.Map.Models.MovementCosts;
 using Sanet.MakaMek.Map.Models.Terrains;
 using Shouldly;
 
@@ -126,6 +127,32 @@ public class MovementPathExtensionsTests
 
         landing.ShouldNotBeNull();
         landing.Surface.ShouldBe(HexSurface.Ground);
+    }
+
+    [Fact]
+    public void TagStandupAttempt_AddsStandupEventAndCostToTheLastSegmentOnly()
+    {
+        var path = TwoHexPath();
+
+        var tagged = path.TagStandupAttempt(3);
+
+        var lastSegment = tagged.Segments[^1];
+        lastSegment.Events.ShouldContain(new SegmentEvent(SegmentEventType.StandupAttempt));
+        lastSegment.Costs.OfType<StandUpAttemptMovementCost>().ShouldHaveSingleItem().Value.ShouldBe(3);
+        tagged.Segments[^2].Events.ShouldBeEmpty();
+        path.Segments[^1].Events.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void TagFall_AddsFallEventToTheLastSegmentOnly()
+    {
+        var path = TwoHexPath();
+
+        var tagged = path.TagFall();
+
+        tagged.Segments[^1].Events.ShouldContain(new SegmentEvent(SegmentEventType.Fall));
+        tagged.Segments[^2].Events.ShouldBeEmpty();
+        path.Segments[^1].Events.ShouldBeEmpty();
     }
 
     private static MovementPath JumpToBridgePath() =>
