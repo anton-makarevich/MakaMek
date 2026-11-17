@@ -19,26 +19,14 @@ internal static class MtfComponentMapping
             "Head" or "HD" => PartLocation.Head,
             "Left Leg" or "LL" => PartLocation.LeftLeg,
             "Right Leg" or "RL" => PartLocation.RightLeg,
-            "RTL" or "RTR" or "RTC" => GetMainLocationForRear(locationText),
+            "RTL" => PartLocation.LeftTorso,
+            "RTR" => PartLocation.RightTorso,
+            "RTC" => PartLocation.CenterTorso,
             _ => throw new ArgumentException($"Unknown location: {locationText}")
         };
 
-    public static bool TryParseLocation(string locationText, out PartLocation location)
-    {
-        location = ParseLocation(locationText);
-        return true;
-    }
-
     public static bool IsRearArmor(string locationText) =>
         locationText is "RTL" or "RTR" or "RTC";
-
-    public static PartLocation GetMainLocationForRear(string rearLocationText) => rearLocationText switch
-    {
-        "RTL" => PartLocation.LeftTorso,
-        "RTR" => PartLocation.RightTorso,
-        "RTC" => PartLocation.CenterTorso,
-        _ => throw new ArgumentException($"Invalid rear location: {rearLocationText}")
-    };
 
     public static MakaMekComponent MapMtfStringToComponent(string mtfString) =>
         mtfString switch

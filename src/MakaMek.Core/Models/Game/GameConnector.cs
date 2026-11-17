@@ -3,9 +3,7 @@ using AsyncAwaitBestPractices;
 using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Services.Transport;
-using Sanet.MakaMek.Core.Services.Transport.Relay;
 using Sanet.Transport;
-using Sanet.Transport.SignalR.Client.Factories;
 using Sanet.Transport.SignalR.Client.Relay;
 
 namespace Sanet.MakaMek.Core.Models.Game;

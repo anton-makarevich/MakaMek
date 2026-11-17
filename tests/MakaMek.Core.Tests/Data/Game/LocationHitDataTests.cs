@@ -174,6 +174,27 @@ public class LocationHitDataTests
     }
 
     [Fact]
+    public void Render_WhenHitDealsNoDamageAtAll_ReturnsNoDamageText()
+    {
+        // Arrange - zero-damage entries (including an excess-damage entry) have no armor/structure
+        // localization key, so they must not throw or render a bogus template.
+        var sut = new LocationHitData(
+            [
+                new LocationDamageData(PartLocation.CenterTorso, 0, 0, false),
+                new LocationDamageData(PartLocation.RightTorso, 0, 0, false)
+            ],
+            [],
+            [6],
+            PartLocation.CenterTorso);
+
+        // Act
+        var result = sut.Render(_localizationService);
+
+        // Assert
+        result.Trim().ShouldBeEmpty();
+    }
+
+    [Fact]
     public void Render_ShouldShowExcessDamage_WhenMultipleDamageLocations()
     {
         // Arrange - This tests lines 77-85 (excess damage handling)

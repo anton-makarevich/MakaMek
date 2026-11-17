@@ -1,7 +1,5 @@
 using Sanet.MakaMek.Core.Data.Units;
-using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Models.Game.Rules;
-using Sanet.MakaMek.Core.Models.Units;
 
 namespace Sanet.MakaMek.Core.Data.Community;
 
@@ -37,18 +35,4 @@ public class MtfDataProvider : IUnitDataProvider
             AdditionalAttributes = mechData.Where(pair => pair.Key.StartsWith("system", StringComparison.Ordinal)).ToDictionary()
         };
     }
-
-    /// <summary>
-    /// Locates the consecutive slots of one component in one location. Kept here because the
-    /// slot-consolidation rules are part of the provider's contract and are unit-tested directly.
-    /// </summary>
-    private List<LocationSlotAssignment> FindConsecutiveSlotsInLocation(
-        MakaMekComponent component,
-        PartLocation location,
-        int startSlot,
-        Dictionary<PartLocation, SortedDictionary<int, (MakaMekComponent component, ComponentOptions options)>> locationSlotComponents,
-        HashSet<(PartLocation, int)> processedSlots,
-        int maxSlots = int.MaxValue) =>
-        MtfLocationDataParser.FindConsecutiveSlots(
-            component, location, startSlot, locationSlotComponents, processedSlots, maxSlots);
 }

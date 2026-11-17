@@ -1,10 +1,7 @@
-using Sanet.MakaMek.Core.Data.Game;
-using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
 using Sanet.MakaMek.Core.Data.Game.Mechanics.PhysicalAttacks;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.PhysicalAttack;
 using Sanet.MakaMek.Core.Models.Units;
-using Sanet.MakaMek.Map.Models;
 
 namespace Sanet.MakaMek.Core.Models.Game.Phases;
 
