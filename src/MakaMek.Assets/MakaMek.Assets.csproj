@@ -10,6 +10,10 @@
     </PropertyGroup>
     
     <ItemGroup>
+        <InternalsVisibleTo Include="Sanet.MakaMek.Assets.Tests" />
+    </ItemGroup>
+
+    <ItemGroup>
         <None Include="../../README.md" Pack="true" PackagePath="" />
     </ItemGroup>
     

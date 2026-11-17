@@ -16,8 +16,17 @@ public static partial class BucketDefaults
 
     /// <summary>
     /// Base URL of the bucket that serves the per-asset-type manifests and file content.
-    /// Whitespace is trimmed so a stray space in the build-time property cannot leak into the
-    /// URLs written by the data-release manifest generator.
     /// </summary>
-    public static string BaseUrl => (BuildTimeBaseUrl ?? DefaultDataBucketBaseUrl).Trim();
+    public static string BaseUrl => Resolve(BuildTimeBaseUrl);
+
+    /// <summary>
+    /// Resolves the effective base URL: falls back to the public bucket origin when no build-time
+    /// value is embedded and trims whitespace so a stray space in the build-time property cannot
+    /// leak into the manifest URLs served by the bucket.
+    /// </summary>
+    /// <param name="buildTimeBaseUrl">The build-time embedded URL, or null for dev/test builds</param>
+    internal static string Resolve(string? buildTimeBaseUrl)
+    {
+        return (buildTimeBaseUrl ?? DefaultDataBucketBaseUrl).Trim();
+    }
 }
