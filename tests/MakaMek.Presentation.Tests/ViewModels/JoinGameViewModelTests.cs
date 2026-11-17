@@ -182,15 +182,15 @@ public class JoinGameViewModelTests
         _sut.PropertyChanged += (_, e) => changedProps.Add(e.PropertyName);
 
         // Act - the connector is still connecting
-        _sut.ConnectCommand.Execute(null);
+        var connectTask = ((AsyncCommand)_sut.ConnectCommand).ExecuteAsync();
 
         // Assert - no refresh may be raised before the connection completes
         changedProps.ShouldNotContain(nameof(JoinGameViewModel.IsConnected));
 
-        // Act - complete the connection
+        // Act - complete the connection and wait for the command to finish
         _connectorConnected = true;
         connectTcs.SetResult(true);
-        await Task.Delay(100);
+        await connectTask;
 
         // Assert - the dependent state is refreshed once connected
         changedProps.ShouldContain(nameof(JoinGameViewModel.IsConnected));
