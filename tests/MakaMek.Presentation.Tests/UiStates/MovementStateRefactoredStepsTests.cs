@@ -182,18 +182,30 @@ public class MovementStateRefactoredStepsTests
     [Fact]
     public void ResumeMovementAfterFall_WhenTheMechCannotStandUp_CompletesMovementAtItsCurrentPosition()
     {
-        // Arrange - a shutdown mech cannot stand up again
+        // Arrange - a shutdown mech cannot stand up again, and it has slid to a hex other than the
+        // one recorded in the movement path selected before the fall
         DeployUnits();
         SelectAttackerAndWalk();
+        var fellAt = new HexPosition(new HexCoordinates(2, 2), HexDirection.Bottom);
+        _attacker.Move(MovementPath.CreateSingleSegmentPath(fellAt, MovementType.Walk), null);
         _attacker.SetProne();
         _attacker.Shutdown(new ShutdownData { Reason = ShutdownReason.Voluntary, Turn = 1 });
+        _attacker.CanStandup().ShouldBeFalse();
+
+        var submitted = new List<MoveUnitCommand>();
+        _game.MoveUnit(Arg.Do<MoveUnitCommand>(submitted.Add));
 
         // Act
         _sut.ResumeMovementAfterFall(_attacker.Id);
 
-        // Assert
+        // Assert - the command describes a completed move at the fall position, not the stale path
         _sut.CurrentMovementStep.ShouldBe(MovementStep.Completed);
-        _game.Received(1).MoveUnit(Arg.Is<MoveUnitCommand>(command => command.UnitId == _attacker.Id));
+        var command = submitted.ShouldHaveSingleItem();
+        command.UnitId.ShouldBe(_attacker.Id);
+        command.IsCompleted.ShouldBeTrue();
+        var segment = command.MovementPath.ShouldHaveSingleItem();
+        segment.From.ShouldBe(fellAt.ToData());
+        segment.To.ShouldBe(fellAt.ToData());
     }
 
     [Fact]
