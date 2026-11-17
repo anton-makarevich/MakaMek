@@ -39,6 +39,17 @@ public class BucketDefaultsTests
         BucketDefaults.Resolve(null).ShouldBe(CanonicalBucketUrl);
     }
 
+    [Theory]
+    [InlineData("")]
+    [InlineData(" ")]
+    [InlineData("\t\n")]
+    public void Resolve_WhenTheBuildTimeUrlIsBlank_ReturnsTheCanonicalOrigin(string buildTimeUrl)
+    {
+        // The workflow passes the repository variable through as a literal, so an unset variable
+        // can reach the build as an empty/whitespace string rather than null.
+        BucketDefaults.Resolve(buildTimeUrl).ShouldBe(CanonicalBucketUrl);
+    }
+
     [Fact]
     public void BaseUrl_IsAnAbsoluteHttpsOrigin()
     {

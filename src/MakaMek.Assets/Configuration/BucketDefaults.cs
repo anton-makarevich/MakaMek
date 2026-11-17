@@ -21,12 +21,14 @@ public static partial class BucketDefaults
 
     /// <summary>
     /// Resolves the effective base URL: falls back to the public bucket origin when no build-time
-    /// value is embedded and trims whitespace so a stray space in the build-time property cannot
-    /// leak into the manifest URLs served by the bucket.
+    /// value is embedded (null, empty or whitespace-only) and trims whitespace so a stray space in
+    /// the build-time property cannot leak into the manifest URLs served by the bucket.
     /// </summary>
-    /// <param name="buildTimeBaseUrl">The build-time embedded URL, or null for dev/test builds</param>
+    /// <param name="buildTimeBaseUrl">The build-time embedded URL, or blank for dev/test builds</param>
     internal static string Resolve(string? buildTimeBaseUrl)
     {
-        return (buildTimeBaseUrl ?? DefaultDataBucketBaseUrl).Trim();
+        return string.IsNullOrWhiteSpace(buildTimeBaseUrl)
+            ? DefaultDataBucketBaseUrl
+            : buildTimeBaseUrl.Trim();
     }
 }

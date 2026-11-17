@@ -31,14 +31,13 @@ static IEnumerable<string> Walk(string dir)
 var dataDir = args.Length > 0 ? args[0] : "data";
 var manifestVersion = args.Length > 1 ? args[1] : "1";
 var baseUrl = Environment.GetEnvironmentVariable("DATA_BUCKET_BASE_URL");
+var normalizedBase = baseUrl?.Trim().TrimEnd('/');
 
-if (string.IsNullOrEmpty(baseUrl))
+if (string.IsNullOrEmpty(normalizedBase))
 {
     Console.Error.WriteLine("DATA_BUCKET_BASE_URL is not set.");
     return 1;
 }
-
-var normalizedBase = baseUrl.Trim().TrimEnd('/');
 
 if (!Directory.Exists(dataDir))
 {
