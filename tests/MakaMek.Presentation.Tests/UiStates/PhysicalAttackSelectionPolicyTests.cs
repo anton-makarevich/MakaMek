@@ -26,7 +26,7 @@ public class PhysicalAttackSelectionPolicyTests
             candidate: null,
             canAct: true,
             isFriendly: false,
-            canActAsAttacker: false,
+            canActAsAttacker: () => false,
             isReachable: false,
             isCurrentTarget: false);
 
@@ -130,7 +130,7 @@ public class PhysicalAttackSelectionPolicyTests
             _candidate,
             canAct,
             isFriendly,
-            canActAsAttacker,
+            () => canActAsAttacker,
             isReachable,
             isCurrentTarget);
 }

@@ -6,7 +6,7 @@ namespace Sanet.MakaMek.Presentation.UiStates;
 /// <summary>
 /// What a selection request does to <see cref="WeaponsAttackState"/> in its current sub-step.
 /// </summary>
-public enum WeaponsAttackSelectionOutcome
+internal enum WeaponsAttackSelectionOutcome
 {
     /// <summary>The request is rejected: nothing changes and nothing is notified.</summary>
     Ignore,
@@ -29,7 +29,7 @@ public enum WeaponsAttackSelectionOutcome
 /// The rules live outside the UiState setter so the setter stays a plain decision plus application,
 /// and so the decision can be unit tested without an Avalonia view model.
 /// </remarks>
-public sealed class WeaponsAttackSelectionPolicy
+internal sealed class WeaponsAttackSelectionPolicy
 {
     /// <summary>
     /// Decides what selecting <paramref name="candidate"/> means in <paramref name="step"/>.

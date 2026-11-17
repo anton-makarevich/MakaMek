@@ -127,15 +127,15 @@ public class PhysicalAttackState : IUiState, ICombatSelectionRoles, IPhysicalAtt
     /// <inheritdoc />
     public IReadOnlyList<PhysicalAttackOptionViewModel> DeclarationOptions => Options;
 
-    public PhysicalAttackState(
+    internal PhysicalAttackState(
         BattleMapViewModel viewModel,
-        PhysicalAttackSelectionPolicy? selectionPolicy = null,
-        PhysicalAttackOptionBuilder? optionBuilder = null)
+        PhysicalAttackSelectionPolicy selectionPolicy,
+        PhysicalAttackOptionBuilder optionBuilder)
     {
         Game = viewModel.Game! ?? throw new InvalidOperationException("Game is not client game");
         _viewModel = viewModel;
-        _selectionPolicy = selectionPolicy ?? new PhysicalAttackSelectionPolicy();
-        _optionBuilder = optionBuilder ?? new PhysicalAttackOptionBuilder();
+        _selectionPolicy = selectionPolicy;
+        _optionBuilder = optionBuilder;
         if (Game.PhaseStepState?.ActivePlayer == null)
         {
             throw new InvalidOperationException("Active player is null");
@@ -251,7 +251,7 @@ public class PhysicalAttackState : IUiState, ICombatSelectionRoles, IPhysicalAtt
             candidate,
             this.CanHumanPlayerAct(),
             isFriendly: candidate is not null && IsFriendly(candidate),
-            canActAsAttacker: candidate is not null && CanActAsAttacker(candidate),
+            canActAsAttacker: () => candidate is not null && CanActAsAttacker(candidate),
             isReachable: candidate is not null && _reachableTargets.Contains(candidate),
             isCurrentTarget: ReferenceEquals(candidate, _selectedTarget));
 
@@ -373,15 +373,13 @@ public class PhysicalAttackState : IUiState, ICombatSelectionRoles, IPhysicalAtt
         IUnit? attacker;
         lock (_stateLock) attacker = _attacker;
 
-        if (attacker == null) return NoOptions;
+        if (attacker == null || Game.BattleMap is null) return NoOptions;
 
         return _optionBuilder.Build(
             attacker,
             target,
-            Game,
             GetAllUnits(),
-            OnOptionSelectionChanged,
-            _viewModel.LocalizationService);
+            OnOptionSelectionChanged);
     }
 
     /// <summary>

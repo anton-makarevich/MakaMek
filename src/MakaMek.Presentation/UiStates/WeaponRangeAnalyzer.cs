@@ -13,25 +13,27 @@ namespace Sanet.MakaMek.Presentation.UiStates;
 /// Kept outside <see cref="WeaponsAttackState"/> so the state only stores the result and applies one
 /// batched highlight update, and so the geometry can be exercised without a UI state.
 /// </remarks>
-public sealed class WeaponRangeAnalyzer
+internal sealed class WeaponRangeAnalyzer
 {
     /// <summary>
-    /// Computes the reachable hexes of the supplied weapon candidates and, through
-    /// <paramref name="losHighlights"/>, the hexes whose line of sight is blocked from every mount
-    /// level. A missing map skips the line-of-sight checks, exactly like the uncached pre-move state.
+    /// Computes the reachable hexes of the supplied weapon candidates together with the highlights
+    /// that visualise them: the hexes whose line of sight is blocked from every mount level and the
+    /// hexes reachable by at least one weapon. A missing map skips the line-of-sight checks and the
+    /// blocking highlights, exactly like the uncached pre-move state.
     /// </summary>
-    public Dictionary<Weapon, HashSet<HexCoordinates>> Analyze(
+    public WeaponRangeAnalysis Analyze(
         IUnit attacker,
         IReadOnlyList<WeaponCandidate> weaponCandidates,
         IEnumerable<IUnit> otherUnits,
-        IBattleMap? map,
-        out Dictionary<HexCoordinates, LosBlockingHighlight> losHighlights)
+        IBattleMap? map)
     {
         var losResults = ComputeLineOfSightResults(attacker, otherUnits, map, weaponCandidates);
         var ranges = PopulateWeaponRanges(weaponCandidates, losResults, map);
 
-        losHighlights = BuildLineOfSightBlockingHighlights(weaponCandidates, losResults, map);
-        return ranges;
+        return new WeaponRangeAnalysis(
+            ranges,
+            BuildLineOfSightBlockingHighlights(weaponCandidates, losResults, map),
+            BuildReachableHighlights(ranges));
     }
 
     /// <summary>
@@ -238,8 +240,16 @@ public sealed class WeaponRangeAnalyzer
     }
 
     /// <summary>One weapon that can fire, with the hexes it can reach and the level LOS is checked from.</summary>
-    public readonly record struct WeaponCandidate(
+    internal readonly record struct WeaponCandidate(
         Weapon Weapon,
         HashSet<HexCoordinates> CandidateHexes,
         int MountLevel);
 }
+
+/// <summary>
+/// The reachable hexes per weapon plus the highlights that visualise them.
+/// </summary>
+internal sealed record WeaponRangeAnalysis(
+    IReadOnlyDictionary<Weapon, HashSet<HexCoordinates>> Ranges,
+    IReadOnlyDictionary<HexCoordinates, LosBlockingHighlight> LosHighlights,
+    IReadOnlyDictionary<HexCoordinates, AttackReachableHighlight> ReachableHighlights);

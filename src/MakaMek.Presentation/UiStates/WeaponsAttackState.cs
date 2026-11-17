@@ -65,15 +65,15 @@ public class WeaponsAttackState : IUiState, ICombatSelectionRoles
         }
     }
 
-    public WeaponsAttackState(
+    internal WeaponsAttackState(
         BattleMapViewModel viewModel,
-        WeaponsAttackSelectionPolicy? selectionPolicy = null,
-        WeaponRangeAnalyzer? rangeAnalyzer = null)
+        WeaponsAttackSelectionPolicy selectionPolicy,
+        WeaponRangeAnalyzer rangeAnalyzer)
     {
         Game = viewModel.Game! ?? throw new InvalidOperationException("Game is not client game");
         _viewModel = viewModel;
-        _selectionPolicy = selectionPolicy ?? new WeaponsAttackSelectionPolicy();
-        _rangeAnalyzer = rangeAnalyzer ?? new WeaponRangeAnalyzer();
+        _selectionPolicy = selectionPolicy;
+        _rangeAnalyzer = rangeAnalyzer;
         if (Game.PhaseStepState?.ActivePlayer == null)
         {
             throw new InvalidOperationException("Active player is null"); 
@@ -398,47 +398,20 @@ public class WeaponsAttackState : IUiState, ICombatSelectionRoles
     {
         if (Attacker is not { Position: { } attackerPosition } attacker) return;
 
-        var candidates = CollectWeaponCandidates(attacker, attackerPosition);
-        _weaponRanges = _rangeAnalyzer.Analyze(
+        var analysis = _rangeAnalyzer.Analyze(
             attacker,
-            candidates,
+            CollectWeaponCandidates(attacker, attackerPosition),
             _viewModel.Units,
-            Game.BattleMap,
-            out var losHighlights);
+            Game.BattleMap);
+        _weaponRanges = analysis.Ranges;
 
         // Apply all highlights in a single batch call so boundary outlines
         // are computed once over the full region per highlight type.
-        var reachableHighlights = BuildReachableHighlights();
         var perHexHighlights = new Dictionary<HexCoordinates, IHexHighlightType>(
-            losHighlights.Count + reachableHighlights.Count);
-        foreach (var (coordinates, highlight) in losHighlights) perHexHighlights[coordinates] = highlight;
-        foreach (var (coordinates, highlight) in reachableHighlights) perHexHighlights[coordinates] = highlight;
+            analysis.LosHighlights.Count + analysis.ReachableHighlights.Count);
+        foreach (var (coordinates, highlight) in analysis.LosHighlights) perHexHighlights[coordinates] = highlight;
+        foreach (var (coordinates, highlight) in analysis.ReachableHighlights) perHexHighlights[coordinates] = highlight;
         _viewModel.HighlightRegions(perHexHighlights);
-    }
-
-    /// <summary>
-    /// One reachable highlight per hex, labelled with the names of the weapons that can fire into it.
-    /// </summary>
-    private Dictionary<HexCoordinates, AttackReachableHighlight> BuildReachableHighlights()
-    {
-        var hexToWeaponNames = new Dictionary<HexCoordinates, HashSet<string>>();
-        foreach (var (weapon, hexes) in _weaponRanges)
-        {
-            foreach (var hex in hexes)
-            {
-                if (!hexToWeaponNames.TryGetValue(hex, out var names))
-                {
-                    names = [];
-                    hexToWeaponNames[hex] = names;
-                }
-
-                names.Add(weapon.Name);
-            }
-        }
-
-        return hexToWeaponNames.ToDictionary(
-            pair => pair.Key,
-            pair => new AttackReachableHighlight(pair.Value.OrderBy(name => name).ToList()));
     }
 
     /// <summary>

@@ -3,6 +3,7 @@ using Sanet.MakaMek.Core.Data.Game.Mechanics.PhysicalAttacks;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.PhysicalAttack;
 using Sanet.MakaMek.Core.Models.Units;
+using Sanet.MakaMek.Map.Models;
 using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 
 namespace Sanet.MakaMek.Presentation.UiStates;
@@ -13,28 +14,31 @@ namespace Sanet.MakaMek.Presentation.UiStates;
 /// no declaration restriction, including the displacement budget. Target numbers and breakdowns are
 /// computed only for enabled rows.
 /// </summary>
-public sealed class PhysicalAttackOptionBuilder
+internal sealed class PhysicalAttackOptionBuilder
 {
-    private static readonly IReadOnlyList<PhysicalAttackType> SupportedAttackTypes =
-        PhysicalAttackDefinitions.Supported.Select(definition => definition.AttackType).ToList();
-
     private static readonly IReadOnlyList<PhysicalAttackOptionViewModel> NoOptions = [];
+
+    private readonly IClientGame _game;
+    private readonly ILocalizationService _localizationService;
+
+    internal PhysicalAttackOptionBuilder(IClientGame game, ILocalizationService localizationService)
+    {
+        _game = game;
+        _localizationService = localizationService;
+    }
 
     public IReadOnlyList<PhysicalAttackOptionViewModel> Build(
         IUnit attacker,
         IUnit target,
-        IClientGame game,
         IReadOnlyList<IUnit> allUnits,
-        Action<PhysicalAttackOptionViewModel, bool> onSelectionChanged,
-        ILocalizationService localizationService)
+        Action<PhysicalAttackOptionViewModel, bool> onSelectionChanged)
     {
-        if (game.BattleMap is not { } map) return NoOptions;
+        if (_game.BattleMap is not { } map) return NoOptions;
 
-        var options = new List<PhysicalAttackOptionViewModel>(SupportedAttackTypes.Count);
+        var options = new List<PhysicalAttackOptionViewModel>(PhysicalAttackDefinitions.Supported.Count);
         foreach (var definition in PhysicalAttackDefinitions.Supported)
         {
-            options.Add(BuildOption(definition, attacker, target, game, map, allUnits,
-                onSelectionChanged, localizationService));
+            options.Add(BuildOption(definition, attacker, target, map, allUnits, onSelectionChanged));
         }
 
         return options;
@@ -44,52 +48,46 @@ public sealed class PhysicalAttackOptionBuilder
         PhysicalAttackDefinition definition,
         IUnit attacker,
         IUnit target,
-        IClientGame game,
-        Sanet.MakaMek.Map.Models.IBattleMap map,
+        IBattleMap map,
         IReadOnlyList<IUnit> allUnits,
-        Action<PhysicalAttackOptionViewModel, bool> onSelectionChanged,
-        ILocalizationService localizationService)
+        Action<PhysicalAttackOptionViewModel, bool> onSelectionChanged)
     {
         var attackType = definition.AttackType;
-        var limbEligibility = game.PhysicalAttackEligibility.GetLimbEligibility(attacker, target, attackType, map);
-        var restriction = game.PhysicalAttackEligibility
+        var limbEligibility = _game.PhysicalAttackEligibility.GetLimbEligibility(attacker, target, attackType, map);
+        var restriction = _game.PhysicalAttackEligibility
             .GetDeclarationRestriction(attacker, target, attackType, map, allUnits);
         var isEnabled = limbEligibility.Any(limb => limb.IsAvailable) && restriction is null;
 
-        var restrictionReason = isEnabled ? null : GetRestrictionReason(restriction, localizationService);
+        var restrictionReason = isEnabled ? null : GetRestrictionReason(restriction);
 
         int? targetNumber = null;
         PhysicalAttackBreakdown? breakdown = null;
         if (isEnabled)
         {
-            targetNumber = game.PhysicalAttackCalculator.GetToHitNumber(attacker, target, attackType, map);
-            breakdown = game.PhysicalAttackCalculator.GetModifierBreakdown(attacker, target, attackType, map);
+            targetNumber = _game.PhysicalAttackCalculator.GetToHitNumber(attacker, target, attackType, map);
+            breakdown = _game.PhysicalAttackCalculator.GetModifierBreakdown(attacker, target, attackType, map);
         }
 
         return new PhysicalAttackOptionViewModel(
             attackType,
-            BuildLimbVariants(definition, limbEligibility, attacker, game, localizationService),
+            BuildLimbVariants(definition, limbEligibility, attacker),
             isEnabled,
             restrictionReason,
             targetNumber,
             breakdown,
             onSelectionChanged,
-            localizationService);
+            _localizationService);
     }
 
-    private static string GetRestrictionReason(
-        PhysicalAttackRestriction? restriction,
-        ILocalizationService localizationService) =>
+    private string GetRestrictionReason(PhysicalAttackRestriction? restriction) =>
         restriction is { } value
-            ? localizationService.GetString($"PhysicalAttackRestriction_{value}")
-            : localizationService.GetString("PhysicalAttackDeclaration_Unavailable");
+            ? _localizationService.GetString($"PhysicalAttackRestriction_{value}")
+            : _localizationService.GetString("PhysicalAttackDeclaration_Unavailable");
 
-    private static IReadOnlyList<PhysicalAttackLimbVariant> BuildLimbVariants(
+    private List<PhysicalAttackLimbVariant> BuildLimbVariants(
         PhysicalAttackDefinition definition,
         IReadOnlyList<PhysicalAttackLimbEligibility> limbEligibility,
-        IUnit attacker,
-        IClientGame game,
-        ILocalizationService localizationService)
+        IUnit attacker)
     {
         if (limbEligibility.Count == 0) return [];
 
@@ -106,8 +104,7 @@ public sealed class PhysicalAttackOptionBuilder
             variants.Add(CreateVariant(
                 definition,
                 attacker,
-                game,
-                localizationService.GetString("PhysicalAttack_BothArms"),
+                _localizationService.GetString("PhysicalAttack_BothArms"),
                 limbEligibility.Take(definition.MinLimbsPerDeclaration).ToList()));
             return variants;
         }
@@ -117,8 +114,7 @@ public sealed class PhysicalAttackOptionBuilder
             variants.Add(CreateVariant(
                 definition,
                 attacker,
-                game,
-                localizationService.GetString($"MechPart_{limb.Limb}"),
+                _localizationService.GetString($"MechPart_{limb.Limb}"),
                 [limb]));
         }
 
@@ -127,8 +123,7 @@ public sealed class PhysicalAttackOptionBuilder
             variants.Add(CreateVariant(
                 definition,
                 attacker,
-                game,
-                localizationService.GetString("PhysicalAttack_BothArms"),
+                _localizationService.GetString("PhysicalAttack_BothArms"),
                 limbEligibility.ToList()));
         }
 
@@ -140,10 +135,9 @@ public sealed class PhysicalAttackOptionBuilder
     /// unavailable as soon as one of its limbs is, and its damage is the sum of the per-limb
     /// damage because a two-arm punch resolves as two independent attacks.
     /// </summary>
-    private static PhysicalAttackLimbVariant CreateVariant(
+    private PhysicalAttackLimbVariant CreateVariant(
         PhysicalAttackDefinition definition,
         IUnit attacker,
-        IClientGame game,
         string label,
         IReadOnlyList<PhysicalAttackLimbEligibility> limbs)
     {
@@ -151,7 +145,7 @@ public sealed class PhysicalAttackOptionBuilder
             .Select(limb => limb.Restriction)
             .FirstOrDefault(value => value is not null);
         var damage = limbs.Sum(limb =>
-            game.PhysicalAttackCalculator.GetDamage(attacker, definition.AttackType, limb.Limb));
+            _game.PhysicalAttackCalculator.GetDamage(attacker, definition.AttackType, limb.Limb));
 
         return new PhysicalAttackLimbVariant(
             label,

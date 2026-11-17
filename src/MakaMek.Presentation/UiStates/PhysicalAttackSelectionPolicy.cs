@@ -5,7 +5,7 @@ namespace Sanet.MakaMek.Presentation.UiStates;
 /// <summary>
 /// What a selection request does to <see cref="PhysicalAttackState"/> in its current sub-step.
 /// </summary>
-public enum PhysicalAttackSelectionOutcome
+internal enum PhysicalAttackSelectionOutcome
 {
     /// <summary>The request is rejected: nothing changes.</summary>
     Ignore,
@@ -28,7 +28,7 @@ public enum PhysicalAttackSelectionOutcome
 /// The rules live outside the UiState setter so the setter stays a plain decision plus application,
 /// and so the decision can be unit tested without an Avalonia view model.
 /// </remarks>
-public sealed class PhysicalAttackSelectionPolicy
+internal sealed class PhysicalAttackSelectionPolicy
 {
     /// <summary>
     /// Decides what selecting <paramref name="candidate"/> means in <paramref name="step"/>.
@@ -37,7 +37,10 @@ public sealed class PhysicalAttackSelectionPolicy
     /// <param name="candidate">The unit the player picked, if any.</param>
     /// <param name="canAct">Whether the active player may act at all right now.</param>
     /// <param name="isFriendly">Whether the candidate belongs to the active player.</param>
-    /// <param name="canActAsAttacker">Whether the candidate can still declare an attack this turn.</param>
+    /// <param name="canActAsAttacker">
+    /// Decides whether the candidate can still declare an attack this turn. Evaluated only when the
+    /// sub-step needs it, because the eligibility check is the expensive part of the decision.
+    /// </param>
     /// <param name="isReachable">Whether the candidate is one of the attacker's reachable targets.</param>
     /// <param name="isCurrentTarget">Whether the candidate is already the declared-on target.</param>
     public PhysicalAttackSelectionOutcome Decide(
@@ -45,7 +48,7 @@ public sealed class PhysicalAttackSelectionPolicy
         IUnit? candidate,
         bool canAct,
         bool isFriendly,
-        bool canActAsAttacker,
+        Func<bool> canActAsAttacker,
         bool isReachable,
         bool isCurrentTarget)
     {
@@ -54,9 +57,9 @@ public sealed class PhysicalAttackSelectionPolicy
 
         return step switch
         {
-            PhysicalAttackStep.SelectingUnit => ChooseAttacker(canActAsAttacker),
+            PhysicalAttackStep.SelectingUnit => ChooseAttacker(canActAsAttacker()),
             PhysicalAttackStep.TargetSelection => isFriendly
-                ? ChooseAttacker(canActAsAttacker)
+                ? ChooseAttacker(canActAsAttacker())
                 : ChooseTarget(isReachable),
             PhysicalAttackStep.Declaration => ChooseDeclarationChange(isFriendly, isReachable, isCurrentTarget),
             _ => PhysicalAttackSelectionOutcome.Ignore
