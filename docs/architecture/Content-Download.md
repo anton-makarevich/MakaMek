@@ -197,7 +197,7 @@ The bucket is always **flat** — there are no versioned subfolders and no per-r
 2. **Manifest generation**: `.github/scripts/generate-data-manifest.cs` (a .NET 10 file-based app run via `dotnet run --file`) scans each asset type's subtree of `data/` (one manifest per immediate subdirectory: `units`, `hexes`, …) and writes a `manifest.json` at the root of each asset type (e.g. `data/units/manifest.json`, `data/hexes/manifest.json`). Each asset type's resource provider fetches only its own manifest, so no single shared listing is downloaded by every provider.
 3. **Upload**: `aws s3 sync` (S3-compatible endpoint, region `auto`) mirrors the whole `data/` folder into the bucket with `--delete`, so removed files disappear from the bucket. Because the manifests are generated before the sync and live inside the `data/` tree, this single sync publishes them together with the assets.
 
-Configuration uses repository secrets (`R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_R2_BUCKET`) and the public base URL variable `vars.DATA_R2_BASE_URL`.
+Configuration uses repository secrets (`R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_R2_BUCKET`) and the public base URL variable `vars.DATA_BUCKET_BASE_URL` (the single repository variable for the bucket base URL; the workflows embed it as `DataBucketBaseUrl`).
 
 ### manifest.json Schema
 
@@ -233,13 +233,15 @@ Per-file:
 - **path**: Path relative to `data/` (forward slashes, includes subfolders)
 - **name**: File name (last segment of `path`)
 - **hash**: SHA-256 of the raw file bytes (used as an opaque cache-version marker)
-- **url**: Public download URL (`DATA_R2_BASE_URL` + `/` + `path`)
+- **url**: Public download URL (`DATA_BUCKET_BASE_URL` + `/` + `path`)
 
 > These per-asset-type manifests are unrelated to the per-package `manifest.json` inside each `.mmux`/`.mmtx` archive — those schemas are unchanged.
 
 ### Current Status
 
-The existing GitHub-based runtime path (`GitHubResourceStreamProvider`) stays active for local development. In release builds the app consumes the per-asset-type manifest (e.g. `units/manifest.json`) from the bucket via `BucketResourceStreamProvider` and downloads files via their `url` field.
+The bucket (`BucketResourceStreamProvider` + per-asset-type `manifest.json`) is the **single built-in asset source for every head**, including local development and the main-branch WASM deployment. Dev builds simply fall back to the public bucket URL when no `DataBucketBaseUrl` is embedded.
+
+The GitHub Contents API (`GitHubResourceStreamProvider`) is **not** a default: anonymous callers get 60 requests/hour per IP, which a first launch on a shared network can exhaust, leaving the provider with an empty listing and the app showing "No units found". GitHub remains available as an **optional provider added in Settings** (e.g. to test unreleased assets from a branch), and the provider itself is unchanged.
 
 ## Possible Future Enhancements
 
