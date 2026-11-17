@@ -1,6 +1,5 @@
 using NSubstitute;
 using Sanet.MakaMek.Bots.Models.Evaluation;
-using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Map.Models;
 using Shouldly;

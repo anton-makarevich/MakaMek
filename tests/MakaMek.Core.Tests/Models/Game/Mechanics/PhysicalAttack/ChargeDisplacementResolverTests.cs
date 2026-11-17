@@ -54,6 +54,29 @@ public class ChargeDisplacementResolverTests
     }
 
     [Fact]
+    public void ResolveHit_WhenTheTargetDropsMoreThanTheSafeLimit_ReportsTheFall()
+    {
+        // Arrange: the hex behind the target is three levels lower. A forced descent is legal,
+        // but a drop deeper than two levels also forces a piloting check.
+        var map = CreateMap();
+        var attacker = CreateMech(new HexPosition(AttackerCoordinates, ChargeDirection));
+        var target = CreateMech(new HexPosition(TargetCoordinates, HexDirection.Bottom));
+        MoveToChargeApproach(attacker, target.Position!);
+        var primaryCoordinates = TargetCoordinates.GetNeighbour(ChargeDirection);
+        map.AddHex(new Hex(primaryCoordinates, -3));
+
+        // Act
+        var result = _sut.ResolveHit(attacker, target, map, [attacker, target], Guid.NewGuid());
+
+        // Assert
+        result.ShouldNotBeNull();
+        result.TargetDestination!.Coordinates.ShouldBe(primaryCoordinates);
+        result.AttackerDestination!.Coordinates.ShouldBe(TargetCoordinates);
+        result.LevelsFallen.ShouldBe(3);
+        result.TriggersAutomaticFall.ShouldBeTrue();
+    }
+
+    [Fact]
     public void ResolveHit_IntoAnOccupiedHex_ResolvesTheDominoChain()
     {
         // Arrange
@@ -216,6 +239,25 @@ public class ChargeDisplacementResolverTests
         result.AttackerDestination!.Coordinates.ShouldBe(
             AttackerCoordinates.GetNeighbour(ChargeDirection.Rotate(1)));
         result.AttackerDestination.Coordinates.DistanceTo(TargetCoordinates).ShouldBe(1);
+    }
+
+    [Fact]
+    public void ResolveMiss_WhenTheSideHexIsOneLevelLower_ReportsTheDropWithoutRejectingIt()
+    {
+        // Arrange: one level down is a legal forced entry, not a deep drop.
+        var map = CreateMap();
+        var attacker = CreateMech(new HexPosition(AttackerCoordinates, ChargeDirection));
+        var rightCoordinates = AttackerCoordinates.GetNeighbour(ChargeDirection.Rotate(1));
+        map.AddHex(new Hex(rightCoordinates, -1));
+
+        // Act
+        var result = _sut.ResolveMiss(attacker, map, [attacker]);
+
+        // Assert
+        result.ShouldNotBeNull();
+        result.AttackerDestination!.Coordinates.ShouldBe(rightCoordinates);
+        result.LevelsFallen.ShouldBe(1);
+        result.TriggersAutomaticFall.ShouldBeFalse();
     }
 
     [Fact]
