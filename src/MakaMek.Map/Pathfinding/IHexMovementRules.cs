@@ -13,6 +13,11 @@ internal interface IHexMovementRules
     /// Enumerates the surfaces of <paramref name="toHex"/> that can be entered from the given
     /// surface of <paramref name="fromHex"/>, together with the cost of each transition.
     /// </summary>
+    /// <remarks>
+    /// Every returned transition must cost at least one movement point for the entered hex. The
+    /// shortest-path search uses straight-line hex distance as its A* heuristic, which is
+    /// admissible only under that lower bound.
+    /// </remarks>
     /// <param name="fromHex">Hex currently occupied.</param>
     /// <param name="toHex">Adjacent hex being entered.</param>
     /// <param name="fromSurface">Surface the moving unit currently stands on.</param>

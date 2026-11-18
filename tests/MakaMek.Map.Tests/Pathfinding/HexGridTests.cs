@@ -76,10 +76,12 @@ public class HexGridTests
 
         var affected = sut.GetAffectedCoordinates(centre).ToList();
 
-        affected[0].ShouldBe(centre);
-        affected.ShouldAllBe(c => sut.IsOnMap(c));
-        affected.ShouldContain(centre);
-        affected.Count.ShouldBeGreaterThan(1);
+        affected.ShouldBe(
+        [
+            centre,
+            new HexCoordinates(2, 1),
+            new HexCoordinates(1, 2)
+        ]);
     }
 
     [Fact]

@@ -178,7 +178,9 @@ public class LineOfSightCalculatorTests
         grid.AddHex(TraversalTestMap.CreateHex(3, 3, 0, new HeavyWoodsTerrain()));
         grid.AddHex(TraversalTestMap.CreateHex(4, 2, 0, new HeavyWoodsTerrain()));
 
-        sut.Get(from, to, 2, 0, null, null, null, null).HasLineOfSight.ShouldBeTrue();
+        var cachedHit = sut.Get(from, to, 2, 0, null, null, null, null);
+        cachedHit.HasLineOfSight.ShouldBeTrue();
+        cachedHit.TotalInterveningFactor.ShouldBe(2);
 
         cache.Clear();
 

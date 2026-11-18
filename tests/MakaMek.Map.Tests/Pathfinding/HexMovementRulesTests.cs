@@ -17,7 +17,9 @@ public class HexMovementRulesTests
 
         var transitions = _sut.GetTransitions(from, to, HexSurface.Ground, 1, null).ToList();
 
-        transitions.ShouldBe([new HexTransition(HexSurface.Ground, EnterCost: 1, LevelCost: 0)]);
+        var transition = transitions.ShouldHaveSingleItem();
+        transition.Surface.ShouldBe(HexSurface.Ground);
+        transition.MovementCost.ShouldBe(1);
     }
 
     [Fact]
@@ -28,7 +30,7 @@ public class HexMovementRulesTests
 
         var transition = _sut.GetTransitions(from, to, HexSurface.Ground, 1, null).Single();
 
-        transition.EnterCost.ShouldBe(3);
+        transition.EnterCosts.Sum(cost => cost.Value).ShouldBe(3);
         transition.MovementCost.ShouldBe(3);
     }
 
@@ -66,7 +68,9 @@ public class HexMovementRulesTests
 
         var transitions = _sut.GetTransitions(from, to, HexSurface.Ground, 1, null).ToList();
 
-        transitions.ShouldBe([new HexTransition(HexSurface.Ground, EnterCost: 1, LevelCost: 0)]);
+        var transition = transitions.ShouldHaveSingleItem();
+        transition.Surface.ShouldBe(HexSurface.Ground);
+        transition.MovementCost.ShouldBe(1);
     }
 
     [Fact]
@@ -77,7 +81,11 @@ public class HexMovementRulesTests
 
         var transitions = _sut.GetTransitions(from, to, HexSurface.Ground, 3, null).ToList();
 
-        transitions.ShouldBe([new HexTransition(HexSurface.Bridge, EnterCost: 1, LevelCost: 2)]);
+        var transition = transitions.ShouldHaveSingleItem();
+        transition.Surface.ShouldBe(HexSurface.Bridge);
+        transition.EnterCosts.Sum(cost => cost.Value).ShouldBe(1);
+        transition.LevelCost.ShouldBe(2);
+        transition.MovementCost.ShouldBe(3);
     }
 
     [Fact]
@@ -89,6 +97,6 @@ public class HexMovementRulesTests
         var transitions = _sut.GetTransitions(from, to, HexSurface.Ground, 1, null).ToList();
 
         transitions.Select(t => t.Surface).ShouldBe([HexSurface.Ground, HexSurface.Bridge]);
-        transitions.ShouldAllBe(t => t.EnterCost == 1);
+        transitions.ShouldAllBe(t => t.EnterCosts.Sum(cost => cost.Value) == 1);
     }
 }

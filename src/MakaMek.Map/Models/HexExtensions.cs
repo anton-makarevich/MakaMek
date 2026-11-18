@@ -35,8 +35,9 @@ public static class HexExtensions
         }
 
         /// <summary>
-        /// Total line-of-sight intervening factor contributed by the terrain in this hex.
-        /// The line of sight is blocked once the sum along the path reaches 3.
+        /// Raw intervening factor contributed by every terrain in this hex. The line-of-sight
+        /// calculator applies its own ceiling and blocking-threshold rules, so a sum of 3 across a
+        /// path does not by itself block the line of sight.
         /// </summary>
         public int GetInterveningFactor()
         {

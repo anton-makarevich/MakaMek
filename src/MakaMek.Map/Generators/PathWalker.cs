@@ -23,7 +23,11 @@ internal sealed class PathWalker(int width, int height)
     /// Per-candidate legality check, receiving the hex being expanded and the candidate neighbour.
     /// Returning <c>true</c> accepts the candidate into the result and puts it on the queue.
     /// </param>
-    /// <param name="maxSize">Optional upper bound on the number of hexes in the result.</param>
+    /// <param name="maxSize">
+    /// Optional upper bound on the number of hexes in the result. <paramref name="start"/> is always
+    /// included and counts towards the bound, so the effective limit is at least one even when a
+    /// smaller value is supplied.
+    /// </param>
     /// <returns>The accepted hexes, including <paramref name="start"/>.</returns>
     public HashSet<HexCoordinates> Flood(
         HexCoordinates start,

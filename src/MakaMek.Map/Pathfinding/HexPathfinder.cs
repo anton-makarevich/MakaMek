@@ -1,4 +1,3 @@
-using Sanet.MakaMek.Map.Exceptions;
 using Sanet.MakaMek.Map.Models;
 using Sanet.MakaMek.Map.Models.MovementCosts;
 
@@ -16,12 +15,13 @@ internal sealed class HexPathfinder(IHexGrid grid, IHexMovementRules movementRul
 
     private readonly record struct PathfindingState(
         HexPosition Position,
-        List<HexPosition> Path,
+        List<PathSegment> Segments,
         int Cost,
         int HexesTraveled);
 
     private readonly record struct NeighbourTransition(
-        HexCoordinates Coordinates,
+        Hex FromHex,
+        Hex ToHex,
         HexDirection RequiredFacing,
         int TurningCost,
         List<HexPosition> TurningSteps,
@@ -63,7 +63,7 @@ internal sealed class HexPathfinder(IHexGrid grid, IHexMovementRules movementRul
     /// <summary>
     /// Creates a turning path when start and target are in the same hex.
     /// </summary>
-    private MovementPath? FindSameHexPath(PathRequest request, MovementPathCache cache, bool useCache)
+    private static MovementPath? FindSameHexPath(PathRequest request, MovementPathCache cache, bool useCache)
     {
         if (request.Start.Surface != request.Target.Surface)
             return null;
@@ -118,7 +118,7 @@ internal sealed class HexPathfinder(IHexGrid grid, IHexMovementRules movementRul
         var frontier = new PriorityQueue<PathfindingState, (int, int)>();
         var visited = new Dictionary<HexPosition, (int Cost, int Hexes)>();
 
-        frontier.Enqueue(new PathfindingState(request.Start, [request.Start], 0, 0), (0, 0));
+        frontier.Enqueue(new PathfindingState(request.Start, [], 0, 0), (0, 0));
         visited[request.Start] = (0, 0);
 
         while (frontier.Count > 0)
@@ -127,7 +127,7 @@ internal sealed class HexPathfinder(IHexGrid grid, IHexMovementRules movementRul
 
             if (current.Position == request.Target)
             {
-                var candidatePath = BuildPath(request, current.Path);
+                var candidatePath = BuildPath(request, current.Segments);
 
                 if (request.Mode == PathFindingMode.Shortest)
                 {
@@ -179,7 +179,8 @@ internal sealed class HexPathfinder(IHexGrid grid, IHexMovementRules movementRul
                          request.MaxLevelChange))
             {
                 var step = new NeighbourTransition(
-                    nextCoordinates,
+                    currentHex,
+                    nextHex,
                     requiredFacing,
                     turningSteps.Count,
                     turningSteps,
@@ -193,7 +194,7 @@ internal sealed class HexPathfinder(IHexGrid grid, IHexMovementRules movementRul
         }
     }
 
-    private IEnumerable<(PathfindingState State, (int Cost, int Heuristic) Priority)> ExpandTransition(
+    private static IEnumerable<(PathfindingState State, (int Cost, int Heuristic) Priority)> ExpandTransition(
         PathfindingState current,
         PathRequest request,
         NeighbourTransition step,
@@ -202,8 +203,9 @@ internal sealed class HexPathfinder(IHexGrid grid, IHexMovementRules movementRul
         var totalCost = current.Cost + step.Transition.MovementCost + step.TurningCost;
         if (totalCost > request.MaxMovementPoints) yield break;
 
-        var nextPosition = new HexPosition(step.Coordinates, step.RequiredFacing, step.Transition.Surface);
-        var isNewHex = current.Path.All(p => p.Coordinates != step.Coordinates);
+        var nextPosition = new HexPosition(step.ToHex.Coordinates, step.RequiredFacing, step.Transition.Surface);
+        var isNewHex = request.Start.Coordinates != step.ToHex.Coordinates
+                       && current.Segments.All(segment => segment.To.Coordinates != step.ToHex.Coordinates);
         var hexesTraveled = current.HexesTraveled + (isNewHex ? 1 : 0);
 
         if (visited.TryGetValue(nextPosition, out var visitedState)
@@ -214,15 +216,22 @@ internal sealed class HexPathfinder(IHexGrid grid, IHexMovementRules movementRul
 
         visited[nextPosition] = (totalCost, hexesTraveled);
 
-        var newPath = new List<HexPosition>(current.Path);
-        newPath.AddRange(step.TurningSteps);
-        newPath.Add(nextPosition);
+        var segments = new List<PathSegment>(current.Segments);
+        var fromPosition = current.Position;
+        foreach (var turningStep in step.TurningSteps)
+        {
+            segments.Add(CreateRotationSegment(fromPosition, turningStep));
+            fromPosition = turningStep;
+        }
 
-        if (step.Coordinates != request.Target.Coordinates || step.RequiredFacing == request.Target.Facing)
+        segments.Add(CreateMovementSegment(fromPosition, nextPosition, step));
+
+        if (step.ToHex.Coordinates != request.Target.Coordinates || step.RequiredFacing == request.Target.Facing)
         {
             yield return (
-                new PathfindingState(nextPosition, newPath, totalCost, hexesTraveled),
-                Priority(request.Mode, totalCost, hexesTraveled, step.Coordinates.DistanceTo(request.Target.Coordinates)));
+                new PathfindingState(nextPosition, segments, totalCost, hexesTraveled),
+                Priority(request.Mode, totalCost, hexesTraveled,
+                    step.ToHex.Coordinates.DistanceTo(request.Target.Coordinates)));
             yield break;
         }
 
@@ -230,11 +239,17 @@ internal sealed class HexPathfinder(IHexGrid grid, IHexMovementRules movementRul
         var finalCost = totalCost + finalTurningSteps.Count;
         if (finalCost > request.MaxMovementPoints) yield break;
 
-        newPath.AddRange(finalTurningSteps);
-        var targetPosition = new HexPosition(step.Coordinates, request.Target.Facing, step.Transition.Surface);
+        fromPosition = nextPosition;
+        foreach (var turningStep in finalTurningSteps)
+        {
+            segments.Add(CreateRotationSegment(fromPosition, turningStep));
+            fromPosition = turningStep;
+        }
+
+        var targetPosition = new HexPosition(step.ToHex.Coordinates, request.Target.Facing, step.Transition.Surface);
 
         yield return (
-            new PathfindingState(targetPosition, newPath, finalCost, hexesTraveled),
+            new PathfindingState(targetPosition, segments, finalCost, hexesTraveled),
             Priority(request.Mode, finalCost, hexesTraveled, 0));
     }
 
@@ -260,45 +275,39 @@ internal sealed class HexPathfinder(IHexGrid grid, IHexMovementRules movementRul
             : (-hexesTraveled, distanceToTarget);
     }
 
-    private MovementPath BuildPath(PathRequest request, List<HexPosition> path)
+    private static MovementPath BuildPath(PathRequest request, List<PathSegment> segments)
     {
-        return new MovementPath(ConvertPathToSegments(path), request.MovementType, request.MaxLevelChange);
+        return new MovementPath(segments, request.MovementType, request.MaxLevelChange);
+    }
+
+    private static PathSegment CreateRotationSegment(HexPosition from, HexPosition to)
+    {
+        return new PathSegment(
+            from,
+            to,
+            [new RotationMovementCost { FromFacing = from.Facing, ToFacing = to.Facing, Value = 1 }],
+            ElevationChange: 0);
     }
 
     /// <summary>
-    /// Converts a list of hex positions to path segments.
+    /// Builds the segment for an accepted step from the cost breakdown the movement rules charged,
+    /// so the returned path and its cache entry carry the same cost the search accepted.
     /// </summary>
-    internal List<PathSegment> ConvertPathToSegments(List<HexPosition> path)
+    private static PathSegment CreateMovementSegment(
+        HexPosition from,
+        HexPosition to,
+        NeighbourTransition step)
     {
-        var segments = new List<PathSegment>();
-        for (var i = 0; i < path.Count - 1; i++)
+        var elevationChange = step.ToHex.GetElevationChange(step.FromHex, from.Surface, to.Surface);
+
+        var costs = new List<MovementCost>(step.Transition.EnterCosts);
+        if (step.Transition.LevelCost > 0)
         {
-            segments.Add(CreateSegment(path[i], path[i + 1]));
-        }
-
-        return segments;
-    }
-
-    private PathSegment CreateSegment(HexPosition from, HexPosition to)
-    {
-        if (from.Coordinates == to.Coordinates)
-        {
-            return new PathSegment(
-                from,
-                to,
-                [new RotationMovementCost { FromFacing = from.Facing, ToFacing = to.Facing, Value = 1 }],
-                ElevationChange: 0);
-        }
-
-        var hex = grid.GetHex(to.Coordinates) ?? throw new WrongHexException(to.Coordinates, "Hex not found");
-        var fromHex = grid.GetHex(from.Coordinates) ?? throw new WrongHexException(from.Coordinates, "Hex not found");
-        var elevationChange = hex.GetElevationChange(fromHex, from.Surface, to.Surface);
-
-        var costs = new List<MovementCost>(hex.GetEnterMovementCost(fromHex, from.Surface, to.Surface));
-        var levelCost = Math.Abs(elevationChange);
-        if (levelCost > 0)
-        {
-            costs.Add(new ElevationChangeMovementCost { ElevationDelta = elevationChange, Value = levelCost });
+            costs.Add(new ElevationChangeMovementCost
+            {
+                ElevationDelta = elevationChange,
+                Value = step.Transition.LevelCost
+            });
         }
 
         return new PathSegment(from, to, costs, ElevationChange: elevationChange);

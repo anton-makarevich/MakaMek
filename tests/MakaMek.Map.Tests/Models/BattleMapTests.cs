@@ -1,4 +1,3 @@
-using System.Reflection;
 using Sanet.MakaMek.Map.Exceptions;
 using Sanet.MakaMek.Map.Factories;
 using Sanet.MakaMek.Map.Generators;
@@ -1191,7 +1190,7 @@ public class BattleMapTests
         sut.AddHex(toHex);
 
         var attacker = new HexPosition(from, HexDirection.Top);
-        var targetOnGround = new HexPosition(to, HexDirection.Top, HexSurface.Ground);
+        var targetOnGround = new HexPosition(to, HexDirection.Top);
         var targetOnBridge = targetOnGround with { Surface = HexSurface.Bridge };
 
         // Act & Assert
@@ -1469,43 +1468,21 @@ public class BattleMapTests
     }
     
     [Fact]
-    public void ConvertPathToSegments_WithInvalidHex_ThrowsWrongHexException()
+    public void FindPath_MissingIntermediateHex_ReturnsNull()
     {
-        // Arrange
-        var sut = new BattleMap(3, 3);
-            
-        // Add hexes for 3x3 sut
-        for (var q = 1; q <= 3; q++)
-        {
-            for (var r = 1; r <= 3; r++)
-            {
-                var hex = new Hex(new HexCoordinates(q, r));
-                hex.AddTerrain(new ClearTerrain());
-                sut.AddHex(hex);
-            }
-        }
-            
-        // Create a path that includes an invalid coordinate outside the sut
-        var pathWithInvalidHex = new List<HexPosition>
-        {
-            new(new HexCoordinates(1, 3), HexDirection.Top),     // Valid hex on sut
-            new(new HexCoordinates(1, 5), HexDirection.Top)      // Invalid hex outside sut
-        };
+        // Arrange: (2, 1) is the only connecting hex between the two clear hexes, but it is absent.
+        var sut = new BattleMap(3, 1);
+        sut.AddHex(new Hex(new HexCoordinates(1, 1)).WithTerrain(new ClearTerrain()));
+        sut.AddHex(new Hex(new HexCoordinates(3, 1)).WithTerrain(new ClearTerrain()));
 
-        // Act & Assert
-        var ex = Should.Throw<TargetInvocationException>(() => 
-        {
-            // Use reflection to call the private ConvertPathToSegments method
-            var method = typeof(BattleMap).GetMethod("ConvertPathToSegments", 
-                BindingFlags.NonPublic | BindingFlags.Instance);
-            method!.Invoke(sut, [pathWithInvalidHex]);
-        });
+        var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.Top);
+        var target = new HexPosition(new HexCoordinates(3, 1), HexDirection.Top);
 
-        // The inner exception should be WrongHexException
-        ex.InnerException.ShouldBeOfType<WrongHexException>();
-        var wrongHexEx = (WrongHexException)ex.InnerException!;
-        wrongHexEx.Coordinates.ShouldBe(new HexCoordinates(1, 5));
-        wrongHexEx.Message.ShouldContain("Hex not found");
+        // Act
+        var path = sut.FindPath(start, target, MovementType.Walk, 10, 1);
+
+        // Assert
+        path.ShouldBeNull();
     }
     
     [Fact]
@@ -2008,7 +1985,7 @@ public class BattleMapTests
         // in play; this exercises the level math only.
         var sut = CreateFlatMap(2, 1, (_, _) => 0);
         sut.GetHex(new HexCoordinates(1, 1))!.AddTerrain(new BridgeTerrain(2, 0));
-        var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.Top, HexSurface.Ground);
+        var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.Top);
         var target = new HexPosition(new HexCoordinates(2, 1), HexDirection.Top);
 
         // Act

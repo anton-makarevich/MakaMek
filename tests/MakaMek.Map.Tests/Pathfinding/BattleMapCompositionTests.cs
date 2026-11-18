@@ -1,4 +1,5 @@
 using Sanet.MakaMek.Map.Models;
+using Sanet.MakaMek.Map.Models.MovementCosts;
 using Sanet.MakaMek.Map.Pathfinding;
 using Shouldly;
 
@@ -19,7 +20,14 @@ public class BattleMapCompositionTests
         var target = new HexPosition(new HexCoordinates(2, 1), HexDirection.BottomRight);
 
         sut.FindPath(start, target, MovementType.Walk, 4, 1).ShouldBeNull();
-        sut.FindPath(start, target, MovementType.Walk, 5, 1).ShouldNotBeNull();
+
+        var path = sut.FindPath(start, target, MovementType.Walk, 5, 1);
+        path.ShouldNotBeNull();
+        path.TotalCost.ShouldBe(5);
+
+        // The cached path carries the injected cost, so a budget that only covers the terrain
+        // price must not return it.
+        sut.FindPath(start, target, MovementType.Walk, 1, 1).ShouldBeNull();
     }
 
     [Fact]
@@ -36,12 +44,7 @@ public class BattleMapCompositionTests
 
     private static BattleMap CreateMap(HexGrid grid, IHexMovementRules rules)
     {
-        return new BattleMap(
-            grid,
-            rules,
-            new LineOfSightCache(),
-            new MovementPathCache(),
-            new MovementPathCache());
+        return new BattleMap(grid, rules);
     }
 
     private sealed class FixedCostMovementRules(int cost) : IHexMovementRules
@@ -55,7 +58,10 @@ public class BattleMapCompositionTests
         {
             foreach (var surface in toHex.GetHexSurfaces())
             {
-                yield return new HexTransition(surface, cost, 0);
+                yield return new HexTransition(
+                    surface,
+                    [new HexEnterMovementCost { Value = cost }],
+                    0);
             }
         }
     }

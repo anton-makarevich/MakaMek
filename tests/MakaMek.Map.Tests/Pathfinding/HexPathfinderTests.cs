@@ -1,4 +1,5 @@
 using Sanet.MakaMek.Map.Models;
+using Sanet.MakaMek.Map.Models.MovementCosts;
 using Sanet.MakaMek.Map.Pathfinding;
 using Shouldly;
 
@@ -109,7 +110,9 @@ public class HexPathfinderTests
 
         sut.Find(Request(start, target, maxMovementPoints: 3), new MovementPathCache()).ShouldBeNull();
 
-        sut.Find(Request(start, target, maxMovementPoints: 4), new MovementPathCache()).ShouldNotBeNull();
+        var path = sut.Find(Request(start, target, maxMovementPoints: 4), new MovementPathCache());
+        path.ShouldNotBeNull();
+        path.TotalCost.ShouldBe(4);
     }
 
     [Fact]
@@ -125,6 +128,7 @@ public class HexPathfinderTests
         var first = sut.Find(request, cache);
         var second = sut.Find(request, cache);
 
+        first.ShouldNotBeNull();
         second.ShouldBeSameAs(first);
     }
 
@@ -190,7 +194,10 @@ public class HexPathfinderTests
         {
             foreach (var surface in toHex.GetHexSurfaces())
             {
-                yield return new HexTransition(surface, cost, 0);
+                yield return new HexTransition(
+                    surface,
+                    [new HexEnterMovementCost { Value = cost }],
+                    0);
             }
         }
     }

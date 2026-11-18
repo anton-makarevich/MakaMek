@@ -25,8 +25,8 @@ internal sealed class HexMovementRules : IHexMovementRules
             if (maxLevelChange is { } max && levelCost > max)
                 continue;
 
-            var enterCost = toHex.GetEnterMovementCost(fromHex, fromSurface, toSurface).Sum(c => c.Value);
-            yield return new HexTransition(toSurface, enterCost, levelCost);
+            var enterCosts = toHex.GetEnterMovementCost(fromHex, fromSurface, toSurface);
+            yield return new HexTransition(toSurface, enterCosts, levelCost);
         }
     }
 

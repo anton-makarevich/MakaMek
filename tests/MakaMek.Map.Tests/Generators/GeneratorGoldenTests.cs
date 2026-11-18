@@ -87,6 +87,19 @@ public class GeneratorGoldenTests
         patches.Values.ShouldAllBe(distance => distance <= 6);
     }
 
+    [Fact]
+    public void GeneratePatches_LimitsEachPatchToItsSize()
+    {
+        // 30x30 with coverage 0.01 and a fixed size of 5 yields exactly one patch centred at
+        // (2, 2). Accepting every candidate would flood the whole map, so the patch size limit is
+        // the only thing that can stop the walk at five hexes.
+        var sut = new PatchGenerator(30, 30, new LowerBoundRandom());
+
+        var patches = sut.GeneratePatches(0.01, 5, 5);
+
+        patches.Count.ShouldBe(5);
+    }
+
     [Theory]
     [InlineData(99)]
     [InlineData(12345)]
@@ -105,5 +118,16 @@ public class GeneratorGoldenTests
             .ThenBy(pair => pair.Key.R)
             .Select(pair => (pair.Key.Q, pair.Key.R, pair.Value))
             .ToArray();
+    }
+
+    /// <summary>
+    /// Always returns the lower bound, so the patch centre and size are deterministic, and accepts
+    /// every candidate the generator offers.
+    /// </summary>
+    private sealed class LowerBoundRandom : Random
+    {
+        public override int Next(int minValue, int maxValue) => minValue;
+
+        public override double NextDouble() => 0;
     }
 }

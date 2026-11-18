@@ -13,18 +13,7 @@ internal static class TraversalTestMap
     public static BattleMap BuildGoldenMap()
     {
         var map = BuildFlatMap(6, 5);
-
-        SetLevel(map, 2, 2, 1);
-        SetLevel(map, 3, 2, 2);
-        SetLevel(map, 3, 3, 1);
-
-        AddTerrain(map, 2, 3, new HeavyWoodsTerrain());
-        AddTerrain(map, 4, 2, new LightWoodsTerrain());
-        AddTerrain(map, 4, 4, new RoughTerrain());
-        AddTerrain(map, 5, 3, new WaterTerrain(-1));
-        AddTerrain(map, 5, 4, new WaterTerrain(-1));
-        AddTerrain(map, 5, 4, new BridgeTerrain(2, 40));
-
+        ApplyGoldenLayout(map.GetHex);
         return map;
     }
 
@@ -34,27 +23,27 @@ internal static class TraversalTestMap
     /// </summary>
     public static HexGrid BuildGoldenGrid()
     {
-        var grid = new HexGrid(6, 5, "test.biome");
-        for (var q = 1; q <= 6; q++)
-        {
-            for (var r = 1; r <= 5; r++)
-            {
-                grid.AddHex(new Hex(new HexCoordinates(q, r)).WithTerrain(new ClearTerrain()));
-            }
-        }
-
-        SetLevel(grid, 2, 2, 1);
-        SetLevel(grid, 3, 2, 2);
-        SetLevel(grid, 3, 3, 1);
-
-        AddTerrain(grid, 2, 3, new HeavyWoodsTerrain());
-        AddTerrain(grid, 4, 2, new LightWoodsTerrain());
-        AddTerrain(grid, 4, 4, new RoughTerrain());
-        AddTerrain(grid, 5, 3, new WaterTerrain(-1));
-        AddTerrain(grid, 5, 4, new WaterTerrain(-1));
-        AddTerrain(grid, 5, 4, new BridgeTerrain(2, 40));
-
+        var grid = BuildClearGrid(6, 5);
+        ApplyGoldenLayout(grid.GetHex);
         return grid;
+    }
+
+    /// <summary>
+    /// Single source of truth for the golden map's levels and terrain. Each builder creates fresh
+    /// hexes and stamps its own biome before this layout is applied.
+    /// </summary>
+    private static void ApplyGoldenLayout(Func<HexCoordinates, Hex?> getHex)
+    {
+        SetLevel(getHex, 2, 2, 1);
+        SetLevel(getHex, 3, 2, 2);
+        SetLevel(getHex, 3, 3, 1);
+
+        AddTerrain(getHex, 2, 3, new HeavyWoodsTerrain());
+        AddTerrain(getHex, 4, 2, new LightWoodsTerrain());
+        AddTerrain(getHex, 4, 4, new RoughTerrain());
+        AddTerrain(getHex, 5, 3, new WaterTerrain(-1));
+        AddTerrain(getHex, 5, 4, new WaterTerrain(-1));
+        AddTerrain(getHex, 5, 4, new BridgeTerrain(2, 40));
     }
 
     public static BattleMap BuildFlatMap(int width, int height)
@@ -96,23 +85,13 @@ internal static class TraversalTestMap
         return hex;
     }
 
-    private static void SetLevel(BattleMap map, int q, int r, int level)
+    private static void SetLevel(Func<HexCoordinates, Hex?> getHex, int q, int r, int level)
     {
-        map.GetHex(new HexCoordinates(q, r))!.Level = level;
+        getHex(new HexCoordinates(q, r))!.Level = level;
     }
 
-    private static void AddTerrain(BattleMap map, int q, int r, Terrain terrain)
+    private static void AddTerrain(Func<HexCoordinates, Hex?> getHex, int q, int r, Terrain terrain)
     {
-        map.GetHex(new HexCoordinates(q, r))!.AddTerrain(terrain);
-    }
-
-    private static void SetLevel(HexGrid grid, int q, int r, int level)
-    {
-        grid.GetHex(new HexCoordinates(q, r))!.Level = level;
-    }
-
-    private static void AddTerrain(HexGrid grid, int q, int r, Terrain terrain)
-    {
-        grid.GetHex(new HexCoordinates(q, r))!.AddTerrain(terrain);
+        getHex(new HexCoordinates(q, r))!.AddTerrain(terrain);
     }
 }

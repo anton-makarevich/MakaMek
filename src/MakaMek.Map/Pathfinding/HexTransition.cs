@@ -1,4 +1,5 @@
 using Sanet.MakaMek.Map.Models;
+using Sanet.MakaMek.Map.Models.MovementCosts;
 
 namespace Sanet.MakaMek.Map.Pathfinding;
 
@@ -6,9 +7,16 @@ namespace Sanet.MakaMek.Map.Pathfinding;
 /// A single legal transition from a hex to one of the surfaces of an adjacent hex.
 /// </summary>
 /// <param name="Surface">Destination surface that can be occupied.</param>
-/// <param name="EnterCost">Terrain and entry cost of entering the destination hex.</param>
+/// <param name="EnterCosts">
+/// Terrain and entry costs of entering the destination hex, as priced by the movement rules.
+/// The accepted cost breakdown is carried into the returned path so the search and the segments
+/// always agree.
+/// </param>
 /// <param name="LevelCost">Extra cost for the elevation difference between the two surfaces.</param>
-internal readonly record struct HexTransition(HexSurface Surface, int EnterCost, int LevelCost)
+internal readonly record struct HexTransition(
+    HexSurface Surface,
+    IReadOnlyList<MovementCost> EnterCosts,
+    int LevelCost)
 {
-    public int MovementCost => EnterCost + LevelCost;
+    public int MovementCost => EnterCosts.Sum(c => c.Value) + LevelCost;
 }

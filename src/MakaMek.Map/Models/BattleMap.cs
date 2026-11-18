@@ -25,29 +25,23 @@ public class BattleMap : IBattleMap
     /// Creates a battle map with the default map collaborators.
     /// </summary>
     public BattleMap(int width, int height, string biome = DefaultBiome)
-        : this(
-            new HexGrid(width, height, biome),
-            new HexMovementRules(),
-            new LineOfSightCache(),
-            new MovementPathCache(),
-            new MovementPathCache())
+        : this(new HexGrid(width, height, biome), new HexMovementRules())
     {
     }
 
-    internal BattleMap(
-        HexGrid grid,
-        IHexMovementRules movementRules,
-        LineOfSightCache losCache,
-        MovementPathCache movementPathCache,
-        MovementPathCache movementLongPathCache)
+    /// <summary>
+    /// Creates a battle map over an existing grid with the supplied movement rules. The per-map
+    /// caches are always allocated here so two maps can never share cached paths or line-of-sight.
+    /// </summary>
+    internal BattleMap(HexGrid grid, IHexMovementRules movementRules)
     {
         _grid = grid;
-        _losCache = losCache;
-        _movementPathCache = movementPathCache;
-        _movementLongPathCache = movementLongPathCache;
+        _losCache = new LineOfSightCache();
+        _movementPathCache = new MovementPathCache();
+        _movementLongPathCache = new MovementPathCache();
         _pathfinder = new HexPathfinder(grid, movementRules);
         _reachability = new HexReachabilityCalculator(grid, movementRules);
-        _lineOfSight = new LineOfSightCalculator(grid, losCache);
+        _lineOfSight = new LineOfSightCalculator(grid, _losCache);
     }
 
     public int Width => _grid.Width;
@@ -167,15 +161,6 @@ public class BattleMap : IBattleMap
         int? fromBaseLevel = null, int? toBaseLevel = null)
     {
         return _lineOfSight.Get(from, to, attackHeight, targetHeight, fromSurface, toSurface, fromBaseLevel, toBaseLevel);
-    }
-
-    /// <summary>
-    /// Converts a list of hex positions to path segments. Kept on the map as the façade for the
-    /// pathfinder's segment builder.
-    /// </summary>
-    private List<PathSegment> ConvertPathToSegments(List<HexPosition> path)
-    {
-        return _pathfinder.ConvertPathToSegments(path);
     }
 
     public IEnumerable<Hex> GetHexes()
@@ -298,7 +283,7 @@ public class BattleMap : IBattleMap
     /// destination)</c>, whether or not the jump is a DFA, so DFA LOS can read it directly. An
     /// adjacent jump has no intermediate position, so its start position carries that waypoint.
     /// </summary>
-    private int?[]? BuildJumpLevels(IReadOnlyList<HexCoordinates> route, int startLevel, int ceiling,
+    private int?[]? BuildJumpLevels(List<HexCoordinates> route, int startLevel, int ceiling,
         int approachWaypointOffset)
     {
         var lastIndex = route.Count - 1;
@@ -352,8 +337,8 @@ public class BattleMap : IBattleMap
     private MovementPath BuildJumpPath(
         HexPosition start,
         HexPosition target,
-        IReadOnlyList<HexCoordinates> route,
-        IReadOnlyList<int?> levels)
+        List<HexCoordinates> route,
+        int?[] levels)
     {
         var lastIndex = route.Count - 1;
         var startPosition = start with { AirborneLevel = levels[0] };

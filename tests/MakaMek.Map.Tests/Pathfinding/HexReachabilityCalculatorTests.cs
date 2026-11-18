@@ -1,5 +1,6 @@
 using Sanet.MakaMek.Map.Data;
 using Sanet.MakaMek.Map.Models;
+using Sanet.MakaMek.Map.Models.MovementCosts;
 using Sanet.MakaMek.Map.Models.Terrains;
 using Sanet.MakaMek.Map.Pathfinding;
 using Shouldly;
@@ -157,7 +158,10 @@ public class HexReachabilityCalculatorTests
         {
             foreach (var surface in toHex.GetHexSurfaces())
             {
-                yield return new HexTransition(surface, cost, 0);
+                yield return new HexTransition(
+                    surface,
+                    [new HexEnterMovementCost { Value = cost }],
+                    0);
             }
         }
     }

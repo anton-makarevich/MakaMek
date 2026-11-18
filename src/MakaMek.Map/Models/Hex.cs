@@ -84,7 +84,7 @@ public class Hex : IDisposable
     /// considering road/paved connections. Returns both the hex entry cost
     /// and the additional terrain-specific cost.
     /// </summary>
-    public IEnumerable<MovementCost> GetEnterMovementCost(Hex fromHex, HexSurface fromSurface, HexSurface toSurface)
+    public IReadOnlyList<MovementCost> GetEnterMovementCost(Hex fromHex, HexSurface fromSurface, HexSurface toSurface)
     {
         var hexEntry = new HexEnterMovementCost { Value = 1 };
 
