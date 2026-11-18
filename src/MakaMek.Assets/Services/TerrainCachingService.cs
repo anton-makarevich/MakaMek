@@ -1,5 +1,3 @@
-using System.Collections.Concurrent;
-using System.Collections.Immutable;
 using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Assets.Models.Terrains;
 using Sanet.MakaMek.Map.Models;
@@ -14,28 +12,11 @@ namespace Sanet.MakaMek.Assets.Services;
 /// <see cref="ITerrainImageResolver"/>, cache bookkeeping to <see cref="TerrainAssetCache"/>
 /// and package loading to <see cref="TerrainPackageLoader"/>.
 /// </summary>
-public class TerrainCachingService : PackageCacheCore<TerrainCachingService.TerrainCacheState>, ITerrainAssetService
+public class TerrainCachingService : PackageCacheCore<TerrainCacheState>, ITerrainAssetService
 {
     private readonly ILogger<TerrainCachingService> _logger;
     private readonly ITerrainImageResolver _imageResolver;
-    private readonly TerrainAssetCache _assetCache;
     private readonly TerrainPackageLoader _packageLoader;
-
-    /// <summary>
-    /// Snapshot of all cached terrain data.
-    /// </summary>
-    public sealed class TerrainCacheState : PackageCacheState
-    {
-        /// <summary>
-        /// Synchronizes package-merge operations so a duplicate biome is replaced by one complete
-        /// package rather than an interleaved mixture from concurrent callers on this same state.
-        /// </summary>
-        public readonly object SyncRoot = new();
-
-        public readonly ConcurrentDictionary<string, BiomeManifest> BiomeManifests = new();
-        public readonly ConcurrentDictionary<string, byte[]> ImageCache = new();
-        public readonly ConcurrentDictionary<string, ImmutableSortedSet<int>> VariantCache = new();
-    }
 
     /// <summary>
     /// Initializes a new instance of TerrainCachingService using the default stateless collaborators.
@@ -47,33 +28,58 @@ public class TerrainCachingService : PackageCacheCore<TerrainCachingService.Terr
         IEnumerable<IResourceStreamProvider> streamProviders,
         ILoggerFactory loggerFactory,
         Func<Task<IReadOnlyList<IResourceStreamProvider>>>? lazyProviders = null)
-        : this(streamProviders, loggerFactory, lazyProviders, new TerrainImageResolver(), new TerrainAssetCache())
+        : this(streamProviders, loggerFactory, lazyProviders, Collaborators.CreateDefault())
     {
     }
 
     /// <summary>
     /// Initializes a new instance of TerrainCachingService with explicit collaborators.
-    /// The composition root uses this overload so the resolver and cache are shared.
+    /// The composition root uses this overload so the resolver, cache and loader are injected.
     /// </summary>
     /// <param name="streamProviders">Collection of stream providers to load terrain from</param>
     /// <param name="loggerFactory">Logger factory for logging</param>
     /// <param name="lazyProviders">Optional async factory for lazily resolving providers on first access</param>
     /// <param name="imageResolver">Maps terrain requests to package asset coordinates</param>
-    /// <param name="assetCache">Cache bookkeeping for images, variants and packages</param>
+    /// <param name="packageLoader">Loads MMTX packages and merges them into the cache state</param>
     public TerrainCachingService(
         IEnumerable<IResourceStreamProvider> streamProviders,
         ILoggerFactory loggerFactory,
         Func<Task<IReadOnlyList<IResourceStreamProvider>>>? lazyProviders,
         ITerrainImageResolver imageResolver,
-        TerrainAssetCache assetCache)
+        TerrainPackageLoader packageLoader)
+        : this(streamProviders, loggerFactory, lazyProviders,
+            new Collaborators(imageResolver, packageLoader))
+    {
+    }
+
+    private TerrainCachingService(
+        IEnumerable<IResourceStreamProvider> streamProviders,
+        ILoggerFactory loggerFactory,
+        Func<Task<IReadOnlyList<IResourceStreamProvider>>>? lazyProviders,
+        Collaborators collaborators)
         : base(streamProviders)
     {
         _logger = loggerFactory.CreateLogger<TerrainCachingService>();
-        _imageResolver = imageResolver;
-        _assetCache = assetCache;
-        _packageLoader = new TerrainPackageLoader(new MmtxTerrainPackageReader(), assetCache);
+        _imageResolver = collaborators.ImageResolver;
+        _packageLoader = collaborators.PackageLoader;
         if (lazyProviders is not null)
             SetLazyProviders(lazyProviders);
+    }
+
+    /// <summary>
+    /// Default collaborators for hosts that build the service directly (tests, headless harness).
+    /// </summary>
+    private sealed record Collaborators(
+        ITerrainImageResolver ImageResolver,
+        TerrainPackageLoader PackageLoader)
+    {
+        public static Collaborators CreateDefault()
+        {
+            var assetCache = new TerrainAssetCache();
+            return new Collaborators(
+                new TerrainImageResolver(),
+                new TerrainPackageLoader(new MmtxTerrainPackageReader(), assetCache));
+        }
     }
 
     /// <inheritdoc />
@@ -100,14 +106,14 @@ public class TerrainCachingService : PackageCacheCore<TerrainCachingService.Terr
     public async Task<byte[]?> GetBaseBiomeImage(string biomeId, int? variant = null)
     {
         var state = await EnsureInitialized();
-        return _assetCache.GetImage(state, biomeId, _imageResolver.ResolveBase(variant));
+        return TerrainAssetCache.GetImage(state, biomeId, _imageResolver.ResolveBase(variant));
     }
 
     /// <inheritdoc />
     public async Task<byte[]?> GetTerrainOverlayImage(string biomeId, string terrainType, int? variant = null)
     {
         var state = await EnsureInitialized();
-        return _assetCache.GetImage(state, biomeId, _imageResolver.ResolveOverlay(terrainType, variant));
+        return TerrainAssetCache.GetImage(state, biomeId, _imageResolver.ResolveOverlay(terrainType, variant));
     }
 
     /// <inheritdoc />
@@ -116,28 +122,28 @@ public class TerrainCachingService : PackageCacheCore<TerrainCachingService.Terr
         var state = await EnsureInitialized();
 
         var request = _imageResolver.ResolveEdge(direction, edgeType, coordinates);
-        return request is null ? null : _assetCache.GetImage(state, biomeId, request.Value);
+        return request is null ? null : TerrainAssetCache.GetImage(state, biomeId, request.Value);
     }
 
     /// <inheritdoc />
     public async Task<byte[]?> GetWaterTextureImage(string biomeId, CanonicalBitmaskResult canonicalBitmask)
     {
         var state = await EnsureInitialized();
-        return _assetCache.GetImage(state, biomeId, _imageResolver.ResolveWaterTexture(canonicalBitmask));
+        return TerrainAssetCache.GetImage(state, biomeId, _imageResolver.ResolveWaterTexture(canonicalBitmask));
     }
 
     /// <inheritdoc />
     public async Task<byte[]?> GetRoadTextureImage(string biomeId, CanonicalBitmaskResult canonicalBitmask)
     {
         var state = await EnsureInitialized();
-        return _assetCache.GetImage(state, biomeId, _imageResolver.ResolveRoadTexture(canonicalBitmask));
+        return TerrainAssetCache.GetImage(state, biomeId, _imageResolver.ResolveRoadTexture(canonicalBitmask));
     }
 
     /// <inheritdoc />
     public async Task<IReadOnlyList<int>> GetAvailableVariants(string biomeId, TerrainAssetType assetType, string assetName)
     {
         var state = await EnsureInitialized();
-        return _assetCache.GetVariants(state, biomeId, assetType, assetName);
+        return TerrainAssetCache.GetVariants(state, biomeId, assetType, assetName);
     }
 
     /// <inheritdoc />

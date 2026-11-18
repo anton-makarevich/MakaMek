@@ -11,7 +11,6 @@ namespace Sanet.MakaMek.Assets.Services;
 public sealed class TerrainPackageLoader
 {
     private readonly MmtxTerrainPackageReader _packageReader;
-    private readonly TerrainAssetCache _assetCache;
 
     /// <summary>
     /// Initializes a new instance of TerrainPackageLoader
@@ -21,7 +20,6 @@ public sealed class TerrainPackageLoader
     public TerrainPackageLoader(MmtxTerrainPackageReader packageReader, TerrainAssetCache assetCache)
     {
         _packageReader = packageReader;
-        _assetCache = assetCache;
     }
 
     /// <summary>
@@ -38,13 +36,13 @@ public sealed class TerrainPackageLoader
     /// <returns>The loaded biome manifest and whether an already cached biome was replaced</returns>
     public async Task<(BiomeManifest Manifest, bool ReplacedExistingBiome)> Load(
         Stream packageStream,
-        TerrainCachingService.TerrainCacheState state,
+        TerrainCacheState state,
         string? providerId,
         Action<string>? onDuplicateAsset = null,
         CancellationToken cancellationToken = default)
     {
         var package = await _packageReader.Read(packageStream, cancellationToken);
-        var replacedExistingBiome = _assetCache.AddPackage(state, package, providerId, onDuplicateAsset);
+        var replacedExistingBiome = TerrainAssetCache.AddPackage(state, package, providerId, onDuplicateAsset);
         return (package.Manifest, replacedExistingBiome);
     }
 }

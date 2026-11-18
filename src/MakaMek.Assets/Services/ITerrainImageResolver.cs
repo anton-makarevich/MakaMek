@@ -10,13 +10,13 @@ namespace Sanet.MakaMek.Assets.Services;
 public interface ITerrainImageResolver
 {
     /// <summary>
-    /// Resolves the base terrain image of a biome.
+    /// Resolves the base terrain image request.
     /// </summary>
     /// <param name="variant">Optional variant number (deterministically selected if not specified)</param>
     TerrainImageRequest ResolveBase(int? variant = null);
 
     /// <summary>
-    /// Resolves the overlay image of a terrain type (e.g. "lightwoods", "rough").
+    /// Resolves the overlay image request for a terrain type (e.g. "lightwoods", "rough").
     /// </summary>
     /// <param name="terrainType">Terrain type name</param>
     /// <param name="variant">Optional variant number (deterministically selected if not specified)</param>

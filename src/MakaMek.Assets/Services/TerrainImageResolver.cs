@@ -1,3 +1,4 @@
+using System.Globalization;
 using Sanet.MakaMek.Assets.Models.Terrains;
 using Sanet.MakaMek.Map.Models;
 
@@ -30,7 +31,7 @@ public sealed class TerrainImageResolver : ITerrainImageResolver
         if (edgeType is not (TerrainAssetType.EdgeTop or TerrainAssetType.EdgeBottom))
             return null;
 
-        var directionName = ((int)direction).ToString();
+        var directionName = ((int)direction).ToString(CultureInfo.InvariantCulture);
 
         // Hex coordinates provide a stable, per-hex seed for variant selection.
         return new TerrainImageRequest(

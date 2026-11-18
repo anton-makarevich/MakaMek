@@ -7,6 +7,7 @@ using Microsoft.Extensions.Logging;
 using Sanet.Localization;
 using Sanet.Localization.Providers;
 using Sanet.MakaMek.Assets.Services;
+using Sanet.MakaMek.Assets.Services.PackageReaders;
 using Sanet.MakaMek.Assets.Configuration;
 using Sanet.MakaMek.Avalonia.Services;
 using Sanet.MakaMek.Bots.Models;
@@ -68,6 +69,8 @@ public static class CoreServices
         // Terrain cache collaborators — stateless, so one instance serves every consumer.
         services.AddSingleton<TerrainAssetCache>();
         services.AddSingleton<ITerrainImageResolver, TerrainImageResolver>();
+        services.AddSingleton(sp => new TerrainPackageLoader(
+            new MmtxTerrainPackageReader(), sp.GetRequiredService<TerrainAssetCache>()));
 
         // Terrain caching service — same lazy pattern as units above.
         services.AddSingleton<ITerrainAssetService>(sp =>
@@ -82,7 +85,7 @@ public static class CoreServices
                 return providerFactory.CreateAll(configs);
             },
             sp.GetRequiredService<ITerrainImageResolver>(),
-            sp.GetRequiredService<TerrainAssetCache>());
+            sp.GetRequiredService<TerrainPackageLoader>());
         });
 
         // Register both image services

@@ -1,6 +1,4 @@
-using Sanet.MakaMek.Assets.Models.Terrains;
-
-namespace Sanet.MakaMek.Assets.Services;
+namespace Sanet.MakaMek.Assets.Models.Terrains;
 
 /// <summary>
 /// Coordinates of a single terrain image inside an MMTX package.
