@@ -1,5 +1,4 @@
 using Sanet.MakaMek.Map.Models;
-using Sanet.MakaMek.Map.Models.MovementCosts;
 using Sanet.MakaMek.Map.Pathfinding;
 using Shouldly;
 
@@ -15,7 +14,8 @@ public class BattleMapCompositionTests
     public void FindPath_UsesInjectedMovementRules()
     {
         var grid = TraversalTestMap.BuildClearGrid(2, 1);
-        var sut = CreateMap(grid, new FixedCostMovementRules(5));
+        var rules = new FixedCostMovementRules(5);
+        var sut = CreateMap(grid, rules);
         var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.BottomRight);
         var target = new HexPosition(new HexCoordinates(2, 1), HexDirection.BottomRight);
 
@@ -26,8 +26,11 @@ public class BattleMapCompositionTests
         path.TotalCost.ShouldBe(5);
 
         // The cached path carries the injected cost, so a budget that only covers the terrain
-        // price must not return it.
+        // price must not return it. The transition count must not grow, proving the answer came
+        // from the cache rather than a fresh search that would also reject the step.
+        var callsBeforeCachedLookup = rules.TransitionCalls;
         sut.FindPath(start, target, MovementType.Walk, 1, 1).ShouldBeNull();
+        rules.TransitionCalls.ShouldBe(callsBeforeCachedLookup);
     }
 
     [Fact]
@@ -45,24 +48,5 @@ public class BattleMapCompositionTests
     private static BattleMap CreateMap(HexGrid grid, IHexMovementRules rules)
     {
         return new BattleMap(grid, rules);
-    }
-
-    private sealed class FixedCostMovementRules(int cost) : IHexMovementRules
-    {
-        public IEnumerable<HexTransition> GetTransitions(
-            Hex fromHex,
-            Hex toHex,
-            HexSurface fromSurface,
-            int unitHeight,
-            int? maxLevelChange)
-        {
-            foreach (var surface in toHex.GetHexSurfaces())
-            {
-                yield return new HexTransition(
-                    surface,
-                    [new HexEnterMovementCost { Value = cost }],
-                    0);
-            }
-        }
     }
 }

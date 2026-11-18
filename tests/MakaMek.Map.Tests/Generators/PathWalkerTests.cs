@@ -60,10 +60,12 @@ public class PathWalkerTests
         var sut = new PathWalker(3, 3);
         var start = new HexCoordinates(2, 2);
         var accepted = new List<HexCoordinates>();
+        var expansions = new List<(HexCoordinates Current, HexCoordinates Candidate)>();
 
-        sut.Flood(start, (_, candidate) =>
+        sut.Flood(start, (current, candidate) =>
         {
             accepted.Add(candidate);
+            expansions.Add((current, candidate));
             return true;
         });
 
@@ -71,9 +73,11 @@ public class PathWalkerTests
         // neighbour order, so the flood is breadth-first.
         accepted.Count.ShouldBe(8);
         accepted.Take(6).ShouldBe(start.GetAllNeighbours());
-        // The seventh accepted hex comes from the first queued neighbour, not from the most
+        // The seventh accepted hex is reached from the first queued neighbour, not from the most
         // recently discovered one, so the walk is breadth-first rather than depth-first.
         accepted[6].ShouldBe(new HexCoordinates(3, 1));
+        expansions[6].ShouldBe(
+            (new HexCoordinates(2, 1), new HexCoordinates(3, 1)));
     }
 
     [Fact]

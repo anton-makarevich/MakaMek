@@ -84,17 +84,19 @@ public class Hex : IDisposable
     /// considering road/paved connections. Returns both the hex entry cost
     /// and the additional terrain-specific cost.
     /// </summary>
-    public IReadOnlyList<MovementCost> GetEnterMovementCost(Hex fromHex, HexSurface fromSurface, HexSurface toSurface)
+    public IEnumerable<MovementCost> GetEnterMovementCost(Hex fromHex, HexSurface fromSurface, HexSurface toSurface)
+    {
+        return GetEnterMovementCostList(fromHex, fromSurface, toSurface);
+    }
+
+    /// <summary>
+    /// List-returning form of <see cref="GetEnterMovementCost"/> for callers inside the assembly
+    /// that need the materialised breakdown. Kept internal so the public signature stays
+    /// binary-compatible for package consumers.
+    /// </summary>
+    internal IReadOnlyList<MovementCost> GetEnterMovementCostList(Hex fromHex, HexSurface fromSurface, HexSurface toSurface)
     {
         var hexEntry = new HexEnterMovementCost { Value = 1 };
-
-        bool IsRoadSurface(Terrain? terrain, HexSurface surface) => (terrain?.Id, surface) switch
-        {
-            (MakaMekTerrains.Road, HexSurface.Ground) => true,
-            (MakaMekTerrains.Pavement, HexSurface.Ground) => true,
-            (MakaMekTerrains.Bridge, HexSurface.Bridge) => true,
-            _ => false
-        };
 
         var fromTerrain = fromHex.GetRoadOrPavedTerrain();
         var toTerrain = this.GetRoadOrPavedTerrain();
@@ -119,6 +121,14 @@ public class Hex : IDisposable
             }).ToList();
 
         return [hexEntry, ..terrainCosts];
+
+        bool IsRoadSurface(Terrain? terrain, HexSurface surface) => (terrain?.Id, surface) switch
+        {
+            (MakaMekTerrains.Road, HexSurface.Ground) => true,
+            (MakaMekTerrains.Pavement, HexSurface.Ground) => true,
+            (MakaMekTerrains.Bridge, HexSurface.Bridge) => true,
+            _ => false
+        };
 
         static bool AppliesToSurface(MakaMekTerrains terrainId, HexSurface surface) => (terrainId, surface) switch
         {

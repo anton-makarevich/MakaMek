@@ -1,6 +1,5 @@
 using Sanet.MakaMek.Map.Data;
 using Sanet.MakaMek.Map.Models;
-using Sanet.MakaMek.Map.Models.MovementCosts;
 using Sanet.MakaMek.Map.Models.Terrains;
 using Sanet.MakaMek.Map.Pathfinding;
 using Shouldly;
@@ -145,24 +144,5 @@ public class HexReachabilityCalculatorTests
         var reachable = sut.GetJumpReachable(new HexCoordinates(1, 1), 2, null, HexSurface.Ground).ToList();
 
         reachable.ShouldContain(new HexReachabilityData(new HexCoordinates(2, 1), HexSurface.Bridge, 1));
-    }
-
-    private sealed class FixedCostMovementRules(int cost) : IHexMovementRules
-    {
-        public IEnumerable<HexTransition> GetTransitions(
-            Hex fromHex,
-            Hex toHex,
-            HexSurface fromSurface,
-            int unitHeight,
-            int? maxLevelChange)
-        {
-            foreach (var surface in toHex.GetHexSurfaces())
-            {
-                yield return new HexTransition(
-                    surface,
-                    [new HexEnterMovementCost { Value = cost }],
-                    0);
-            }
-        }
     }
 }

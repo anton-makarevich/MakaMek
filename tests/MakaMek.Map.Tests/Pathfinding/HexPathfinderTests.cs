@@ -1,5 +1,4 @@
 using Sanet.MakaMek.Map.Models;
-using Sanet.MakaMek.Map.Models.MovementCosts;
 using Sanet.MakaMek.Map.Pathfinding;
 using Shouldly;
 
@@ -181,24 +180,5 @@ public class HexPathfinderTests
             unitHeight,
             prohibited,
             maxLevelChange);
-    }
-
-    private sealed class FixedCostMovementRules(int cost) : IHexMovementRules
-    {
-        public IEnumerable<HexTransition> GetTransitions(
-            Hex fromHex,
-            Hex toHex,
-            HexSurface fromSurface,
-            int unitHeight,
-            int? maxLevelChange)
-        {
-            foreach (var surface in toHex.GetHexSurfaces())
-            {
-                yield return new HexTransition(
-                    surface,
-                    [new HexEnterMovementCost { Value = cost }],
-                    0);
-            }
-        }
     }
 }

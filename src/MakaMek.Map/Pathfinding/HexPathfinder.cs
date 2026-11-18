@@ -13,11 +13,30 @@ internal sealed class HexPathfinder(IHexGrid grid, IHexMovementRules movementRul
 {
     private static readonly IReadOnlySet<HexCoordinates> NoProhibitedHexes = new HashSet<HexCoordinates>();
 
-    private readonly record struct PathfindingState(
-        HexPosition Position,
-        List<PathSegment> Segments,
-        int Cost,
-        int HexesTraveled);
+    /// <summary>
+    /// One node of the search graph. The accepted step and the parent link are stored instead of a
+    /// copied route prefix, so segments are built once for the selected route.
+    /// </summary>
+    private sealed class PathfindingState(
+        HexPosition position,
+        PathfindingState? parent,
+        NeighbourTransition? enteringStep,
+        int cost,
+        int hexesTraveled,
+        List<HexPosition>? finalTurningSteps = null)
+    {
+        public HexPosition Position { get; } = position;
+
+        public PathfindingState? Parent { get; } = parent;
+
+        public NeighbourTransition? EnteringStep { get; } = enteringStep;
+
+        public int Cost { get; } = cost;
+
+        public int HexesTraveled { get; } = hexesTraveled;
+
+        public List<HexPosition>? FinalTurningSteps { get; } = finalTurningSteps;
+    }
 
     private readonly record struct NeighbourTransition(
         Hex FromHex,
@@ -118,7 +137,7 @@ internal sealed class HexPathfinder(IHexGrid grid, IHexMovementRules movementRul
         var frontier = new PriorityQueue<PathfindingState, (int, int)>();
         var visited = new Dictionary<HexPosition, (int Cost, int Hexes)>();
 
-        frontier.Enqueue(new PathfindingState(request.Start, [], 0, 0), (0, 0));
+        frontier.Enqueue(new PathfindingState(request.Start, null, null, 0, 0), (0, 0));
         visited[request.Start] = (0, 0);
 
         while (frontier.Count > 0)
@@ -127,7 +146,7 @@ internal sealed class HexPathfinder(IHexGrid grid, IHexMovementRules movementRul
 
             if (current.Position == request.Target)
             {
-                var candidatePath = BuildPath(request, current.Segments);
+                var candidatePath = BuildPath(request, current);
 
                 if (request.Mode == PathFindingMode.Shortest)
                 {
@@ -204,8 +223,7 @@ internal sealed class HexPathfinder(IHexGrid grid, IHexMovementRules movementRul
         if (totalCost > request.MaxMovementPoints) yield break;
 
         var nextPosition = new HexPosition(step.ToHex.Coordinates, step.RequiredFacing, step.Transition.Surface);
-        var isNewHex = request.Start.Coordinates != step.ToHex.Coordinates
-                       && current.Segments.All(segment => segment.To.Coordinates != step.ToHex.Coordinates);
+        var isNewHex = IsNewHex(current, step.ToHex.Coordinates);
         var hexesTraveled = current.HexesTraveled + (isNewHex ? 1 : 0);
 
         if (visited.TryGetValue(nextPosition, out var visitedState)
@@ -216,20 +234,10 @@ internal sealed class HexPathfinder(IHexGrid grid, IHexMovementRules movementRul
 
         visited[nextPosition] = (totalCost, hexesTraveled);
 
-        var segments = new List<PathSegment>(current.Segments);
-        var fromPosition = current.Position;
-        foreach (var turningStep in step.TurningSteps)
-        {
-            segments.Add(CreateRotationSegment(fromPosition, turningStep));
-            fromPosition = turningStep;
-        }
-
-        segments.Add(CreateMovementSegment(fromPosition, nextPosition, step));
-
         if (step.ToHex.Coordinates != request.Target.Coordinates || step.RequiredFacing == request.Target.Facing)
         {
             yield return (
-                new PathfindingState(nextPosition, segments, totalCost, hexesTraveled),
+                new PathfindingState(nextPosition, current, step, totalCost, hexesTraveled),
                 Priority(request.Mode, totalCost, hexesTraveled,
                     step.ToHex.Coordinates.DistanceTo(request.Target.Coordinates)));
             yield break;
@@ -239,18 +247,26 @@ internal sealed class HexPathfinder(IHexGrid grid, IHexMovementRules movementRul
         var finalCost = totalCost + finalTurningSteps.Count;
         if (finalCost > request.MaxMovementPoints) yield break;
 
-        fromPosition = nextPosition;
-        foreach (var turningStep in finalTurningSteps)
-        {
-            segments.Add(CreateRotationSegment(fromPosition, turningStep));
-            fromPosition = turningStep;
-        }
-
         var targetPosition = new HexPosition(step.ToHex.Coordinates, request.Target.Facing, step.Transition.Surface);
 
         yield return (
-            new PathfindingState(targetPosition, segments, finalCost, hexesTraveled),
+            new PathfindingState(targetPosition, current, step, finalCost, hexesTraveled, finalTurningSteps),
             Priority(request.Mode, finalCost, hexesTraveled, 0));
+    }
+
+    /// <summary>
+    /// Checks whether this route has not entered <paramref name="coordinates"/> before by walking
+    /// the parent links. Allocation-free, matching the scan the search used before it kept links.
+    /// </summary>
+    private static bool IsNewHex(PathfindingState current, HexCoordinates coordinates)
+    {
+        for (var state = current; state is not null; state = state.Parent)
+        {
+            if (state.Position.Coordinates == coordinates)
+                return false;
+        }
+
+        return true;
     }
 
     private static bool IsNotAnImprovement(
@@ -275,8 +291,51 @@ internal sealed class HexPathfinder(IHexGrid grid, IHexMovementRules movementRul
             : (-hexesTraveled, distanceToTarget);
     }
 
-    private static MovementPath BuildPath(PathRequest request, List<PathSegment> segments)
+    /// <summary>
+    /// Rebuilds the accepted route from the goal's parent links and creates its segments once, so
+    /// an unsuccessful or wide search never materialises path segments for abandoned branches.
+    /// </summary>
+    private static MovementPath BuildPath(PathRequest request, PathfindingState goal)
     {
+        var route = new List<PathfindingState>();
+        for (var state = goal; state is not null; state = state.Parent)
+        {
+            route.Add(state);
+        }
+
+        route.Reverse();
+
+        var segments = new List<PathSegment>(route.Count);
+        foreach (var state in route)
+        {
+            if (state.EnteringStep is not { } step)
+                continue;
+
+            var fromPosition = state.Parent!.Position;
+            foreach (var turningStep in step.TurningSteps)
+            {
+                segments.Add(CreateRotationSegment(fromPosition, turningStep));
+                fromPosition = turningStep;
+            }
+
+            // A goal reached with the wrong facing stores the target position after its final
+            // turns; the movement segment itself ends at the entered facing.
+            var enteredPosition = state.FinalTurningSteps is null
+                ? state.Position
+                : new HexPosition(state.Position.Coordinates, step.RequiredFacing, step.Transition.Surface);
+            segments.Add(CreateMovementSegment(fromPosition, enteredPosition, step));
+
+            if (state.FinalTurningSteps is not { } finalTurningSteps)
+                continue;
+
+            fromPosition = enteredPosition;
+            foreach (var turningStep in finalTurningSteps)
+            {
+                segments.Add(CreateRotationSegment(fromPosition, turningStep));
+                fromPosition = turningStep;
+            }
+        }
+
         return new MovementPath(segments, request.MovementType, request.MaxLevelChange);
     }
 
