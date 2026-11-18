@@ -287,9 +287,6 @@ internal sealed class LineOfSightCalculator(IHexGrid grid, LineOfSightCache cach
     /// </summary>
     private static double InterpolateHeight(int startHeight, int endHeight, int currentDistance, int totalDistance)
     {
-        if (totalDistance == 0)
-            return startHeight;
-
         var t = (double)currentDistance / totalDistance;
         return startHeight + (endHeight - startHeight) * t;
     }

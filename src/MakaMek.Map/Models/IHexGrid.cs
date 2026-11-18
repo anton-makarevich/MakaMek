@@ -7,10 +7,6 @@ namespace Sanet.MakaMek.Map.Models;
 /// </summary>
 internal interface IHexGrid
 {
-    int Width { get; }
-
-    int Height { get; }
-
     Hex? GetHex(HexCoordinates coordinates);
 
     bool IsOnMap(HexCoordinates coordinates);

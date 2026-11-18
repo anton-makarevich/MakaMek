@@ -36,11 +36,8 @@ internal sealed class HexMovementRules : IHexMovementRules
     /// </summary>
     private static bool CanOccupySurface(Hex fromHex, Hex toHex, HexSurface toSurface, int unitHeight)
     {
-        return toSurface switch
-        {
-            HexSurface.Ground => toHex.GetBridgeHeight() is null || toHex.CanStandOnGround(unitHeight),
-            HexSurface.Bridge => fromHex.GetRoadOrPavedTerrain() is not null || !toHex.CanStandOnGround(unitHeight),
-            _ => true
-        };
+        return toSurface == HexSurface.Bridge
+            ? fromHex.GetRoadOrPavedTerrain() is not null || !toHex.CanStandOnGround(unitHeight)
+            : toHex.GetBridgeHeight() is null || toHex.CanStandOnGround(unitHeight);
     }
 }

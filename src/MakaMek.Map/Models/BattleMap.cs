@@ -25,23 +25,15 @@ public class BattleMap : IBattleMap
     /// Creates a battle map with the default map collaborators.
     /// </summary>
     public BattleMap(int width, int height, string biome = DefaultBiome)
-        : this(new HexGrid(width, height, biome), new HexMovementRules())
     {
-    }
-
-    /// <summary>
-    /// Creates a battle map over an existing grid with the supplied movement rules. The per-map
-    /// caches are always allocated here so two maps can never share cached paths or line-of-sight.
-    /// </summary>
-    internal BattleMap(HexGrid grid, IHexMovementRules movementRules)
-    {
-        _grid = grid;
+        _grid = new HexGrid(width, height, biome);
         _losCache = new LineOfSightCache();
         _movementPathCache = new MovementPathCache();
         _movementLongPathCache = new MovementPathCache();
-        _pathfinder = new HexPathfinder(grid, movementRules);
-        _reachability = new HexReachabilityCalculator(grid, movementRules);
-        _lineOfSight = new LineOfSightCalculator(grid, _losCache);
+        var movementRules = new HexMovementRules();
+        _pathfinder = new HexPathfinder(_grid, movementRules);
+        _reachability = new HexReachabilityCalculator(_grid, movementRules);
+        _lineOfSight = new LineOfSightCalculator(_grid, _losCache);
     }
 
     public int Width => _grid.Width;
@@ -227,9 +219,6 @@ public class BattleMap : IBattleMap
             return null;
 
         var levels = BuildJumpLevels(route, startLevel, ceiling, approachWaypointOffset);
-        if (levels == null)
-            return null;
-
         var result = BuildJumpPath(from, to, route, levels);
         _movementPathCache.Add(result, 0, movementPoints, keyStart: from, keyDestination: to,
             approachWaypointOffset: approachWaypointOffset);
@@ -283,26 +272,17 @@ public class BattleMap : IBattleMap
     /// destination)</c>, whether or not the jump is a DFA, so DFA LOS can read it directly. An
     /// adjacent jump has no intermediate position, so its start position carries that waypoint.
     /// </summary>
-    private int?[]? BuildJumpLevels(List<HexCoordinates> route, int startLevel, int ceiling,
+    private int?[] BuildJumpLevels(List<HexCoordinates> route, int startLevel, int ceiling,
         int approachWaypointOffset)
     {
         var lastIndex = route.Count - 1;
         var levels = new int?[route.Count];
-        if (lastIndex == 0)
-            return levels;
 
         var referenceLevels = new int[route.Count];
         for (var i = 0; i <= lastIndex; i++)
             referenceLevels[i] = GetHex(route[i])!.GetReferenceLevel();
 
         var approachIndex = lastIndex - 1;
-
-        // The start hex is not part of the crossed path, so an adjacent jump checks the
-        // destination against the unit's standing level. Its reference level (a bridge deck
-        // above or a water surface it is standing below) is not a clearance requirement.
-        var startSideLevel = lastIndex == 1 ? startLevel : referenceLevels[approachIndex];
-        if (Math.Max(startSideLevel, referenceLevels[lastIndex]) > ceiling)
-            return null;
 
         // The stored waypoint is the airborne base the caller supplied for the approach position:
         // the higher of the approach and target reference levels plus the caller's rule offset.

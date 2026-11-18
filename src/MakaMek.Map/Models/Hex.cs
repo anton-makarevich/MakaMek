@@ -101,9 +101,10 @@ public class Hex : IDisposable
         var fromTerrain = fromHex.GetRoadOrPavedTerrain();
         var toTerrain = this.GetRoadOrPavedTerrain();
 
-        if (IsRoadSurface(fromTerrain, fromSurface) && IsRoadSurface(toTerrain, toSurface) && toTerrain is { } toRoad)
+        if (IsRoadSurface(fromTerrain, fromSurface) && IsRoadSurface(toTerrain, toSurface))
         {
             // Road-to-road: total cost = 1 (entry only, no additional terrain cost)
+            var toRoad = toTerrain!;
             var terrainCost = new TerrainMovementCost
             {
                 TerrainId = toRoad.Id, Value = toRoad.MovementCost, Depth = this.GetWaterDepth()
