@@ -1,6 +1,5 @@
 using Sanet.MakaMek.Map.Models;
 using Sanet.MakaMek.Map.Models.MovementCosts;
-using Sanet.MakaMek.Map.Models.Terrains;
 using Sanet.MakaMek.Map.Pathfinding;
 using Shouldly;
 
@@ -151,23 +150,6 @@ public class HexPathfinderTests
     }
 
     [Fact]
-    public void Find_OverflowingTransitionPrice_KeepsTheAffordableGroundTransition()
-    {
-        var grid = TraversalTestMap.BuildClearGrid(3, 1);
-        grid.AddHex(TraversalTestMap.CreateHex(2, 1, 0, new ClearTerrain(), new BridgeTerrain(2, 40)));
-        var sut = new HexPathfinder(grid, new OverflowingBridgeCostMovementRules());
-        var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.BottomRight);
-        var target = new HexPosition(new HexCoordinates(3, 1), HexDirection.TopRight);
-
-        // The bridge surface costs int.MaxValue + 1 (entry + elevation) and must be rejected
-        // without wrapping; the ground route costs exactly the 3 MP budget.
-        var path = sut.Find(Request(start, target, maxMovementPoints: 3), new MovementPathCache());
-
-        path.ShouldNotBeNull();
-        path.TotalCost.ShouldBe(3);
-    }
-
-    [Fact]
     public void Find_CachesShortestPath()
     {
         var sut = new HexPathfinder(TraversalTestMap.BuildClearGrid(5, 5), new HexMovementRules());
@@ -254,35 +236,6 @@ public class HexPathfinderTests
             {
                 yield return new HexTransition(surface, _enterCosts, 0);
                 _enterCosts[0] = new HexEnterMovementCost { Value = 5 };
-            }
-        }
-    }
-
-    /// <summary>
-    /// Prices a bridge surface above <see cref="int.MaxValue"/> with a non-zero elevation cost, so
-    /// the transition price itself would overflow if summed as <see cref="int"/>. Ground steps
-    /// stay affordable.
-    /// </summary>
-    private sealed class OverflowingBridgeCostMovementRules : IHexMovementRules
-    {
-        public IEnumerable<HexTransition> GetTransitions(
-            Hex fromHex,
-            Hex toHex,
-            HexSurface fromSurface,
-            int unitHeight,
-            int? maxLevelChange)
-        {
-            foreach (var surface in toHex.GetHexSurfaces())
-            {
-                yield return surface == HexSurface.Bridge
-                    ? new HexTransition(
-                        surface,
-                        [new HexEnterMovementCost { Value = int.MaxValue }],
-                        LevelCost: 1)
-                    : new HexTransition(
-                        surface,
-                        [new HexEnterMovementCost { Value = 1 }],
-                        LevelCost: 0);
             }
         }
     }

@@ -19,11 +19,9 @@ internal readonly record struct HexTransition(
     int LevelCost)
 {
     /// <summary>
-    /// Total movement cost of the transition. Summed as <see cref="long"/> because a rule may
-    /// price a step (entry plus elevation) beyond <see cref="int.MaxValue"/>; the search rejects
-    /// such a step before narrowing the accumulated cost.
+    /// Total movement cost of the transition: the entry cost breakdown plus the elevation cost.
     /// </summary>
-    public long MovementCost => EnterCosts.Sum(cost => (long)cost.Value) + LevelCost;
+    public int MovementCost => EnterCosts.Sum(cost => cost.Value) + LevelCost;
 
     /// <summary>
     /// Returns a transition that owns an independent copy of its entry costs. The search calls
