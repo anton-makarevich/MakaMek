@@ -1,5 +1,3 @@
-using Sanet.MakaMek.Core.Data.Game.Mechanics.PhysicalAttacks;
-
 namespace Sanet.MakaMek.Core.Models.Game.Phases;
 
 /// <summary>

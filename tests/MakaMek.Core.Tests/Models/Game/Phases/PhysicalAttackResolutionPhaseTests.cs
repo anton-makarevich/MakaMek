@@ -218,6 +218,60 @@ public class PhysicalAttackResolutionPhaseTests : GamePhaseTestsBase
     }
 
     [Fact]
+    public void Enter_ChargeHitThatDestroysTheTarget_DoesNotDisplaceIt_AndStillAdvancesTheAttacker()
+    {
+        // Arrange: the impact destroys the target, so there is nothing left to push out of the
+        // destination hex, but the attacker still completes the charge into it.
+        SetMap();
+        SetUpCharge(_player1Mech, _player2Mech);
+        MockPhysicalAttackResolver.ResolveCharge(Arg.Any<ChargeAttackContext>())
+            .Returns(ChargeLethalHit(_player2Mech.Id));
+
+        // Act
+        _sut.Enter();
+
+        // Assert
+        _player2Mech.IsDestroyed.ShouldBeTrue();
+        _player2Mech.Position!.Coordinates.ShouldBe(TargetHex);
+        _player1Mech.Position!.Coordinates.ShouldBe(TargetHex);
+
+        var displacements = PublishedCommands().OfType<DisplaceUnitCommand>().ToList();
+        displacements.ShouldContain(command => command.UnitId == _player1Mech.Id
+                                              && command.DisplacementReason ==
+                                              DisplacementReason.ChargeAdvance);
+        displacements.ShouldNotContain(command => command.UnitId == _player2Mech.Id);
+        PublishedCommands().OfType<PhysicalAttackResolutionCommand>().ShouldHaveSingleItem()
+            .ResolutionData.AttackResolution.UnitDestroyed.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void Enter_ChargeMiss_WhenBothSideHexesAreBlocked_LeavesTheAttackerInPlace()
+    {
+        // Arrange: the two hexes flanking the attacker's forward arc are occupied, so a missed
+        // charge has nowhere legal to place the attacker.
+        SetMap();
+        var blockerOwner = (Player)Game.Players[0];
+        foreach (var side in new[] { HexDirection.Top.Rotate(1), HexDirection.Top.Rotate(-1) })
+        {
+            var blocker = CreateMech();
+            blocker.Deploy(new HexPosition(AttackerHex.GetNeighbour(side), HexDirection.Top), null);
+            blockerOwner.AddUnit(blocker);
+        }
+        SetUpCharge(_player1Mech, _player2Mech);
+        MockPhysicalAttackResolver.ResolveCharge(Arg.Any<ChargeAttackContext>())
+            .Returns(ChargeMiss(_player2Mech.Id));
+
+        // Act
+        _sut.Enter();
+
+        // Assert: the miss is still published, but no unit is displaced and nothing is stacked.
+        PublishedCommands().OfType<PhysicalAttackResolutionCommand>()
+            .ShouldHaveSingleItem().ResolutionData.Charge!.Outcome.ShouldBe(ChargeOutcome.Miss);
+        _player1Mech.Position!.Coordinates.ShouldBe(AttackerHex);
+        PublishedCommands().OfType<DisplaceUnitCommand>().ShouldBeEmpty();
+    }
+
+    [Fact]
     public void Enter_ChargeHitIntoAnOccupiedHex_ResolvesTheDominoChainAndAdvancesBothUnits()
     {
         // Arrange: a third Mech stands in the hex the charge pushes the target into
@@ -1626,6 +1680,26 @@ public class PhysicalAttackResolutionPhaseTests : GamePhaseTestsBase
                         [new LocationDamageData(PartLocation.CenterTorso, 5, 0, false)],
                         [], [3, 4], PartLocation.CenterTorso)],
                     5, [], 0)),
+            ChargeImpactRequirements,
+            new ChargeResolutionData(
+                ChargeOutcome.Hit,
+                3,
+                false,
+                originalTargetId,
+                new AttackHitLocationsData(
+                    [new LocationHitData(
+                        [new LocationDamageData(PartLocation.CenterTorso, 2, 0, false)],
+                        [], [3, 4], PartLocation.CenterTorso)],
+                    2, [], 0)));
+
+    private static PhysicalAttackResolutionData ChargeLethalHit(Guid originalTargetId) =>
+        new(PhysicalAttackType.Charge, null, 100,
+            new AttackResolutionData(7, [new DiceResult(6), new DiceResult(6)], true, HitDirection.Front, 0,
+                new AttackHitLocationsData(
+                    [new LocationHitData(
+                        [new LocationDamageData(PartLocation.Head, 50, 50, true)],
+                        [], [3, 4], PartLocation.Head)],
+                    100, [], 0)),
             ChargeImpactRequirements,
             new ChargeResolutionData(
                 ChargeOutcome.Hit,

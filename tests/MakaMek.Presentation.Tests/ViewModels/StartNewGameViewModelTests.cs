@@ -29,6 +29,7 @@ using Sanet.MakaMek.Map.Models;
 using Sanet.MakaMek.Map.Models.Terrains;
 using Sanet.MakaMek.Map.Services;
 using Sanet.MakaMek.Presentation.ViewModels;
+using Sanet.MakaMek.Presentation.ViewModels.Maps;
 using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 using Sanet.MakaMek.Services;
 using Sanet.MVVM.Core.Services;
@@ -132,8 +133,7 @@ public class StartNewGameViewModelTests
             _mapFactory,
             _cachingService,
             _mapPreviewRenderer,
-            _mapResourceProvider,
-            _fileService,
+            CreateMapConfig(),
             _botManager,
             _vmLogger,
             _localizationService,
@@ -557,7 +557,7 @@ public async Task MapReselection_DuringDebounce_RestartsWindow_AndSendsLatestMap
             gameManager, _unitsLoader,
             commandPublisher, _dispatcherService,
             _gameFactory, _mapFactory, _cachingService, _mapPreviewRenderer,
-            _mapResourceProvider, _fileService, _botManager,
+            CreateMapConfig(), _botManager,
             _vmLogger, _localizationService, _mechFactory,
             _clipboardService,
             _hubConfigurationProvider,
@@ -589,7 +589,7 @@ public async Task MapReselection_DuringDebounce_RestartsWindow_AndSendsLatestMap
             gameManager, _unitsLoader,
             commandPublisher, _dispatcherService,
             _gameFactory, _mapFactory, _cachingService, _mapPreviewRenderer,
-            _mapResourceProvider, _fileService, _botManager,
+            CreateMapConfig(), _botManager,
             _vmLogger, _localizationService, _mechFactory,
             _clipboardService,
             _hubConfigurationProvider,
@@ -1170,6 +1170,36 @@ public async Task MapReselection_DuringDebounce_RestartsWindow_AndSendsLatestMap
         await restartTask;
     }
 
+    [Theory]
+    [InlineData(true, "LAN enabled")]
+    [InlineData(false, "Starting hosted game...")]
+    public async Task HostingStatusText_WhenLanHostingEnabled_ReflectsTheServerState(
+        bool isLanServerRunning,
+        string expectedText)
+    {
+        // Arrange - a LAN-capable platform where hosting was enabled by the player
+        _localizationService.GetString("Hosting_LanEnabled").Returns("LAN enabled");
+        _localizationService.GetString("Hosting_Starting").Returns("Starting hosted game...");
+        var gameManager = Substitute.For<IGameManager>();
+        gameManager.CanStartLanServer.Returns(true);
+        gameManager.IsLanServerRunning.Returns(isLanServerRunning);
+        gameManager.ServerGameId.Returns(Guid.NewGuid());
+        var commandPublisher = Substitute.For<ICommandPublisher>();
+        _gameFactory.CreateClientGame(commandPublisher).Returns(_clientGame);
+        var sut = CreateSut(gameManager, commandPublisher);
+        sut.SetNavigationService(_navigationService);
+        sut.AttachHandlers();
+
+        // Act
+        await ((IAsyncCommand)sut.EnableMultiplayerCommand).ExecuteAsync();
+
+        // Assert - LAN hosting is reported as running only once the server is up
+        sut.IsMultiplayerEnabled.ShouldBeTrue();
+        sut.IsLanMode.ShouldBeTrue();
+        sut.HostingError.ShouldBeNull();
+        sut.HostingStatusText.ShouldBe(expectedText);
+    }
+
     [Fact]
     public void CanChangeHostMode_WhenNoPlayersJoined_IsTrue()
     {
@@ -1530,6 +1560,19 @@ public async Task MapReselection_DuringDebounce_RestartsWindow_AndSendsLatestMap
         sut.IsOnlineDetailsVisible.ShouldBeTrue();
     }
 
+    private MapConfigViewModel CreateMapConfig() =>
+        new(
+            new MapGenerationService(_mapFactory, _mapPreviewRenderer),
+            new AvailableMapsService(
+                _mapResourceProvider,
+                _mapFactory,
+                _mapPreviewRenderer,
+                _fileService,
+                _dispatcherService,
+                Substitute.For<ILogger<AvailableMapsService>>()),
+            Substitute.For<ILogger<MapConfigViewModel>>(),
+            _localizationService);
+
     private StartNewGameViewModel CreateSut(
         IGameManager? gameManager = null,
         ICommandPublisher? commandPublisher = null) => new(
@@ -1541,8 +1584,7 @@ public async Task MapReselection_DuringDebounce_RestartsWindow_AndSendsLatestMap
         _mapFactory,
         _cachingService,
         _mapPreviewRenderer,
-        _mapResourceProvider,
-        _fileService,
+        CreateMapConfig(),
         _botManager,
         _vmLogger,
         _localizationService,
@@ -2016,8 +2058,7 @@ public async Task MapReselection_DuringDebounce_RestartsWindow_AndSendsLatestMap
             _mapFactory,
             _cachingService,
             _mapPreviewRenderer,
-            _mapResourceProvider,
-            _fileService,
+            CreateMapConfig(),
             _botManager,
             _vmLogger,
             _localizationService,
@@ -2056,8 +2097,7 @@ public async Task MapReselection_DuringDebounce_RestartsWindow_AndSendsLatestMap
             _mapFactory,
             _cachingService,
             _mapPreviewRenderer,
-            _mapResourceProvider,
-            _fileService,
+            CreateMapConfig(),
             _botManager,
             _vmLogger,
             _localizationService,
@@ -2091,8 +2131,7 @@ public async Task MapReselection_DuringDebounce_RestartsWindow_AndSendsLatestMap
             _mapFactory,
             _cachingService,
             _mapPreviewRenderer,
-            _mapResourceProvider,
-            _fileService,
+            CreateMapConfig(),
             _botManager,
             _vmLogger,
             _localizationService,
@@ -2124,8 +2163,7 @@ public async Task MapReselection_DuringDebounce_RestartsWindow_AndSendsLatestMap
             _mapFactory,
             _cachingService,
             _mapPreviewRenderer,
-            _mapResourceProvider,
-            _fileService,
+            CreateMapConfig(),
             _botManager,
             _vmLogger,
             _localizationService,
@@ -2288,7 +2326,7 @@ public async Task MapReselection_DuringDebounce_RestartsWindow_AndSendsLatestMap
             gameManager, _unitsLoader,
             commandPublisher, _dispatcherService,
             _gameFactory, _mapFactory, _cachingService, _mapPreviewRenderer,
-            _mapResourceProvider, _fileService, _botManager,
+            CreateMapConfig(), _botManager,
             _vmLogger, _localizationService, _mechFactory,
             _clipboardService,
             _hubConfigurationProvider,
@@ -2318,7 +2356,7 @@ public async Task MapReselection_DuringDebounce_RestartsWindow_AndSendsLatestMap
             gameManager, _unitsLoader,
             commandPublisher, _dispatcherService,
             _gameFactory, _mapFactory, _cachingService, _mapPreviewRenderer,
-            _mapResourceProvider, _fileService, _botManager,
+            CreateMapConfig(), _botManager,
             _vmLogger, _localizationService, _mechFactory,
             _clipboardService,
             _hubConfigurationProvider,
@@ -2346,7 +2384,7 @@ public async Task MapReselection_DuringDebounce_RestartsWindow_AndSendsLatestMap
             gameManager, _unitsLoader,
             commandPublisher, _dispatcherService,
             _gameFactory, _mapFactory, _cachingService, _mapPreviewRenderer,
-            _mapResourceProvider, _fileService, _botManager,
+            CreateMapConfig(), _botManager,
             _vmLogger, _localizationService, _mechFactory,
             _clipboardService,
             _hubConfigurationProvider,
@@ -2400,6 +2438,104 @@ public async Task MapReselection_DuringDebounce_RestartsWindow_AndSendsLatestMap
 
         await _navigationService.Received(1).ShowViewModelForResultAsync<UnitInfoViewModel, PilotEditResult?>(
             Arg.Is<UnitInfoViewModel>(vm => vm!.HasPilot));
+    }
+
+    [Fact]
+    public async Task InitializeLobbyAndSubscribe_WhenLanMode_NotifiesServerIpAddress()
+    {
+        // Arrange
+        var sut = CreateSut();
+        sut.IsLanMode = true;
+        var changedProps = new List<string?>();
+        sut.PropertyChanged += (_, e) => changedProps.Add(e.PropertyName);
+
+        // Act
+        await sut.InitializeLobbyAndSubscribe(CancellationToken.None);
+
+        // Assert - the bound address must refresh once the LAN server is running
+        changedProps.ShouldContain(nameof(StartNewGameViewModel.ServerIpAddress));
+    }
+
+    [Fact]
+    public async Task CancelAndRestartServer_WhenOnline_NotifiesHostingStatusText()
+    {
+        // Arrange
+        _localizationService.GetString("Hosting_RoomReady").Returns("Room ready, join with code: {0}");
+        var gameManager = CreateOnlineGameManager();
+        var commandPublisher = Substitute.For<ICommandPublisher>();
+        _gameFactory.CreateClientGame(commandPublisher).Returns(_clientGame);
+        var sut = CreateSut(gameManager, commandPublisher);
+        sut.IsOnlineMode = true;
+        var changedProps = new List<string?>();
+        sut.PropertyChanged += (_, e) => changedProps.Add(e.PropertyName);
+
+        // Act
+        await sut.CancelAndRestartServer();
+
+        // Assert - the bound status text follows the hosting state
+        sut.IsMultiplayerEnabled.ShouldBeTrue();
+        sut.RoomCode.ShouldBe("ABCDEF");
+        sut.HostingStatusText.ShouldContain("ABCDEF");
+        changedProps.ShouldContain(nameof(StartNewGameViewModel.HostingStatusText));
+    }
+
+    [Fact]
+    public async Task CopyRoomCodeCommand_WhenCopySucceeds_NotifiesCopyRoomCodeStatusText()
+    {
+        // Arrange
+        _clipboardService.SetText("ABCDEF").Returns(true);
+        var gameManager = CreateOnlineGameManager();
+        var commandPublisher = Substitute.For<ICommandPublisher>();
+        _gameFactory.CreateClientGame(commandPublisher).Returns(_clientGame);
+        var sut = CreateSut(gameManager, commandPublisher);
+        sut.IsOnlineMode = true;
+        await sut.InitializeLobbyAndSubscribe(CancellationToken.None);
+        var changedProps = new List<string?>();
+        sut.PropertyChanged += (_, e) => changedProps.Add(e.PropertyName);
+
+        // Act
+        Should.NotThrow(() => sut.CopyRoomCodeCommand.Execute(null));
+
+        // Assert - the bound result text must refresh after a copy attempt
+        changedProps.ShouldContain(nameof(StartNewGameViewModel.CopyRoomCodeStatusText));
+    }
+
+    [Fact]
+    public async Task AttachHandlers_WhenOnlineSessionIsStillEnabled_ResetsToPlatformDefaultMode()
+    {
+        // Arrange - an online session left enabled from the previous visit on a LAN-capable platform
+        var gameManager = CreateOnlineGameManager();
+        gameManager.CanStartLanServer.Returns(true);
+        var commandPublisher = Substitute.For<ICommandPublisher>();
+        _gameFactory.CreateClientGame(commandPublisher).Returns(_clientGame);
+        var sut = CreateSut(gameManager, commandPublisher);
+        sut.IsOnlineMode = true;
+        await sut.CancelAndRestartServer();
+        sut.IsMultiplayerEnabled.ShouldBeTrue();
+        sut.IsOnlineMode.ShouldBeTrue();
+
+        // Act
+        sut.AttachHandlers();
+
+        // Assert - the platform default mode is restored even though the old session was locked
+        sut.IsMultiplayerEnabled.ShouldBeFalse();
+        sut.IsLanMode.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task AttachHandlers_WhenDefaultPlayerIsAdded_NotifiesCanAddPlayer()
+    {
+        // Arrange
+        var sut = CreateSut();
+        var changedProps = new List<string?>();
+        sut.PropertyChanged += (_, e) => changedProps.Add(e.PropertyName);
+
+        // Act
+        sut.AttachHandlers();
+        await WaitFor(() => sut.Players.Count == 1);
+
+        // Assert - the automatic add path must notify like the manual one
+        changedProps.ShouldContain(nameof(NewGameViewModel.CanAddPlayer));
     }
 
     private static async Task WaitFor(Func<bool> condition, int timeoutMs = 1000, int intervalMs = 20)

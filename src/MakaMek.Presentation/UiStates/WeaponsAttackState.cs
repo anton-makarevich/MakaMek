@@ -1,11 +1,7 @@
-using Sanet.MakaMek.Core.Data.Game;
-using Sanet.MakaMek.Core.Data.Game.Commands.Client;
-using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.MakaMek.Map.Models;
-using Sanet.MakaMek.Map.Models.Highlights;
 using Sanet.MakaMek.Presentation.ViewModels;
 using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 
@@ -14,10 +10,12 @@ namespace Sanet.MakaMek.Presentation.UiStates;
 public class WeaponsAttackState : IUiState, ICombatSelectionRoles
 {
     private readonly BattleMapViewModel _viewModel;
-    private readonly List<HexDirection> _availableDirections = [];
-    private readonly Dictionary<Weapon, HashSet<HexCoordinates>> _weaponRanges = new();
-    private readonly Dictionary<Weapon, WeaponSelectionViewModel> _weaponViewModels = new();
     private readonly Lock _stateLock = new();
+    private readonly WeaponsAttackSelectionPolicy _selectionPolicy;
+    private readonly WeaponRangeHighlighter _rangeHighlighter;
+    private readonly WeaponSelectionPresenter _presenter;
+    private readonly WeaponsConfigurationController _configuration;
+    private readonly WeaponsAttackSubmitter _submitter = new();
 
     public IClientGame Game { get; }
 
@@ -63,13 +61,20 @@ public class WeaponsAttackState : IUiState, ICombatSelectionRoles
         }
     }
 
-    public WeaponsAttackState(BattleMapViewModel viewModel)
+    internal WeaponsAttackState(
+        BattleMapViewModel viewModel,
+        WeaponsAttackSelectionPolicy? selectionPolicy = null,
+        WeaponRangeAnalyzer? rangeAnalyzer = null)
     {
         Game = viewModel.Game! ?? throw new InvalidOperationException("Game is not client game");
         _viewModel = viewModel;
+        _selectionPolicy = selectionPolicy ?? new WeaponsAttackSelectionPolicy();
+        _rangeHighlighter = new WeaponRangeHighlighter(viewModel, rangeAnalyzer ?? new WeaponRangeAnalyzer());
+        _presenter = new WeaponSelectionPresenter(viewModel, Game);
+        _configuration = new WeaponsConfigurationController(viewModel, Game);
         if (Game.PhaseStepState?.ActivePlayer == null)
         {
-            throw new InvalidOperationException("Active player is null"); 
+            throw new InvalidOperationException("Active player is null");
         }
     }
 
@@ -80,39 +85,47 @@ public class WeaponsAttackState : IUiState, ICombatSelectionRoles
         {
             lock (_stateLock)
             {
-                if (!this.CanHumanPlayerAct()) return;
-                if (value == null) return;
-                if (value.IsDestroyed) return;
-
-                if (CurrentStep is WeaponsAttackStep.SelectingUnit or WeaponsAttackStep.ActionSelection)
+                var outcome = _selectionPolicy.Decide(
+                    CurrentStep,
+                    value,
+                    this.CanHumanPlayerAct(),
+                    Game.PhaseStepState?.ActivePlayer.Id,
+                    _rangeHighlighter.WeaponRanges.Values);
+                switch (outcome)
                 {
-                    if (value.Owner?.Id != Game.PhaseStepState?.ActivePlayer.Id) return;
-                    if (value.HasDeclaredWeaponAttack) return;
-
-                    Attacker = value;
-                    CreateWeaponViewModels();
-                    CurrentStep = WeaponsAttackStep.ActionSelection;
-
-                    if (value.CanFireWeapons)
-                    {
-                        // Highlight weapon ranges for the newly selected unit
-                        HighlightWeaponRanges();
-                    }
-                }
-
-                if (CurrentStep == WeaponsAttackStep.TargetSelection)
-                {
-                    if (value.Owner?.Id == Game.PhaseStepState?.ActivePlayer.Id) return;
-                    if (value.Position == null || !IsHexInWeaponRange(value.Position.Coordinates)) return;
-
-                    SelectedTarget = value;
-                    UpdateWeaponViewModels();
-                    _viewModel.IsWeaponSelectionVisible = true;
+                    case WeaponsAttackSelectionOutcome.Ignore:
+                        return;
+                    case WeaponsAttackSelectionOutcome.SelectAttacker:
+                        ApplyAttackerSelection(value!);
+                        break;
+                    case WeaponsAttackSelectionOutcome.SelectTarget:
+                        ApplyTargetSelection(value!);
+                        break;
                 }
 
                 _viewModel.NotifyStateChanged();
             }
         }
+    }
+
+    private void ApplyAttackerSelection(IUnit unit)
+    {
+        Attacker = unit;
+        _presenter.Rebuild(unit, HandleWeaponSelection, HandleAimedShotRequest);
+        CurrentStep = WeaponsAttackStep.ActionSelection;
+
+        if (unit.CanFireWeapons)
+        {
+            // Highlight weapon ranges for the newly selected unit
+            HighlightWeaponRanges();
+        }
+    }
+
+    private void ApplyTargetSelection(IUnit unit)
+    {
+        SelectedTarget = unit;
+        _presenter.Update(Attacker, unit, _rangeHighlighter);
+        _viewModel.IsWeaponSelectionVisible = true;
     }
 
     public void HandleUnitSelectionFromList(IUnit? unit)
@@ -132,7 +145,7 @@ public class WeaponsAttackState : IUiState, ICombatSelectionRoles
         if (CurrentStep == WeaponsAttackStep.TargetSelection)
         {
             // Cancel target selection if clicked outside weapon range (non-highlighted hex)
-            if (!IsHexInWeaponRange(hex.Coordinates))
+            if (!_rangeHighlighter.IsHexInRange(hex.Coordinates))
             {
                 CancelTargetSelection();
                 return;
@@ -148,72 +161,79 @@ public class WeaponsAttackState : IUiState, ICombatSelectionRoles
 
         // Two units can share a hex after a blocked domino displacement. Pick the candidate by the
         // role the current step expects instead of taking whichever comes first.
-        var activePlayerId = Game.PhaseStepState?.ActivePlayer.Id;
-        var selectingAttacker = CurrentStep is WeaponsAttackStep.SelectingUnit or WeaponsAttackStep.ActionSelection;
-        var unit = _viewModel.Units.FirstOrDefault(u =>
-            u.Position?.Coordinates == hex.Coordinates
-            && (selectingAttacker
-                ? u.Owner?.Id == activePlayerId
-                : u.Owner?.Id != activePlayerId));
+        var unit = FindUnitOnHex(hex);
         if (unit == null) return;
+
         lock (_stateLock)
         {
             if (CurrentStep is WeaponsAttackStep.SelectingUnit or WeaponsAttackStep.ActionSelection)
             {
-                if (unit.Owner != Game.PhaseStepState?.ActivePlayer || unit.HasDeclaredWeaponAttack)
-                    return;
-
-                if (Attacker is not null)
-                {
-                    ClearWeaponRangeHighlights();
-                    ResetUnitSelection();
-                }
-
-                SelectedUnit = unit;
+                SelectAttackerFromHex(unit);
                 return;
             }
 
             if (CurrentStep == WeaponsAttackStep.TargetSelection)
             {
-                if (unit.Owner == Game.PhaseStepState?.ActivePlayer) return;
-                if (!IsHexInWeaponRange(hex.Coordinates)) return;
-
-                SelectedUnit = unit;
+                if (TrySelectTargetFromHex(unit, hex)) _viewModel.NotifyStateChanged();
+                return;
             }
 
             _viewModel.NotifyStateChanged();
         }
     }
 
-    private bool IsHexInWeaponRange(HexCoordinates coordinates)
+    private IUnit? FindUnitOnHex(Hex hex)
     {
-        return _weaponRanges.Values.Any(range => range.Contains(coordinates));
+        var activePlayerId = Game.PhaseStepState?.ActivePlayer.Id;
+        var selectingAttacker = CurrentStep is WeaponsAttackStep.SelectingUnit or WeaponsAttackStep.ActionSelection;
+
+        return _viewModel.Units.FirstOrDefault(unit =>
+            unit.Position?.Coordinates == hex.Coordinates
+            && (selectingAttacker
+                ? unit.Owner?.Id == activePlayerId
+                : unit.Owner?.Id != activePlayerId));
+    }
+
+    /// <summary>
+    /// Replaces the attacker with the unit under the cursor, dropping the previous attacker's
+    /// selections and highlights first.
+    /// </summary>
+    private void SelectAttackerFromHex(IUnit unit)
+    {
+        if (unit.Owner != Game.PhaseStepState?.ActivePlayer || unit.HasDeclaredWeaponAttack)
+            return;
+
+        if (Attacker is not null)
+        {
+            _rangeHighlighter.Clear();
+            ResetUnitSelection();
+        }
+
+        SelectedUnit = unit;
+    }
+
+    /// <summary>
+    /// Selects the enemy under the cursor when it is inside a weapon's reach.
+    /// </summary>
+    private bool TrySelectTargetFromHex(IUnit unit, Hex hex)
+    {
+        if (unit.Owner == Game.PhaseStepState?.ActivePlayer) return false;
+        if (!_rangeHighlighter.IsHexInRange(hex.Coordinates)) return false;
+
+        SelectedUnit = unit;
+        return true;
     }
 
     public void HandleFacingSelection(HexDirection direction)
     {
         if (!this.CanHumanPlayerAct()) return;
-        if (CurrentStep != WeaponsAttackStep.WeaponsConfiguration 
+        if (CurrentStep != WeaponsAttackStep.WeaponsConfiguration
             || Attacker == null
-            || !_availableDirections.Contains(direction)) return;
-        
-        _viewModel.HideDirectionSelector();
+            || !_configuration.CanRotateTo(direction)) return;
+
         lock (_stateLock)
         {
-            // Send command to server
-            var command = new WeaponConfigurationCommand
-            {
-                GameOriginId = Game.Id,
-                PlayerId = Game.PhaseStepState!.Value.ActivePlayer.Id,
-                UnitId = Attacker.Id,
-                Configuration = new WeaponConfiguration
-                {
-                    Type = WeaponConfigurationType.TorsoRotation,
-                    Value = (int)direction
-                }
-            };
-
-            Game.ConfigureUnitWeapons(command);
+            _configuration.ApplyTorsoRotation(Attacker, direction);
 
             // Return to action selection after rotation
             CurrentStep = WeaponsAttackStep.ActionSelection;
@@ -224,7 +244,7 @@ public class WeaponsAttackState : IUiState, ICombatSelectionRoles
     public void HandleTorsoRotation(Guid unitId)
     {
         if (Attacker?.Id != unitId) return;
-        ClearWeaponRangeHighlights();
+        _rangeHighlighter.Clear();
         HighlightWeaponRanges();
     }
 
@@ -235,8 +255,8 @@ public class WeaponsAttackState : IUiState, ICombatSelectionRoles
             SelectedTarget = null;
             Attacker?.WeaponAttackState.ClearAllWeaponTargets();
             Attacker = null;
-            _weaponRanges.Clear();
-            _weaponViewModels.Clear();
+            _rangeHighlighter.Clear();
+            _presenter.Clear();
             CurrentStep = WeaponsAttackStep.SelectingUnit;
             _viewModel.NotifyStateChanged();
         }
@@ -247,7 +267,7 @@ public class WeaponsAttackState : IUiState, ICombatSelectionRoles
         if (CurrentStep != WeaponsAttackStep.WeaponsConfiguration) return;
 
         // Hide the direction selector
-        _viewModel.HideDirectionSelector();
+        _configuration.HideDirectionSelector();
 
         // Return to an action selection step
         CurrentStep = WeaponsAttackStep.ActionSelection;
@@ -273,283 +293,46 @@ public class WeaponsAttackState : IUiState, ICombatSelectionRoles
 
     public IEnumerable<StateAction> GetAvailableActions()
     {
-        if (Attacker == null)
-            return new List<StateAction>();
+        if (Attacker is not { } attacker)
+            return [];
 
-        var actions = new List<StateAction>();
-
-        if (CurrentStep == WeaponsAttackStep.ActionSelection)
-        {
-            // Add skip attack action
-            actions.Add(new StateAction(
-                _viewModel.LocalizationService.GetString("Action_SkipAttack"),
-                true,
-                ConfirmWeaponSelections));
-
-            if (Attacker.IsImmobile) return actions;
-            
-            // A unit with a pending Charge or DFA cannot fire, but it may still twist its torso:
-            // charge alignment follows the feet, so a twist does not affect the attack
-            // (Total Warfare, p. 148).
-            // Add torso rotation action if available
-            // TODO: once arms flip is implemented we should add an action per type instead of filtering
-            var torsoRotationOption = Attacker
-                .GetWeaponsConfigurationOptions()
-                .FirstOrDefault(o => o.Type == WeaponConfigurationType.TorsoRotation);
-            if (torsoRotationOption.AvailableDirections is { Count: > 0 })
+        return WeaponsAttackActionBuilder.Build(
+            CurrentStep,
+            hasAttacker: true,
+            attackerIsImmobile: attacker.IsImmobile,
+            canFireWeapons: attacker.CanFireWeapons,
+            hasSelectedWeapons: attacker.WeaponAttackState.SelectedWeapons.Any(),
+            skipLabel: _viewModel.LocalizationService.GetString("Action_SkipAttack"),
+            turnTorsoLabel: _viewModel.LocalizationService.GetString("Action_TurnTorso"),
+            selectTargetLabel: _viewModel.LocalizationService.GetString("Action_SelectTarget"),
+            declareLabel: _viewModel.LocalizationService.GetString("Action_DeclareAttack"),
+            skip: ConfirmWeaponSelections,
+            turnTorso: _configuration.GetTorsoRotationAction(attacker, () =>
             {
-                actions.Add(new StateAction(
-                    _viewModel.LocalizationService.GetString("Action_TurnTorso"),
-                    true,
-                    () => 
-                    {
-                        if (Attacker?.Position == null) return;
-                        UpdateAvailableDirections();
-                        _viewModel.ShowDirectionSelector(Attacker.Position.Coordinates, _availableDirections);
-                        CurrentStep = WeaponsAttackStep.WeaponsConfiguration;
-                        _viewModel.NotifyStateChanged();
-                    }));
-            }
-
-            if (Attacker.CanFireWeapons)
+                CurrentStep = WeaponsAttackStep.WeaponsConfiguration;
+                _viewModel.NotifyStateChanged();
+            }),
+            selectTarget: () =>
             {
-                // Add target selection action
-                actions.Add(new StateAction(
-                    _viewModel.LocalizationService.GetString("Action_SelectTarget"),
-                    true,
-                    () =>
-                    {
-                        CurrentStep = WeaponsAttackStep.TargetSelection;
-                        _viewModel.NotifyStateChanged();
-                    }));
-            }
-
-            
-        }
-        else if (CurrentStep == WeaponsAttackStep.TargetSelection)
-        {
-            // Add confirm weapon selections action
-            actions.Add(new StateAction(
-                Attacker?.WeaponAttackState.SelectedWeapons.Any() == true ? _viewModel.LocalizationService.GetString("Action_DeclareAttack") : _viewModel.LocalizationService.GetString("Action_SkipAttack"),
-                true,
-                ConfirmWeaponSelections));
-        }
-
-        return actions;
-    }
-
-    private void UpdateAvailableDirections()
-    {
-        _availableDirections.Clear();
-
-        if (Attacker == null) return;
-
-        var torsoRotationOption = Attacker
-            .GetWeaponsConfigurationOptions()
-            .FirstOrDefault(o => o.Type == WeaponConfigurationType.TorsoRotation);
-
-        if (torsoRotationOption.AvailableDirections is not { Count: > 0 }) return;
-
-        _availableDirections.AddRange(torsoRotationOption.AvailableDirections.OrderBy(d => (int)d));
+                CurrentStep = WeaponsAttackStep.TargetSelection;
+                _viewModel.NotifyStateChanged();
+            });
     }
 
     private void HighlightWeaponRanges()
     {
-        if (Attacker?.Position == null) return;
-
-        var unitPosition = Attacker.Position;
-        _weaponRanges.Clear();
-
-        // Pass 1: Collect firing arc hexes per weapon with mount level (no LOS checks)
-        var weaponCandidates = new List<(Weapon Weapon, HashSet<HexCoordinates> CandidateHexes, int MountLevel)>();
-
-        foreach (var part in Attacker.Parts.Values)
-        {
-            var weapons = part.GetComponents<Weapon>();
-            foreach (var weapon in weapons)
-            {
-                // Skip weapons that cannot fire at all
-                if (!weapon.IsAvailableForAttack()
-                    || weapon.Range == null
-                    || weapon.FirstMountPart == null)
-                {
-                    continue;
-                }
-
-                var maxRange = weapon.Range.LongRange;
-                var facing = weapon.FirstMountPart.Facing;
-                if (facing == null)
-                {
-                    continue;
-                }
-
-                var weaponHexes = new HashSet<HexCoordinates>();
-                // For arms, we need to check both forward and side arcs
-                var arcs = weapon.GetFiringArcs();
-
-                foreach (var arc in arcs)
-                {
-                    var hexes = unitPosition.Coordinates.GetHexesInFiringArc(facing.Value, arc, maxRange);
-                    weaponHexes.UnionWith(hexes);
-                }
-
-                // Filter out hexes not on the map to skip unnecessary LOS calculations
-                if (Game.BattleMap != null)
-                {
-                    weaponHexes.RemoveWhere(h => !Game.BattleMap.IsOnMap(h));
-                }
-
-                weaponCandidates.Add((weapon, weaponHexes, weapon.FirstMountPart.Level));
-            }
-        }
-
-        // Pass 2: Deduplicate LOS checks by unique mount level. A hex can hold more than one unit,
-        // and a pending DFA attacker is airborne while a co-located unit stays grounded, so a hex
-        // result must consider every occupant instead of the first one found.
-        var losResults = new Dictionary<(HexCoordinates Hex, int Level), LineOfSightResult>();
-
-        if (Game.BattleMap != null)
-        {
-            var occupantsByHex = _viewModel.Units
-                .Where(u => u.Position != null && !ReferenceEquals(u, Attacker))
-                .GroupBy(u => u.Position!.Coordinates)
-                .ToDictionary(g => g.Key, g => g.ToList());
-
-            // Gather the union of hexes per unique level
-            var levelHexUnions = weaponCandidates
-                .GroupBy(wd => wd.MountLevel)
-                .ToDictionary(
-                    g => g.Key,
-                    g => g.SelectMany(wd => wd.CandidateHexes).ToHashSet());
-
-            foreach (var (level, hexes) in levelHexUnions)
-            {
-                foreach (var hex in hexes)
-                {
-                    losResults[(hex, level)] = GetLineOfSightToHex(
-                        level,
-                        hex,
-                        occupantsByHex.GetValueOrDefault(hex));
-                }
-            }
-        }
-
-        var losHighlights = new Dictionary<HexCoordinates, LosBlockingHighlight>();
-        var reachableHighlights = new Dictionary<HexCoordinates, AttackReachableHighlight>();
-
-        // Pass 3: Combine per-level LOS results into final weapon ranges
-        // Add LosBlockingHighlight only for hexes where ALL levels fail LOS
-        if (Game.BattleMap != null)
-        {
-            // Pre-compute hex → distinct levels for O(1) lookup per hex
-            var hexToLevels = new Dictionary<HexCoordinates, List<int>>();
-            foreach (var (_, candidateHexes, mountLevel) in weaponCandidates)
-            {
-                foreach (var hex in candidateHexes)
-                {
-                    if (!hexToLevels.TryGetValue(hex, out var levels))
-                    {
-                        levels = [];
-                        hexToLevels[hex] = levels;
-                    }
-
-                    if (!levels.Contains(mountLevel))
-                        levels.Add(mountLevel);
-                }
-            }
-
-            foreach (var (hex, levelsForHex) in hexToLevels)
-            {
-                var allLevelsBlocked = levelsForHex.All(level =>
-                {
-                    var key = (hex, level);
-                    return losResults.TryGetValue(key, out var result)
-                           && !result.HasLineOfSight;
-                });
-
-                if (allLevelsBlocked && levelsForHex.Count > 0)
-                {
-                    var firstLevel = levelsForHex[0];
-                    var losResult = losResults[(hex, firstLevel)];
-                    if (losResult is { HasLineOfSight: false, BlockReason: not null })
-                    {
-                        var reason = losResult.BlockReason;
-                        var highlight = new LosBlockingHighlight(reason.Value, losResult.BlockingHexCoordinates);
-                        losHighlights[hex] = highlight;
-                    }
-                }
-            }
-        }
-
-        // Populate _weaponRanges per weapon, filtering by pre-computed LOS
-        foreach (var (weapon, candidateHexes, mountLevel) in weaponCandidates)
-        {
-            var filteredHexes = new HashSet<HexCoordinates>(candidateHexes);
-
-            if (Game.BattleMap != null)
-            {
-                filteredHexes.RemoveWhere(hex =>
-                {
-                    var key = (hex, mountLevel);
-                    return losResults.TryGetValue(key, out var result)
-                           && !result.HasLineOfSight;
-                });
-            }
-
-            _weaponRanges[weapon] = filteredHexes;
-        }
-
-        var hexToWeaponNames = new Dictionary<HexCoordinates, HashSet<string>>();
-        foreach (var (weapon, hexes) in _weaponRanges)
-        {
-            foreach (var h in hexes)
-            {
-                if (!hexToWeaponNames.TryGetValue(h, out var set))
-                {
-                    set = [];
-                    hexToWeaponNames[h] = set;
-                }
-
-                set.Add(weapon.Name);
-            }
-        }
-
-        foreach (var (hex, weaponNames) in hexToWeaponNames)
-        {
-            var orderedWeaponNames = weaponNames.OrderBy(name => name).ToList();
-            reachableHighlights[hex] = new AttackReachableHighlight(orderedWeaponNames);
-        }
-
-        // Apply all highlights in a single batch call so boundary outlines
-        // are computed once over the full region per highlight type.
-        var perHexHighlights = new Dictionary<HexCoordinates, IHexHighlightType>(
-            losHighlights.Count + reachableHighlights.Count);
-        foreach (var (k, v) in losHighlights) perHexHighlights[k] = v;
-        foreach (var (k, v) in reachableHighlights) perHexHighlights[k] = v;
-        _viewModel.HighlightRegions(perHexHighlights);
+        if (Attacker is not { } attacker) return;
+        _rangeHighlighter.Highlight(attacker, Game);
     }
 
-    private void ClearWeaponRangeHighlights()
-    {
-        // Clear highlights
-        _viewModel.ClearHighlights();
-        
-        _weaponRanges.Clear();
-    }
+    private void ClearWeaponRangeHighlights() => _rangeHighlighter.Clear();
 
     /// <summary>
     /// Gets all weapons that can fire at a given hex coordinate
     /// </summary>
-    /// <param name="target">The target hex coordinates</param>
-    /// <returns>List of weapons that can fire at the target</returns>
-    public IReadOnlyList<Weapon> GetWeaponsInRange(HexCoordinates target)
-    {
-        return _weaponRanges
-            .Where(kvp => kvp.Value.Contains(target))
-            .Select(kvp => kvp.Key)
-            .ToList();
-    }
-    
+    public IReadOnlyList<Weapon> GetWeaponsInRange(HexCoordinates target) =>
+        _rangeHighlighter.GetWeaponsInRange(target);
+
     public IUnit? Attacker
     {
         get;
@@ -573,183 +356,7 @@ public class WeaponsAttackState : IUiState, ICombatSelectionRoles
 
     public IUnit? PrimaryTarget => Attacker?.WeaponAttackState.PrimaryTarget;
 
-    private void CreateWeaponViewModels()
-    {
-        _weaponViewModels.Clear();
-        if (Attacker == null) return;
-
-        foreach (var weapon in Attacker.Parts.Values.SelectMany(p => p.GetComponents<Weapon>()))
-        {
-            var viewModel = new WeaponSelectionViewModel(
-                weapon: weapon,
-                isInRange: false,
-                isSelected: false,
-                isEnabled: false,
-                target: null,
-                onSelectionChanged: HandleWeaponSelection,
-                onAimedShotRequest: HandleAimedShotRequest,
-                localizationService: _viewModel.LocalizationService,
-                toHitCalculator: Game.ToHitCalculator,
-                remainingAmmoShots: Attacker.GetRemainingAmmoShots(weapon)
-            );
-            _weaponViewModels[weapon] = viewModel;
-        }
-
-        // Update the view model's collection
-        UpdateViewModelWeaponItems();   
-    }
-
-    private void UpdateWeaponViewModels()
-    {
-        if (Attacker?.Position == null || SelectedTarget?.Position == null) return;
-
-        // Compute reversed LOS and partial cover for the attacker
-        var reversedLosResult = Game.BattleMap?.GetLineOfSight(
-            SelectedTarget.Position,
-            Attacker.Position,
-            SelectedTarget.Height,
-            Attacker.Height);
-        
-        var attackerHasPartialCover = reversedLosResult != null && 
-                                      Game.RulesProvider.HasPartialCover(Attacker, reversedLosResult);
-
-        foreach (var (weapon, vm) in _weaponViewModels)
-        {
-            // Only process available weapons
-            if (!weapon.IsAvailable)
-            {
-                vm.ModifiersBreakdown = null;
-                continue;
-            }
-            var isInRange = IsWeaponInRange(weapon, SelectedTarget);
-            var target = Attacker?.WeaponAttackState.WeaponTargets.GetValueOrDefault(weapon);
-            var isSelected = Attacker?.WeaponAttackState.IsWeaponAssigned(weapon, target) == true;
-            vm.IsInRange = isInRange;
-            vm.IsSelected = isSelected;
-            var isWeaponAvailable = Attacker != null && weapon.IsAvailableForAttack();
-            
-            // Clear restriction reason before applying logic
-            vm.RestrictionReason = null;
-
-            vm.IsEnabled = (Attacker?.WeaponAttackState.IsWeaponAssigned(weapon) != true || target == SelectedTarget) 
-                                                && isInRange && isWeaponAvailable;
-
-            // Apply partial cover restriction for leg weapons
-            if (attackerHasPartialCover)
-            {
-                var location = weapon.FirstMountPart?.Location;
-                if (location.HasValue 
-                    && Game.RulesProvider.CanPartBeCovered(location.Value))
-                {
-                    vm.IsEnabled = false;
-                    vm.RestrictionReason = _viewModel.LocalizationService.GetString("WeaponRestriction_PartialCoverLegs");
-                }
-            }
-
-            vm.Target = target;
-
-            vm.ModifiersBreakdown = null;
-            vm.AimedHeadModifiersBreakdown = null;
-            vm.AimedOtherModifiersBreakdown = null;
-
-            // Set modifier breakdown when in range
-            if (!isInRange) continue;
-            // Check if this target is the primary target
-            var isPrimaryTarget = SelectedTarget == PrimaryTarget || PrimaryTarget==null;
-
-            // Get modifier breakdown, passing the primary target information
-            if (Game.BattleMap == null || Attacker == null) continue;
-            // Calculate base breakdown without aimed shot
-            var baseBreakdown = Game.ToHitCalculator.GetModifierBreakdown(
-                Attacker, SelectedTarget, weapon, Game.BattleMap, isPrimaryTarget, vm.AimedShotTarget);
-
-            // Set the appropriate breakdown based on the current aimed shot target
-            vm.ModifiersBreakdown = baseBreakdown;
-
-            if (!vm.IsAimedShotAvailable) continue;
-            // Add aimed shot modifiers to the existing breakdown
-            vm.AimedHeadModifiersBreakdown = Game.ToHitCalculator.AddAimedShotModifier(baseBreakdown, PartLocation.Head);
-            vm.AimedOtherModifiersBreakdown = Game.ToHitCalculator.AddAimedShotModifier(baseBreakdown, PartLocation.CenterTorso);
-        }
-
-        // Update the view model's collection
-        UpdateViewModelWeaponItems();
-    }
-
-    // Helper method to update the view model's weapon items collection
-    private void UpdateViewModelWeaponItems()
-    {
-        // Clear the view model's collection and add all items from our local collection
-        _viewModel.WeaponSelectionItems.Clear();
-        foreach (var kvp in _weaponViewModels)
-        {
-            _viewModel.WeaponSelectionItems.Add(kvp.Value);
-        }
-    }
-
-    public IEnumerable<WeaponSelectionViewModel> WeaponSelectionItems => _weaponViewModels.Values;
-
-    private bool IsWeaponInRange(Weapon weapon, HexCoordinates targetCoords)
-    {
-        return _weaponRanges.TryGetValue(weapon, out var range) && 
-               range.Contains(targetCoords);
-    }
-
-    /// <summary>
-    /// Whether the weapon can fire at the selected unit. The hex highlight is an "any occupant"
-    /// result, so a co-located grounded unit must not inherit the airborne unit's line of sight:
-    /// once a target is selected, use that unit's own LOS result.
-    /// </summary>
-    private bool IsWeaponInRange(Weapon weapon, IUnit target)
-    {
-        if (target.Position == null || !IsWeaponInRange(weapon, target.Position.Coordinates))
-            return false;
-
-        if (Game.BattleMap == null || Attacker?.Position == null) return true;
-
-        return GetLineOfSightToUnit(weapon.FirstMountPart?.Level ?? 0, target).HasLineOfSight;
-    }
-
-    private LineOfSightResult GetLineOfSightToHex(
-        int mountLevel,
-        HexCoordinates hex,
-        IReadOnlyList<IUnit>? occupants)
-    {
-        if (occupants is { Count: > 0 })
-        {
-            LineOfSightResult? firstResult = null;
-            foreach (var occupant in occupants)
-            {
-                var occupantResult = GetLineOfSightToUnit(mountLevel, occupant);
-                if (occupantResult.HasLineOfSight) return occupantResult;
-                firstResult ??= occupantResult;
-            }
-
-            return firstResult!;
-        }
-
-        var attackerPosition = Attacker!.Position!;
-        return Game.BattleMap!.GetLineOfSight(
-            attackerPosition.Coordinates,
-            hex,
-            mountLevel,
-            0,
-            attackerPosition.Surface,
-            null,
-            attackerPosition.AirborneLevel,
-            null);
-    }
-
-    private LineOfSightResult GetLineOfSightToUnit(int mountLevel, IUnit target)
-    {
-        var attackerPosition = Attacker!.Position!;
-        var targetPosition = target.Position!;
-        return Game.BattleMap!.GetLineOfSight(
-            attackerPosition,
-            targetPosition,
-            mountLevel,
-            target.Height);
-    }
+    public IEnumerable<WeaponSelectionViewModel> WeaponSelectionItems => _presenter.Items;
 
     private void HandleWeaponSelection(Weapon weapon, bool selected)
     {
@@ -765,31 +372,13 @@ public class WeaponsAttackState : IUiState, ICombatSelectionRoles
             Attacker.WeaponAttackState.SetWeaponTarget(weapon, SelectedTarget, Attacker);
         }
 
-        UpdateWeaponViewModels();
+        _presenter.Update(Attacker, SelectedTarget, _rangeHighlighter);
         UpdateSelectedTargetViewModel();
         _viewModel.NotifyStateChanged();
     }
 
-    private void HandleAimedShotRequest(WeaponSelectionViewModel weaponVm)
-    {
-        if (weaponVm.Target == null
-            || weaponVm.AimedHeadModifiersBreakdown == null
-            || weaponVm.AimedOtherModifiersBreakdown == null)
-            return;
-
-        var selectorVm = new AimedShotLocationSelectorViewModel(
-            weaponVm.Target,
-            weaponVm.AimedHeadModifiersBreakdown,
-            weaponVm.AimedOtherModifiersBreakdown,
-            location =>
-            {
-                weaponVm.ApplyAimedShotResult(location);
-                _viewModel.HideAimedShotLocationSelector();
-            },
-            _viewModel.LocalizationService);
-
-        _viewModel.ShowAimedShotLocationSelector(selectorVm);
-    }
+    private void HandleAimedShotRequest(WeaponSelectionViewModel weaponVm) =>
+        _presenter.ShowAimedShotSelector(weaponVm);
 
     private void HandleSetPrimaryTarget(IUnit target)
     {
@@ -797,90 +386,32 @@ public class WeaponsAttackState : IUiState, ICombatSelectionRoles
 
         Attacker.WeaponAttackState.SetPrimaryTarget(target);
         UpdateSelectedTargetViewModel();
-        UpdateWeaponViewModels();
+        _presenter.Update(Attacker, SelectedTarget, _rangeHighlighter);
         _viewModel.NotifyStateChanged();
     }
 
-    private void UpdateSelectedTargetViewModel()
-    {
-        if (SelectedTarget == null || Attacker == null)
-        {
-            _viewModel.SelectedTarget = null;
-            return;
-        }
-
-        // Only show target info if there are weapons assigned to this target
-        var hasWeaponsForTarget = Attacker.WeaponAttackState.WeaponTargets.Values.Contains(SelectedTarget);
-
-        var isPrimary = SelectedTarget == PrimaryTarget;
-
-        // Update or create the view model for the selected target
-        if (_viewModel.SelectedTarget?.Target == SelectedTarget)
-        {
-            _viewModel.SelectedTarget.IsPrimary = isPrimary;
-            _viewModel.SelectedTarget.HasWeaponsForTarget = hasWeaponsForTarget;
-        }
-        else
-        {
-            _viewModel.SelectedTarget = new TargetSelectionViewModel(SelectedTarget, isPrimary, hasWeaponsForTarget, HandleSetPrimaryTarget);
-        }
-    }
-
-    // DeterminePrimaryTarget method removed - now handled in UnitWeaponAttackState
+    private void UpdateSelectedTargetViewModel() =>
+        _presenter.UpdateSelectedTarget(Attacker, SelectedTarget, HandleSetPrimaryTarget);
 
     public void ConfirmWeaponSelections()
     {
-        if (Attacker == null)
+        if (Attacker is not { } attacker)
             return;
-        
-        // Create a weapon target data list
-        var weaponTargetsData = new List<WeaponTargetData>();
-        
-        // Only process weapon targets if there are any (otherwise this is a Skip Attack)
-        if (Attacker.WeaponAttackState.SelectedWeapons.Any())
-        {
-            foreach (var (weapon, target) in Attacker.WeaponAttackState.WeaponTargets)
-            {
-                var isPrimaryTarget = target == PrimaryTarget;
 
-                // Get aimed shot target from weapon view model using O(1) dictionary lookup
-                var aimedShotTarget = _weaponViewModels.TryGetValue(weapon, out var weaponVm)
-                    ? weaponVm.AimedShotTarget
-                    : null;
+        _submitter.Submit(Game, attacker, _presenter.GetAimedShotTarget);
 
-                weaponTargetsData.Add(new WeaponTargetData
-                {
-                    Weapon = weapon.ToData(),
-                    TargetId = target.Id,
-                    IsPrimaryTarget = isPrimaryTarget,
-                    AimedShotTarget = aimedShotTarget
-                });
-            }
-        }
-        
-        // Create and send the command
-        var command = new WeaponAttackDeclarationCommand
-        {
-            GameOriginId = Game.Id,
-            PlayerId = Game.PhaseStepState!.Value.ActivePlayer.Id,
-            UnitId = Attacker.Id,
-            WeaponTargets = weaponTargetsData
-        };
-        
-        Game.DeclareWeaponAttack(command);
-        
         // Reset state after sending command
         ClearWeaponRangeHighlights();
-        Attacker?.WeaponAttackState.ClearAllWeaponTargets();
+        attacker.WeaponAttackState.ClearAllWeaponTargets();
         SelectedTarget = null;
         Attacker = null;
         _viewModel.IsWeaponSelectionVisible = false;
 
         // Clear the weapon view models
-        _weaponViewModels.Clear();
-        _viewModel.WeaponSelectionItems.Clear();
+        _presenter.Clear();
 
         CurrentStep = WeaponsAttackStep.SelectingUnit;
         _viewModel.NotifyStateChanged();
     }
 }
+

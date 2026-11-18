@@ -50,18 +50,19 @@ public static class BotContainerServices
         // Command Logger
         services.AddSingleton<ICommandLoggerFactory, FileCommandLoggerFactory>();
 
-        // Unit Loading (using GitHub/MMUX like Avalonia)
+        // Unit Loading (bucket manifest, same source as the app). The GitHub Contents API is
+        // rate limited for anonymous callers, so it cannot be the bot's asset source.
         services.AddSingleton<IUnitCachingService>(sp =>
         {
             var cachingService = sp.GetRequiredService<IFileCachingService>();
             var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
             var streamProviders = new List<IResourceStreamProvider>
             {
-                new GitHubResourceStreamProvider("mmux",
-                    GitHubDefaults.BaseUrl,
-                    "units/mechs",
+                new BucketResourceStreamProvider("units/manifest.json",
+                    "mmux",
+                    BucketDefaults.BaseUrl,
                     cachingService,
-                    loggerFactory.CreateLogger<GitHubResourceStreamProvider>()
+                    loggerFactory.CreateLogger<BucketResourceStreamProvider>()
                 )
             };
             return new UnitCachingService(streamProviders, loggerFactory);

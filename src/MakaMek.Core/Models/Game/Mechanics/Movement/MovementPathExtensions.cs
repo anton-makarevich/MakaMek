@@ -1,5 +1,6 @@
 using Sanet.MakaMek.Core.Data.Game.Mechanics.PhysicalAttacks;
 using Sanet.MakaMek.Map.Models;
+using Sanet.MakaMek.Map.Models.MovementCosts;
 using Sanet.MakaMek.Map.Models.Terrains;
 
 namespace Sanet.MakaMek.Core.Models.Game.Mechanics.Movement;
@@ -55,5 +56,21 @@ public static class MovementPathExtensions
                 AirborneLevel = null
             };
         }
+
+        /// <summary>
+        /// Records a standup attempt on the last segment of the path, together with the movement
+        /// cost the attempt spent.
+        /// </summary>
+        /// <param name="standupCost">The movement cost of the standup attempt.</param>
+        public MovementPath TagStandupAttempt(int standupCost) =>
+            path.WithLastSegmentEvent(
+                new SegmentEvent(SegmentEventType.StandupAttempt),
+                new StandUpAttemptMovementCost { Value = standupCost });
+
+        /// <summary>
+        /// Records a fall on the last segment of the path.
+        /// </summary>
+        public MovementPath TagFall() =>
+            path.WithLastSegmentEvent(new SegmentEvent(SegmentEventType.Fall));
     }
 }

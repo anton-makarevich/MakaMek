@@ -1440,6 +1440,17 @@ public class HexCoordinatesTests
     }
 
     [Fact]
+    public void GetFiringArc_InvalidDirection_ThrowsArgumentException()
+    {
+        // Arrange
+        var source = new HexCoordinates(5, 5);
+        var target = new HexCoordinates(6, 5);
+
+        // Act & Assert
+        Should.Throw<ArgumentException>(() => source.GetFiringArc(target, (HexDirection)6));
+    }
+
+    [Fact]
     public void GetDirectionToward_TargetDirectlyAbove_ReturnsTop()
     {
         var source = new HexCoordinates(5, 5);

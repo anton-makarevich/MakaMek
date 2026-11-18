@@ -723,4 +723,3 @@ public abstract class BaseGame : IGame
 
     protected abstract PlayerControlType? GetLocalPlayerControlType(Guid playerId);
 }
-

@@ -313,6 +313,41 @@ public class BridgeCollapseInterruptHandlerTests : GamePhaseTestsBase
     }
 
     [Fact]
+    public void Check_WhenOccupantAlreadyMoved_UsesTheOccupantMovementTypeForItsFallRoll()
+    {
+        // Arrange - a 'Mech that already used its own movement on the collapsing bridge makes its
+        // collapse PSR with that movement type, not with the entering unit's walk.
+        Game.BattleMap!.GetHex(new HexCoordinates(2, 2))!.AddTerrain(new BridgeTerrain(2, 10));
+
+        _occupantMech.Deploy(new HexPosition(2, 2, HexDirection.Top),
+            Game.BattleMap.GetHex(new HexCoordinates(2, 2)));
+        _occupantMech.Move(
+            MovementPath.CreateSingleSegmentPath(_occupantMech.Position!, MovementType.Run),
+            null,
+            isCompleted: false);
+        _enteringMech.Deploy(new HexPosition(1, 2, HexDirection.Top),
+            Game.BattleMap.GetHex(new HexCoordinates(1, 2)));
+
+        SetupFallContext(_enteringMech, MovementType.Walk);
+        SetupFallContext(_occupantMech, MovementType.Run);
+
+        var moveCommand = CreateMoveCommand(_enteringMech.Id, MovementType.Walk,
+            new PathSegment(new HexPosition(1, 2, HexDirection.Top), new HexPosition(2, 2, HexDirection.Top), []));
+
+        // Act
+        var result = _sut.Check(CreateContext(moveCommand with { PlayerId = Game.Players[0].Id }, 0));
+
+        // Assert
+        result.ShouldNotBeNull();
+        MockFallProcessor.Received(1).ProcessMovementAttempt(
+            _enteringMech, Arg.Any<BridgeCollapseRollContext>(), Game, MovementType.Walk,
+            Arg.Any<HexPosition?>());
+        MockFallProcessor.Received(1).ProcessMovementAttempt(
+            _occupantMech, Arg.Any<BridgeCollapseRollContext>(), Game, MovementType.Run,
+            Arg.Any<HexPosition?>());
+    }
+
+    [Fact]
     public void Check_ShouldDisplaceOccupantAwayFromEntryDirection()
     {
         Game.BattleMap!.GetHex(new HexCoordinates(2, 2))!.AddTerrain(new BridgeTerrain(2, 10));

@@ -2,7 +2,7 @@
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Map.Models;
 
-namespace Sanet.MakaMek.Bots.Models.DecisionEngines;
+namespace Sanet.MakaMek.Bots.Models.Evaluation;
 
 public interface ITacticalEvaluator
 {

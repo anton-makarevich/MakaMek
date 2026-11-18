@@ -68,39 +68,48 @@ public class PatchGenerator
         int patchSize,
         Dictionary<HexCoordinates, int> result)
     {
-        var queue = new Queue<HexCoordinates>();
-        queue.Enqueue(center);
-
         // Local tracking: patchHexes maps hex → distance from center for this patch
         var patchHexes = new Dictionary<HexCoordinates, int> { [center] = 0 };
+        var walker = new PathWalker(_width, _height);
 
-        while (queue.Count > 0 && patchHexes.Count < patchSize)
-        {
-            var current = queue.Dequeue();
-            var currentDist = patchHexes[current];
+        walker.Flood(
+            center,
+            (current, candidate) =>
+                TryAddToPatch(center, candidate, patchSize, patchHexes, patchHexes[current]),
+            patchSize);
 
-            foreach (var neighbor in current.GetAllNeighbours())
-            {
-                if (neighbor.Q < 1 || neighbor.Q >= _width + 1 ||
-                    neighbor.R < 1 || neighbor.R >= _height + 1)
-                    continue;
+        MergeIntoResult(result, patchHexes);
+    }
 
-                if (patchHexes.Count >= patchSize) break;
+    /// <summary>
+    /// Decides whether a candidate hex joins the patch: it must be new and pass the random
+    /// probability that decreases with the distance from the patch center.
+    /// </summary>
+    private bool TryAddToPatch(
+        HexCoordinates center,
+        HexCoordinates candidate,
+        int patchSize,
+        Dictionary<HexCoordinates, int> patchHexes,
+        int currentDistance)
+    {
+        if (patchHexes.ContainsKey(candidate)) return false;
 
-                if (patchHexes.ContainsKey(neighbor)) continue;
+        var distFromCenter = center.DistanceTo(candidate);
+        var addProbability = 1.0 - (distFromCenter / (double)patchSize * 0.5);
 
-                var distFromCenter = center.DistanceTo(neighbor);
-                var addProbability = 1.0 - (distFromCenter / (double)patchSize * 0.5);
+        if (_random.NextDouble() >= addProbability) return false;
 
-                if (_random.NextDouble() < addProbability)
-                {
-                    patchHexes[neighbor] = currentDist + 1;
-                    queue.Enqueue(neighbor);
-                }
-            }
-        }
+        patchHexes[candidate] = currentDistance + 1;
+        return true;
+    }
 
-        // Merge into the overall result; use the minimum distance if a hex was already added
+    /// <summary>
+    /// Merges a patch into the overall result; use the minimum distance if a hex was already added.
+    /// </summary>
+    private static void MergeIntoResult(
+        Dictionary<HexCoordinates, int> result,
+        Dictionary<HexCoordinates, int> patchHexes)
+    {
         foreach (var (hex, dist) in patchHexes)
         {
             if (!result.TryGetValue(hex, out var existing) || dist < existing)

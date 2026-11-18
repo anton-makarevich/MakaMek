@@ -22,84 +22,70 @@ public record LocationHitData(
     /// <returns>String representation of the hit location with damage and criticals</returns>
     public string Render(ILocalizationService localizationService)
     {
-        var stringBuilder = new StringBuilder();
-        
         if (Damage.Count == 0)
-        {
-            if (CoveringHexAbsorption != null)
-            {
-                var absTemplate = localizationService.GetString(
-                    "Command_WeaponAttackResolution_DamageAbsorbedByTerrain");
-                stringBuilder.AppendFormat(absTemplate,
-                    CoveringHexAbsorption.CoveringHex,
-                    CoveringHexAbsorption.AbsorbedDamage);
-            }
-            return stringBuilder.ToString();
-        }
+            return RenderTerrainAbsorption(localizationService);
 
-        // Check if this was an aimed shot
-        var isAimedShot = AimedShotRoll.Length > 0;
-        var aimedShotTotal = isAimedShot ? AimedShotRoll.Sum() : 0;
-        var aimedShotSuccessful = isAimedShot && aimedShotTotal is >= 6 and <= 8;
-        var locationRollTotal = LocationRoll.Length > 0 ? LocationRoll.Sum() : 0;
-        var localizedInitialLocation = localizationService.GetString($"MechPart_{InitialLocation}_Short");
-
-        if (isAimedShot)
-        {
-            if (aimedShotSuccessful)
-            {
-                var template = localizationService.GetString("Command_WeaponAttackResolution_AimedShotSuccessful");
-                stringBuilder.AppendFormat(
-                    template,
-                    localizedInitialLocation,
-                    aimedShotTotal).AppendLine();
-            }
-            else
-            {
-                stringBuilder.AppendFormat(
-                    localizationService.GetString("Command_WeaponAttackResolution_AimedShotFailed"),
-                    localizedInitialLocation,
-                    aimedShotTotal).AppendLine();
-            }
-        }
-        
-        // If there was a location transfer, show both the initial and final locations
-        if (InitialLocation != Damage[0].Location)
-        {
-            stringBuilder.AppendLine(FormatDamageMessage(
-                localizationService,
-                "Command_WeaponAttackResolution_HitLocationTransfer",
-                InitialLocation,
-                Damage[0].Location,
-                Damage[0].ArmorDamage,
-                Damage[0].StructureDamage,
-                locationRollTotal));
-        }
-        else
-        {
-            stringBuilder.AppendLine(FormatDamageMessage(
-                localizationService,
-                "Command_WeaponAttackResolution_HitLocation",
-                Damage[0].Location,
-                null,
-                Damage[0].ArmorDamage,
-                Damage[0].StructureDamage,
-                locationRollTotal));
-        }
-        
-        if (Damage.Count > 1)
-        {
-            for (var i = 1; i < Damage.Count; i++)
-            {
-                stringBuilder.AppendLine(FormatExcessDamageMessage(
-                    localizationService,
-                    Damage[i].Location,
-                    Damage[i].ArmorDamage,
-                    Damage[i].StructureDamage));
-            }
-        }
-
+        var stringBuilder = new StringBuilder();
+        AppendAimedShot(stringBuilder, localizationService);
+        AppendFirstHit(stringBuilder, localizationService);
+        AppendExcessDamage(stringBuilder, localizationService);
         return stringBuilder.ToString();
+    }
+
+    private string RenderTerrainAbsorption(ILocalizationService localizationService)
+    {
+        if (CoveringHexAbsorption == null) return string.Empty;
+
+        return string.Format(
+            localizationService.GetString("Command_WeaponAttackResolution_DamageAbsorbedByTerrain"),
+            CoveringHexAbsorption.CoveringHex,
+            CoveringHexAbsorption.AbsorbedDamage);
+    }
+
+    private void AppendAimedShot(StringBuilder stringBuilder, ILocalizationService localizationService)
+    {
+        if (AimedShotRoll.Length == 0) return;
+
+        var aimedShotTotal = AimedShotRoll.Sum();
+        var localizedInitialLocation = localizationService.GetString($"MechPart_{InitialLocation}_Short");
+        var key = aimedShotTotal is >= 6 and <= 8
+            ? "Command_WeaponAttackResolution_AimedShotSuccessful"
+            : "Command_WeaponAttackResolution_AimedShotFailed";
+
+        stringBuilder.AppendFormat(
+            localizationService.GetString(key),
+            localizedInitialLocation,
+            aimedShotTotal).AppendLine();
+    }
+
+    private void AppendFirstHit(StringBuilder stringBuilder, ILocalizationService localizationService)
+    {
+        var locationRollTotal = LocationRoll.Length > 0 ? LocationRoll.Sum() : 0;
+        var firstDamage = Damage[0];
+        var isTransfer = InitialLocation != firstDamage.Location;
+
+        stringBuilder.AppendLine(FormatDamageMessage(
+            localizationService,
+            isTransfer
+                ? "Command_WeaponAttackResolution_HitLocationTransfer"
+                : "Command_WeaponAttackResolution_HitLocation",
+            isTransfer ? InitialLocation : firstDamage.Location,
+            isTransfer ? firstDamage.Location : null,
+            firstDamage.ArmorDamage,
+            firstDamage.StructureDamage,
+            locationRollTotal));
+    }
+
+    private void AppendExcessDamage(StringBuilder stringBuilder, ILocalizationService localizationService)
+    {
+        for (var i = 1; i < Damage.Count; i++)
+        {
+            stringBuilder.AppendLine(FormatExcessDamageMessage(
+                localizationService,
+                Damage[i].Location,
+                Damage[i].ArmorDamage,
+                Damage[i].StructureDamage));
+        }
     }
 
     /// <summary>
@@ -114,63 +100,59 @@ public record LocationHitData(
         int structureDamage,
         int rollInfo)
     {
-        var hasArmor = armorDamage > 0;
-        var hasStructure = structureDamage > 0;
-
-        string key;
-        if (hasArmor && hasStructure)
-        {
-            key = $"{baseKey}_ArmorAndStructure";
-        }
-        else if (hasArmor)
-        {
-            key = $"{baseKey}_ArmorOnly";
-        }
-        else if (hasStructure)
-        {
-            key = $"{baseKey}_StructureOnly";
-        } 
-        else
-        {
-            return string.Empty;
-        }
+        var key = GetDamageLocalizationKey(baseKey, armorDamage > 0, structureDamage > 0);
+        if (key == null) return string.Empty;
 
         var template = localizationService.GetString(key);
         var localizedLocation1 = localizationService.GetString($"MechPart_{location1}_Short");
 
-        // Handle different parameter counts based on whether it's a transfer or regular hit
-        if (location2 != null) // Transfer case
+        // A transfer reports both the initial and the final location, a regular hit only one.
+        if (location2 is not { } location2Value)
+            return FormatDamageValues(template, localizedLocation1, armorDamage, structureDamage, rollInfo);
+
+        var localizedLocation2 = localizationService.GetString($"MechPart_{location2Value}_Short");
+        return FormatDamageValues(template, localizedLocation1, localizedLocation2,
+            armorDamage, structureDamage, rollInfo);
+    }
+
+    private static string? GetDamageLocalizationKey(string baseKey, bool hasArmor, bool hasStructure) =>
+        (hasArmor, hasStructure) switch
         {
-            var localizedLocation2 = localizationService.GetString($"MechPart_{location2}_Short");
-            if (hasArmor && hasStructure)
-            {
-                return string.Format(template, localizedLocation1, localizedLocation2, armorDamage, structureDamage, rollInfo);
-            }
+            (true, true) => $"{baseKey}_ArmorAndStructure",
+            (true, false) => $"{baseKey}_ArmorOnly",
+            (false, true) => $"{baseKey}_StructureOnly",
+            _ => null
+        };
 
-            if (hasArmor)
-            {
-                return string.Format(template, localizedLocation1, localizedLocation2, armorDamage, rollInfo);
-            }
+    private static string FormatDamageValues(
+        string template,
+        string localizedLocation,
+        int armorDamage,
+        int structureDamage,
+        int rollInfo)
+    {
+        if (structureDamage > 0 && armorDamage > 0)
+            return string.Format(template, localizedLocation, armorDamage, structureDamage, rollInfo);
 
-            if (!hasStructure) return string.Empty;
-            
-            return string.Format(template, localizedLocation1, localizedLocation2, structureDamage, rollInfo);
-        }
+        return armorDamage > 0
+            ? string.Format(template, localizedLocation, armorDamage, rollInfo)
+            : string.Format(template, localizedLocation, structureDamage, rollInfo);
+    }
 
-        // Regular hit case
-        if (hasArmor && hasStructure)
-        {
-            return string.Format(template, localizedLocation1, armorDamage, structureDamage, rollInfo);
-        }
+    private static string FormatDamageValues(
+        string template,
+        string localizedLocation1,
+        string localizedLocation2,
+        int armorDamage,
+        int structureDamage,
+        int rollInfo)
+    {
+        if (structureDamage > 0 && armorDamage > 0)
+            return string.Format(template, localizedLocation1, localizedLocation2, armorDamage, structureDamage, rollInfo);
 
-        if (hasArmor)
-        {
-            return string.Format(template, localizedLocation1, armorDamage, rollInfo);
-        }
-
-        if (!hasStructure) return string.Empty;
-        
-        return string.Format(template, localizedLocation1, structureDamage, rollInfo);
+        return armorDamage > 0
+            ? string.Format(template, localizedLocation1, localizedLocation2, armorDamage, rollInfo)
+            : string.Format(template, localizedLocation1, localizedLocation2, structureDamage, rollInfo);
     }
 
     /// <summary>
@@ -182,29 +164,20 @@ public record LocationHitData(
         int armorDamage,
         int structureDamage)
     {
-        var hasArmor = armorDamage > 0;
-        var hasStructure = structureDamage > 0;
+        var key = GetDamageLocalizationKey(
+            "Command_WeaponAttackResolution_HitLocationExcessDamage",
+            armorDamage > 0,
+            structureDamage > 0);
+        if (key == null) return string.Empty;
 
         var localizedLocation = localizationService.GetString($"MechPart_{location}_Short");
+        var template = localizationService.GetString(key);
 
-        string key;
-        if (hasArmor && hasStructure)
-        {
-            key = "Command_WeaponAttackResolution_HitLocationExcessDamage_ArmorAndStructure";
-            var template = localizationService.GetString(key);
+        if (armorDamage > 0 && structureDamage > 0)
             return string.Format(template, localizedLocation, armorDamage, structureDamage);
-        }
 
-        if (hasArmor)
-        {
-            key = "Command_WeaponAttackResolution_HitLocationExcessDamage_ArmorOnly";
-            var template = localizationService.GetString(key);
-            return string.Format(template, localizedLocation, armorDamage);
-        }
-
-        if (!hasStructure) return string.Empty;
-
-        key = "Command_WeaponAttackResolution_HitLocationExcessDamage_StructureOnly";
-        return string.Format(localizationService.GetString(key), localizedLocation, structureDamage);
+        return armorDamage > 0
+            ? string.Format(template, localizedLocation, armorDamage)
+            : string.Format(template, localizedLocation, structureDamage);
     }
 }

@@ -52,8 +52,10 @@ public class BucketResourceStreamProvider : RemoteResourceStreamProvider
         [
             .. (manifest?.Files ?? [])
             .Where(file => file.Name?.EndsWith($".{_fileExtension}", StringComparison.OrdinalIgnoreCase) == true &&
-                           !string.IsNullOrEmpty(file.Url))
-            .Select(file => (Url: file.Url!, Sha: file.Hash ?? string.Empty))
+                           !string.IsNullOrWhiteSpace(file.Url))
+            // Manifests generated from a base URL with stray whitespace carry it into every
+            // entry; trim so the download URL stays a valid absolute URI.
+            .Select(file => (Url: file.Url!.Trim(), Sha: file.Hash ?? string.Empty))
         ]);
     }
 }

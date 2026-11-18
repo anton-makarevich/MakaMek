@@ -733,6 +733,24 @@ public class UnitExtensionsTests
     }
 
     [Fact]
+    public void GetTacticalRole_WhenMissileTubesAreNotLrmLaunchers_DoesNotReturnLrmBoat()
+    {
+        // Arrange: 24 SRM tubes reach the LRM-boat threshold by count, but they are not LRM
+        // launchers, and the laser does not count at all, so the LRM-boat rule must not match.
+        var unit = Substitute.For<IUnit>();
+        unit.GetAvailableComponents<Weapon>().Returns(
+            [new Srm6(), new Srm6(), new Srm6(), new Srm6(), new MediumLaser()]);
+        unit.GetMovementPoints(MovementType.Walk).Returns(4);
+        unit.GetMovementPoints(MovementType.Jump).Returns(0);
+
+        // Act
+        var result = unit.GetTacticalRole();
+
+        // Assert
+        result.ShouldBe(UnitTacticalRole.Trooper);
+    }
+
+    [Fact]
     public void GetTacticalRole_WhenUnitHasLowWalkMP_ReturnsBrawler()
     {
         // Arrange

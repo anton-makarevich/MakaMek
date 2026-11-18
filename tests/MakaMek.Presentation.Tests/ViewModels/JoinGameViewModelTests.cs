@@ -172,6 +172,32 @@ public class JoinGameViewModelTests
     }
 
     [Fact]
+    public async Task ConnectCommand_NotifiesConnectionStateOnlyAfterLanConnectionCompletes()
+    {
+        // Arrange
+        _sut.ServerIp = "127.0.0.1";
+        var connectTcs = new TaskCompletionSource<bool>();
+        _gameConnector.ConnectToLan(Arg.Any<string>()).Returns(connectTcs.Task);
+        var changedProps = new List<string?>();
+        _sut.PropertyChanged += (_, e) => changedProps.Add(e.PropertyName);
+
+        // Act - the connector is still connecting
+        var connectTask = ((AsyncCommand)_sut.ConnectCommand).ExecuteAsync();
+
+        // Assert - no refresh may be raised before the connection completes
+        changedProps.ShouldNotContain(nameof(JoinGameViewModel.IsConnected));
+
+        // Act - complete the connection and wait for the command to finish
+        _connectorConnected = true;
+        connectTcs.SetResult(true);
+        await connectTask;
+
+        // Assert - the dependent state is refreshed once connected
+        changedProps.ShouldContain(nameof(JoinGameViewModel.IsConnected));
+        _sut.IsConnected.ShouldBeTrue();
+    }
+
+    [Fact]
     public async Task ConnectToServer_DelegatesToConnector()
     {
         // Arrange
@@ -956,11 +982,11 @@ public class JoinGameViewModelTests
                     throw new Exception("Simulated initialization failure");
             });
 
-        // Act - first call creates _localGame but fails during initialization
+        // Act - first call creates the local game but fails during initialization
         EnableLanConnect();
         _sut.ConnectCommand.Execute(null);
 
-        // First attempt left _localGame set but not disposed and IsConnected=false
+        // First attempt left the local game set but not disposed and IsConnected=false
         _clientGame.IsDisposed.ShouldBeFalse();
         _sut.IsConnected.ShouldBeFalse();
 

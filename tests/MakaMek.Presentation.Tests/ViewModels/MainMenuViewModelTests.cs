@@ -14,6 +14,8 @@ using Sanet.MakaMek.Core.Utils;
 using Sanet.Localization;
 using Sanet.MakaMek.Map.Factories;
 using Sanet.MakaMek.Presentation.ViewModels;
+using Sanet.MakaMek.Presentation.ViewModels.Maps;
+using Sanet.MakaMek.Presentation.ViewModels.Settings;
 using Sanet.MakaMek.Map.Services;
 using Sanet.MakaMek.Services;
 using Sanet.MVVM.Core.Services;
@@ -73,6 +75,21 @@ public class MainMenuViewModelTests
             Substitute.For<IAssetProviderConfigurationProvider>(),
             Substitute.For<IResourceStreamProviderFactory>());
 
+    private static MapConfigViewModel CreateMapConfig() =>
+        new(
+            new MapGenerationService(
+                Substitute.For<IBattleMapFactory>(),
+                Substitute.For<IMapPreviewRenderer>()),
+            new AvailableMapsService(
+                Substitute.For<IMapResourceProvider>(),
+                Substitute.For<IBattleMapFactory>(),
+                Substitute.For<IMapPreviewRenderer>(),
+                Substitute.For<IFileService>(),
+                Substitute.For<IDispatcherService>(),
+                Substitute.For<ILogger<AvailableMapsService>>()),
+            Substitute.For<ILogger<MapConfigViewModel>>(),
+            Substitute.For<ILocalizationService>());
+
     [Fact]
     public void Constructor_InitializesCommands()
     {
@@ -99,8 +116,7 @@ public class MainMenuViewModelTests
             Substitute.For<IBattleMapFactory>(),
             Substitute.For<IFileCachingService>(),
             Substitute.For<IMapPreviewRenderer>(),
-            Substitute.For<IMapResourceProvider>(),
-            Substitute.For<IFileService>(),
+            CreateMapConfig(),
             Substitute.For<IBotManager>(),
             Substitute.For<ILogger<StartNewGameViewModel>>(),
             _localizationService,
@@ -208,13 +224,7 @@ public class MainMenuViewModelTests
         var settingsLogger = Substitute.For<ILogger<SettingsViewModel>>();
         var hubConfigurationProvider = Substitute.For<IRelayHubConfigurationProvider>();
         var settingsVm = new SettingsViewModel(
-            fileCachingService,
-            _unitCachingService,
-            _terrainAssetService,
             _localizationService,
-            hubConfigurationProvider,
-            Substitute.For<IRelayRoomClient>(),
-            Substitute.For<IAssetProviderConfigurationProvider>(),
             new AssetLoadingViewModel(
                 _unitCachingService,
                 _terrainAssetService,
@@ -223,6 +233,21 @@ public class MainMenuViewModelTests
                 Substitute.For<ILogger<AssetLoadingViewModel>>(),
                 Substitute.For<IAssetProviderConfigurationProvider>(),
                 Substitute.For<IResourceStreamProviderFactory>()),
+            new HubSettingsService(
+                hubConfigurationProvider,
+                Substitute.For<IRelayRoomClient>(),
+                _localizationService,
+                Substitute.For<ILogger<HubSettingsService>>()),
+            new AssetProviderSettingsService(
+                Substitute.For<IAssetProviderConfigurationProvider>(),
+                _unitCachingService,
+                _terrainAssetService,
+                _localizationService,
+                Substitute.For<ILogger<AssetProviderSettingsService>>()),
+            new AssetCacheService(
+                fileCachingService,
+                _unitCachingService,
+                _terrainAssetService),
             settingsLogger);
         _navigationService.GetNewViewModelAsync<SettingsViewModel>().Returns(settingsVm);
 

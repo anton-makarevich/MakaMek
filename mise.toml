@@ -57,4 +57,3 @@ run = "dotnet run tools/analyzer-gate/AnalyzerGate.cs --"
 [tasks.test-architecture]
 description = "Runs the ArchUnitNET architecture test suite"
 run = "dotnet test tests/MakaMek.Architecture.Tests/MakaMek.Architecture.Tests.csproj"
-

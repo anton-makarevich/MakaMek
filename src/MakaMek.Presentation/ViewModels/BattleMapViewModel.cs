@@ -956,11 +956,17 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
                 break;
 
             case PhaseNames.WeaponsAttack when phaseState.UnitsToPlay > 0:
-                TransitionToState(new WeaponsAttackState(this));
+                TransitionToState(new WeaponsAttackState(
+                    this,
+                    new WeaponsAttackSelectionPolicy(),
+                    new WeaponRangeAnalyzer()));
                 break;
 
             case PhaseNames.PhysicalAttack when phaseState.UnitsToPlay > 0:
-                TransitionToState(new PhysicalAttackState(this));
+                TransitionToState(new PhysicalAttackState(
+                    this,
+                    new PhysicalAttackSelectionPolicy(),
+                    new PhysicalAttackOptionBuilder(Game!, LocalizationService)));
                 break;
 
             case PhaseNames.End:

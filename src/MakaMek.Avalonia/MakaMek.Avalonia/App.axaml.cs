@@ -47,6 +47,7 @@ public partial class App : Application
         }
 
         services.RegisterServices();
+        services.RegisterSettingsServices();
         services.RegisterViewModels();
 
         var serviceProvider = services.BuildServiceProvider();

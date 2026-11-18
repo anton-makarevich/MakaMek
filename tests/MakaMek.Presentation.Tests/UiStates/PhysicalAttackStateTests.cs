@@ -82,9 +82,14 @@ public class PhysicalAttackStateTests
         AddPlayerUnits();
         SetActivePlayer();
 
-        _sut = new PhysicalAttackState(_viewModel);
+        _sut = CreateState();
         BindViewModelCurrentStateTo(_sut);
     }
+
+    private PhysicalAttackState CreateState() =>
+        new(_viewModel,
+            new PhysicalAttackSelectionPolicy(),
+            new PhysicalAttackOptionBuilder(_game, _localizationService));
 
     private void BindViewModelCurrentStateTo(PhysicalAttackState state)
     {
@@ -1294,7 +1299,7 @@ public class PhysicalAttackStateTests
     {
         _viewModel.Game = null;
 
-        var exception = Should.Throw<InvalidOperationException>(() => new PhysicalAttackState(_viewModel));
+        var exception = Should.Throw<InvalidOperationException>(() => CreateState());
 
         exception.Message.ShouldBe("Game is not client game");
     }
@@ -1304,7 +1309,7 @@ public class PhysicalAttackStateTests
     {
         _viewModel.Game = CreateGame();
 
-        var exception = Should.Throw<InvalidOperationException>(() => new PhysicalAttackState(_viewModel));
+        var exception = Should.Throw<InvalidOperationException>(() => CreateState());
 
         exception.Message.ShouldBe("Active player is null");
     }
