@@ -84,6 +84,7 @@ public static class CoreServices
                 var configs = await configProvider.GetActiveProviders(AssetType.Hexes);
                 return providerFactory.CreateAll(configs);
             },
+            sp.GetRequiredService<TerrainAssetCache>(),
             sp.GetRequiredService<ITerrainImageResolver>(),
             sp.GetRequiredService<TerrainPackageLoader>());
         });

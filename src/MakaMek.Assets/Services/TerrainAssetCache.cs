@@ -3,13 +3,14 @@ using System.Security.Cryptography;
 using System.Text;
 using Sanet.MakaMek.Assets.Models.Terrains;
 using Sanet.MakaMek.Assets.Services.PackageReaders;
+using TerrainCacheState = Sanet.MakaMek.Assets.Services.TerrainCachingService.TerrainCacheState;
 
 namespace Sanet.MakaMek.Assets.Services;
 
 /// <summary>
 /// Bookkeeping for the terrain cache: cache/variant keys, duplicate-package replacement,
 /// deterministic variant selection and image lookups. Stateless — all data lives in the
-/// <see cref="TerrainCacheState"/> passed in by the caller, so a single
+/// <see cref="TerrainCachingService.TerrainCacheState"/> passed in by the caller, so a single
 /// instance is safe to share between the caching service and the package loader.
 /// </summary>
 public sealed class TerrainAssetCache
@@ -19,7 +20,7 @@ public sealed class TerrainAssetCache
     /// deterministically when the request does not name one explicitly.
     /// </summary>
     /// <returns>The cached image, or <c>null</c> when the biome has no such asset</returns>
-    public static byte[]? GetImage(
+    public byte[]? GetImage(
         TerrainCacheState state,
         string biomeId,
         TerrainImageRequest request)
@@ -37,7 +38,7 @@ public sealed class TerrainAssetCache
     /// <summary>
     /// Gets the available variant numbers for an asset of the given biome.
     /// </summary>
-    public static IReadOnlyList<int> GetVariants(
+    public IReadOnlyList<int> GetVariants(
         TerrainCacheState state,
         string biomeId,
         TerrainAssetType assetType,
@@ -61,7 +62,7 @@ public sealed class TerrainAssetCache
     /// owning service report the conflict with its own logger
     /// </param>
     /// <returns><c>true</c> when a previously cached biome with the same id was replaced</returns>
-    public static bool AddPackage(
+    public bool AddPackage(
         TerrainCacheState state,
         TerrainPackage package,
         string? providerId,

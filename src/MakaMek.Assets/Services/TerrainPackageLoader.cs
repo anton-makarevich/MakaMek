@@ -11,6 +11,7 @@ namespace Sanet.MakaMek.Assets.Services;
 public sealed class TerrainPackageLoader
 {
     private readonly MmtxTerrainPackageReader _packageReader;
+    private readonly TerrainAssetCache _assetCache;
 
     /// <summary>
     /// Initializes a new instance of TerrainPackageLoader
@@ -20,14 +21,21 @@ public sealed class TerrainPackageLoader
     public TerrainPackageLoader(MmtxTerrainPackageReader packageReader, TerrainAssetCache assetCache)
     {
         _packageReader = packageReader;
+        _assetCache = assetCache;
     }
 
     /// <summary>
-    /// Parses an MMTX package stream and merges it into the given cache state, applying the
-    /// shared duplicate policy (a package from a provider lower in the list replaces an earlier one).
+    /// Parses an MMTX package stream and merges it into the cache state returned by
+    /// <paramref name="stateAccessor"/>, applying the shared duplicate policy (a package from a
+    /// provider lower in the list replaces an earlier one).
     /// </summary>
     /// <param name="packageStream">Stream containing the MMTX package data</param>
-    /// <param name="state">Cache state to merge into</param>
+    /// <param name="stateAccessor">
+    /// Resolves the cache state to merge into once parsing completes. Provider loads pass the
+    /// explicit staging state they were handed, while direct stream loads pass the owning
+    /// service's current state so a cache cleared during parsing is not populated with the
+    /// discarded snapshot.
+    /// </param>
     /// <param name="providerId">Provider the package came from, or <c>null</c> for direct stream loads</param>
     /// <param name="onDuplicateAsset">
     /// Invoked with the cache key when an image overwrites an already cached one
@@ -36,13 +44,13 @@ public sealed class TerrainPackageLoader
     /// <returns>The loaded biome manifest and whether an already cached biome was replaced</returns>
     public async Task<(BiomeManifest Manifest, bool ReplacedExistingBiome)> Load(
         Stream packageStream,
-        TerrainCacheState state,
+        Func<TerrainCachingService.TerrainCacheState> stateAccessor,
         string? providerId,
         Action<string>? onDuplicateAsset = null,
         CancellationToken cancellationToken = default)
     {
         var package = await _packageReader.Read(packageStream, cancellationToken);
-        var replacedExistingBiome = TerrainAssetCache.AddPackage(state, package, providerId, onDuplicateAsset);
+        var replacedExistingBiome = _assetCache.AddPackage(stateAccessor(), package, providerId, onDuplicateAsset);
         return (package.Manifest, replacedExistingBiome);
     }
 }
