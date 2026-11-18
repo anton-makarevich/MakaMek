@@ -47,7 +47,7 @@ The Map module implements the core logic for the game's hex-based battle map. It
 
 ### 5. Pathfinding & Reachability
 - **Collaborators:**
-  - `HexPathfinder` — A* over the hex graph for ground movement, with `PathFindingMode.Shortest` and `PathFindingMode.Longest` strategies, caching and turning-segment construction. It knows no terrain rules.
+  - `HexPathfinder` — ground-movement search over the hex graph with caching and turning-segment construction. `PathFindingMode.Shortest` is A*, with the frontier ordered by path cost plus distance to target. `PathFindingMode.Longest` orders the frontier by hexes traveled (most first), then by distance to target; path cost is only a pruning guard, never a priority. It knows no terrain rules.
   - `IHexMovementRules` / `HexMovementRules` — supplies the legal surface transitions into adjacent hexes and their entry/elevation cost (`HexTransition`), including bridge clearance, road/pavement access and elevation limits.
   - `PathRequest` — immutable inputs for one ground-movement search; `HexTransition` — one legal destination surface with its cost.
   - `HexReachabilityCalculator` — walk and jump reachability, both built on `HexBreadthFirstSearch` (cheapest cost per discovered node, re-visiting only when a cheaper route arrives).
@@ -68,7 +68,7 @@ The Map module implements the core logic for the game's hex-based battle map. It
   - LOS is blocked if intervening height or total terrain factor exceeds thresholds.
   - Optional attacker and target base levels let an airborne position (a pending DFA approach) supply its absolute endpoint level instead of the surface standing level; such an endpoint is never treated as submerged. The path cache still keys on coordinates only.
   - LOS paths are cached per coordinate pair in `LineOfSightCache`.
-- **LOS Hex Listing:** every `LineOfSightResult` carries `HexPath`, the resolved intervening hexes with their individual intervening factors.
+- **LOS Hex Listing:** every `LineOfSightResult` carries `HexPath`, the resolved hexes from the attacker toward the target with their individual intervening factors. It never contains the attacker: an unblocked result ends with the target hex, while a blocked result stops at and includes the blocking hex. For adjacent or same-hex pairs there are no intervening hexes, so `HexPath` holds only the target. Entries are traversal context, not a list of intervening terrain only.
 - **Boundary Validation:** `IsOnMap` method provides efficient boundary checking for coordinate validation.
 
 ### 7. Firing Arcs
@@ -87,8 +87,9 @@ The Map module implements the core logic for the game's hex-based battle map. It
 - **BattleMapFactory/IBattleMapFactory:**
   - Abstract map creation logic, enabling custom map generation for different scenarios or tests.
 - **PathWalker (`Generators/`):**
-  - Shared traversal primitive for the terrain path generators: a 1-based bounds check plus a breadth-first `Flood` that grows a set of hexes from a start hex.
-  - Each generator (`PatchGenerator`, `RiverPathGenerator`, `RoadPathGenerator`) supplies its own per-hex legality predicate; the walk shape lives here once.
+  - Shared traversal primitive for the terrain path generators: a 1-based bounds check (`IsOnMap`) plus a breadth-first `Flood` that grows a set of hexes from a start hex.
+  - `PatchGenerator` and `RoadPathGenerator` use `Flood`, each supplying its own per-hex legality predicate, so that walk shape lives here once.
+  - `RiverPathGenerator` only reuses the `IsOnMap` bounds check: its `RiverWalk.Run` selects one directed next hex per step and never calls `Flood`.
 
 ---
 
@@ -104,7 +105,7 @@ The Map module implements the core logic for the game's hex-based battle map. It
 ## Extensibility Points
 - **Terrains:** Add new terrain types by extending the base `Terrain` class.
 - **Map Generation:** Implement custom factories for scenario-specific maps.
-- **LOS/Pathfinding:** The algorithms are isolated behind `LineOfSightCalculator`, `HexPathfinder`, `HexReachabilityCalculator` and `IHexMovementRules`, so they can be replaced or extended for advanced rules without touching `BattleMap`.
+- **LOS/Pathfinding:** The algorithms are isolated in `LineOfSightCalculator`, `HexPathfinder` and `HexReachabilityCalculator`, with movement legality behind `IHexMovementRules`, so they can be understood and tested independently of the `BattleMap` façade. These calculators are concrete, sealed implementations that `BattleMap` constructs and keeps in concrete fields; swapping one is a new implementation plus an explicit façade change, not runtime selection. New terrain behaviour is the intended extension point and needs no façade change.
 
 ---
 
