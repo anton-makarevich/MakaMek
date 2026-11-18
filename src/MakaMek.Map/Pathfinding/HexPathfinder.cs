@@ -223,20 +223,23 @@ internal sealed class HexPathfinder(IHexGrid grid, IHexMovementRules movementRul
         NeighbourTransition step,
         Dictionary<HexPosition, (int Cost, int Hexes)> visited)
     {
-        var totalCost = current.Cost + step.Transition.MovementCost + step.TurningCost;
+        // Compare the accumulated cost in a wider type first: a rule can price a step high
+        // enough that summing in int would wrap and let an over-budget step through.
+        var totalCost = (long)current.Cost + step.Transition.MovementCost + step.TurningCost;
         if (totalCost > request.MaxMovementPoints) yield break;
+        var cost = (int)totalCost;
 
         var nextPosition = new HexPosition(step.ToHex.Coordinates, step.RequiredFacing, step.Transition.Surface);
         var isNewHex = IsNewHex(current, step.ToHex.Coordinates);
         var hexesTraveled = current.HexesTraveled + (isNewHex ? 1 : 0);
 
         if (visited.TryGetValue(nextPosition, out var visitedState)
-            && IsNotAnImprovement(request.Mode, visitedState, totalCost, hexesTraveled))
+            && IsNotAnImprovement(request.Mode, visitedState, cost, hexesTraveled))
         {
             yield break;
         }
 
-        visited[nextPosition] = (totalCost, hexesTraveled);
+        visited[nextPosition] = (cost, hexesTraveled);
 
         // The route outlives the movement rules' enumerator, so take ownership of the accepted
         // step's costs before the rule can reuse its backing collection for the next transition.
@@ -245,8 +248,8 @@ internal sealed class HexPathfinder(IHexGrid grid, IHexMovementRules movementRul
         if (step.ToHex.Coordinates != request.Target.Coordinates || step.RequiredFacing == request.Target.Facing)
         {
             yield return (
-                new PathfindingState(nextPosition, current, acceptedStep, totalCost, hexesTraveled),
-                Priority(request.Mode, totalCost, hexesTraveled,
+                new PathfindingState(nextPosition, current, acceptedStep, cost, hexesTraveled),
+                Priority(request.Mode, cost, hexesTraveled,
                     step.ToHex.Coordinates.DistanceTo(request.Target.Coordinates)));
             yield break;
         }
@@ -254,12 +257,13 @@ internal sealed class HexPathfinder(IHexGrid grid, IHexMovementRules movementRul
         var finalTurningSteps = nextPosition.GetTurningSteps(request.Target.Facing).ToList();
         var finalCost = totalCost + finalTurningSteps.Count;
         if (finalCost > request.MaxMovementPoints) yield break;
+        var narrowedFinalCost = (int)finalCost;
 
         var targetPosition = new HexPosition(step.ToHex.Coordinates, request.Target.Facing, step.Transition.Surface);
 
         yield return (
-            new PathfindingState(targetPosition, current, acceptedStep, finalCost, hexesTraveled, finalTurningSteps),
-            Priority(request.Mode, finalCost, hexesTraveled, 0));
+            new PathfindingState(targetPosition, current, acceptedStep, narrowedFinalCost, hexesTraveled, finalTurningSteps),
+            Priority(request.Mode, narrowedFinalCost, hexesTraveled, 0));
     }
 
     /// <summary>

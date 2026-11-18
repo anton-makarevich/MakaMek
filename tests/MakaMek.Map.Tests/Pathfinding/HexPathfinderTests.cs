@@ -119,14 +119,34 @@ public class HexPathfinderTests
     public void Find_SnapshotsAcceptedCosts_WhenRulesReuseTheirCostCollection()
     {
         var grid = TraversalTestMap.BuildClearGrid(2, 1);
-        var sut = new HexPathfinder(grid, new ReusingCostMovementRules());
         var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.BottomRight);
         var target = new HexPosition(new HexCoordinates(2, 1), HexDirection.BottomRight);
 
-        var path = sut.Find(Request(start, target), new MovementPathCache());
+        var path = new HexPathfinder(grid, new ReusingCostMovementRules())
+            .Find(Request(start, target), new MovementPathCache());
 
         path.ShouldNotBeNull();
         path.TotalCost.ShouldBe(1);
+
+        // The final-turn branch retains the accepted step too: one entry plus one turn.
+        var turnedTarget = target with { Facing = HexDirection.TopRight };
+        var turnedPath = new HexPathfinder(grid, new ReusingCostMovementRules())
+            .Find(Request(start, turnedTarget), new MovementPathCache());
+
+        turnedPath.ShouldNotBeNull();
+        turnedPath.TotalCost.ShouldBe(2);
+    }
+
+    [Fact]
+    public void Find_OverflowingTransitionCost_ReturnsNullInsteadOfThrowing()
+    {
+        var grid = TraversalTestMap.BuildClearGrid(2, 1);
+        // One turn plus a step priced at int.MaxValue: the int sum would wrap below the budget.
+        var sut = new HexPathfinder(grid, new FixedCostMovementRules(int.MaxValue));
+        var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.TopRight);
+        var target = new HexPosition(new HexCoordinates(2, 1), HexDirection.BottomRight);
+
+        sut.Find(Request(start, target, maxMovementPoints: 1), new MovementPathCache()).ShouldBeNull();
     }
 
     [Fact]
