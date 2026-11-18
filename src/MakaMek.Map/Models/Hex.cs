@@ -86,22 +86,25 @@ public class Hex : IDisposable
     /// </summary>
     public IEnumerable<MovementCost> GetEnterMovementCost(Hex fromHex, HexSurface fromSurface, HexSurface toSurface)
     {
-        var hexEntry = new HexEnterMovementCost { Value = 1 };
+        return GetEnterMovementCostList(fromHex, fromSurface, toSurface);
+    }
 
-        bool IsRoadSurface(Terrain? terrain, HexSurface surface) => (terrain?.Id, surface) switch
-        {
-            (MakaMekTerrains.Road, HexSurface.Ground) => true,
-            (MakaMekTerrains.Pavement, HexSurface.Ground) => true,
-            (MakaMekTerrains.Bridge, HexSurface.Bridge) => true,
-            _ => false
-        };
+    /// <summary>
+    /// List-returning form of <see cref="GetEnterMovementCost"/> for callers inside the assembly
+    /// that need the materialised breakdown. Kept internal so the public signature stays
+    /// binary-compatible for package consumers.
+    /// </summary>
+    internal IReadOnlyList<MovementCost> GetEnterMovementCostList(Hex fromHex, HexSurface fromSurface, HexSurface toSurface)
+    {
+        var hexEntry = new HexEnterMovementCost { Value = 1 };
 
         var fromTerrain = fromHex.GetRoadOrPavedTerrain();
         var toTerrain = this.GetRoadOrPavedTerrain();
 
-        if (IsRoadSurface(fromTerrain, fromSurface) && IsRoadSurface(toTerrain, toSurface) && toTerrain is { } toRoad)
+        if (IsRoadSurface(fromTerrain, fromSurface) && IsRoadSurface(toTerrain, toSurface))
         {
             // Road-to-road: total cost = 1 (entry only, no additional terrain cost)
+            var toRoad = toTerrain!;
             var terrainCost = new TerrainMovementCost
             {
                 TerrainId = toRoad.Id, Value = toRoad.MovementCost, Depth = this.GetWaterDepth()
@@ -119,6 +122,14 @@ public class Hex : IDisposable
             }).ToList();
 
         return [hexEntry, ..terrainCosts];
+
+        bool IsRoadSurface(Terrain? terrain, HexSurface surface) => (terrain?.Id, surface) switch
+        {
+            (MakaMekTerrains.Road, HexSurface.Ground) => true,
+            (MakaMekTerrains.Pavement, HexSurface.Ground) => true,
+            (MakaMekTerrains.Bridge, HexSurface.Bridge) => true,
+            _ => false
+        };
 
         static bool AppliesToSurface(MakaMekTerrains terrainId, HexSurface surface) => (terrainId, surface) switch
         {

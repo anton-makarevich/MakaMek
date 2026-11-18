@@ -162,8 +162,7 @@ public record HexCoordinates
         }
 
         var result = new List<LineOfSightSegment>();
-        var current = this;
-        result.Add(new LineOfSightSegment(current));
+        result.Add(new LineOfSightSegment(this));
 
         // Get the direction vector in cube coordinates
         var dx = target.X - X;
@@ -174,35 +173,13 @@ public record HexCoordinates
         var leftDir = (mainDir + 5) % 6;  // Counter-clockwise
         var rightDir = (mainDir + 1) % 6;  // Clockwise
 
+        var current = this;
         while (!current.Equals(target))
         {
             // Check the three possible next hexes (left, center, right)
-            var (next, additional, areEqual) = GetNextHexInLine(current, target, mainDir, leftDir, rightDir);
+            var (next, additional) = GetNextHexInLine(current, target, mainDir, leftDir, rightDir);
 
-            if (additional != null)
-            {
-                if (areEqual)
-                {
-                    // When options are equal, create one segment with both hexes
-                    result.Add(new LineOfSightSegment(next, additional));
-                }
-                else
-                {
-                    // When options are not equal, create two separate segments
-                    var nextSegment = new LineOfSightSegment(next);
-                    var additionalSegment = new LineOfSightSegment(additional);
-                    if (!result.Contains(nextSegment))
-                        result.Add(new LineOfSightSegment(next));
-                    if (!result.Contains(additionalSegment))
-                        result.Add(new LineOfSightSegment(additional));
-                }
-            }
-            else
-            {
-                var nextSegment = new LineOfSightSegment(next);
-                if (!result.Contains(nextSegment))
-                    result.Add(new LineOfSightSegment(next));
-            }
+            AppendSegment(result, next, additional);
 
             current = next;
         }
@@ -210,7 +187,32 @@ public record HexCoordinates
         return result;
     }
 
-    private (HexCoordinates next, HexCoordinates? additional, bool areEqual) GetNextHexInLine(HexCoordinates current, HexCoordinates target, int mainDir, int leftDir, int rightDir)
+    /// <summary>
+    /// Appends the segment(s) resolved for one step of the line, skipping hexes already on the path.
+    /// </summary>
+    private static void AppendSegment(
+        List<LineOfSightSegment> result,
+        HexCoordinates next,
+        HexCoordinates? additional)
+    {
+        if (additional == null)
+        {
+            AddSegmentIfMissing(result, next);
+            return;
+        }
+
+        // The two options are equally good, so they form one divided segment
+        result.Add(new LineOfSightSegment(next, additional));
+    }
+
+    private static void AddSegmentIfMissing(List<LineOfSightSegment> result, HexCoordinates coordinates)
+    {
+        var segment = new LineOfSightSegment(coordinates);
+        if (!result.Contains(segment))
+            result.Add(new LineOfSightSegment(coordinates));
+    }
+
+    private (HexCoordinates next, HexCoordinates? additional) GetNextHexInLine(HexCoordinates current, HexCoordinates target, int mainDir, int leftDir, int rightDir)
     {
         var mainNext = current.GetNeighbour((HexDirection)mainDir);
         var leftNext = current.GetNeighbour((HexDirection)leftDir);
@@ -247,18 +249,18 @@ public record HexCoordinates
 
             if (bestCandidates.Count == 2)
             {
-                return (bestCandidates[0], bestCandidates[1], true);
+                return (bestCandidates[0], bestCandidates[1]);
             }
             if (bestCandidates.Count >= 1)
             {
-                return (bestCandidates[0], null, false);
+                return (bestCandidates[0], null);
             }
         }
 
         throw new InvalidOperationException($"LOS calculation failed to find geometric next hex from {current} to {target}. Origin: {this}. Targets checked - Main: {mainNext}, Left: {leftNext}, Right: {rightNext}.");
     }
 
-    private double GetActualDistance(HexCoordinates from, HexCoordinates to)
+    private static double GetActualDistance(HexCoordinates from, HexCoordinates to)
     {
         var dx = to.X - from.X;
         var dy = to.Y - from.Y;
@@ -268,7 +270,7 @@ public record HexCoordinates
         return Math.Sqrt((dx * dx + dy * dy + dz * dz) / 2.0);
     }
 
-    private int GetMainDirection(int dx, int dz)
+    private static int GetMainDirection(int dx, int dz)
     {
         // Convert cube coordinates difference to angle
         var angle = Math.Atan2(3.0 / 2 * dx, -Math.Sqrt(3) * (dz + dx / 2.0));
@@ -359,7 +361,7 @@ public record HexCoordinates
         return cross > 0 ? FiringArc.Left : FiringArc.Right;
     }
 
-    private (int dx, int dy, int dz) GetCubeDirectionVector(HexDirection dir)
+    private static (int dx, int dy, int dz) GetCubeDirectionVector(HexDirection dir)
     {
         return dir switch
         {
