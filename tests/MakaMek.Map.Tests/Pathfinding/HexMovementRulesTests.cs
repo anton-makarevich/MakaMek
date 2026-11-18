@@ -19,7 +19,7 @@ public class HexMovementRulesTests
 
         var transition = transitions.ShouldHaveSingleItem();
         transition.Surface.ShouldBe(HexSurface.Ground);
-        transition.MovementCost.ShouldBe(1);
+        transition.MovementCost.ShouldBe(1L);
     }
 
     [Fact]
@@ -31,7 +31,7 @@ public class HexMovementRulesTests
         var transition = _sut.GetTransitions(from, to, HexSurface.Ground, 1, null).Single();
 
         transition.EnterCosts.Sum(cost => cost.Value).ShouldBe(3);
-        transition.MovementCost.ShouldBe(3);
+        transition.MovementCost.ShouldBe(3L);
     }
 
     [Fact]
@@ -43,7 +43,7 @@ public class HexMovementRulesTests
         var transition = _sut.GetTransitions(from, to, HexSurface.Ground, 1, null).Single();
 
         transition.LevelCost.ShouldBe(2);
-        transition.MovementCost.ShouldBe(3);
+        transition.MovementCost.ShouldBe(3L);
     }
 
     [Theory]
@@ -70,7 +70,7 @@ public class HexMovementRulesTests
 
         var transition = transitions.ShouldHaveSingleItem();
         transition.Surface.ShouldBe(HexSurface.Ground);
-        transition.MovementCost.ShouldBe(1);
+        transition.MovementCost.ShouldBe(1L);
     }
 
     [Fact]
@@ -85,7 +85,7 @@ public class HexMovementRulesTests
         transition.Surface.ShouldBe(HexSurface.Bridge);
         transition.EnterCosts.Sum(cost => cost.Value).ShouldBe(1);
         transition.LevelCost.ShouldBe(2);
-        transition.MovementCost.ShouldBe(3);
+        transition.MovementCost.ShouldBe(3L);
     }
 
     [Fact]

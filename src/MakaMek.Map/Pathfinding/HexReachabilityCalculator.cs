@@ -104,7 +104,8 @@ internal sealed class HexReachabilityCalculator(IHexGrid grid, IHexMovementRules
                 if (totalCost > maxMovementPoints)
                     continue;
 
-                yield return (new HexPosition(neighborCoordinates, requiredFacing, transition.Surface), totalCost);
+                yield return (new HexPosition(neighborCoordinates, requiredFacing, transition.Surface),
+                    (int)totalCost);
             }
         }
     }

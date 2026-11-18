@@ -2069,6 +2069,15 @@ public class BattleMapTests
         // Assert
         path.ShouldNotBeNull("the second shortest route clears the ceiling");
         path.StraightLineDistance.ShouldBe(3, "backtracking must not lengthen the route");
+        path.Segments
+            .Where(segment => segment.From.Coordinates != segment.To.Coordinates)
+            .Select(segment => segment.To.Coordinates)
+            .ShouldBe(new[]
+            {
+                new HexCoordinates(1, 2),
+                new HexCoordinates(1, 3),
+                new HexCoordinates(2, 3)
+            });
         path.Hexes.ShouldNotContain(new HexCoordinates(2, 1), "the dead-end branch must be dropped");
         path.Hexes.ShouldNotContain(new HexCoordinates(2, 2));
         path.Hexes.ShouldContain(new HexCoordinates(1, 2));
