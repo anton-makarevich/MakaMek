@@ -5,6 +5,7 @@ using NSubstitute;
 using NSubstitute.ExceptionExtensions;
 using Sanet.MakaMek.Assets.Models.Terrains;
 using Sanet.MakaMek.Assets.Services;
+using Sanet.MakaMek.Assets.Services.PackageReaders;
 using Sanet.MakaMek.Map.Models;
 using Sanet.MakaMek.Assets.ResourceProviders;
 using Shouldly;
@@ -992,6 +993,98 @@ public class TerrainCachingServiceTests
         // Assert - state is consistent after concurrent operations
         var biomes = (await sut.GetLoadedBiomes()).ToList();
         biomes.Count.ShouldBe(biomeCount);
+    }
+
+    [Fact]
+    public async Task GetBaseBiomeImage_ShouldReturnRequestedVariant_WhenVariantIsSpecified()
+    {
+        // Arrange — two base variants with distinguishable content
+        byte[] variantOneImage = [.. PngHeader(), 0x01];
+        byte[] variantTwoImage = [.. PngHeader(), 0x02];
+        using var mmtxStream = CreateMmtxPackage(builder: MmtxPackageBuilder.Create()
+            .WithRawEntry("base-1.png", variantOneImage)
+            .WithRawEntry("base-2.png", variantTwoImage));
+        await _sut.LoadTerrainFromMmtxStream(mmtxStream);
+
+        // Act
+        var image = await _sut.GetBaseBiomeImage("test-biome", variant: 2);
+
+        // Assert — the explicitly requested variant wins over deterministic selection
+        image.ShouldBe(variantTwoImage);
+    }
+
+    [Fact]
+    public async Task LoadTerrainFromMmtxStream_ShouldOverwriteDuplicateAssetWithLastEntry()
+    {
+        // Arrange — packages may carry the same asset twice (e.g. entries differing only by case),
+        // which both normalize to the same cache key
+        byte[] firstImage = [.. PngHeader(), 0x01];
+        byte[] lastImage = [.. PngHeader(), 0x02];
+        using var mmtxStream = CreateMmtxPackage(builder: MmtxPackageBuilder.Create()
+            .WithRawEntry("base.png", firstImage)
+            .WithRawEntry("Base.png", lastImage));
+
+        // Act
+        await _sut.LoadTerrainFromMmtxStream(mmtxStream);
+        var image = await _sut.GetBaseBiomeImage("test-biome");
+
+        // Assert — the later entry overwrites the earlier one instead of being dropped
+        image.ShouldBe(lastImage);
+    }
+
+    [Fact]
+    public async Task Constructor_WithLazyProviders_ShouldResolveProvidersOnFirstAccessOnly()
+    {
+        // Arrange
+        using var mmtxStream = CreateMmtxPackage("lazy-biome", "Lazy Biome",
+            builder: MmtxPackageBuilder.Create().WithBaseTerrain(1));
+        var provider = Substitute.For<IResourceStreamProvider>();
+        provider.GetAvailableResourceIds().Returns(["resource1"]);
+        provider.GetResourceStream("resource1").Returns(mmtxStream);
+
+        var factoryCalls = 0;
+        var sut = new TerrainCachingService([], _loggerFactory, () =>
+        {
+            factoryCalls++;
+            return Task.FromResult<IReadOnlyList<IResourceStreamProvider>>([provider]);
+        });
+
+        // Act & Assert — construction must not resolve providers
+        factoryCalls.ShouldBe(0);
+
+        var biomes = (await sut.GetLoadedBiomes()).ToList();
+        biomes.ShouldContain("lazy-biome");
+        factoryCalls.ShouldBe(1);
+
+        // subsequent access reuses the resolved provider list
+        await sut.GetLoadedBiomes();
+        factoryCalls.ShouldBe(1);
+    }
+
+    [Fact]
+    public async Task Constructor_WithExplicitCollaborators_ShouldUseInjectedImageResolver()
+    {
+        // Arrange — the injected resolver redirects base requests to the loaded overlay asset;
+        // the default resolver would look for a "base" asset that the package does not contain
+        using var mmtxStream = CreateMmtxPackage(builder: MmtxPackageBuilder.Create()
+            .WithOverlay("lightwoods", 1));
+        var resolver = Substitute.For<ITerrainImageResolver>();
+        resolver.ResolveBase(Arg.Any<int?>())
+            .Returns(new TerrainImageRequest(TerrainAssetType.Overlay, "lightwoods"));
+
+        var sut = new TerrainCachingService(
+            [],
+            _loggerFactory,
+            null,
+            resolver,
+            new TerrainPackageLoader(new MmtxTerrainPackageReader(), new TerrainAssetCache()));
+
+        // Act
+        await sut.LoadTerrainFromMmtxStream(mmtxStream);
+        var image = await sut.GetBaseBiomeImage("test-biome");
+
+        // Assert
+        image.ShouldNotBeNull();
     }
 
     private static MemoryStream CreateMmtxPackage(
