@@ -22,7 +22,7 @@ The Map module implements the core logic for the game's hex-based battle map. It
 - **Purpose:** Owns hex storage; exposes the narrow read model the traversal algorithms consume.
 - **Responsibilities:**
   - `HexGrid` (internal) stores hexes by `HexCoordinates`, enforces 1-based map bounds, and stamps the biome onto added hexes.
-  - `IHexGrid` (internal) exposes only `Width`, `Height`, `GetHex` and `IsOnMap`, so algorithms never depend on the full `BattleMap` façade.
+  - `IHexGrid` (internal) exposes only `GetHex` and `IsOnMap`; `Width` and `Height` stay on `HexGrid` itself, so algorithms never depend on the full `BattleMap` façade.
 
 ### 2. Hex
 - **Purpose:** Models a single hex tile on the map.
@@ -68,7 +68,7 @@ The Map module implements the core logic for the game's hex-based battle map. It
   - LOS is blocked if intervening height or total terrain factor exceeds thresholds.
   - Optional attacker and target base levels let an airborne position (a pending DFA approach) supply its absolute endpoint level instead of the surface standing level; such an endpoint is never treated as submerged. The path cache still keys on coordinates only.
   - LOS paths are cached per coordinate pair in `LineOfSightCache`.
-- **LOS Hex Listing:** every `LineOfSightResult` carries `HexPath`, the resolved hexes from the attacker toward the target with their individual intervening factors. It never contains the attacker: an unblocked result ends with the target hex, while a blocked result stops at and includes the blocking hex. For adjacent or same-hex pairs there are no intervening hexes, so `HexPath` holds only the target. Entries are traversal context, not a list of intervening terrain only.
+- **LOS Hex Listing:** every `LineOfSightResult` carries `HexPath`, the resolved hexes from the attacker toward the target with their individual intervening factors. Full evaluations never contain the attacker: an unblocked result ends with the target hex, while a blocked result stops at and includes the blocking hex. For adjacent or same-hex pairs there are no intervening hexes, so `HexPath` holds only the target. Early failures — an endpoint off the map or missing from the grid, and a partial water submersion — return an empty `HexPath` even for adjacent endpoints, so their `BlockingHexCoordinates` has no matching path entry. Entries are traversal context, not a list of intervening terrain only.
 - **Boundary Validation:** `IsOnMap` method provides efficient boundary checking for coordinate validation.
 
 ### 7. Firing Arcs
