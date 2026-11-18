@@ -1565,6 +1565,13 @@ internal static class Program
                 else if (character == '}') depth--;
             }
 
+            // A CRLF pair is one line break: treating both characters as separators would emit a
+            // phantom empty line and shift every line number reported for the file.
+            if (!atEnd && code[position] == '\r' && position + 1 < code.Length && code[position + 1] == '\n')
+            {
+                position++;
+            }
+
             start = position + 1;
         }
 
