@@ -2054,6 +2054,28 @@ public class BattleMapTests
     }
 
     [Fact]
+    public void FindJumpPath_BacktracksOutOfAShortestRouteDeadEnd()
+    {
+        // Arrange - two shortest routes leave the start through (2,1) and (1,2). The first is a
+        // dead end: its only shortest continuation (2,2) is above the ceiling, so the search must
+        // drop it and try the second branch to reach (2,3).
+        var sut = CreateFlatMap(3, 3, (q, r) => q == 2 && r == 2 ? 5 : 0);
+        var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.Top);
+        var target = new HexPosition(new HexCoordinates(2, 3), HexDirection.Top);
+
+        // Act
+        var path = sut.FindPath(start, target, MovementType.Jump, 3, 1);
+
+        // Assert
+        path.ShouldNotBeNull("the second shortest route clears the ceiling");
+        path.StraightLineDistance.ShouldBe(3, "backtracking must not lengthen the route");
+        path.Hexes.ShouldNotContain(new HexCoordinates(2, 1), "the dead-end branch must be dropped");
+        path.Hexes.ShouldNotContain(new HexCoordinates(2, 2));
+        path.Hexes.ShouldContain(new HexCoordinates(1, 2));
+        path.Hexes.ShouldContain(new HexCoordinates(1, 3));
+    }
+
+    [Fact]
     public void FindJumpPath_IgnoresTreeHeightForClearance()
     {
         // Arrange - a light woods hex still has the underlying level as its reference level
