@@ -131,7 +131,7 @@ internal sealed class HexPathfinder(IHexGrid grid, IHexMovementRules movementRul
         MovementPathCache cache,
         bool useCache)
     {
-        MovementPath? bestPath = null;
+        PathfindingState? bestGoal = null;
         var bestHexesTraveled = 0;
 
         var frontier = new PriorityQueue<PathfindingState, (int, int)>();
@@ -146,18 +146,20 @@ internal sealed class HexPathfinder(IHexGrid grid, IHexMovementRules movementRul
 
             if (current.Position == request.Target)
             {
-                var candidatePath = BuildPath(request, current);
-
                 if (request.Mode == PathFindingMode.Shortest)
                 {
+                    var candidatePath = BuildPath(request, current);
                     if (useCache) cache.Add(candidatePath, request.UnitHeight);
                     return candidatePath;
                 }
 
-                if (candidatePath.HexesTraveled > bestHexesTraveled)
+                // Every pathfinder segment is forward, so the state's count of distinct entered
+                // hexes already equals the count BuildPath would report. Keeping only the best
+                // goal state defers segment construction until the winner is known.
+                if (current.HexesTraveled > bestHexesTraveled)
                 {
-                    bestPath = candidatePath;
-                    bestHexesTraveled = candidatePath.HexesTraveled;
+                    bestGoal = current;
+                    bestHexesTraveled = current.HexesTraveled;
                 }
 
                 continue;
@@ -169,7 +171,9 @@ internal sealed class HexPathfinder(IHexGrid grid, IHexMovementRules movementRul
             }
         }
 
-        return request.Mode == PathFindingMode.Longest ? bestPath : null;
+        return request.Mode == PathFindingMode.Longest && bestGoal != null
+            ? BuildPath(request, bestGoal)
+            : null;
     }
 
     private IEnumerable<(PathfindingState State, (int Cost, int Heuristic) Priority)> Expand(
@@ -234,10 +238,14 @@ internal sealed class HexPathfinder(IHexGrid grid, IHexMovementRules movementRul
 
         visited[nextPosition] = (totalCost, hexesTraveled);
 
+        // The route outlives the movement rules' enumerator, so take ownership of the accepted
+        // step's costs before the rule can reuse its backing collection for the next transition.
+        var acceptedStep = step with { Transition = step.Transition.WithOwnedCosts() };
+
         if (step.ToHex.Coordinates != request.Target.Coordinates || step.RequiredFacing == request.Target.Facing)
         {
             yield return (
-                new PathfindingState(nextPosition, current, step, totalCost, hexesTraveled),
+                new PathfindingState(nextPosition, current, acceptedStep, totalCost, hexesTraveled),
                 Priority(request.Mode, totalCost, hexesTraveled,
                     step.ToHex.Coordinates.DistanceTo(request.Target.Coordinates)));
             yield break;
@@ -250,7 +258,7 @@ internal sealed class HexPathfinder(IHexGrid grid, IHexMovementRules movementRul
         var targetPosition = new HexPosition(step.ToHex.Coordinates, request.Target.Facing, step.Transition.Surface);
 
         yield return (
-            new PathfindingState(targetPosition, current, step, finalCost, hexesTraveled, finalTurningSteps),
+            new PathfindingState(targetPosition, current, acceptedStep, finalCost, hexesTraveled, finalTurningSteps),
             Priority(request.Mode, finalCost, hexesTraveled, 0));
     }
 

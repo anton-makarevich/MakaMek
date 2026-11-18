@@ -1,4 +1,5 @@
 using Sanet.MakaMek.Map.Models;
+using Sanet.MakaMek.Map.Models.MovementCosts;
 using Sanet.MakaMek.Map.Pathfinding;
 using Shouldly;
 
@@ -115,6 +116,20 @@ public class HexPathfinderTests
     }
 
     [Fact]
+    public void Find_SnapshotsAcceptedCosts_WhenRulesReuseTheirCostCollection()
+    {
+        var grid = TraversalTestMap.BuildClearGrid(2, 1);
+        var sut = new HexPathfinder(grid, new ReusingCostMovementRules());
+        var start = new HexPosition(new HexCoordinates(1, 1), HexDirection.BottomRight);
+        var target = new HexPosition(new HexCoordinates(2, 1), HexDirection.BottomRight);
+
+        var path = sut.Find(Request(start, target), new MovementPathCache());
+
+        path.ShouldNotBeNull();
+        path.TotalCost.ShouldBe(1);
+    }
+
+    [Fact]
     public void Find_CachesShortestPath()
     {
         var sut = new HexPathfinder(TraversalTestMap.BuildClearGrid(5, 5), new HexMovementRules());
@@ -180,5 +195,28 @@ public class HexPathfinderTests
             unitHeight,
             prohibited,
             maxLevelChange);
+    }
+
+    /// <summary>
+    /// Reuses and mutates one cost collection across yields, which the movement-rules contract
+    /// allows. The search must snapshot an accepted step's costs when it retains the step.
+    /// </summary>
+    private sealed class ReusingCostMovementRules : IHexMovementRules
+    {
+        private readonly List<MovementCost> _enterCosts = [new HexEnterMovementCost { Value = 1 }];
+
+        public IEnumerable<HexTransition> GetTransitions(
+            Hex fromHex,
+            Hex toHex,
+            HexSurface fromSurface,
+            int unitHeight,
+            int? maxLevelChange)
+        {
+            foreach (var surface in toHex.GetHexSurfaces())
+            {
+                yield return new HexTransition(surface, _enterCosts, 0);
+                _enterCosts[0] = new HexEnterMovementCost { Value = 5 };
+            }
+        }
     }
 }

@@ -19,4 +19,14 @@ internal readonly record struct HexTransition(
     int LevelCost)
 {
     public int MovementCost => EnterCosts.Sum(c => c.Value) + LevelCost;
+
+    /// <summary>
+    /// Returns a transition that owns an independent copy of its entry costs. The search calls
+    /// this before retaining an accepted step, because a movement-rules implementation may reuse
+    /// or mutate its backing collection for the next transition it yields.
+    /// </summary>
+    public HexTransition WithOwnedCosts()
+    {
+        return this with { EnterCosts = [.. EnterCosts] };
+    }
 }
