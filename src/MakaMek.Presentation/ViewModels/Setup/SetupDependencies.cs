@@ -11,7 +11,8 @@ namespace Sanet.MakaMek.Presentation.ViewModels.Setup;
 
 /// <summary>
 /// The collaborators both setup coordinators need, grouped so a coordinator does not have to take the
-/// whole catalogue of services as separate constructor parameters.
+/// whole catalogue of services as separate constructor parameters. Build instances through
+/// <see cref="SetupDependenciesFactory"/>; the record itself is only a carrier.
 /// </summary>
 public sealed record SetupDependencies(
     IGameManager GameManager,
@@ -25,4 +26,7 @@ public sealed record SetupDependencies(
     IMapPreviewRenderer MapPreviewRenderer,
     IBattleMapFactory MapFactory,
     IGameConnector GameConnector,
-    GameSetupSession Session);
+    GameSetupSession Session,
+    HostingHubProbe HubProbe,
+    RoomCodeClipboardReader ClipboardReader,
+    LobbyMapPreview MapPreview);

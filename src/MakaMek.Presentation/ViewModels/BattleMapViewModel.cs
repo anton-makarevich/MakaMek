@@ -55,6 +55,7 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
     private readonly ILocalizationService _localizationService;
     private readonly IDispatcherService _dispatcherService;
     private readonly IPlatformService _platformService;
+    private readonly ICombatUiStateFactory _combatUiStateFactory;
     private readonly IPdfExportService? _pdfExportService;
     private readonly IFileService? _fileService;
     private List<UiEventViewModel> _selectedUnitEvents = [];
@@ -205,17 +206,19 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         IDispatcherService dispatcherService,
         IRulesProvider rulesProvider,
         IPlatformService platformService,
+        ICombatUiStateFactory combatUiStateFactory,
+        ICommandPublisher commandPublisher,
+        ILogger<BattleMapViewModel> logger,
         IPdfExportService? pdfExportService = null,
         IFileService? fileService = null,
         ITerrainBitmaskService? terrainBitmaskService = null,
-        ICommandPublisher? commandPublisher = null,
-        ILogger? connectionLogger = null,
         IUnitSpriteService? unitSpriteService = null)
     {
         ImageService = imageService;
         TerrainAssetService = terrainAssetService;
         TerrainBitmaskService = terrainBitmaskService;
         UnitSpriteService = unitSpriteService;
+        _combatUiStateFactory = combatUiStateFactory;
         _localizationService = localizationService;
         _dispatcherService = dispatcherService;
         _platformService = platformService;
@@ -255,8 +258,8 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         HexConfiguration = new HexRenderConfigurationViewModel();
         _hexConfigurationChangedHandler = (_, _) => NotifyPropertyChanged(nameof(HexConfiguration));
         HexConfiguration.PropertyChanged += _hexConfigurationChangedHandler;
-        ConnectionStatus = new ConnectionStatusViewModel(null, Scheduler, connectionLogger);
-        _connectionStatusSource = commandPublisher?.Adapter.ConnectionStatusChanges;
+        ConnectionStatus = new ConnectionStatusViewModel(null, Scheduler, logger);
+        _connectionStatusSource = commandPublisher.Adapter.ConnectionStatusChanges;
         ConnectionStatus.PropertyChanged += OnConnectionStatusPropertyChanged;
     }
 
@@ -956,17 +959,11 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
                 break;
 
             case PhaseNames.WeaponsAttack when phaseState.UnitsToPlay > 0:
-                TransitionToState(new WeaponsAttackState(
-                    this,
-                    new WeaponsAttackSelectionPolicy(),
-                    new WeaponRangeAnalyzer()));
+                TransitionToState(_combatUiStateFactory.CreateWeaponsAttackState(this));
                 break;
 
             case PhaseNames.PhysicalAttack when phaseState.UnitsToPlay > 0:
-                TransitionToState(new PhysicalAttackState(
-                    this,
-                    new PhysicalAttackSelectionPolicy(),
-                    new PhysicalAttackOptionBuilder(Game!, LocalizationService)));
+                TransitionToState(_combatUiStateFactory.CreatePhysicalAttackState(this));
                 break;
 
             case PhaseNames.End:

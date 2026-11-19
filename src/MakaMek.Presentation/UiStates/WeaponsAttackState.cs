@@ -63,13 +63,13 @@ public class WeaponsAttackState : IUiState, ICombatSelectionRoles
 
     internal WeaponsAttackState(
         BattleMapViewModel viewModel,
-        WeaponsAttackSelectionPolicy? selectionPolicy = null,
-        WeaponRangeAnalyzer? rangeAnalyzer = null)
+        WeaponsAttackSelectionPolicy selectionPolicy,
+        WeaponRangeAnalyzer rangeAnalyzer)
     {
         Game = viewModel.Game! ?? throw new InvalidOperationException("Game is not client game");
         _viewModel = viewModel;
-        _selectionPolicy = selectionPolicy ?? new WeaponsAttackSelectionPolicy();
-        _rangeHighlighter = new WeaponRangeHighlighter(viewModel, rangeAnalyzer ?? new WeaponRangeAnalyzer());
+        _selectionPolicy = selectionPolicy;
+        _rangeHighlighter = new WeaponRangeHighlighter(viewModel, rangeAnalyzer);
         _presenter = new WeaponSelectionPresenter(viewModel, Game);
         _configuration = new WeaponsConfigurationController(viewModel, Game);
         if (Game.PhaseStepState?.ActivePlayer == null)

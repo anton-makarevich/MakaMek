@@ -1,5 +1,4 @@
 using System.Collections.ObjectModel;
-using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Assets.Services;
 using Sanet.MakaMek.Bots.Models;
 using Sanet.MakaMek.Bots.Services;
@@ -10,7 +9,6 @@ using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Factories;
 using Sanet.MakaMek.Core.Models.Game.Players;
 using Sanet.MakaMek.Core.Services.Transport;
-using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 using Sanet.MakaMek.Services;
 using Sanet.MVVM.Core.Services;
@@ -38,18 +36,18 @@ public sealed class GameSetupSession
         IUnitsLoader unitsLoader,
         IDispatcherService dispatcherService,
         IGameFactory gameFactory,
-        IFileCachingService cachingService,
         IBotManager botManager,
-        IMechFactory mechFactory,
-        ILogger logger)
+        DefaultPlayerStore defaultPlayerStore,
+        GameSetupDialogService dialogs,
+        LocalPlayerCommands localPlayerCommands)
     {
         _unitsLoader = unitsLoader;
         _dispatcherService = dispatcherService;
         _gameFactory = gameFactory;
         _botManager = botManager;
-        _defaultPlayerStore = new DefaultPlayerStore(cachingService);
-        _dialogs = new GameSetupDialogService(mechFactory);
-        _localPlayerCommands = new LocalPlayerCommands(botManager);
+        _defaultPlayerStore = defaultPlayerStore;
+        _dialogs = dialogs;
+        _localPlayerCommands = localPlayerCommands;
     }
 
     /// <summary>

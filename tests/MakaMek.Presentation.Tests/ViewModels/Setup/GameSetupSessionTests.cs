@@ -21,10 +21,10 @@ public class GameSetupSessionTests
             Substitute.For<IUnitsLoader>(),
             Substitute.For<IDispatcherService>(),
             Substitute.For<IGameFactory>(),
-            _cachingService,
             Substitute.For<IBotManager>(),
-            Substitute.For<IMechFactory>(),
-            Substitute.For<ILogger>());
+            new DefaultPlayerStore(_cachingService),
+            new GameSetupDialogService(Substitute.For<IMechFactory>()),
+            new LocalPlayerCommands(Substitute.For<IBotManager>()));
     }
 
     [Fact]

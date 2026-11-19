@@ -89,7 +89,8 @@ public class GameManagerTests : IDisposable
             fallProcessor,
             Substitute.For<IWeaponAttackResolver>(),
             Substitute.For<IPhysicalAttackResolver>(),
-            Substitute.For<ILogger<ServerGame>>());
+            Substitute.For<ILogger<ServerGame>>(),
+            new BattleTechPhaseManager());
         _gameFactory.CreateServerGame(_commandPublisher).Returns(_serverGame);
         _commandPublisher.Adapter.Returns(_transportAdapter);
 

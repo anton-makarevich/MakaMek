@@ -35,14 +35,13 @@ public class FallProcessor : IFallProcessor
     public FallProcessor(
         IRulesProvider rulesProvider,
         IPilotingSkillCalculator pilotingSkillCalculator,
-        IFallingDamageCalculator fallingDamageCalculator,
-        FallParametersResolver? fallParametersResolver = null,
-        FallingDamageResolver? fallingDamageResolver = null)
+        FallParametersResolver fallParametersResolver,
+        FallingDamageResolver fallingDamageResolver)
     {
         _rulesProvider = rulesProvider;
         _pilotingSkillCalculator = pilotingSkillCalculator;
-        _fallParametersResolver = fallParametersResolver ?? new FallParametersResolver();
-        _fallingDamageResolver = fallingDamageResolver ?? new FallingDamageResolver(fallingDamageCalculator);
+        _fallParametersResolver = fallParametersResolver;
+        _fallingDamageResolver = fallingDamageResolver;
     }
 
     public IEnumerable<MechFallCommand> ProcessPotentialFall(

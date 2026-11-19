@@ -14,6 +14,7 @@ using Sanet.MakaMek.Core.Utils;
 using Sanet.Localization;
 using Sanet.MakaMek.Map.Factories;
 using Sanet.MakaMek.Presentation.ViewModels;
+using Sanet.MakaMek.Presentation.ViewModels.Setup;
 using Sanet.MakaMek.Presentation.ViewModels.Maps;
 using Sanet.MakaMek.Presentation.ViewModels.Settings;
 using Sanet.MakaMek.Map.Services;
@@ -75,6 +76,91 @@ public class MainMenuViewModelTests
             Substitute.For<IAssetProviderConfigurationProvider>(),
             Substitute.For<IResourceStreamProviderFactory>());
 
+    private StartNewGameViewModel CreateStartNewGameViewModel(MapConfigViewModel mapConfig)
+    {
+        var unitsLoader = Substitute.For<IUnitsLoader>();
+        var dispatcherService = Substitute.For<IDispatcherService>();
+        var gameFactory = Substitute.For<IGameFactory>();
+        var botManager = Substitute.For<IBotManager>();
+        var clipboardService = Substitute.For<IClipboardService>();
+        var mapPreviewRenderer = Substitute.For<IMapPreviewRenderer>();
+        var relayHubConfigurationProvider = Substitute.For<IRelayHubConfigurationProvider>();
+        var relayRoomClient = Substitute.For<IRelayRoomClient>();
+
+        return new StartNewGameViewModel(
+            new GameSetupSession(
+                unitsLoader,
+                dispatcherService,
+                gameFactory,
+                botManager,
+                new DefaultPlayerStore(Substitute.For<IFileCachingService>()),
+                new GameSetupDialogService(Substitute.For<IMechFactory>()),
+                new LocalPlayerCommands(botManager)),
+            new SetupDependenciesFactory(
+                Substitute.For<IGameManager>(),
+                Substitute.For<ICommandPublisher>(),
+                dispatcherService,
+                relayHubConfigurationProvider,
+                relayRoomClient,
+                clipboardService,
+                _localizationService,
+                mapPreviewRenderer,
+                Substitute.For<IBattleMapFactory>(),
+                Substitute.For<IGameConnector>(),
+                new HostingHubProbe(
+                    relayHubConfigurationProvider,
+                    relayRoomClient,
+                    Substitute.For<ILogger<HostingHubProbe>>()),
+                new RoomCodeClipboardReader(clipboardService),
+                new LobbyMapPreview(
+                    mapPreviewRenderer,
+                    Substitute.For<ILogger<LobbyMapPreview>>())),
+            mapConfig,
+            Substitute.For<IImageService>(),
+            Substitute.For<ILogger<StartNewGameViewModel>>());
+    }
+
+    private JoinGameViewModel CreateJoinGameViewModel()
+    {
+        var botManager = Substitute.For<IBotManager>();
+        var clipboardService = Substitute.For<IClipboardService>();
+        var mapPreviewRenderer = Substitute.For<IMapPreviewRenderer>();
+        var relayHubConfigurationProvider = Substitute.For<IRelayHubConfigurationProvider>();
+        var relayRoomClient = Substitute.For<IRelayRoomClient>();
+
+        return new JoinGameViewModel(
+            new GameSetupSession(
+                Substitute.For<IUnitsLoader>(),
+                Substitute.For<IDispatcherService>(),
+                Substitute.For<IGameFactory>(),
+                botManager,
+                new DefaultPlayerStore(Substitute.For<IFileCachingService>()),
+                new GameSetupDialogService(Substitute.For<IMechFactory>()),
+                new LocalPlayerCommands(botManager)),
+            new SetupDependenciesFactory(
+                Substitute.For<IGameManager>(),
+                Substitute.For<ICommandPublisher>(),
+                Substitute.For<IDispatcherService>(),
+                relayHubConfigurationProvider,
+                relayRoomClient,
+                clipboardService,
+                _localizationService,
+                mapPreviewRenderer,
+                Substitute.For<IBattleMapFactory>(),
+                Substitute.For<IGameConnector>(),
+                new HostingHubProbe(
+                    relayHubConfigurationProvider,
+                    relayRoomClient,
+                    Substitute.For<ILogger<HostingHubProbe>>()),
+                new RoomCodeClipboardReader(clipboardService),
+                new LobbyMapPreview(
+                    mapPreviewRenderer,
+                    Substitute.For<ILogger<LobbyMapPreview>>())),
+            _localizationService,
+            Substitute.For<IImageService>(),
+            Substitute.For<ILogger<JoinGameViewModel>>());
+    }
+
     private static MapConfigViewModel CreateMapConfig() =>
         new(
             new MapGenerationService(
@@ -107,25 +193,7 @@ public class MainMenuViewModelTests
         // Arrange
         var command = _sut.StartNewGameCommand as IAsyncCommand;
         command.ShouldNotBeNull();
-        var startVm = new StartNewGameViewModel(
-            Substitute.For<IGameManager>(),
-            Substitute.For<IUnitsLoader>(),
-            Substitute.For<ICommandPublisher>(),
-            Substitute.For<IDispatcherService>(),
-            Substitute.For<IGameFactory>(),
-            Substitute.For<IBattleMapFactory>(),
-            Substitute.For<IFileCachingService>(),
-            Substitute.For<IMapPreviewRenderer>(),
-            CreateMapConfig(),
-            Substitute.For<IBotManager>(),
-            Substitute.For<ILogger<StartNewGameViewModel>>(),
-            _localizationService,
-            Substitute.For<IMechFactory>(),
-            Substitute.For<IClipboardService>(),
-            Substitute.For<IRelayHubConfigurationProvider>(),
-            Substitute.For<IRelayRoomClient>(),
-            Substitute.For<IImageService>()
-        );
+        var startVm = CreateStartNewGameViewModel(CreateMapConfig());
         _navigationService.GetNewViewModelAsync<StartNewGameViewModel>().Returns(startVm);
 
         // Act
@@ -151,22 +219,7 @@ public class MainMenuViewModelTests
         // Arrange
         var command = _sut.JoinGameCommand as IAsyncCommand;
         command.ShouldNotBeNull();
-        var joinVm = new JoinGameViewModel(
-            Substitute.For<IUnitsLoader>(),
-            Substitute.For<ICommandPublisher>(),
-            Substitute.For<IDispatcherService>(),
-            Substitute.For<IGameFactory>(),
-            Substitute.For<IGameConnector>(),
-            Substitute.For<IFileCachingService>(),
-            Substitute.For<IBotManager>(),
-            Substitute.For<ILogger<JoinGameViewModel>>(),
-            Substitute.For<IMechFactory>(),
-            Substitute.For<IBattleMapFactory>(),
-            Substitute.For<IMapPreviewRenderer>(),
-            Substitute.For<IClipboardService>(),
-            _localizationService,
-            Substitute.For<IImageService>()
-        );
+        var joinVm = CreateJoinGameViewModel();
         _navigationService.GetNewViewModelAsync<JoinGameViewModel>().Returns(joinVm);
 
         // Act

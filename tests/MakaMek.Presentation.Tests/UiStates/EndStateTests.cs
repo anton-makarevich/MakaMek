@@ -63,7 +63,10 @@ public class EndStateTests
             localizationService,
             dispatcherService,
             Substitute.For<IRulesProvider>(),
-            Substitute.For<IPlatformService>());
+            Substitute.For<IPlatformService>(),
+            TestCombatUiStateFactory.Create(localizationService),
+            Substitute.For<ICommandPublisher>(),
+            Substitute.For<ILogger<BattleMapViewModel>>());
         var playerId = Guid.NewGuid();
         
         var rules = new TotalWarfareRulesProvider();

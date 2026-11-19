@@ -1,15 +1,7 @@
 using System.Windows.Input;
 using Microsoft.Extensions.Logging;
 using Sanet.Localization;
-using Sanet.MakaMek.Assets.Services;
-using Sanet.MakaMek.Bots.Models;
 using Sanet.MakaMek.Core.Data.Game.Commands;
-using Sanet.MakaMek.Core.Models.Game;
-using Sanet.MakaMek.Core.Models.Game.Factories;
-using Sanet.MakaMek.Core.Services;
-using Sanet.MakaMek.Core.Services.Transport;
-using Sanet.MakaMek.Core.Utils;
-using Sanet.MakaMek.Map.Factories;
 using Sanet.MakaMek.Map.Models;
 using Sanet.MakaMek.Presentation.ViewModels.Setup;
 using Sanet.MakaMek.Services;
@@ -28,44 +20,15 @@ public class JoinGameViewModel : NewGameViewModel, ISetupNotificationSink, IAsyn
     private readonly ILocalizationService _localizationService;
 
     public JoinGameViewModel(
-        IUnitsLoader unitsLoader,
-        ICommandPublisher commandPublisher,
-        IDispatcherService dispatcherService,
-        IGameFactory gameFactory,
-        IGameConnector gameConnector,
-        IFileCachingService cachingService,
-        IBotManager botManager,
-        ILogger<JoinGameViewModel> logger,
-        IMechFactory mechFactory,
-        IBattleMapFactory mapFactory,
-        IMapPreviewRenderer mapPreviewRenderer,
-        IClipboardService clipboardService,
+        GameSetupSession session,
+        SetupDependenciesFactory setupDependencies,
         ILocalizationService localizationService,
-        IImageService imageService)
-        : base(unitsLoader,
-            commandPublisher,
-            dispatcherService,
-            gameFactory,
-            cachingService,
-            botManager,
-            mechFactory,
-            logger,
-            imageService)
+        IImageService imageService,
+        ILogger<JoinGameViewModel> logger)
+        : base(session, imageService, logger)
     {
         _localizationService = localizationService;
-        var deps = new SetupDependencies(
-            GameManager: null!,
-            commandPublisher,
-            dispatcherService,
-            HubConfigurationProvider: null!,
-            RelayRoomClient: null!,
-            clipboardService,
-            localizationService,
-            logger,
-            mapPreviewRenderer,
-            mapFactory,
-            gameConnector,
-            Session);
+        var deps = setupDependencies.Create(session, logger);
         _controller = new JoinSetupController(deps, this);
         _controller.NavigationServiceAccessor = () => NavigationService;
         _controller.CommandStreamHandler = HandleServerCommand;

@@ -17,12 +17,11 @@ public class PilotingSkillCalculator : IPilotingSkillCalculator
     private readonly PilotingSkillModifierCalculator _modifierCalculator;
 
     public PilotingSkillCalculator(
-        IRulesProvider rules,
         IDiceRoller diceRoller,
-        PilotingSkillModifierCalculator? modifierCalculator = null)
+        PilotingSkillModifierCalculator modifierCalculator)
     {
         _diceRoller = diceRoller;
-        _modifierCalculator = modifierCalculator ?? new PilotingSkillModifierCalculator(rules);
+        _modifierCalculator = modifierCalculator;
     }
     
     /// <summary>

@@ -115,11 +115,7 @@ public static class HostingLifecycleExtensions
             SetupDependencies deps,
             CancellationToken cancellationToken)
         {
-            var probe = new HostingHubProbe(
-                deps.HubConfigurationProvider,
-                deps.RelayRoomClient,
-                deps.Logger);
-            var entry = await probe.ResolveActiveHubAsync(
+            var entry = await deps.HubProbe.ResolveActiveHubAsync(
                 cancellationToken,
                 () => controller.IsOnlineMode,
                 () => controller.IsDisposed);

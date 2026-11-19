@@ -36,7 +36,7 @@ public sealed class HostingSetupController : SetupState, IDisposable
     {
         _deps = deps;
         _mapConfig = mapConfig;
-        ConnectionStatus = new ConnectionStatusViewModel(null, deps.DispatcherService.Scheduler);
+        ConnectionStatus = new ConnectionStatusViewModel(null, deps.DispatcherService.Scheduler, deps.Logger);
         ConnectionStatus.PropertyChanged += OnConnectionStatusPropertyChanged;
 
         CopyRoomCodeCommand = new AsyncCommand(CopyRoomCode, _ => RoomCode != null);

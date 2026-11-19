@@ -9,6 +9,7 @@ using Sanet.MakaMek.Core.Data.Game.Mechanics;
 using Sanet.MakaMek.Core.Data.Game.Mechanics.PilotingSkillRollContexts;
 using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Models.Game;
+using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.PhysicalAttack;
@@ -110,7 +111,10 @@ public class MovementStateTests
              _localizationService,
              dispatcherService,
              _rulesProvider,
-             Substitute.For<IPlatformService>());
+             Substitute.For<IPlatformService>(),
+             TestCombatUiStateFactory.Create(_localizationService),
+             Substitute.For<ICommandPublisher>(),
+             Substitute.For<ILogger<BattleMapViewModel>>());
         var playerId = Guid.NewGuid();
         var playerId2 = Guid.NewGuid();
 
@@ -374,7 +378,10 @@ public class MovementStateTests
         var viewModel = new BattleMapViewModel(_imageService,
             _terrainAssetsService,
             _localizationService, dispatcherService, _rulesProvider,
-            Substitute.For<IPlatformService>())
+            Substitute.For<IPlatformService>(),
+            TestCombatUiStateFactory.Create(_localizationService),
+            Substitute.For<ICommandPublisher>(),
+            Substitute.For<ILogger<BattleMapViewModel>>())
             {
                 Game = gameWithNullPlayer
             };

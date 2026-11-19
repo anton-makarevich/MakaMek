@@ -16,7 +16,7 @@ public sealed class LobbyMapPreview : IDisposable
     private CancellationTokenSource? _previewCts;
     private object? _previewImage;
 
-    public LobbyMapPreview(IMapPreviewRenderer previewRenderer, ILogger logger)
+    public LobbyMapPreview(IMapPreviewRenderer previewRenderer, ILogger<LobbyMapPreview> logger)
     {
         _previewRenderer = previewRenderer;
         _logger = logger;

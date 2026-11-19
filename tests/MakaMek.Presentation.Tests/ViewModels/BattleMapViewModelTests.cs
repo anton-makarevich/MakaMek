@@ -83,7 +83,10 @@ public class BattleMapViewModelTests
             _localizationService,
             dispatcherService,
             Substitute.For<IRulesProvider>(),
-            Substitute.For<IPlatformService>());
+            Substitute.For<IPlatformService>(),
+            TestCombatUiStateFactory.Create(_localizationService),
+            Substitute.For<ICommandPublisher>(),
+            Substitute.For<ILogger<BattleMapViewModel>>());
         
         // Configure the dispatcher to execute actions immediately
         dispatcherService.RunOnUIThread(Arg.InvokeDelegate<Action>());
@@ -1361,7 +1364,10 @@ public class BattleMapViewModelTests
             _localizationService,
             dispatcherService,
             Substitute.For<IRulesProvider>(),
-            Substitute.For<IPlatformService>());
+            Substitute.For<IPlatformService>(),
+            TestCombatUiStateFactory.Create(_localizationService),
+            Substitute.For<ICommandPublisher>(),
+            Substitute.For<ILogger<BattleMapViewModel>>());
 
         // Assert
         viewModel.ImageService.ShouldBe(imageService);
@@ -1394,6 +1400,9 @@ public class BattleMapViewModelTests
             dispatcherService,
             Substitute.For<IRulesProvider>(),
             Substitute.For<IPlatformService>(),
+            TestCombatUiStateFactory.Create(_localizationService),
+            Substitute.For<ICommandPublisher>(),
+            Substitute.For<ILogger<BattleMapViewModel>>(),
             unitSpriteService: unitSpriteService);
 
         // Assert
@@ -1429,6 +1438,9 @@ public class BattleMapViewModelTests
             dispatcherService,
             Substitute.For<IRulesProvider>(),
             Substitute.For<IPlatformService>(),
+            TestCombatUiStateFactory.Create(_localizationService),
+            Substitute.For<ICommandPublisher>(),
+            Substitute.For<ILogger<BattleMapViewModel>>(),
             terrainBitmaskService: terrainBitmaskService);
 
         // Assert
@@ -5558,6 +5570,9 @@ public class BattleMapViewModelTests
             dispatcherService,
             Substitute.For<IRulesProvider>(),
             Substitute.For<IPlatformService>(),
+            TestCombatUiStateFactory.Create(_localizationService),
+            Substitute.For<ICommandPublisher>(),
+            Substitute.For<ILogger<BattleMapViewModel>>(),
             terrainBitmaskService: terrainBitmaskService);
     }
 
@@ -5576,7 +5591,9 @@ public class BattleMapViewModelTests
             dispatcherService,
             Substitute.For<IRulesProvider>(),
             Substitute.For<IPlatformService>(),
-            commandPublisher: commandPublisher);
+            TestCombatUiStateFactory.Create(_localizationService),
+            commandPublisher,
+            Substitute.For<ILogger<BattleMapViewModel>>());
     }
 
     [Fact]
@@ -5785,6 +5802,9 @@ public class BattleMapViewModelTests
             Substitute.For<IDispatcherService>(),
             Substitute.For<IRulesProvider>(),
             Substitute.For<IPlatformService>(),
+            TestCombatUiStateFactory.Create(_localizationService),
+            Substitute.For<ICommandPublisher>(),
+            Substitute.For<ILogger<BattleMapViewModel>>(),
             pdfService,
             fileService);
 
@@ -5805,6 +5825,9 @@ public class BattleMapViewModelTests
             Substitute.For<IDispatcherService>(),
             Substitute.For<IRulesProvider>(),
             Substitute.For<IPlatformService>(),
+            TestCombatUiStateFactory.Create(_localizationService),
+            Substitute.For<ICommandPublisher>(),
+            Substitute.For<ILogger<BattleMapViewModel>>(),
             null,
             fileService);
         sut.CaptureMap = () => Task.FromResult((new byte[] { 1 }, 100, 100));
@@ -5825,6 +5848,9 @@ public class BattleMapViewModelTests
             Substitute.For<IDispatcherService>(),
             Substitute.For<IRulesProvider>(),
             Substitute.For<IPlatformService>(),
+            TestCombatUiStateFactory.Create(_localizationService),
+            Substitute.For<ICommandPublisher>(),
+            Substitute.For<ILogger<BattleMapViewModel>>(),
             pdfService);
         sut.CaptureMap = () => Task.FromResult((new byte[] { 1 }, 100, 100));
 
@@ -5845,6 +5871,9 @@ public class BattleMapViewModelTests
             Substitute.For<IDispatcherService>(),
             Substitute.For<IRulesProvider>(),
             Substitute.For<IPlatformService>(),
+            TestCombatUiStateFactory.Create(_localizationService),
+            Substitute.For<ICommandPublisher>(),
+            Substitute.For<ILogger<BattleMapViewModel>>(),
             pdfService,
             fileService);
         sut.CaptureMap = () => Task.FromResult((Array.Empty<byte>(), 100, 100));
@@ -5869,6 +5898,9 @@ public class BattleMapViewModelTests
             Substitute.For<IDispatcherService>(),
             Substitute.For<IRulesProvider>(),
             Substitute.For<IPlatformService>(),
+            TestCombatUiStateFactory.Create(_localizationService),
+            Substitute.For<ICommandPublisher>(),
+            Substitute.For<ILogger<BattleMapViewModel>>(),
             pdfService,
             fileService);
         sut.CaptureMap = () => Task.FromResult((pngBytes, 200, 300));
@@ -5896,6 +5928,9 @@ public class BattleMapViewModelTests
             Substitute.For<IDispatcherService>(),
             Substitute.For<IRulesProvider>(),
             Substitute.For<IPlatformService>(),
+            TestCombatUiStateFactory.Create(_localizationService),
+            Substitute.For<ICommandPublisher>(),
+            Substitute.For<ILogger<BattleMapViewModel>>(),
             pdfService,
             fileService);
         sut.Game = _game;

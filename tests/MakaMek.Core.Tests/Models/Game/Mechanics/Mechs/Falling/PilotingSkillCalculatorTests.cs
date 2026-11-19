@@ -28,7 +28,9 @@ namespace Sanet.MakaMek.Core.Tests.Models.Game.Mechanics.Mechs.Falling
             _mockRulesProvider = Substitute.For<IRulesProvider>();
             _mockDiceRoller = Substitute.For<IDiceRoller>();
             _mockRulesProvider.GetHeavyDamageThreshold().Returns(20);
-            _sut = new PilotingSkillCalculator(_mockRulesProvider, _mockDiceRoller);
+            _sut = new PilotingSkillCalculator(
+                _mockDiceRoller,
+                new PilotingSkillModifierCalculator(_mockRulesProvider));
         }
         
         private static LocationHitData CreateHitDataForLocation(PartLocation partLocation,

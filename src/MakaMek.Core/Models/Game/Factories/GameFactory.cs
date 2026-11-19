@@ -9,6 +9,7 @@ using Sanet.MakaMek.Core.Utils;
 using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Map.Factories;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.PhysicalAttack;
+using Sanet.MakaMek.Core.Models.Game.Phases;
 
 namespace Sanet.MakaMek.Core.Models.Game.Factories;
 
@@ -36,6 +37,7 @@ public class GameFactory : IGameFactory
     private readonly IFallProcessor _fallProcessor;
     private readonly IBattleMapFactory _battleMapFactory;
     private readonly IHashService _hashService;
+    private readonly IPhaseManager _phaseManager;
 
     public GameFactory(
         ILoggerFactory loggerFactory,
@@ -56,7 +58,8 @@ public class GameFactory : IGameFactory
         IMovementAttackValidator movementAttackValidator,
         IFallProcessor fallProcessor,
         IBattleMapFactory battleMapFactory,
-        IHashService hashService)
+        IHashService hashService,
+        IPhaseManager phaseManager)
     {
         _loggerFactory = loggerFactory;
         _weaponAttackResolver = weaponAttackResolver;
@@ -77,6 +80,7 @@ public class GameFactory : IGameFactory
         _fallProcessor = fallProcessor;
         _battleMapFactory = battleMapFactory;
         _hashService = hashService;
+        _phaseManager = phaseManager;
     }
 
     public ServerGame CreateServerGame(ICommandPublisher commandPublisher)
@@ -100,7 +104,8 @@ public class GameFactory : IGameFactory
             _fallProcessor,
             _weaponAttackResolver,
             _physicalAttackResolver,
-            logger);
+            logger,
+            _phaseManager);
     }
 
     public ClientGame CreateClientGame(ICommandPublisher commandPublisher, Guid? serverGameId = null)

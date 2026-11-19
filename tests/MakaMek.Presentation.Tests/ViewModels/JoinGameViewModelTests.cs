@@ -30,6 +30,7 @@ using Sanet.MakaMek.Map.Factories;
 using Sanet.MakaMek.Map.Generators;
 using Sanet.MakaMek.Map.Models.Terrains;
 using Sanet.MakaMek.Presentation.ViewModels;
+using Sanet.MakaMek.Presentation.ViewModels.Setup;
 using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 using Sanet.MakaMek.TestHelpers;
 using Sanet.MVVM.Core.Services;
@@ -58,6 +59,7 @@ public class JoinGameViewModelTests
     private readonly IHashService _hashService = Substitute.For<IHashService>();
     private readonly IBotManager _botManager = Substitute.For<IBotManager>();
     private readonly ILogger<JoinGameViewModel> _logger = Substitute.For<ILogger<JoinGameViewModel>>();
+    private readonly ILogger<LobbyMapPreview> _previewLogger = Substitute.For<ILogger<LobbyMapPreview>>();
     private readonly IGameConnector _gameConnector = Substitute.For<IGameConnector>();
     private readonly ILocalizationService _localizationService = Substitute.For<ILocalizationService>();
     private readonly IClipboardService _clipboardService = Substitute.For<IClipboardService>();
@@ -122,25 +124,51 @@ public class JoinGameViewModelTests
         _gameConnector.When(c => c.JoinOnline(Arg.Any<string>(), Arg.Any<string?>(), Arg.Any<CancellationToken>()))
             .Do(_ => _connectorConnected = true);
 
-    private JoinGameViewModel CreateSut(ILocalizationService? localizationService = null)
+    private JoinGameViewModel CreateSut(
+        ILocalizationService? localizationService = null,
+        IFileCachingService? cachingService = null,
+        bool attachHandlers = true)
     {
         var sut = new JoinGameViewModel(
-            _unitsLoader,
+            new GameSetupSession(
+                _unitsLoader,
+                _dispatcherService,
+                _gameFactory,
+                _botManager,
+                new DefaultPlayerStore(cachingService ?? _cachingService),
+                new GameSetupDialogService(_mechFactory),
+                new LocalPlayerCommands(_botManager)),
+            CreateDependenciesFactory(localizationService),
+            localizationService ?? _localizationService,
+            _imageService,
+            _logger);
+        if (attachHandlers) sut.AttachHandlers();
+        return sut;
+    }
+
+    private SetupDependenciesFactory CreateDependenciesFactory(ILocalizationService? localizationService)
+    {
+        var hubConfigurationProvider = Substitute.For<IRelayHubConfigurationProvider>();
+        var relayRoomClient = Substitute.For<IRelayRoomClient>();
+        return new SetupDependenciesFactory(
+            Substitute.For<IGameManager>(),
             _commandPublisher,
             _dispatcherService,
-            _gameFactory,
-            _gameConnector,
-            _cachingService,
-            _botManager,
-            _logger,
-            _mechFactory,
-            _mapFactory,
-            _mapPreviewRenderer,
+            hubConfigurationProvider,
+            relayRoomClient,
             _clipboardService,
             localizationService ?? _localizationService,
-            _imageService);
-        sut.AttachHandlers();
-        return sut;
+            _mapPreviewRenderer,
+            _mapFactory,
+            _gameConnector,
+            new HostingHubProbe(
+                hubConfigurationProvider,
+                relayRoomClient,
+                Substitute.For<ILogger<HostingHubProbe>>()),
+            new RoomCodeClipboardReader(_clipboardService),
+            new LobbyMapPreview(
+                _mapPreviewRenderer,
+                _previewLogger));
     }
 
     [Fact]
@@ -627,7 +655,10 @@ public class JoinGameViewModelTests
             localizationService,
             Substitute.For<IDispatcherService>(),
             Substitute.For<IRulesProvider>(),
-            Substitute.For<IPlatformService>());
+            Substitute.For<IPlatformService>(),
+            TestCombatUiStateFactory.Create(localizationService),
+            Substitute.For<ICommandPublisher>(),
+            Substitute.For<ILogger<BattleMapViewModel>>());
         navigationService.GetViewModel<BattleMapViewModel>()
             .Returns(battleMapViewModel);
 
@@ -660,7 +691,10 @@ public class JoinGameViewModelTests
             localizationService,
             Substitute.For<IDispatcherService>(),
             Substitute.For<IRulesProvider>(),
-            Substitute.For<IPlatformService>());
+            Substitute.For<IPlatformService>(),
+            TestCombatUiStateFactory.Create(localizationService),
+            Substitute.For<ICommandPublisher>(),
+            Substitute.For<ILogger<BattleMapViewModel>>());
         navigationService.GetViewModel<BattleMapViewModel>()
             .Returns(battleMapViewModel);
 
@@ -856,21 +890,7 @@ public class JoinGameViewModelTests
         cachingService.TryGetCachedFile("DefaultPlayer")
             .Returns(JsonSerializer.SerializeToUtf8Bytes(defaultPlayerData));
 
-        var sut = new JoinGameViewModel(
-            _unitsLoader,
-            _commandPublisher,
-            _dispatcherService,
-            _gameFactory,
-            _gameConnector,
-            cachingService,
-            _botManager,
-            _logger,
-            _mechFactory,
-            _mapFactory,
-            _mapPreviewRenderer,
-            _clipboardService,
-            _localizationService,
-            Substitute.For<IImageService>());
+        var sut = CreateSut(cachingService: cachingService, attachHandlers: false);
         sut.AttachHandlers();
 
         // Act
@@ -888,21 +908,7 @@ public class JoinGameViewModelTests
         var cachingService = Substitute.For<IFileCachingService>();
         cachingService.TryGetCachedFile(Arg.Any<string>()).Returns(Task.FromResult<byte[]?>(null));
 
-        var sut = new JoinGameViewModel(
-            _unitsLoader,
-            _commandPublisher,
-            _dispatcherService,
-            _gameFactory,
-            _gameConnector,
-            cachingService,
-            _botManager,
-            _logger,
-            _mechFactory,
-            _mapFactory,
-            _mapPreviewRenderer,
-            _clipboardService,
-            _localizationService,
-            Substitute.For<IImageService>());
+        var sut = CreateSut(cachingService: cachingService, attachHandlers: false);
 
         // Assert - should be able to add default player even when not connected
         sut.IsConnected.ShouldBeFalse();
@@ -1620,7 +1626,7 @@ public class JoinGameViewModelTests
 
         // Signal completed when the expected cancellation debug log is observed.
         var logReceivedTcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        _logger
+        _previewLogger
             .When(l => l.Log(
                 LogLevel.Debug,
                 Arg.Any<EventId>(),
@@ -1650,7 +1656,7 @@ public class JoinGameViewModelTests
         completed.ShouldBe(logReceivedTcs.Task,
             "Timed out waiting for 'Map preview generation cancelled' debug log");
 
-        _logger.Received().Log(
+        _previewLogger.Received().Log(
             LogLevel.Debug,
             Arg.Any<EventId>(),
             Arg.Is<object>(state => state.ToString()!.Contains("Map preview generation cancelled")),

@@ -14,10 +14,10 @@ internal sealed class ServerPhaseCoordinator
     private readonly IPhaseManager _phaseManager;
     private IGamePhase _currentPhase;
 
-    public ServerPhaseCoordinator(ServerGame game, IPhaseManager? phaseManager)
+    public ServerPhaseCoordinator(ServerGame game, IPhaseManager phaseManager)
     {
         _game = game;
-        _phaseManager = phaseManager ?? new BattleTechPhaseManager();
+        _phaseManager = phaseManager;
         _currentPhase = new StartPhase(game); // Starts in the StartPhase
     }
 

@@ -1,5 +1,7 @@
 using System.Reactive.Concurrency;
 using System.Reactive.Subjects;
+using Microsoft.Extensions.Logging;
+using NSubstitute;
 using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Presentation.ViewModels;
 using Shouldly;
@@ -12,7 +14,7 @@ public class ConnectionStatusViewModelTests
     public void Constructor_NullSource_StatusStaysNotConnected()
     {
         // Act
-        var sut = new ConnectionStatusViewModel(null, Scheduler.Immediate);
+        var sut = new ConnectionStatusViewModel(null, Scheduler.Immediate, Substitute.For<ILogger<ConnectionStatusViewModel>>());
 
         // Assert
         sut.OnlineConnectionStatus.ShouldBe(ConnectionStatus.NotConnected);
@@ -26,7 +28,7 @@ public class ConnectionStatusViewModelTests
         var subject = new BehaviorSubject<ConnectionStatus>(ConnectionStatus.Connected);
 
         // Act
-        var sut = new ConnectionStatusViewModel(subject, Scheduler.Immediate);
+        var sut = new ConnectionStatusViewModel(subject, Scheduler.Immediate, Substitute.For<ILogger<ConnectionStatusViewModel>>());
 
         // Assert
         sut.OnlineConnectionStatus.ShouldBe(ConnectionStatus.Connected);
@@ -38,7 +40,7 @@ public class ConnectionStatusViewModelTests
     {
         // Arrange
         var subject = new BehaviorSubject<ConnectionStatus>(ConnectionStatus.Connected);
-        var sut = new ConnectionStatusViewModel(subject, Scheduler.Immediate);
+        var sut = new ConnectionStatusViewModel(subject, Scheduler.Immediate, Substitute.For<ILogger<ConnectionStatusViewModel>>());
 
         // Act
         subject.OnNext(ConnectionStatus.Reconnecting);
@@ -52,7 +54,7 @@ public class ConnectionStatusViewModelTests
     {
         // Arrange
         var subject = new BehaviorSubject<ConnectionStatus>(ConnectionStatus.Connected);
-        var sut = new ConnectionStatusViewModel(subject, Scheduler.Immediate);
+        var sut = new ConnectionStatusViewModel(subject, Scheduler.Immediate, Substitute.For<ILogger<ConnectionStatusViewModel>>());
 
         // Act & Assert - Reconnecting
         subject.OnNext(ConnectionStatus.Reconnecting);
@@ -72,7 +74,7 @@ public class ConnectionStatusViewModelTests
     {
         // Arrange
         var subject = new BehaviorSubject<ConnectionStatus>(ConnectionStatus.NotConnected);
-        var sut = new ConnectionStatusViewModel(subject, Scheduler.Immediate);
+        var sut = new ConnectionStatusViewModel(subject, Scheduler.Immediate, Substitute.For<ILogger<ConnectionStatusViewModel>>());
 
         // Act & Assert - NotConnected
         sut.IsConnectionDegraded.ShouldBeFalse();
@@ -91,7 +93,7 @@ public class ConnectionStatusViewModelTests
     {
         // Arrange
         var subject = new BehaviorSubject<ConnectionStatus>(ConnectionStatus.Connected);
-        var sut = new ConnectionStatusViewModel(subject, Scheduler.Immediate);
+        var sut = new ConnectionStatusViewModel(subject, Scheduler.Immediate, Substitute.For<ILogger<ConnectionStatusViewModel>>());
 
         // Act
         sut.Dispose();
@@ -107,7 +109,7 @@ public class ConnectionStatusViewModelTests
     {
         // Arrange
         var subject = new BehaviorSubject<ConnectionStatus>(ConnectionStatus.Reconnecting);
-        var sut = new ConnectionStatusViewModel(subject, Scheduler.Immediate);
+        var sut = new ConnectionStatusViewModel(subject, Scheduler.Immediate, Substitute.For<ILogger<ConnectionStatusViewModel>>());
         sut.IsConnectionDegraded.ShouldBeTrue();
 
         // Act

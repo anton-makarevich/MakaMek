@@ -82,7 +82,10 @@ public class WeaponsAttackStateTests
             _localizationService,
             Substitute.For<IDispatcherService>(),
             Substitute.For<IRulesProvider>(),
-            _platformService);
+            _platformService,
+            TestCombatUiStateFactory.Create(_localizationService),
+            Substitute.For<ICommandPublisher>(),
+            Substitute.For<ILogger<BattleMapViewModel>>());
         var playerId = Guid.NewGuid();
 
         var rules = new TotalWarfareRulesProvider();

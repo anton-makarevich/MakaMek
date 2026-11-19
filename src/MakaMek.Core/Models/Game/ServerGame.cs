@@ -43,7 +43,7 @@ public class ServerGame : BaseGame, IDisposable
         IWeaponAttackResolver weaponAttackResolver,
         IPhysicalAttackResolver physicalAttackResolver,
         ILogger<ServerGame> logger,
-        IPhaseManager? phaseManager = null)
+        IPhaseManager phaseManager)
         : base(rulesProvider, mechFactory, commandPublisher, toHitCalculator, pilotingSkillCalculator, consciousnessCalculator, heatEffectsCalculator, physicalAttackEligibility, physicalAttackCalculator, movementAttackValidator, logger)
     {
         DiceRoller = diceRoller;

@@ -13,11 +13,11 @@ namespace Sanet.MakaMek.Presentation.ViewModels;
 /// </summary>
 public class ConnectionStatusViewModel : BaseViewModel, IDisposable
 {
-    private readonly ILogger? _logger;
+    private readonly ILogger _logger;
     private IDisposable? _subscription;
 
     public ConnectionStatusViewModel(IObservable<ConnectionStatus>? source, IScheduler scheduler,
-        ILogger? logger = null)
+        ILogger logger)
     {
         _logger = logger;
         Subscribe(source, scheduler);
@@ -42,7 +42,7 @@ public class ConnectionStatusViewModel : BaseViewModel, IDisposable
         _subscription = source
             .ObserveOn(scheduler)
             .Subscribe(status => OnlineConnectionStatus = status,
-                ex => _logger?.LogError(ex, "ConnectionStatus stream error"));
+                ex => _logger.LogError(ex, "ConnectionStatus stream error"));
     }
 
     /// <summary>
