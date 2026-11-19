@@ -40,6 +40,12 @@ internal sealed class PhysicalAttackDfaResolutionPublisher
     /// <summary>
     /// Applies the DFA's damage, destruction metadata and piloting skill rolls, publishing the
     /// resolution in the weapon-phase command order.
+    /// <para>
+    /// Targets are never removed from the game and a destroyed target keeps its position, so a
+    /// resolved DFA target is always present here. The null arms are a fail-safe for a declaration
+    /// whose target is not in the game: the command then carries the declared target id and only
+    /// the attacker side is applied.
+    /// </para>
     /// </summary>
     public PhysicalAttackResolutionData Publish(
         DfaQueueItem item,
@@ -85,7 +91,7 @@ internal sealed class PhysicalAttackDfaResolutionPublisher
             _consequences.ApplyPsrRequirements(item.Attacker, target, resolution.PsrRequirements);
         }
 
-        if (resolution.Dfa?.AttackerLegHitLocations is { } attackerLegs)
+        if (resolution.Dfa!.AttackerLegHitLocations is { } attackerLegs)
             _consequences.ApplyDamageConsequences(
                 item.Attacker,
                 attackerLegs,

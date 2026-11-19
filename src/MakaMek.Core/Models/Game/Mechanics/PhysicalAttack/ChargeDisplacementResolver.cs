@@ -99,14 +99,14 @@ public class ChargeDisplacementResolver(
                 target, primaryCoordinates, direction, occupants, allUnits, map, gameOriginId);
             return domino is { HasDisplacements: true }
                 ? CreateResult(
-                    target, map, primaryCoordinates, domino.EnteringSurface, attackerDestination, domino)
+                    targetPosition, map, primaryCoordinates, domino.EnteringSurface, attackerDestination, domino)
                 : null;
         }
 
         var entry = ForcedEntryCheck.Check(
             target, map, targetPosition.Coordinates, targetPosition.Surface, primaryCoordinates);
         return entry.IsLegal
-            ? CreateResult(target, map, primaryCoordinates, entry.Surface, attackerDestination)
+            ? CreateResult(targetPosition, map, primaryCoordinates, entry.Surface, attackerDestination)
             : null;
     }
 
@@ -115,7 +115,7 @@ public class ChargeDisplacementResolver(
     /// left of its forward arc (right first), or null when neither is available (Total Warfare,
     /// p. 148).
     /// </summary>
-    public ChargeDisplacementResult? ResolveMiss(
+    public static ChargeDisplacementResult? ResolveMiss(
         IUnit attacker,
         IBattleMap map,
         IEnumerable<IUnit> units)
@@ -149,16 +149,13 @@ public class ChargeDisplacementResolver(
     }
 
     private ChargeDisplacementResult CreateResult(
-        IUnit target,
+        HexPosition targetPosition,
         IBattleMap map,
         HexCoordinates destinationCoordinates,
         HexSurface destinationSurface,
         HexPosition? attackerDestination,
         DominoEffectResult? domino = null)
     {
-        if (target.Position is not { } targetPosition) return new ChargeDisplacementResult(
-            null, attackerDestination, 0, false, domino);
-
         var targetLevel = map.GetHex(targetPosition.Coordinates)!
             .GetStandingLevel(targetPosition.Surface);
         var destinationLevel = map.GetHex(destinationCoordinates)!

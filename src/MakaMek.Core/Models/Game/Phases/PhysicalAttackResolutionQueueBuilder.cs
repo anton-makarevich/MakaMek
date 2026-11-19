@@ -41,6 +41,8 @@ internal sealed class PhysicalAttackResolutionQueueBuilder
                 .Any(unit => unit.DeclaredPhysicalAttack != null))
             return queue;
 
+        // The phase only starts on a configured map; this is an entry invariant, not a
+        // recoverable state.
         var map = _game.BattleMap ?? throw new InvalidOperationException("Battle map is null");
         var allUnits = _game.Players.SelectMany(p => p.Units).ToList();
 
@@ -137,17 +139,18 @@ internal sealed class PhysicalAttackResolutionQueueBuilder
 
     /// <summary>
     /// Snapshots a DFA's movement origin, approach hex and declared target hex at queue-build time.
-    /// A destroyed attacker has nothing left to place, so it is the only build-time skip.
+    /// A declaration whose movement path is gone has nothing left to place, so it is the only
+    /// build-time skip. A destroyed attacker never reaches this point with a DFA declaration:
+    /// <see cref="Unit.Status"/> clears it when the unit is destroyed.
     /// </summary>
     private static DfaQueueItem? CreateDfaQueueItem(
         IPlayer player,
         IUnit attacker,
         PhysicalAttackDeclarationData declaration)
     {
-        // A destroyed attacker or a missing path has nothing left to place, so there is no
-        // resolution to publish. These are data guards, not eligibility rules: whether the attack
-        // can still be made is decided by the validator at resolution time.
-        if (attacker.IsDestroyed) return null;
+        // A missing path has nothing left to place, so there is no resolution to publish. This is
+        // a data guard, not an eligibility rule: whether the attack can still be made is decided
+        // by the validator at resolution time.
         if (attacker.MovementTaken is not { } movement) return null;
 
         var approach = movement.GetStopPosition(declaration);

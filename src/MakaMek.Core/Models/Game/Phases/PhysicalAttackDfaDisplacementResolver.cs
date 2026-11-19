@@ -61,21 +61,20 @@ internal sealed class PhysicalAttackDfaDisplacementResolver
     /// <summary>
     /// Grounds the attacker after a miss: the target moves to the hex the resolver picked along the
     /// jump vector, then the attacker completes its jump in the target's original hex and falls two
-    /// levels with rear hit locations.
+    /// levels with rear hit locations. The target is always on the board when it is selected as a
+    /// resolution target, so its current position is passed in rather than re-checked.
     /// </summary>
     public void ApplyMiss(
         IUnit attacker,
         IUnit target,
+        HexPosition targetPosition,
         DfaMissDisplacementCandidate candidate,
         DisplacementReason reason)
     {
-        if (target.Position is { } currentPosition)
-        {
-            _displacement.ExecuteDisplacement(
-                target,
-                new HexPosition(candidate.Coordinates, currentPosition.Facing, candidate.Surface),
-                reason);
-        }
+        _displacement.ExecuteDisplacement(
+            target,
+            new HexPosition(candidate.Coordinates, targetPosition.Facing, candidate.Surface),
+            reason);
 
         if (candidate.TriggersAutomaticFall && target is Mech targetMech)
             _displacement.ResolveAutomaticFall(targetMech, candidate.LevelsFallen);

@@ -231,7 +231,7 @@ public class ChargeDisplacementResolverTests
         var attacker = CreateMech(new HexPosition(AttackerCoordinates, ChargeDirection));
 
         // Act
-        var result = _sut.ResolveMiss(attacker, map, [attacker]);
+        var result = ChargeDisplacementResolver.ResolveMiss(attacker, map, [attacker]);
 
         // Assert: the right-of-arc hex is one of the two hexes flanking the target hex.
         result.ShouldNotBeNull();
@@ -251,7 +251,7 @@ public class ChargeDisplacementResolverTests
         map.AddHex(new Hex(rightCoordinates, -1));
 
         // Act
-        var result = _sut.ResolveMiss(attacker, map, [attacker]);
+        var result = ChargeDisplacementResolver.ResolveMiss(attacker, map, [attacker]);
 
         // Assert
         result.ShouldNotBeNull();
@@ -270,7 +270,7 @@ public class ChargeDisplacementResolverTests
             AttackerCoordinates.GetNeighbour(ChargeDirection.Rotate(1)), HexDirection.Bottom));
 
         // Act
-        var result = _sut.ResolveMiss(attacker, map, [attacker, blocker]);
+        var result = ChargeDisplacementResolver.ResolveMiss(attacker, map, [attacker, blocker]);
 
         // Assert
         result.ShouldNotBeNull();
@@ -290,7 +290,7 @@ public class ChargeDisplacementResolverTests
             AttackerCoordinates.GetNeighbour(ChargeDirection.Rotate(-1)), HexDirection.Bottom));
 
         // Act
-        var result = _sut.ResolveMiss(attacker, map, [attacker, right, left]);
+        var result = ChargeDisplacementResolver.ResolveMiss(attacker, map, [attacker, right, left]);
 
         // Assert: a missed charge never falls back to a rear-side hex.
         result.ShouldBeNull();
@@ -306,7 +306,7 @@ public class ChargeDisplacementResolverTests
         map.AddHex(new Hex(rightCoordinates, -3));
 
         // Act
-        var result = _sut.ResolveMiss(attacker, map, [attacker]);
+        var result = ChargeDisplacementResolver.ResolveMiss(attacker, map, [attacker]);
 
         // Assert
         result.ShouldNotBeNull();
@@ -325,7 +325,7 @@ public class ChargeDisplacementResolverTests
         map.AddHex(new Hex(rightCoordinates, 3));
 
         // Act
-        var result = _sut.ResolveMiss(attacker, map, [attacker]);
+        var result = ChargeDisplacementResolver.ResolveMiss(attacker, map, [attacker]);
 
         // Assert
         result.ShouldNotBeNull();
@@ -342,7 +342,7 @@ public class ChargeDisplacementResolverTests
         Destroy(attacker);
 
         // Act
-        var result = _sut.ResolveMiss(attacker, map, [attacker]);
+        var result = ChargeDisplacementResolver.ResolveMiss(attacker, map, [attacker]);
 
         // Assert
         result.ShouldBeNull();
@@ -453,7 +453,7 @@ public class ChargeDisplacementResolverTests
         var attacker = CreateMechWithoutDeployment();
 
         // Act
-        var result = _sut.ResolveMiss(attacker, map, [attacker]);
+        var result = ChargeDisplacementResolver.ResolveMiss(attacker, map, [attacker]);
 
         // Assert
         result.ShouldBeNull();

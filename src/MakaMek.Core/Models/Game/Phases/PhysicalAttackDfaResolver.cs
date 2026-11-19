@@ -16,7 +16,6 @@ internal sealed class PhysicalAttackDfaResolver
     private readonly DfaDisplacementResolver _dfaDisplacementResolver;
     private readonly IDfaAttackResolver _dfaAttackResolver;
     private readonly PhysicalAttackDisplacementService _displacement;
-    private readonly PhysicalAttackConsequenceApplier _consequences;
     private readonly PhysicalAttackDfaLandingResolver _landing;
     private readonly PhysicalAttackDfaDisplacementResolver _dfaDisplacement;
     private readonly PhysicalAttackDfaResolutionPublisher _publisher;
@@ -33,7 +32,6 @@ internal sealed class PhysicalAttackDfaResolver
         _dfaDisplacementResolver = dfaDisplacementResolver;
         _dfaAttackResolver = dfaAttackResolver;
         _displacement = displacement;
-        _consequences = consequences;
         _landing = new PhysicalAttackDfaLandingResolver(game, state, dfaDisplacementResolver, displacement);
         _dfaDisplacement = new PhysicalAttackDfaDisplacementResolver(displacement, _landing);
         _publisher = new PhysicalAttackDfaResolutionPublisher(game, consequences);
@@ -151,7 +149,7 @@ internal sealed class PhysicalAttackDfaResolver
             return;
         }
 
-        if (target.Position is null) return;
+        if (target.Position is not { } targetPosition) return;
 
         var candidate = _dfaDisplacementResolver.ResolveMiss(
             target,
@@ -162,8 +160,9 @@ internal sealed class PhysicalAttackDfaResolver
         if (candidate is null)
         {
             // No legal adjacent hex exists: the attacker is destroyed (Total Warfare, p. 150).
-            if (resolution.Dfa is not { } dfa)
-                throw new InvalidOperationException("A DFA miss resolution must carry DFA data.");
+            // Every DFA resolution path (the to-hit roll and the automatic miss) carries its DFA
+            // payload, so the outcome can be rewritten in place.
+            var dfa = resolution.Dfa!;
             var destroyed = resolution with
             {
                 Dfa = dfa with { Outcome = DfaOutcome.AttackerDestroyedNoLanding }
@@ -177,6 +176,7 @@ internal sealed class PhysicalAttackDfaResolver
         _dfaDisplacement.ApplyMiss(
             item.Attacker,
             target,
+            targetPosition,
             candidate,
             DisplacementReason.DfaTarget);
     }
