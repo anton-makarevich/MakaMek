@@ -53,13 +53,15 @@ public static class CoreServices
         // changes take effect on the next asset load without a restart.
         // TryAdd lets a host (e.g. the headless test harness) pre-register its own
         // IUnitCachingService for this registration to defer to.
+        services.AddSingleton<MmuxUnitPackageReader>();
         services.TryAddSingleton<IUnitCachingService>(sp =>
         {
             var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
             var configProvider = sp.GetRequiredService<IAssetProviderConfigurationProvider>();
             var providerFactory = sp.GetRequiredService<IResourceStreamProviderFactory>();
+            var packageReader = sp.GetRequiredService<MmuxUnitPackageReader>();
             var emptyProviders = Array.Empty<IResourceStreamProvider>();
-            return new UnitCachingService(emptyProviders, loggerFactory, async () =>
+            return new UnitCachingService(emptyProviders, loggerFactory, packageReader, async () =>
             {
                 var configs = await configProvider.GetActiveProviders(AssetType.Units);
                 return providerFactory.CreateAll(configs);
@@ -69,8 +71,8 @@ public static class CoreServices
         // Terrain cache collaborators — stateless, so one instance serves every consumer.
         services.AddSingleton<TerrainAssetCache>();
         services.AddSingleton<ITerrainImageResolver, TerrainImageResolver>();
-        services.AddSingleton(sp => new TerrainPackageLoader(
-            new MmtxTerrainPackageReader(), sp.GetRequiredService<TerrainAssetCache>()));
+        services.AddSingleton<MmtxTerrainPackageReader>();
+        services.AddSingleton<TerrainPackageLoader>();
 
         // Terrain caching service — same lazy pattern as units above.
         services.AddSingleton<ITerrainAssetService>(sp =>
@@ -165,6 +167,7 @@ public static class CoreServices
         services.AddSingleton<IDiceRoller, RandomDiceRoller>();
         services.AddSingleton<IDamageTransferCalculator, DamageTransferCalculator>();
         services.AddSingleton<ICriticalHitsCalculator, CriticalHitsCalculator>();
+        services.AddSingleton<IHullBreachCalculator, HullBreachCalculator>();
         services.AddSingleton<IConsciousnessCalculator, ConsciousnessCalculator>();
         services.AddSingleton<IHeatEffectsCalculator, HeatEffectsCalculator>();
         services.AddSingleton<IToHitCalculator, ToHitCalculator>();

@@ -2,6 +2,7 @@ using System.IO.Compression;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Assets.Services;
+using Sanet.MakaMek.Assets.Services.PackageReaders;
 using Sanet.MakaMek.Core.Data.Serialization.Converters;
 using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Data.Units.Components;
@@ -43,7 +44,7 @@ public class UnitCachingServiceTests
         _resourceProvider.GetResourceStream(unitId).Returns(mmuxStream);
         _resourceProvider.ClearReceivedCalls();
 
-        return new UnitCachingService([_resourceProvider], _loggerFactory);
+        return new UnitCachingService([_resourceProvider], _loggerFactory, new MmuxUnitPackageReader());
     }
 
     private static Stream CreateTestMmuxStream(string model, string chassis, byte[]? imageBytes = null)
@@ -427,7 +428,7 @@ public class UnitCachingServiceTests
         v1Provider.GetAvailableResourceIds().Returns(["LCT-1V"]);
         v1Provider.GetResourceStream("LCT-1V").Returns(v1Stream);
 
-        var sut = new UnitCachingService([v2Provider, v1Provider], _loggerFactory);
+        var sut = new UnitCachingService([v2Provider, v1Provider], _loggerFactory, new MmuxUnitPackageReader());
 
         // Act
         var animation = await sut.GetUnitAnimation("LCT-1V");
@@ -509,7 +510,7 @@ public class UnitCachingServiceTests
         await using var mmuxStream2 = CreateTestMmuxStream("SHD-2D", "Shadowhawk");
         mockProvider2.GetResourceStream("SHD-2D").Returns(mmuxStream2);
 
-        var sut = new UnitCachingService([mockProvider1, mockProvider2], _loggerFactory);
+        var sut = new UnitCachingService([mockProvider1, mockProvider2], _loggerFactory, new MmuxUnitPackageReader());
 
         // Act
         var models = (await sut.GetAvailableModels()).ToList();
@@ -546,7 +547,7 @@ public class UnitCachingServiceTests
         provider.GetResourceStream(Arg.Any<string>())
             .Returns(ci => CreateTestMmuxStream((string)ci[0], "Test"));
 
-        var sut = new UnitCachingService([provider], _loggerFactory);
+        var sut = new UnitCachingService([provider], _loggerFactory, new MmuxUnitPackageReader());
 
         // Act
         await sut.GetAvailableModels();
@@ -569,7 +570,7 @@ public class UnitCachingServiceTests
         provider2.GetAvailableResourceIds().Returns(["LCT-1V"]);
         provider2.GetResourceStream("LCT-1V").Returns(CreateTestMmuxStream("LCT-1V", "Locust-B"));
 
-        var sut = new UnitCachingService([provider1, provider2], _loggerFactory);
+        var sut = new UnitCachingService([provider1, provider2], _loggerFactory, new MmuxUnitPackageReader());
 
         // Act
         await sut.GetAvailableModels();
@@ -584,7 +585,7 @@ public class UnitCachingServiceTests
     public async Task GetCachedCount_WhenProviderIdNullOrEmpty_ReturnsZero()
     {
         // Arrange
-        var sut = new UnitCachingService([], _loggerFactory);
+        var sut = new UnitCachingService([], _loggerFactory, new MmuxUnitPackageReader());
 
         // Act & Assert — no initialization is triggered for null/empty provider ids
         (await sut.GetCachedCount(null!)).ShouldBe(0);
@@ -595,7 +596,7 @@ public class UnitCachingServiceTests
     public async Task Service_ShouldHandleEmptyProviders()
     {
         // Arrange
-        var sut = new UnitCachingService([], _loggerFactory);
+        var sut = new UnitCachingService([], _loggerFactory, new MmuxUnitPackageReader());
 
         // Act
         var models = await sut.GetAvailableModels();
@@ -621,7 +622,7 @@ public class UnitCachingServiceTests
         mockProvider2.GetAvailableResourceIds()
             .Returns(Task.FromException<IEnumerable<string>>(new Exception("provider enumeration failed")));
 
-        var sut = new UnitCachingService([mockProvider1, mockProvider2], _loggerFactory);
+        var sut = new UnitCachingService([mockProvider1, mockProvider2], _loggerFactory, new MmuxUnitPackageReader());
 
         // Act
         var models = (await sut.GetAvailableModels()).ToList();
@@ -648,7 +649,7 @@ public class UnitCachingServiceTests
         await using var badStream = CreateMmuxStreamMissingUnitJson();
         mockProvider.GetResourceStream("MISSING_JSON").Returns(badStream);
 
-        var sut = new UnitCachingService([mockProvider], _loggerFactory);
+        var sut = new UnitCachingService([mockProvider], _loggerFactory, new MmuxUnitPackageReader());
 
         // Act
         var models = (await sut.GetAvailableModels()).ToList();
@@ -674,7 +675,7 @@ public class UnitCachingServiceTests
         await using var badStream = CreateMmuxStreamMissingImage("ABC-1", "Test");
         mockProvider.GetResourceStream("MISSING_PNG").Returns(badStream);
 
-        var sut = new UnitCachingService([mockProvider], _loggerFactory);
+        var sut = new UnitCachingService([mockProvider], _loggerFactory, new MmuxUnitPackageReader());
 
         // Act
         var models = (await sut.GetAvailableModels()).ToList();
@@ -700,7 +701,7 @@ public class UnitCachingServiceTests
         await using var badStream = CreateMmuxStreamWithInvalidUnitJson();
         mockProvider.GetResourceStream("INVALID_UNIT_JSON").Returns(badStream);
 
-        var sut = new UnitCachingService([mockProvider], _loggerFactory);
+        var sut = new UnitCachingService([mockProvider], _loggerFactory, new MmuxUnitPackageReader());
 
         // Act
         var models = (await sut.GetAvailableModels()).ToList();
@@ -728,7 +729,7 @@ public class UnitCachingServiceTests
         provider.GetResourceStream(Arg.Any<string>())
             .Returns(ci => CreateTestMmuxStream((string)ci[0], "Test"));
 
-        var sut = new UnitCachingService([provider], _loggerFactory);
+        var sut = new UnitCachingService([provider], _loggerFactory, new MmuxUnitPackageReader());
         var progressEvents = new List<ResourceLoadProgressEventArgs>();
         sut.LoadProgress += (_, e) => progressEvents.Add(e);
 
@@ -758,7 +759,7 @@ public class UnitCachingServiceTests
         provider2.GetResourceStream(Arg.Any<string>())
             .Returns(ci => CreateTestMmuxStream((string)ci[0], "Test"));
 
-        var sut = new UnitCachingService([provider1, provider2], _loggerFactory);
+        var sut = new UnitCachingService([provider1, provider2], _loggerFactory, new MmuxUnitPackageReader());
         var progressEvents = new List<ResourceLoadProgressEventArgs>();
         sut.LoadProgress += (_, e) => progressEvents.Add(e);
 
@@ -790,7 +791,7 @@ public class UnitCachingServiceTests
         provider.GetResourceStream("DELAYED").Returns(delayedGate.Task);
         provider.GetResourceStream("FAST").Returns(CreateTestMmuxStream("FAST", "Fast"));
 
-        var sut = new UnitCachingService([provider], _loggerFactory);
+        var sut = new UnitCachingService([provider], _loggerFactory, new MmuxUnitPackageReader());
         var progressEvents = new List<ResourceLoadProgressEventArgs>();
         sut.LoadProgress += (_, e) => progressEvents.Add(e);
 
@@ -834,7 +835,7 @@ public class UnitCachingServiceTests
         providerB.GetAvailableResourceIds().Returns(["SHD-2D"]);
         providerB.GetResourceStream("SHD-2D").Returns(streamB);
 
-        var sut = new UnitCachingService([providerA], _loggerFactory);
+        var sut = new UnitCachingService([providerA], _loggerFactory, new MmuxUnitPackageReader());
 
         // Act
         var modelsBefore = (await sut.GetAvailableModels()).ToList();
@@ -863,7 +864,7 @@ public class UnitCachingServiceTests
         providerB.GetAvailableResourceIds().Returns(["LCT-1V"]);
         providerB.GetResourceStream("LCT-1V").Returns(CreateTestMmuxStream("LCT-1V", "Locust-B"));
 
-        var sut = new UnitCachingService([providerA, providerB, providerA], _loggerFactory);
+        var sut = new UnitCachingService([providerA, providerB, providerA], _loggerFactory, new MmuxUnitPackageReader());
 
         // Act
         var unitData = await sut.GetUnitData("LCT-1V");
@@ -892,7 +893,7 @@ public class UnitCachingServiceTests
         provider2.GetResourceStream("LCT-1V")
             .Returns(CreateTestMmuxStream("LCT-1V", "Locust-2", provider2Image));
 
-        var sut = new UnitCachingService([provider1, provider2], _loggerFactory);
+        var sut = new UnitCachingService([provider1, provider2], _loggerFactory, new MmuxUnitPackageReader());
 
         // Act
         var models = (await sut.GetAvailableModels()).ToList();
@@ -922,7 +923,7 @@ public class UnitCachingServiceTests
         provider2.GetResourceStream(Arg.Any<string>())
             .Returns(ci => CreateTestMmuxStream((string)ci[0], "Test"));
 
-        var sut = new UnitCachingService([provider1, provider2], _loggerFactory);
+        var sut = new UnitCachingService([provider1, provider2], _loggerFactory, new MmuxUnitPackageReader());
 
         // Act
         var models = (await sut.GetAvailableModels()).ToList();
@@ -944,7 +945,7 @@ public class UnitCachingServiceTests
         provider.GetAvailableResourceIds().Returns(["LCT-1V"]);
         provider.GetResourceStream("LCT-1V").Returns(stream1, stream2);
 
-        var sut = new UnitCachingService([provider], _loggerFactory);
+        var sut = new UnitCachingService([provider], _loggerFactory, new MmuxUnitPackageReader());
         await sut.GetAvailableModels();
 
         // Act
@@ -965,7 +966,7 @@ public class UnitCachingServiceTests
         provider.GetResourceStream(Arg.Any<string>())
             .Returns(ci => CreateTestMmuxStream((string)ci[0], "Test"));
 
-        var sut = new UnitCachingService([provider], _loggerFactory);
+        var sut = new UnitCachingService([provider], _loggerFactory, new MmuxUnitPackageReader());
 
         // Act - hammer reloads and reads concurrently
         var reloadTask = Task.Run(async () =>

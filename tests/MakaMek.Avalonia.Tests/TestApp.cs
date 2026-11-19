@@ -16,6 +16,8 @@ public partial class TestApp : Application
     {
         AvaloniaXamlLoader.Load(this);
         Resources[LocalizeExtension.LocalizationServiceResourceKey] = LocalizationService;
+        // Views bind their controls' resources locator from the application resources.
+        Resources[nameof(IAvaloniaResourcesLocator)] = ResourcesLocator;
         RegisterConverterResources();
     }
 

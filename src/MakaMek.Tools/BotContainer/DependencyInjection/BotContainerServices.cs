@@ -3,6 +3,7 @@ using Sanet.Localization;
 using Sanet.Localization.Providers;
 using Sanet.MakaMek.Assets.Configuration;
 using Sanet.MakaMek.Assets.Services;
+using Sanet.MakaMek.Assets.Services.PackageReaders;
 using Sanet.MakaMek.Bots.Models;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Dice;
@@ -52,6 +53,7 @@ public static class BotContainerServices
 
         // Unit Loading (bucket manifest, same source as the app). The GitHub Contents API is
         // rate limited for anonymous callers, so it cannot be the bot's asset source.
+        services.AddSingleton<MmuxUnitPackageReader>();
         services.AddSingleton<IUnitCachingService>(sp =>
         {
             var cachingService = sp.GetRequiredService<IFileCachingService>();
@@ -65,7 +67,8 @@ public static class BotContainerServices
                     loggerFactory.CreateLogger<BucketResourceStreamProvider>()
                 )
             };
-            return new UnitCachingService(streamProviders, loggerFactory);
+            return new UnitCachingService(streamProviders, loggerFactory,
+                sp.GetRequiredService<MmuxUnitPackageReader>());
         });
         services.AddSingleton<IUnitsLoader, MmuxUnitsLoader>();
 
@@ -92,6 +95,7 @@ public static class BotContainerServices
         services.AddSingleton<IDiceRoller, RandomDiceRoller>();
         services.AddSingleton<IDamageTransferCalculator, DamageTransferCalculator>();
         services.AddSingleton<ICriticalHitsCalculator, CriticalHitsCalculator>();
+        services.AddSingleton<IHullBreachCalculator, HullBreachCalculator>();
         services.AddSingleton<IConsciousnessCalculator, ConsciousnessCalculator>();
         services.AddSingleton<IHeatEffectsCalculator, HeatEffectsCalculator>();
         services.AddSingleton<IToHitCalculator, ToHitCalculator>();
@@ -114,6 +118,7 @@ public static class BotContainerServices
 
         // LLM Bot Agent Integration
         services.AddHttpClient<BotAgentClient>();
+        services.AddSingleton<ILlmDecisionEngineProviderFactory, LlmDecisionEngineProviderFactory>();
         services.AddSingleton<IBotManager, BotManager>();
 
         // Hosted Service

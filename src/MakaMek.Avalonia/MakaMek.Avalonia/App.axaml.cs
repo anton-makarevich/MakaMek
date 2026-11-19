@@ -8,6 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 using MonacoLabs.Presto;
 using Sanet.MakaMek.Avalonia.Behaviors;
 using Sanet.MakaMek.Avalonia.Controls.Extensions;
+using Sanet.MakaMek.Avalonia.Controls.Services;
 using Sanet.MakaMek.Avalonia.DI;
 using Sanet.MakaMek.Avalonia.Views;
 using Sanet.MakaMek.Avalonia.Views.About;
@@ -67,6 +68,10 @@ public partial class App : Application
         // resources so {StaticResource ...} and the Localize markup extension can use them.
         var localizationService = serviceProvider.GetRequiredService<ILocalizationService>();
         Resources[LocalizeExtension.LocalizationServiceResourceKey] = localizationService;
+        // Views and controls that build parts of their tree in code declare the locator as a
+        // property; this is where their XAML binds it from.
+        Resources[nameof(IAvaloniaResourcesLocator)] =
+            serviceProvider.GetRequiredService<IAvaloniaResourcesLocator>();
         Resources[nameof(Converters.ModifierToTextConverter)] = serviceProvider.GetRequiredService<Converters.ModifierToTextConverter>();
         Resources[nameof(Converters.SegmentEventToTextConverter)] = serviceProvider.GetRequiredService<Converters.SegmentEventToTextConverter>();
         Resources[nameof(Converters.ConsciousnessStatusConverter)] = serviceProvider.GetRequiredService<Converters.ConsciousnessStatusConverter>();

@@ -18,7 +18,8 @@ public static class LocalGameFixture
         var provider = new LocalFolderResourceStreamProvider(UnitsFolder(), "mmux", "bundled-units");
         var caching = new UnitCachingService(
             [provider],
-            services.GetRequiredService<ILoggerFactory>());
+            services.GetRequiredService<ILoggerFactory>(),
+            new MmuxUnitPackageReader());
         var units = await new MmuxUnitsLoader(caching).LoadUnits();
         return units;
     }
@@ -29,7 +30,8 @@ public static class LocalGameFixture
     public static IUnitCachingService CreateLocalUnitCachingService(ILoggerFactory loggerFactory) =>
         new UnitCachingService(
             [new LocalFolderResourceStreamProvider(UnitsFolder(), "mmux", "bundled-units")],
-            loggerFactory);
+            loggerFactory,
+            new MmuxUnitPackageReader());
 
     /// <summary>
     /// The repository's own terrain pack, so the map renders real hexes with no network.

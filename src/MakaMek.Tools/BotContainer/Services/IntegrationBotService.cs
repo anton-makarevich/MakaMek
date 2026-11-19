@@ -25,8 +25,7 @@ public class IntegrationBotService : BackgroundService
     private readonly IBotManager _botManager;
     private readonly IUnitsLoader _unitsLoader;
     private readonly ILogger<IntegrationBotService> _logger;
-    private readonly BotAgentClient _botAgentClient;
-    private readonly ILoggerFactory _loggerFactory;
+    private readonly ILlmDecisionEngineProviderFactory _decisionEngineProviderFactory;
     private readonly IServer _server;
     private IDisposable? _gameCommandsSubscription;
 
@@ -45,8 +44,7 @@ public class IntegrationBotService : BackgroundService
         IBotManager botManager,
         IUnitsLoader unitsLoader,
         ILogger<IntegrationBotService> logger,
-        BotAgentClient botAgentClient,
-        ILoggerFactory loggerFactory,
+        ILlmDecisionEngineProviderFactory decisionEngineProviderFactory,
         IServer server,
         IGameStateProvider gameStateProvider)
     {
@@ -57,8 +55,7 @@ public class IntegrationBotService : BackgroundService
         _botManager = botManager;
         _unitsLoader = unitsLoader;
         _logger = logger;
-        _botAgentClient = botAgentClient;
-        _loggerFactory = loggerFactory;
+        _decisionEngineProviderFactory = decisionEngineProviderFactory;
         _server = server;
         _gameStateProvider = gameStateProvider;
     }
@@ -119,11 +116,7 @@ public class IntegrationBotService : BackgroundService
         _logger.LogInformation("Using MCP server URL: {McpServerUrl}", mcpServerUrl);
 
 
-        var decisionEngineProvider = new LlmDecisionEngineProvider(
-            _clientGame,
-            _botAgentClient,
-            mcpServerUrl,
-            _loggerFactory);
+        var decisionEngineProvider = _decisionEngineProviderFactory.Create(_clientGame, mcpServerUrl);
         
         // Expose tactical evaluator to MCP tools
         _gameStateProvider.TacticalEvaluator = decisionEngineProvider.TacticalEvaluator;
@@ -167,7 +160,7 @@ public class IntegrationBotService : BackgroundService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error handling server command {CommandType}", command.GetType()?.Name);
+            _logger.LogError(ex, "Error handling server command {CommandType}", command.GetType().Name);
         }
     }
 

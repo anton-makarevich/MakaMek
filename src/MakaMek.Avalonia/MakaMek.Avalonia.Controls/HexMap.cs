@@ -31,6 +31,9 @@ public class HexMap : Canvas
     public static readonly StyledProperty<HexRenderConfigurationViewModel?> HexConfigurationProperty =
         AvaloniaProperty.Register<HexMap, HexRenderConfigurationViewModel?>(nameof(HexConfiguration));
 
+    public static readonly StyledProperty<IAvaloniaResourcesLocator?> ResourcesLocatorProperty =
+        AvaloniaProperty.Register<HexMap, IAvaloniaResourcesLocator?>(nameof(ResourcesLocator));
+
     private Point _lastPointerPosition;
 
     private readonly MatrixTransform _mapTransform = new()
@@ -86,6 +89,16 @@ public class HexMap : Canvas
         set => SetValue(HexConfigurationProperty, value);
     }
 
+    /// <summary>
+    /// Resources locator the internal renderer reads its brushes from. The host view supplies it
+    /// from the application resources, so the control declares its dependency instead of locating one.
+    /// </summary>
+    public IAvaloniaResourcesLocator? ResourcesLocator
+    {
+        get => GetValue(ResourcesLocatorProperty);
+        set => SetValue(ResourcesLocatorProperty, value);
+    }
+
     public event EventHandler<Point>? ContentClicked;
 
     /// <inheritdoc />
@@ -139,6 +152,15 @@ public class HexMap : Canvas
     /// Sets the hex render data and configuration, creating or updating the internal HexRenderControl.
     /// Must be called after Children.Clear() to ensure the renderer is at the bottom layer.
     /// </summary>
+    /// <param name="data">Hex render data to draw.</param>
+    /// <param name="configuration">Render configuration.</param>
+    /// <param name="logger">Logger passed to the hex subscriptions.</param>
+    /// <param name="terrainAssetService">Terrain assets used to draw hexes.</param>
+    /// <param name="localizationService">Optional localization service for labels.</param>
+    /// <param name="scheduler">Scheduler the hex subscriptions run on.</param>
+    /// <param name="resourcesLocator">
+    /// Optional resources locator; hosts that set <see cref="ResourcesLocator"/> from XAML can omit it.
+    /// </param>
     public void SetHexData(
         IEnumerable<HexRenderData> data,
         HexRenderConfiguration configuration,
@@ -148,7 +170,8 @@ public class HexMap : Canvas
         IScheduler scheduler,
         IAvaloniaResourcesLocator? resourcesLocator = null)
     {
-        var renderer = new HexRenderControl(terrainAssetService, localizationService, scheduler, resourcesLocator);
+        var renderer = new HexRenderControl(terrainAssetService, localizationService, scheduler,
+            resourcesLocator ?? ResourcesLocator);
         renderer.SetHexData(data, configuration);
         // Re-apply the currently bound boundary outlines to the new renderer
         renderer.SetBoundaryOutlines(GetValue(BoundaryOutlinesProperty));
