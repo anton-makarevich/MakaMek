@@ -5,6 +5,7 @@ using NSubstitute;
 using NSubstitute.ExceptionExtensions;
 using Sanet.MakaMek.Assets.Models.Terrains;
 using Sanet.MakaMek.Assets.Services;
+using Sanet.MakaMek.Assets.Services.PackageReaders;
 using Sanet.MakaMek.Map.Models;
 using Sanet.MakaMek.Assets.ResourceProviders;
 using Shouldly;
@@ -20,7 +21,7 @@ public class TerrainCachingServiceTests
     {
         _loggerFactory.CreateLogger(Arg.Any<string>())
             .Returns(Substitute.For<ILogger>());
-        _sut = new TerrainCachingService([], _loggerFactory);
+        _sut = CreateService([]);
     }
 
     [Fact]
@@ -617,7 +618,7 @@ public class TerrainCachingServiceTests
         var provider = Substitute.For<IResourceStreamProvider>();
         provider.GetAvailableResourceIds().Returns(["resource1"]);
         provider.GetResourceStream("resource1").Returns(mmtxStream);
-        var sut = new TerrainCachingService([provider], _loggerFactory);
+        var sut = CreateService([provider]);
 
         // Act
         var biomes = (await sut.GetLoadedBiomes()).ToList();
@@ -636,7 +637,7 @@ public class TerrainCachingServiceTests
         var provider = Substitute.For<IResourceStreamProvider>();
         provider.GetAvailableResourceIds().Returns(["resource1"]);
         provider.GetResourceStream("resource1").Returns((Stream?)null);
-        var sut = new TerrainCachingService([provider], _loggerFactory);
+        var sut = CreateService([provider]);
 
         // Act
         var biomes = (await sut.GetLoadedBiomes()).ToList();
@@ -660,7 +661,7 @@ public class TerrainCachingServiceTests
         validProvider.GetAvailableResourceIds().Returns(["valid-resource"]);
         validProvider.GetResourceStream("valid-resource").Returns(validStream);
 
-        var sut = new TerrainCachingService([failingProvider, validProvider], _loggerFactory);
+        var sut = CreateService([failingProvider, validProvider]);
 
         // Act
         var biomes = (await sut.GetLoadedBiomes()).ToList();
@@ -682,7 +683,7 @@ public class TerrainCachingServiceTests
             .ThrowsAsync(new InvalidOperationException("bad resource"));
         provider.GetResourceStream("good").Returns(validStream);
 
-        var sut = new TerrainCachingService([provider], _loggerFactory);
+        var sut = CreateService([provider]);
 
         // Act
         var biomes = (await sut.GetLoadedBiomes()).ToList();
@@ -706,7 +707,7 @@ public class TerrainCachingServiceTests
         validProvider.GetAvailableResourceIds().Returns(["valid-resource"]);
         validProvider.GetResourceStream("valid-resource").Returns(validStream);
 
-        var sut = new TerrainCachingService([failingProvider, validProvider], _loggerFactory);
+        var sut = CreateService([failingProvider, validProvider]);
 
         // Act — the failing provider must not block enumeration of the valid one
         var biomes = (await sut.GetLoadedBiomes()).ToList();
@@ -733,7 +734,7 @@ public class TerrainCachingServiceTests
         provider2.GetAvailableResourceIds().Returns(["resource2"]);
         provider2.GetResourceStream("resource2").Returns(stream2);
 
-        var sut = new TerrainCachingService([provider1, provider2], _loggerFactory);
+        var sut = CreateService([provider1, provider2]);
 
         // Act
         var biomes = (await sut.GetLoadedBiomes()).ToList();
@@ -768,7 +769,7 @@ public class TerrainCachingServiceTests
         provider2.GetAvailableResourceIds().Returns(["resource2"]);
         provider2.GetResourceStream("resource2").Returns(stream2);
 
-        var sut = new TerrainCachingService([provider1, provider2], _loggerFactory);
+        var sut = CreateService([provider1, provider2]);
 
         // Act
         await sut.GetLoadedBiomes();
@@ -796,7 +797,7 @@ public class TerrainCachingServiceTests
         provider2.GetAvailableResourceIds().Returns(["resource2"]);
         provider2.GetResourceStream("resource2").Returns(stream2);
 
-        var sut = new TerrainCachingService([provider1, provider2], _loggerFactory);
+        var sut = CreateService([provider1, provider2]);
 
         // Act
         await sut.GetLoadedBiomes();
@@ -811,7 +812,7 @@ public class TerrainCachingServiceTests
     public async Task GetCachedCount_WhenProviderIdNullOrEmpty_ReturnsZero()
     {
         // Arrange
-        var sut = new TerrainCachingService([], _loggerFactory);
+        var sut = CreateService([]);
 
         // Act & Assert — no initialization is triggered for null/empty provider ids
         (await sut.GetCachedCount(null!)).ShouldBe(0);
@@ -823,7 +824,7 @@ public class TerrainCachingServiceTests
     {
         // Arrange — a stream-loaded biome has no provider id and must not contribute to any count
         using var mmtxStream = CreateMmtxPackage(builder: MmtxPackageBuilder.Create().WithBaseTerrain(1));
-        var sut = new TerrainCachingService([], _loggerFactory);
+        var sut = CreateService([]);
         await sut.LoadTerrainFromMmtxStream(mmtxStream);
 
         // Act & Assert
@@ -841,7 +842,7 @@ public class TerrainCachingServiceTests
         provider.GetAvailableResourceIds().Returns(["resource1"]);
         provider.GetResourceStream("resource1").Returns(stream1);
 
-        var sut = new TerrainCachingService([provider], _loggerFactory);
+        var sut = CreateService([provider]);
         await sut.GetLoadedBiomes(); // triggers provider load
 
         // Act — replace the provider-loaded biome via direct stream (no provider id)
@@ -871,7 +872,7 @@ public class TerrainCachingServiceTests
         provider2.GetAvailableResourceIds().Returns(["resource2"]);
         provider2.GetResourceStream("resource2").Returns(stream2);
 
-        var sut = new TerrainCachingService([provider1, provider2], _loggerFactory);
+        var sut = CreateService([provider1, provider2]);
 
         // Act
         var biomes = (await sut.GetLoadedBiomes()).ToList();
@@ -893,7 +894,7 @@ public class TerrainCachingServiceTests
         provider.GetResourceStream(Arg.Any<string>())
             .Returns(ci => CreateMmtxPackage($"biome-{ci[0]}", $"Biome {ci[0]}"));
 
-        var sut = new TerrainCachingService([provider], _loggerFactory);
+        var sut = CreateService([provider]);
         var progressEvents = new List<ResourceLoadProgressEventArgs>();
         sut.LoadProgress += (_, e) => progressEvents.Add(e);
 
@@ -924,7 +925,7 @@ public class TerrainCachingServiceTests
         providerB.GetAvailableResourceIds().Returns(["resourceB"]);
         providerB.GetResourceStream("resourceB").Returns(streamB);
 
-        var sut = new TerrainCachingService([providerA], _loggerFactory);
+        var sut = CreateService([providerA]);
 
         // Act
         var biomesBefore = (await sut.GetLoadedBiomes()).ToList();
@@ -947,7 +948,7 @@ public class TerrainCachingServiceTests
         provider.GetAvailableResourceIds().Returns(["resourceA"]);
         provider.GetResourceStream("resourceA").Returns(stream1, stream2);
 
-        var sut = new TerrainCachingService([provider], _loggerFactory);
+        var sut = CreateService([provider]);
         await sut.GetLoadedBiomes();
 
         // Act
@@ -968,7 +969,7 @@ public class TerrainCachingServiceTests
         provider.GetResourceStream(Arg.Any<string>())
             .Returns(ci => CreateMmtxPackage($"biome-{ci[0]}", $"Biome {ci[0]}"));
 
-        var sut = new TerrainCachingService([provider], _loggerFactory);
+        var sut = CreateService([provider]);
 
         // Act - hammer reloads and reads concurrently
         var reloadTask = Task.Run(async () =>
@@ -992,6 +993,118 @@ public class TerrainCachingServiceTests
         // Assert - state is consistent after concurrent operations
         var biomes = (await sut.GetLoadedBiomes()).ToList();
         biomes.Count.ShouldBe(biomeCount);
+    }
+
+    [Fact]
+    public async Task GetBaseBiomeImage_ShouldReturnRequestedVariant_WhenVariantIsSpecified()
+    {
+        // Arrange — two base variants with distinguishable content
+        byte[] variantOneImage = [.. PngHeader(), 0x01];
+        byte[] variantTwoImage = [.. PngHeader(), 0x02];
+        using var mmtxStream = CreateMmtxPackage(builder: MmtxPackageBuilder.Create()
+            .WithRawEntry("base-1.png", variantOneImage)
+            .WithRawEntry("base-2.png", variantTwoImage));
+        await _sut.LoadTerrainFromMmtxStream(mmtxStream);
+
+        // Act
+        var image = await _sut.GetBaseBiomeImage("test-biome", variant: 2);
+
+        // Assert — the explicitly requested variant wins over deterministic selection
+        image.ShouldBe(variantTwoImage);
+    }
+
+    [Fact]
+    public async Task LoadTerrainFromMmtxStream_ShouldOverwriteDuplicateAssetWithLastEntry()
+    {
+        // Arrange — packages may carry the same asset twice (e.g. entries differing only by case),
+        // which both normalize to the same cache key
+        byte[] firstImage = [.. PngHeader(), 0x01];
+        byte[] lastImage = [.. PngHeader(), 0x02];
+        using var mmtxStream = CreateMmtxPackage(builder: MmtxPackageBuilder.Create()
+            .WithRawEntry("base.png", firstImage)
+            .WithRawEntry("Base.png", lastImage));
+
+        // Act
+        await _sut.LoadTerrainFromMmtxStream(mmtxStream);
+        var image = await _sut.GetBaseBiomeImage("test-biome");
+
+        // Assert — the later entry overwrites the earlier one instead of being dropped
+        image.ShouldBe(lastImage);
+    }
+
+    [Fact]
+    public async Task Constructor_WithLazyProviders_ShouldResolveProvidersOnFirstAccessOnly()
+    {
+        // Arrange
+        using var mmtxStream = CreateMmtxPackage("lazy-biome", "Lazy Biome",
+            builder: MmtxPackageBuilder.Create().WithBaseTerrain(1));
+        var provider = Substitute.For<IResourceStreamProvider>();
+        provider.GetAvailableResourceIds().Returns(["resource1"]);
+        provider.GetResourceStream("resource1").Returns(mmtxStream);
+
+        var factoryCalls = 0;
+        var sut = CreateService([], () =>
+        {
+            factoryCalls++;
+            return Task.FromResult<IReadOnlyList<IResourceStreamProvider>>([provider]);
+        });
+
+        // Act & Assert — construction must not resolve providers
+        factoryCalls.ShouldBe(0);
+
+        var biomes = (await sut.GetLoadedBiomes()).ToList();
+        biomes.ShouldContain("lazy-biome");
+        factoryCalls.ShouldBe(1);
+
+        // subsequent access reuses the resolved provider list
+        await sut.GetLoadedBiomes();
+        factoryCalls.ShouldBe(1);
+    }
+
+    [Fact]
+    public async Task LoadTerrainFromMmtxStream_ShouldUseInjectedImageResolver()
+    {
+        // Arrange — the injected resolver redirects base requests to the loaded overlay asset;
+        // the default resolver would look for a "base" asset that the package does not contain
+        using var mmtxStream = CreateMmtxPackage(builder: MmtxPackageBuilder.Create()
+            .WithOverlay("lightwoods", 1));
+        var resolver = Substitute.For<ITerrainImageResolver>();
+        resolver.ResolveBase(Arg.Any<int?>())
+            .Returns(new TerrainImageRequest(TerrainAssetType.Overlay, "lightwoods"));
+
+        var assetCache = new TerrainAssetCache();
+        var sut = new TerrainCachingService(
+            [],
+            _loggerFactory,
+            null,
+            assetCache,
+            resolver,
+            new TerrainPackageLoader(new MmtxTerrainPackageReader(), assetCache));
+
+        // Act
+        await sut.LoadTerrainFromMmtxStream(mmtxStream);
+        var image = await sut.GetBaseBiomeImage("test-biome");
+
+        // Assert
+        image.ShouldNotBeNull();
+    }
+
+    /// <summary>
+    /// Builds the service with the same stateless collaborators the composition root wires,
+    /// so tests exercise the real dependency graph instead of defaults created inside the service.
+    /// </summary>
+    private TerrainCachingService CreateService(
+        IEnumerable<IResourceStreamProvider> providers,
+        Func<Task<IReadOnlyList<IResourceStreamProvider>>>? lazyProviders = null)
+    {
+        var assetCache = new TerrainAssetCache();
+        return new TerrainCachingService(
+            providers,
+            _loggerFactory,
+            lazyProviders,
+            assetCache,
+            new TerrainImageResolver(),
+            new TerrainPackageLoader(new MmtxTerrainPackageReader(), assetCache));
     }
 
     private static MemoryStream CreateMmtxPackage(

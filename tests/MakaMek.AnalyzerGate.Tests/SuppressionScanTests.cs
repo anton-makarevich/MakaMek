@@ -1209,16 +1209,18 @@ public class SuppressionScanTests
             .ShouldBeEmpty();
     }
 
-    [Fact]
-    public void FindNewSuppressionsIn_NewSuppression_ReportsTheDeclarationLine()
+    [Theory]
+    [InlineData("\n")]
+    [InlineData("\r\n")]
+    public void FindNewSuppressionsIn_NewSuppression_ReportsTheDeclarationLine(string newLine)
     {
-        const string current = """
-            // leading comment
-            [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1506:Avoid excessive class coupling")]
-            public class Example
-            {
-            }
-            """;
+        var current = string.Join(
+            newLine,
+            "// leading comment",
+            "[System.Diagnostics.CodeAnalysis.SuppressMessage(\"Design\", \"CA1506:Avoid excessive class coupling\")]",
+            "public class Example",
+            "{",
+            "}");
 
         var failures = Program.FindNewSuppressionsIn("Example.cs", null, current);
 

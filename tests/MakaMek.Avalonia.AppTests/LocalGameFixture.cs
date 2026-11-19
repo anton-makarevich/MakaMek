@@ -2,6 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Assets.ResourceProviders;
 using Sanet.MakaMek.Assets.Services;
+using Sanet.MakaMek.Assets.Services.PackageReaders;
 using Sanet.MakaMek.Core.Data.Units;
 
 namespace MakaMek.Avalonia.AppTests;
@@ -32,11 +33,20 @@ public static class LocalGameFixture
 
     /// <summary>
     /// The repository's own terrain pack, so the map renders real hexes with no network.
+    /// Builds the collaborators here — <see cref="TerrainCachingService"/> only accepts them
+    /// injected, so hosting code owns the default wiring.
     /// </summary>
-    public static ITerrainAssetService CreateLocalTerrainService(ILoggerFactory loggerFactory) =>
-        new TerrainCachingService(
+    public static ITerrainAssetService CreateLocalTerrainService(ILoggerFactory loggerFactory)
+    {
+        var assetCache = new TerrainAssetCache();
+        return new TerrainCachingService(
             [new LocalFolderResourceStreamProvider(HexesFolder(), "mmtx", "bundled-hexes")],
-            loggerFactory);
+            loggerFactory,
+            null,
+            assetCache,
+            new TerrainImageResolver(),
+            new TerrainPackageLoader(new MmtxTerrainPackageReader(), assetCache));
+    }
 
     /// <summary>
     /// Keyed on the biome pack itself, so a wrong answer fails here rather than as a blank map.
