@@ -2,16 +2,11 @@ using System.Collections.ObjectModel;
 using System.Windows.Input;
 using AsyncAwaitBestPractices;
 using Microsoft.Extensions.Logging;
-using Sanet.MakaMek.Assets.Services;
-using Sanet.MakaMek.Bots.Models;
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Players;
 using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Models.Game;
-using Sanet.MakaMek.Core.Models.Game.Factories;
 using Sanet.MakaMek.Core.Models.Game.Players;
-using Sanet.MakaMek.Core.Services.Transport;
-using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Presentation.ViewModels.Setup;
 using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 using Sanet.MakaMek.Services;
@@ -40,31 +35,16 @@ public abstract class NewGameViewModel : BaseViewModel
     public ICommand RemovePlayerCommand { get; }
 
     /// <summary>
-    /// Creates the setup screen. The trailing <paramref name="session"/> is resolved by the composition
-    /// root; the per-source parameters are kept so existing construction sites stay source-compatible
-    /// and are only used to build the session when it is not injected.
+    /// Creates the setup screen around its lobby session, which the composition root provides so both
+    /// setup screens share the same construction path.
     /// </summary>
-    protected NewGameViewModel(IUnitsLoader unitsLoader,
-        ICommandPublisher commandPublisher,
-        IDispatcherService dispatcherService,
-        IGameFactory gameFactory,
-        IFileCachingService cachingService,
-        IBotManager botManager,
-        IMechFactory mechFactory,
-        ILogger logger,
+    protected NewGameViewModel(
+        GameSetupSession session,
         IImageService imageService,
-        GameSetupSession? session = null)
+        ILogger logger)
     {
         _logger = logger;
-        _session = session
-            ?? new GameSetupSession(
-                unitsLoader,
-                dispatcherService,
-                gameFactory,
-                cachingService,
-                botManager,
-                mechFactory,
-                logger);
+        _session = session;
         ImageService = imageService;
 
         RemovePlayerCommand = SetupCommands.CreateRemovePlayerCommand(RemovePlayer);

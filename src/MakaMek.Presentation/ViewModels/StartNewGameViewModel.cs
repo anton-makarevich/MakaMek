@@ -1,20 +1,10 @@
 using System.Windows.Input;
 using AsyncAwaitBestPractices.MVVM;
 using Microsoft.Extensions.Logging;
-using Sanet.Localization;
-using Sanet.MakaMek.Assets.Services;
-using Sanet.MakaMek.Bots.Models;
 using Sanet.MakaMek.Core.Data.Game.Commands;
-using Sanet.MakaMek.Core.Models.Game;
-using Sanet.MakaMek.Core.Models.Game.Factories;
-using Sanet.MakaMek.Core.Services;
-using Sanet.MakaMek.Core.Services.Transport;
-using Sanet.MakaMek.Core.Utils;
-using Sanet.MakaMek.Map.Factories;
 using Sanet.MakaMek.Presentation.ViewModels.Setup;
 using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 using Sanet.MakaMek.Services;
-using Sanet.Transport.SignalR.Client.Relay;
 
 namespace Sanet.MakaMek.Presentation.ViewModels;
 
@@ -29,46 +19,14 @@ public class StartNewGameViewModel : NewGameViewModel, ISetupNotificationSink, I
     private readonly SetupDependencies _deps;
 
     public StartNewGameViewModel(
-        IGameManager gameManager,
-        IUnitsLoader unitsLoader,
-        ICommandPublisher commandPublisher,
-        IDispatcherService dispatcherService,
-        IGameFactory gameFactory,
-        IBattleMapFactory mapFactory,
-        IFileCachingService cachingService,
-        IMapPreviewRenderer mapPreviewRenderer,
+        GameSetupSession session,
+        SetupDependenciesFactory setupDependencies,
         MapConfigViewModel mapConfig,
-        IBotManager botManager,
-        ILogger<StartNewGameViewModel> logger,
-        ILocalizationService localizationService,
-        IMechFactory mechFactory,
-        IClipboardService clipboardService,
-        IRelayHubConfigurationProvider hubConfigurationProvider,
-        IRelayRoomClient relayRoomClient,
-        IImageService imageService)
-        : base(unitsLoader,
-            commandPublisher,
-            dispatcherService,
-            gameFactory,
-            cachingService,
-            botManager,
-            mechFactory,
-            logger,
-            imageService)
+        IImageService imageService,
+        ILogger<StartNewGameViewModel> logger)
+        : base(session, imageService, logger)
     {
-        _deps = new SetupDependencies(
-            gameManager,
-            commandPublisher,
-            dispatcherService,
-            hubConfigurationProvider,
-            relayRoomClient,
-            clipboardService,
-            localizationService,
-            logger,
-            mapPreviewRenderer,
-            mapFactory,
-            null!,
-            Session);
+        _deps = setupDependencies.Create(session, logger);
 
         _controller = new HostingSetupController(_deps, mapConfig, this);
         _controller.CommandStreamHandler = HandleServerCommand;

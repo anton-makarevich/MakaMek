@@ -20,6 +20,9 @@ using Sanet.MakaMek.Map.Data;
 using Sanet.MakaMek.Map.Models;
 using Sanet.MakaMek.Map.Models.MovementCosts;
 using Sanet.MakaMek.Map.Models.Terrains;
+using Microsoft.Extensions.Logging;
+using Sanet.MakaMek.Core.Services.Transport;
+using Sanet.MakaMek.Presentation.UiStates;
 using Sanet.MakaMek.Presentation.ViewModels;
 using Sanet.MakaMek.Services;
 using Shouldly;
@@ -522,7 +525,10 @@ public class UnitMovementPlaybackTests
                 Substitute.For<ILocalizationService>(),
                 dispatcher,
                 Substitute.For<IRulesProvider>(),
-                Substitute.For<IPlatformService>());
+                Substitute.For<IPlatformService>(),
+                Substitute.For<ICombatUiStateFactory>(),
+                Substitute.For<ICommandPublisher>(),
+                Substitute.For<ILogger<BattleMapViewModel>>());
 
             ViewModel = viewModel;
             Control = new UnitControl(unit, imageService, viewModel, spriteService,

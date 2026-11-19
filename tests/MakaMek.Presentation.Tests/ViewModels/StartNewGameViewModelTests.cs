@@ -30,6 +30,7 @@ using Sanet.MakaMek.Map.Models.Terrains;
 using Sanet.MakaMek.Map.Services;
 using Sanet.MakaMek.Presentation.ViewModels;
 using Sanet.MakaMek.Presentation.ViewModels.Maps;
+using Sanet.MakaMek.Presentation.ViewModels.Setup;
 using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 using Sanet.MakaMek.Services;
 using Sanet.MVVM.Core.Services;
@@ -84,7 +85,10 @@ public class StartNewGameViewModelTests
                 _localizationService,
                 Substitute.For<IDispatcherService>(),
                 _rulesProvider,
-                Substitute.For<IPlatformService>());
+                Substitute.For<IPlatformService>(),
+                TestCombatUiStateFactory.Create(_localizationService),
+                Substitute.For<ICommandPublisher>(),
+                Substitute.For<ILogger<BattleMapViewModel>>());
         _navigationService.GetNewViewModelAsync<BattleMapViewModel>().Returns(_battleMapViewModel);
         _unitsLoader.LoadUnits().Returns([MechFactoryTests.CreateDummyMechData()]);
 
@@ -124,24 +128,7 @@ public class StartNewGameViewModelTests
 
         _cachingService.TryGetCachedFile(Arg.Any<string>()).Returns(Task.FromResult<byte[]?>(null));
 
-        _sut = new StartNewGameViewModel(
-            _gameManager,
-            _unitsLoader,
-            _commandPublisher,
-            _dispatcherService,
-            _gameFactory,
-            _mapFactory,
-            _cachingService,
-            _mapPreviewRenderer,
-            CreateMapConfig(),
-            _botManager,
-            _vmLogger,
-            _localizationService,
-            _mechFactory,
-            _clipboardService,
-            _hubConfigurationProvider,
-            _relayRoomClient,
-            _imageService);
+        _sut = CreateSut();
         _sut.AttachHandlers();
         _sut.SetNavigationService(_navigationService);
     }
@@ -553,16 +540,7 @@ public async Task MapReselection_DuringDebounce_RestartsWindow_AndSendsLatestMap
         gameManager.InitializeLocalLobby(Arg.Any<CancellationToken>()).Returns(initTcs.Task);
         gameManager.ServerGameId.Returns(Guid.NewGuid());
 
-        var sut = new StartNewGameViewModel(
-            gameManager, _unitsLoader,
-            commandPublisher, _dispatcherService,
-            _gameFactory, _mapFactory, _cachingService, _mapPreviewRenderer,
-            CreateMapConfig(), _botManager,
-            _vmLogger, _localizationService, _mechFactory,
-            _clipboardService,
-            _hubConfigurationProvider,
-            _relayRoomClient,
-            Substitute.For<IImageService>());
+        var sut = CreateSut(gameManager, commandPublisher);
 
         sut.AttachHandlers();
 
@@ -585,16 +563,7 @@ public async Task MapReselection_DuringDebounce_RestartsWindow_AndSendsLatestMap
         gameManager.InitializeLocalLobby(Arg.Any<CancellationToken>()).Returns(initTcs.Task);
         gameManager.ServerGameId.Returns(Guid.NewGuid());
 
-        var sut = new StartNewGameViewModel(
-            gameManager, _unitsLoader,
-            commandPublisher, _dispatcherService,
-            _gameFactory, _mapFactory, _cachingService, _mapPreviewRenderer,
-            CreateMapConfig(), _botManager,
-            _vmLogger, _localizationService, _mechFactory,
-            _clipboardService,
-            _hubConfigurationProvider,
-            _relayRoomClient,
-            Substitute.For<IImageService>());
+        var sut = CreateSut(gameManager, commandPublisher);
 
         sut.AttachHandlers();
 
@@ -1576,23 +1545,39 @@ public async Task MapReselection_DuringDebounce_RestartsWindow_AndSendsLatestMap
     private StartNewGameViewModel CreateSut(
         IGameManager? gameManager = null,
         ICommandPublisher? commandPublisher = null) => new(
-        gameManager ?? _gameManager,
+        CreateSession(),
+        CreateDependenciesFactory(gameManager, commandPublisher),
+        CreateMapConfig(),
+        _imageService,
+        _vmLogger);
+
+    private GameSetupSession CreateSession() => new(
         _unitsLoader,
-        commandPublisher ?? _commandPublisher,
         _dispatcherService,
         _gameFactory,
-        _mapFactory,
-        _cachingService,
-        _mapPreviewRenderer,
-        CreateMapConfig(),
         _botManager,
-        _vmLogger,
-        _localizationService,
-        _mechFactory,
+        new DefaultPlayerStore(_cachingService),
+        new GameSetupDialogService(_mechFactory),
+        new LocalPlayerCommands(_botManager));
+
+    private SetupDependenciesFactory CreateDependenciesFactory(
+        IGameManager? gameManager,
+        ICommandPublisher? commandPublisher) => new(
+        gameManager ?? _gameManager,
+        commandPublisher ?? _commandPublisher,
+        _dispatcherService,
         _clipboardService,
-        _hubConfigurationProvider,
-        _relayRoomClient,
-        Substitute.For<IImageService>());
+        _localizationService,
+        _mapFactory,
+        Substitute.For<IGameConnector>(),
+        new HostingHubProbe(
+            _hubConfigurationProvider,
+            _relayRoomClient,
+            Substitute.For<ILogger<HostingHubProbe>>()),
+        new RoomCodeClipboardReader(_clipboardService),
+        new LobbyMapPreview(
+            _mapPreviewRenderer,
+            Substitute.For<ILogger<LobbyMapPreview>>()));
 
     private static IGameManager CreateOnlineGameManager(
         string? roomCode = "ABCDEF",
@@ -2049,24 +2034,7 @@ public async Task MapReselection_DuringDebounce_RestartsWindow_AndSendsLatestMap
         var defaultPlayerData = PlayerData.CreateDefault() with { Name = "Cached Player" };
         _cachingService.TryGetCachedFile("DefaultPlayer")
             .Returns(JsonSerializer.SerializeToUtf8Bytes(defaultPlayerData));
-        var sut = new StartNewGameViewModel(
-            _gameManager,
-            _unitsLoader,
-            _commandPublisher,
-            _dispatcherService,
-            _gameFactory,
-            _mapFactory,
-            _cachingService,
-            _mapPreviewRenderer,
-            CreateMapConfig(),
-            _botManager,
-            _vmLogger,
-            _localizationService,
-            _mechFactory,
-            _clipboardService,
-            _hubConfigurationProvider,
-            _relayRoomClient,
-            Substitute.For<IImageService>());
+        var sut = CreateSut();
         sut.AttachHandlers();
 
         // Assert
@@ -2088,24 +2056,7 @@ public async Task MapReselection_DuringDebounce_RestartsWindow_AndSendsLatestMap
         var defaultPlayerData = PlayerData.CreateDefault() with { Name = "Cached Player" };
         _cachingService.TryGetCachedFile("DefaultPlayer")
             .Returns(JsonSerializer.SerializeToUtf8Bytes(defaultPlayerData));
-        var sut = new StartNewGameViewModel(
-            _gameManager,
-            _unitsLoader,
-            _commandPublisher,
-            _dispatcherService,
-            _gameFactory,
-            _mapFactory,
-            _cachingService,
-            _mapPreviewRenderer,
-            CreateMapConfig(),
-            _botManager,
-            _vmLogger,
-            _localizationService,
-            _mechFactory,
-            _clipboardService,
-            _hubConfigurationProvider,
-            _relayRoomClient,
-            Substitute.For<IImageService>());
+        var sut = CreateSut();
         sut.AttachHandlers();
 
         // Act
@@ -2122,24 +2073,7 @@ public async Task MapReselection_DuringDebounce_RestartsWindow_AndSendsLatestMap
         _cachingService.TryGetCachedFile("DefaultPlayer").Throws(new Exception("Cache load failed"));
 
         // Act
-        var sut = new StartNewGameViewModel(
-            _gameManager,
-            _unitsLoader,
-            _commandPublisher,
-            _dispatcherService,
-            _gameFactory,
-            _mapFactory,
-            _cachingService,
-            _mapPreviewRenderer,
-            CreateMapConfig(),
-            _botManager,
-            _vmLogger,
-            _localizationService,
-            _mechFactory,
-            _clipboardService,
-            _hubConfigurationProvider,
-            _relayRoomClient,
-            Substitute.For<IImageService>());
+        var sut = CreateSut();
         await sut.InitializeLobbyAndSubscribe(CancellationToken.None);
         sut.AttachHandlers();
         
@@ -2154,24 +2088,7 @@ public async Task MapReselection_DuringDebounce_RestartsWindow_AndSendsLatestMap
         _cachingService.SaveToCache("DefaultPlayer", Arg.Any<byte[]>()).Throws(new Exception("Cache save failed"));
 
         // Act
-        var sut = new StartNewGameViewModel(
-            _gameManager,
-            _unitsLoader,
-            _commandPublisher,
-            _dispatcherService,
-            _gameFactory,
-            _mapFactory,
-            _cachingService,
-            _mapPreviewRenderer,
-            CreateMapConfig(),
-            _botManager,
-            _vmLogger,
-            _localizationService,
-            _mechFactory,
-            _clipboardService,
-            _hubConfigurationProvider,
-            _relayRoomClient,
-            Substitute.For<IImageService>());
+        var sut = CreateSut();
         await sut.InitializeLobbyAndSubscribe(CancellationToken.None);
         sut.AttachHandlers();
 
@@ -2322,16 +2239,7 @@ public async Task MapReselection_DuringDebounce_RestartsWindow_AndSendsLatestMap
         gameManager.InitializeLocalLobby(Arg.Any<CancellationToken>()).Returns(initTcs.Task);
         gameManager.ServerGameId.Returns(Guid.NewGuid());
 
-        var sut = new StartNewGameViewModel(
-            gameManager, _unitsLoader,
-            commandPublisher, _dispatcherService,
-            _gameFactory, _mapFactory, _cachingService, _mapPreviewRenderer,
-            CreateMapConfig(), _botManager,
-            _vmLogger, _localizationService, _mechFactory,
-            _clipboardService,
-            _hubConfigurationProvider,
-            _relayRoomClient,
-            Substitute.For<IImageService>());
+        var sut = CreateSut(gameManager, commandPublisher);
 
         sut.AttachHandlers();
         sut.DetachHandlers();
@@ -2352,16 +2260,7 @@ public async Task MapReselection_DuringDebounce_RestartsWindow_AndSendsLatestMap
         gameManager.InitializeLocalLobby(Arg.Any<CancellationToken>()).Returns(initTcs.Task);
         gameManager.ServerGameId.Returns(Guid.NewGuid());
 
-        var sut = new StartNewGameViewModel(
-            gameManager, _unitsLoader,
-            commandPublisher, _dispatcherService,
-            _gameFactory, _mapFactory, _cachingService, _mapPreviewRenderer,
-            CreateMapConfig(), _botManager,
-            _vmLogger, _localizationService, _mechFactory,
-            _clipboardService,
-            _hubConfigurationProvider,
-            _relayRoomClient,
-            Substitute.For<IImageService>());
+        var sut = CreateSut(gameManager, commandPublisher);
 
         sut.AttachHandlers();
         sut.Dispose();
@@ -2380,16 +2279,7 @@ public async Task MapReselection_DuringDebounce_RestartsWindow_AndSendsLatestMap
         gameManager.InitializeLocalLobby(Arg.Any<CancellationToken>()).Returns(initTcs.Task);
         gameManager.ServerGameId.Returns(Guid.NewGuid());
 
-        var sut = new StartNewGameViewModel(
-            gameManager, _unitsLoader,
-            commandPublisher, _dispatcherService,
-            _gameFactory, _mapFactory, _cachingService, _mapPreviewRenderer,
-            CreateMapConfig(), _botManager,
-            _vmLogger, _localizationService, _mechFactory,
-            _clipboardService,
-            _hubConfigurationProvider,
-            _relayRoomClient,
-            Substitute.For<IImageService>());
+        var sut = CreateSut(gameManager, commandPublisher);
 
         sut.AttachHandlers();
         sut.AttachHandlers();

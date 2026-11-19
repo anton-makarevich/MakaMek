@@ -65,7 +65,10 @@ public class PhysicalAttackStateTests
             _localizationService,
             Substitute.For<IDispatcherService>(),
             new TotalWarfareRulesProvider(),
-            _platformService);
+            _platformService,
+            TestCombatUiStateFactory.Create(_localizationService),
+            Substitute.For<ICommandPublisher>(),
+            Substitute.For<ILogger<BattleMapViewModel>>());
 
         _player = new Player(Guid.NewGuid(), "Player1", PlayerControlType.Human);
 
@@ -89,7 +92,8 @@ public class PhysicalAttackStateTests
     private PhysicalAttackState CreateState() =>
         new(_viewModel,
             new PhysicalAttackSelectionPolicy(),
-            new PhysicalAttackOptionBuilder(_game, _localizationService));
+            new PhysicalAttackOptionBuilder(_game, _localizationService),
+            new PhysicalAttackTargeting());
 
     private void BindViewModelCurrentStateTo(PhysicalAttackState state)
     {

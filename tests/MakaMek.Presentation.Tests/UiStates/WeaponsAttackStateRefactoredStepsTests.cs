@@ -1,8 +1,10 @@
+using Microsoft.Extensions.Logging;
 using NSubstitute;
 using Sanet.MakaMek.Assets.Services;
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
 using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Models.Game;
+using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Attack;
 using Sanet.MakaMek.Core.Models.Game.Phases;
@@ -63,7 +65,10 @@ public class WeaponsAttackStateRefactoredStepsTests
             _localizationService,
             Substitute.For<IDispatcherService>(),
             _rulesProvider,
-            Substitute.For<IPlatformService>());
+            Substitute.For<IPlatformService>(),
+            TestCombatUiStateFactory.Create(_localizationService),
+            Substitute.For<ICommandPublisher>(),
+            Substitute.For<ILogger<BattleMapViewModel>>());
 
         var mechFactory = new MechFactory(_rulesProvider, _componentProvider, _localizationService);
         _attacker = mechFactory.Create(CreateMechData());

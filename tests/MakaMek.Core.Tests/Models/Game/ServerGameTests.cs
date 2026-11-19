@@ -72,7 +72,8 @@ public class ServerGameTests
             Substitute.For<IFallProcessor>(),
             Substitute.For<IWeaponAttackResolver>(),
             Substitute.For<IPhysicalAttackResolver>(),
-            _logger);
+            _logger,
+            new BattleTechPhaseManager());
         _sut.SetBattleMap(battleMap);
     }
 

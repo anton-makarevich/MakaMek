@@ -121,13 +121,13 @@ public class PhysicalAttackState : IUiState, ICombatSelectionRoles, IPhysicalAtt
         BattleMapViewModel viewModel,
         PhysicalAttackSelectionPolicy selectionPolicy,
         PhysicalAttackOptionBuilder optionBuilder,
-        PhysicalAttackTargeting? targeting = null)
+        PhysicalAttackTargeting targeting)
     {
         Game = viewModel.Game! ?? throw new InvalidOperationException("Game is not client game");
         _viewModel = viewModel;
         _selectionPolicy = selectionPolicy;
         _optionBuilder = optionBuilder;
-        _targeting = targeting ?? new PhysicalAttackTargeting();
+        _targeting = targeting;
         _submitter = new PhysicalAttackDeclarationSubmitter();
         if (Game.PhaseStepState?.ActivePlayer == null)
         {

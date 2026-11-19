@@ -52,7 +52,10 @@ public class InitiativeStateTests
             localizationService,
             dispatcherService,
             Substitute.For<IRulesProvider>(),
-            Substitute.For<IPlatformService>());
+            Substitute.For<IPlatformService>(),
+            TestCombatUiStateFactory.Create(localizationService),
+            Substitute.For<ICommandPublisher>(),
+            Substitute.For<ILogger<BattleMapViewModel>>());
 
         var rules = new TotalWarfareRulesProvider();
         var hashService = Substitute.For<IHashService>();

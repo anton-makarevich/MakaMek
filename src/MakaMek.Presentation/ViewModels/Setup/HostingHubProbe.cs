@@ -17,7 +17,7 @@ public sealed class HostingHubProbe
     public HostingHubProbe(
         IRelayHubConfigurationProvider hubConfigurationProvider,
         IRelayRoomClient relayRoomClient,
-        ILogger logger)
+        ILogger<HostingHubProbe> logger)
     {
         _hubConfigurationProvider = hubConfigurationProvider;
         _relayRoomClient = relayRoomClient;

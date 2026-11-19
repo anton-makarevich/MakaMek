@@ -11,12 +11,10 @@ namespace Sanet.MakaMek.Core.Models.Game.Phases;
 
 public class MovementPhase(
     ServerGame game,
-    DominoEffectResolver dominoEffectResolver,
-    IMovementAttackValidator? validator = null)
+    DominoEffectResolver dominoEffectResolver)
     : MainGamePhase(game)
 {
-    private readonly IMovementAttackValidator _validator =
-        validator ?? game.MovementAttackValidator;
+    private readonly IMovementAttackValidator _validator = game.MovementAttackValidator;
     private readonly MovementInterruptRunner _interruptRunner = new(game, dominoEffectResolver);
     private readonly MovementStandupResolver _standupResolver = new(game);
     private Guid? _deferredMovementUnitId;

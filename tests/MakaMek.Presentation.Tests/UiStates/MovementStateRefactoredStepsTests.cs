@@ -8,6 +8,7 @@ using Sanet.MakaMek.Core.Data.Game.Mechanics.PhysicalAttacks;
 using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Models.Game;
+using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.PhysicalAttack;
 using Sanet.MakaMek.Core.Models.Game.Phases;
 using Sanet.MakaMek.Core.Models.Game.Players;
@@ -67,7 +68,10 @@ public class MovementStateRefactoredStepsTests
             _localizationService,
             dispatcherService,
             _rulesProvider,
-            Substitute.For<IPlatformService>());
+            Substitute.For<IPlatformService>(),
+            TestCombatUiStateFactory.Create(_localizationService),
+            Substitute.For<ICommandPublisher>(),
+            Substitute.For<ILogger<BattleMapViewModel>>());
 
         var mechFactory = new MechFactory(_rulesProvider, _componentProvider, _localizationService);
         _attacker = mechFactory.Create(CreateMechData());

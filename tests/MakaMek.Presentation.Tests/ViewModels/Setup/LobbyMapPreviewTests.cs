@@ -17,7 +17,7 @@ public class LobbyMapPreviewTests
 
     public LobbyMapPreviewTests()
     {
-        _sut = new LobbyMapPreview(_previewRenderer, Substitute.For<ILogger>());
+        _sut = new LobbyMapPreview(_previewRenderer, Substitute.For<ILogger<LobbyMapPreview>>());
     }
 
     [Fact]

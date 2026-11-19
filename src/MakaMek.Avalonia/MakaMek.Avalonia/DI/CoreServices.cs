@@ -18,6 +18,7 @@ using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Mechs.Falling;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.PhysicalAttack;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.WeaponAttack;
+using Sanet.MakaMek.Core.Models.Game.Phases;
 using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Services;
 using Sanet.MakaMek.Core.Services.Cryptography;
@@ -28,9 +29,11 @@ using Sanet.MakaMek.Core.Utils;
 using Sanet.MakaMek.Localization;
 using Sanet.MakaMek.Map.Factories;
 using Sanet.MakaMek.Map.Services;
+using Sanet.MakaMek.Presentation;
 using Sanet.MakaMek.Presentation.ViewModels;
 using Sanet.MakaMek.Presentation.ViewModels.Maps;
 using Sanet.MakaMek.Presentation.ViewModels.Settings;
+using Sanet.MakaMek.Presentation.ViewModels.Setup;
 using Sanet.MakaMek.Services;
 using Sanet.MakaMek.Avalonia.Controls.Services;
 using Sanet.MakaMek.Services.Avalonia;
@@ -147,6 +150,10 @@ public static class CoreServices
         // Register RxTransportPublisher for local players
         services.AddSingleton<RxTransportPublisher>();
 
+        // Combat UiStates are composed by a presentation-layer factory so the board view model does
+        // not construct the selection policies and range analyzers itself.
+        services.AddCombatUiStateFactory();
+
         // Register CommandTransportAdapter with just the RxTransportPublisher initially
         // The network publisher will be added dynamically when needed. Both the adapter and the
         // command publisher are singletons so GameManager, GameConnector, ViewModels and the
@@ -176,8 +183,12 @@ public static class CoreServices
         services.AddSingleton<IPhysicalAttackEligibility, PhysicalAttackEligibility>();
         services.AddSingleton<IMovementAttackValidator, MovementAttackValidator>();
         services.AddSingleton<IPilotingSkillCalculator, PilotingSkillCalculator>();
+        services.AddSingleton<PilotingSkillModifierCalculator>();
         services.AddSingleton<IFallingDamageCalculator, FallingDamageCalculator>();
+        services.AddSingleton<FallParametersResolver>();
+        services.AddSingleton<FallingDamageResolver>();
         services.AddSingleton<IFallProcessor, FallProcessor>();
+        services.AddSingleton<IPhaseManager, BattleTechPhaseManager>();
         services.AddSingleton<IWeaponAttackResolver, WeaponAttackResolver>();
         services.AddSingleton<IGameFactory, GameFactory>();
         services.AddSingleton<IBattleMapFactory, BattleMapFactory>();
@@ -270,6 +281,17 @@ public static class CoreServices
         services.AddTransient<MapGenerationService>();
         services.AddTransient<AvailableMapsService>();
         services.AddTransient<MapConfigViewModel>();
+
+        // New-game setup graph: the lobby session and its helpers, plus the factory that bundles the
+        // coordinator collaborators for each setup screen.
+        services.AddTransient<GameSetupSession>();
+        services.AddTransient<DefaultPlayerStore>();
+        services.AddTransient<GameSetupDialogService>();
+        services.AddTransient<LocalPlayerCommands>();
+        services.AddTransient<HostingHubProbe>();
+        services.AddTransient<RoomCodeClipboardReader>();
+        services.AddTransient<LobbyMapPreview>();
+        services.AddTransient<SetupDependenciesFactory>();
     }
 
     /// <summary>

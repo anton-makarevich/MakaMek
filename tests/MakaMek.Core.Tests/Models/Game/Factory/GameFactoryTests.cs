@@ -6,6 +6,7 @@ using Sanet.MakaMek.Core.Models.Game.Factories;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Mechs.Falling;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.WeaponAttack;
+using Sanet.MakaMek.Core.Models.Game.Phases;
 using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Services.Cryptography;
 using Sanet.MakaMek.Core.Services.Transport;
@@ -64,7 +65,8 @@ public class GameFactoryTests
             _movementAttackValidator,
             _fallProcessor,
             _mapFactory,
-            _hashService);
+            _hashService,
+            new BattleTechPhaseManager());
     }
 
     [Fact]

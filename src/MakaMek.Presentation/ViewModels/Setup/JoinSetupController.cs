@@ -35,9 +35,9 @@ public sealed class JoinSetupController : SetupState, IAsyncDisposable
         : base(owner)
     {
         _deps = deps;
-        ConnectionStatus = new ConnectionStatusViewModel(null, deps.DispatcherService.Scheduler);
-        _clipboardReader = new RoomCodeClipboardReader(deps.ClipboardService);
-        _preview = new LobbyMapPreview(deps.MapPreviewRenderer, deps.Logger);
+        ConnectionStatus = new ConnectionStatusViewModel(null, deps.DispatcherService.Scheduler, deps.Logger);
+        _clipboardReader = deps.ClipboardReader;
+        _preview = deps.MapPreview;
         ConnectionStatus.PropertyChanged += OnConnectionStatusPropertyChanged;
 
         ConnectCommand = new AsyncCommand(ConnectToServerAsync, _ => CanConnectAccessor?.Invoke() == true);

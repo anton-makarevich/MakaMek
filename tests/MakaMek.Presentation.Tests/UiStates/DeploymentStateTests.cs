@@ -51,7 +51,10 @@ public class DeploymentStateTests
             _localizationService,
             Substitute.For<IDispatcherService>(),
             _rulesProvider,
-            Substitute.For<IPlatformService>());
+            Substitute.For<IPlatformService>(),
+            TestCombatUiStateFactory.Create(_localizationService),
+            Substitute.For<ICommandPublisher>(),
+            Substitute.For<ILogger<BattleMapViewModel>>());
 
         var unitData = MechFactoryTests.CreateDummyMechData();
         
