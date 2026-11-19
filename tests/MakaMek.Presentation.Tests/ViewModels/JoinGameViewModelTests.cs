@@ -154,11 +154,8 @@ public class JoinGameViewModelTests
             Substitute.For<IGameManager>(),
             _commandPublisher,
             _dispatcherService,
-            hubConfigurationProvider,
-            relayRoomClient,
             _clipboardService,
             localizationService ?? _localizationService,
-            _mapPreviewRenderer,
             _mapFactory,
             _gameConnector,
             new HostingHubProbe(

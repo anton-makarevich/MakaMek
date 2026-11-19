@@ -100,11 +100,8 @@ public class MainMenuViewModelTests
                 Substitute.For<IGameManager>(),
                 Substitute.For<ICommandPublisher>(),
                 dispatcherService,
-                relayHubConfigurationProvider,
-                relayRoomClient,
                 clipboardService,
                 _localizationService,
-                mapPreviewRenderer,
                 Substitute.For<IBattleMapFactory>(),
                 Substitute.For<IGameConnector>(),
                 new HostingHubProbe(
@@ -141,11 +138,8 @@ public class MainMenuViewModelTests
                 Substitute.For<IGameManager>(),
                 Substitute.For<ICommandPublisher>(),
                 Substitute.For<IDispatcherService>(),
-                relayHubConfigurationProvider,
-                relayRoomClient,
                 clipboardService,
                 _localizationService,
-                mapPreviewRenderer,
                 Substitute.For<IBattleMapFactory>(),
                 Substitute.For<IGameConnector>(),
                 new HostingHubProbe(

@@ -1,11 +1,9 @@
 using Microsoft.Extensions.Logging;
 using Sanet.Localization;
 using Sanet.MakaMek.Core.Models.Game;
-using Sanet.MakaMek.Core.Services;
 using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Map.Factories;
 using Sanet.MakaMek.Services;
-using Sanet.Transport.SignalR.Client.Relay;
 
 namespace Sanet.MakaMek.Presentation.ViewModels.Setup;
 
@@ -19,11 +17,8 @@ public sealed class SetupDependenciesFactory(
     IGameManager gameManager,
     ICommandPublisher commandPublisher,
     IDispatcherService dispatcherService,
-    IRelayHubConfigurationProvider hubConfigurationProvider,
-    IRelayRoomClient relayRoomClient,
     IClipboardService clipboardService,
     ILocalizationService localizationService,
-    IMapPreviewRenderer mapPreviewRenderer,
     IBattleMapFactory mapFactory,
     IGameConnector gameConnector,
     HostingHubProbe hostingHubProbe,
@@ -39,12 +34,9 @@ public sealed class SetupDependenciesFactory(
         gameManager,
         commandPublisher,
         dispatcherService,
-        hubConfigurationProvider,
-        relayRoomClient,
         clipboardService,
         localizationService,
         logger,
-        mapPreviewRenderer,
         mapFactory,
         gameConnector,
         session,

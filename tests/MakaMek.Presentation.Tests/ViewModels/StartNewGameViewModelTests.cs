@@ -1566,11 +1566,8 @@ public async Task MapReselection_DuringDebounce_RestartsWindow_AndSendsLatestMap
         gameManager ?? _gameManager,
         commandPublisher ?? _commandPublisher,
         _dispatcherService,
-        _hubConfigurationProvider,
-        _relayRoomClient,
         _clipboardService,
         _localizationService,
-        _mapPreviewRenderer,
         _mapFactory,
         Substitute.For<IGameConnector>(),
         new HostingHubProbe(
