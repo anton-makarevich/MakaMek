@@ -1470,7 +1470,9 @@ public class MechTests
 
     [Theory]
     [InlineData(0, 5, 5, 8)] // No heat, no penalty
+    [InlineData(4, 5, 5, 8)] // Below the first threshold, no penalty
     [InlineData(5, 5, 4, 6)] // 5 heat, -1 MP
+    [InlineData(9, 5, 4, 6)] // Top of the first tier, still -1 MP
     [InlineData(10, 5, 3, 5)] // 10 heat, -2 MP
     [InlineData(15, 5, 2, 3)] // 15 heat, -3 MP
     [InlineData(20, 5, 1, 2)] // 20 heat, -4 MP

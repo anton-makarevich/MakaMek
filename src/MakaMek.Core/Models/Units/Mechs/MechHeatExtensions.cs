@@ -81,14 +81,16 @@ internal static class MechHeatExtensions
     internal static HeatMovementPenalty? GetMovementHeatPenalty(int currentHeat)
     {
         if (currentHeat < 5) return null;
+
+        // The guard above excludes every value below 5, so the wildcard is the first tier:
+        // 5-9 heat subtracts 1 Walking MP (Total Warfare, p. 160).
         var heatPenaltyValue = currentHeat switch
         {
             >= 25 => 5,
             >= 20 => 4,
             >= 15 => 3,
             >= 10 => 2,
-            >= 5 => 1,
-            _ => 0
+            _ => 1
         };
         return new HeatMovementPenalty
         {
@@ -104,13 +106,14 @@ internal static class MechHeatExtensions
     {
         if (currentHeat < 8) return null;
 
+        // The guard above excludes every value below 8, so the wildcard is the first tier:
+        // 8-12 heat adds 1 to weapon to-hit numbers (Total Warfare, p. 160).
         var heatPenaltyValue = currentHeat switch
         {
             >= 24 => 4,
             >= 17 => 3,
             >= 13 => 2,
-            >= 8 => 1,
-            _ => 0
+            _ => 1
         };
 
         return new HeatRollModifier

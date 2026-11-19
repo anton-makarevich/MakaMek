@@ -30,6 +30,8 @@ internal sealed class PhysicalAttackChargeResolver
 
     public void Resolve(ChargeQueueItem item)
     {
+        // The physical attack phase only starts on a configured map; this is an entry invariant,
+        // not a recoverable state.
         var map = _game.BattleMap ?? throw new InvalidOperationException("Battle map is null");
         var targetSelection = item.AttackerState == MovementAttackAttackerState.CanAttack
             ? _game.MovementAttackValidator
@@ -74,16 +76,20 @@ internal sealed class PhysicalAttackChargeResolver
             attacker, attackerDestroyedPartsBefore, attackerWasDestroyedBefore);
         _game.CommandPublisher.PublishCommand(command with { ResolutionData = resolution });
 
+        // ResolveCharge always attaches the charge payload; the attacker metadata below is written
+        // by AttachDestructionMetadata, so the payload is read after it.
+        var charge = resolution.Charge!;
+
         _consequences.ApplyDamageConsequences(target, resolution.AttackResolution);
         if (resolution.AttackResolution.IsHit)
             _consequences.ApplyDamageConsequences(
                 attacker,
-                resolution.Charge?.AttackerCollision,
-                resolution.Charge?.AttackerDestroyedParts);
+                charge.AttackerCollision,
+                charge.AttackerDestroyedParts);
 
         _consequences.ApplyPsrRequirements(attacker, target, resolution.PsrRequirements);
 
-        switch (resolution.Charge?.Outcome)
+        switch (charge.Outcome)
         {
             case ChargeOutcome.Hit:
                 _chargeDisplacement.ApplyHit(attacker, target);

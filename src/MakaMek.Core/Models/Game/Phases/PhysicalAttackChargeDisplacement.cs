@@ -43,7 +43,7 @@ internal sealed class PhysicalAttackChargeDisplacement
         var map = _game.BattleMap;
         if (map is null) return;
 
-        var result = _chargeDisplacementResolver.ResolveMiss(attacker, map, _displacement.AllUnits());
+        var result = ChargeDisplacementResolver.ResolveMiss(attacker, map, _displacement.AllUnits());
         if (result?.AttackerDestination is { } destination)
             _displacement.ExecuteDisplacement(attacker, destination, DisplacementReason.ChargeMiss);
     }
