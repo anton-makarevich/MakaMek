@@ -36,6 +36,7 @@
         </Grid.Styles>
         <mapControls:HexMap x:Name="MapCanvas"
                             Background="Transparent"
+                            ResourcesLocator="{StaticResource IAvaloniaResourcesLocator}"
                             BoundaryOutlines="{Binding HighlightBoundaryOutlines}"
                             HexConfiguration="{Binding HexConfiguration}">
             <controls:DirectionSelector

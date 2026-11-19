@@ -5,6 +5,7 @@ using NSubstitute;
 using Sanet.MakaMek.Assets.Configuration;
 using Sanet.MakaMek.Assets.ResourceProviders;
 using Sanet.MakaMek.Assets.Services;
+using Sanet.MakaMek.Assets.Services.PackageReaders;
 using Sanet.MakaMek.Core.Data.Serialization.Converters;
 using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Data.Units.Components;
@@ -112,6 +113,7 @@ public class AssetProviderConfigurationCachingIntegrationTests
         var cachingService = new UnitCachingService(
             [],
             CreateLoggerFactory(),
+            new MmuxUnitPackageReader(),
             async () =>
             {
                 lazyTriggered = true;
@@ -144,6 +146,7 @@ public class AssetProviderConfigurationCachingIntegrationTests
         var cachingService = new UnitCachingService(
             [],
             CreateLoggerFactory(),
+            new MmuxUnitPackageReader(),
             () => Resolve(configProvider, providerFactory, AssetType.Units));
 
         // Loaded from the active (local filesystem) provider.

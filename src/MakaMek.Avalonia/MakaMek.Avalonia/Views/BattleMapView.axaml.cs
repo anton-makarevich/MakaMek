@@ -8,6 +8,7 @@ using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Avalonia.Controls;
+using Sanet.MakaMek.Avalonia.Controls.Services;
 using Sanet.MakaMek.Avalonia.Services;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Map.Data;
@@ -25,7 +26,16 @@ public partial class BattleMapView : BaseView<BattleMapViewModel>
     private readonly List<PathSegmentControl> _movementPathSegments = [];
     private readonly List<WeaponAttackIndicatorControl> _weaponAttackIndicatorControls = [];
     private readonly Dictionary<Guid, PhysicalAttackIndicatorControl> _physicalAttackIndicators = [];
-    private readonly AvaloniaResourcesLocator _resourcesLocator = new();
+
+    /// <summary>
+    /// Resources locator the map and its overlays read their brushes and glyphs from. The map
+    /// declares it as a property and this view's XAML binds it from the application resources,
+    /// so it stays a dependency instead of a service lookup.
+    /// </summary>
+    private IAvaloniaResourcesLocator ResourcesLocator =>
+        MapCanvas.ResourcesLocator
+        ?? throw new InvalidOperationException(
+            $"{nameof(BattleMapView)} needs {nameof(HexMap)}.{nameof(HexMap.ResourcesLocator)} to be bound from the application resources.");
 
     public BattleMapView()
     {
@@ -83,8 +93,7 @@ public partial class BattleMapView : BaseView<BattleMapViewModel>
             game.Logger,
             terrainAssetService,
             localizationService,
-            ViewModel?.Scheduler ?? System.Reactive.Concurrency.Scheduler.Default,
-            _resourcesLocator);
+            ViewModel?.Scheduler ?? System.Reactive.Concurrency.Scheduler.Default);
 
         // The map is rebuilt from scratch, so the previous unit controls have to go: their animations
         // and their poll subscription would otherwise outlive the controls they belong to.
@@ -95,10 +104,12 @@ public partial class BattleMapView : BaseView<BattleMapViewModel>
         var spriteService = FeatureFlags.IsUnitAnimationEnabled
             ? ViewModel?.UnitSpriteService as IUnitSpriteService<UnitSpriteSet>
             : null;
+        var resourcesLocator = ResourcesLocator;
         // The map is rebuilt from scratch, so decoded atlases are re-read from the cache/providers.
         ViewModel?.UnitSpriteService?.ClearCache();
         _unitControls = ViewModel?.Units
-            .Select(u => new UnitControl(u, (IImageService<Bitmap>)ViewModel.ImageService, ViewModel, spriteService))
+            .Select(u => new UnitControl(u, (IImageService<Bitmap>)ViewModel.ImageService, ViewModel, spriteService,
+                resourcesLocator))
             .ToList();
         if (_unitControls != null)
         {
@@ -286,7 +297,7 @@ public partial class BattleMapView : BaseView<BattleMapViewModel>
                 RemovePhysicalAttackIndicator(indicator.AttackerId);
             }
 
-            var control = new PhysicalAttackIndicatorControl(indicator);
+            var control = new PhysicalAttackIndicatorControl(indicator, ResourcesLocator);
             _physicalAttackIndicators[indicator.AttackerId] = control;
             MapCanvas.Children.Add(control);
         }

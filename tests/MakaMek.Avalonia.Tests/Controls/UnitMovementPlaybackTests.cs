@@ -9,6 +9,7 @@ using NSubstitute;
 using Sanet.Localization;
 using Sanet.MakaMek.Assets.Services;
 using Sanet.MakaMek.Avalonia.Controls;
+using Sanet.MakaMek.Avalonia.Controls.Services;
 using Sanet.MakaMek.Avalonia.Services;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Mechanics.PhysicalAttacks;
@@ -524,7 +525,8 @@ public class UnitMovementPlaybackTests
                 Substitute.For<IPlatformService>());
 
             ViewModel = viewModel;
-            Control = new UnitControl(unit, imageService, viewModel, spriteService);
+            Control = new UnitControl(unit, imageService, viewModel, spriteService,
+                Substitute.For<IAvaloniaResourcesLocator>());
             Canvas = new Canvas();
             Canvas.Children.Add(Control);
         }

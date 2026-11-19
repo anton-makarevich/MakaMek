@@ -3,6 +3,7 @@ using Avalonia.Headless;
 using Avalonia.Media;
 using MonacoLabs.Presto;
 using Sanet.MakaMek.Avalonia.Controls;
+using Sanet.MakaMek.Avalonia.Services;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MakaMek.Map.Models;
@@ -245,7 +246,7 @@ public class PhysicalAttackIndicatorMotionTests
             PendingLimbs = attackType == PhysicalAttackType.Kick
                 ? [PartLocation.LeftLeg]
                 : [PartLocation.LeftArm, PartLocation.RightArm]
-        });
+        }, new AvaloniaResourcesLocator());
 
     private static Point Midpoint(HexCoordinates from, HexCoordinates to) => new(
         (HexCenter(from).X + HexCenter(to).X) / 2,

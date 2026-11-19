@@ -68,18 +68,20 @@ namespace Sanet.MakaMek.Avalonia.Controls
         // The hexagonal outline that marks the selected unit, and the motion that plays it.
         private readonly SelectionHex _selectionHex;
 
-        private readonly IAvaloniaResourcesLocator _resourcesLocator = new AvaloniaResourcesLocator();
+        private readonly IAvaloniaResourcesLocator _resourcesLocator;
 
         // Get the contrasting foreground converter from resources
         private readonly ContrastingForegroundConverter? _contrastingForegroundConverter;
 
         public UnitControl(IUnit unit, IImageService<Bitmap> imageService, BattleMapViewModel viewModel,
-            IUnitSpriteService<UnitSpriteSet>? spriteService = null)
+            IUnitSpriteService<UnitSpriteSet>? spriteService,
+            IAvaloniaResourcesLocator resourcesLocator)
         {
             _unit = unit;
             _imageService = imageService;
             _viewModel = viewModel;
             _spriteService = spriteService;
+            _resourcesLocator = resourcesLocator;
 
             // Every playback timer lives in this scope, so it stops when the control leaves the tree.
             _playbackScope = PrestoAvalonia.CreateScope(this);

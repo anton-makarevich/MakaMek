@@ -5,7 +5,7 @@ using Avalonia.Controls.Shapes;
 using Avalonia.Layout;
 using Avalonia.Media;
 using MonacoLabs.Presto;
-using Sanet.MakaMek.Avalonia.Services;
+using Sanet.MakaMek.Avalonia.Controls.Services;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Map.Models;
 using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
@@ -65,13 +65,16 @@ internal sealed class PhysicalAttackIndicatorControl : Grid, IDisposable
     private readonly Path _pulse;
     private readonly Path _badge;
     private readonly Path _icon;
+    private readonly IAvaloniaResourcesLocator _resourcesLocator;
     private readonly ControlScope _scope;
     private Animation? _enterAnimation;
     private Animation? _pulseAnimation;
 
-    public PhysicalAttackIndicatorControl(PhysicalAttackIndicatorViewModel viewModel)
+    public PhysicalAttackIndicatorControl(PhysicalAttackIndicatorViewModel viewModel,
+        IAvaloniaResourcesLocator resourcesLocator)
     {
         ViewModel = viewModel;
+        _resourcesLocator = resourcesLocator;
 
         Width = HexCoordinatesPixelExtensions.HexWidth * SizeFactor;
         Height = HexCoordinatesPixelExtensions.HexHeight * SizeFactor;
@@ -172,12 +175,11 @@ internal sealed class PhysicalAttackIndicatorControl : Grid, IDisposable
     /// Builds the attack-type glyph, filled with the attacker tint so the badge reads as the
     /// owner's mark the way the hex and the pulse do.
     /// </summary>
-    private static Path CreateIcon(PhysicalAttackType attackType, IBrush brush)
+    private Path CreateIcon(PhysicalAttackType attackType, IBrush brush)
     {
-        var resources = new AvaloniaResourcesLocator();
         return new Path
         {
-            Data = resources.TryFindResource(IconResourceKey(attackType)) as Geometry,
+            Data = _resourcesLocator.TryFindResource(IconResourceKey(attackType)) as Geometry,
             Fill = brush,
             Width = IconSize,
             Height = IconSize,

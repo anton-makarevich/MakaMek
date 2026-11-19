@@ -26,6 +26,7 @@ public class GameFactory : IGameFactory
     private readonly IToHitCalculator _toHitCalculator;
     private readonly IDamageTransferCalculator _damageTransferCalculator;
     private readonly ICriticalHitsCalculator _criticalHitsCalculator;
+    private readonly IHullBreachCalculator _hullBreachCalculator;
     private readonly IPilotingSkillCalculator _pilotingSkillCalculator;
     private readonly IConsciousnessCalculator _consciousnessCalculator;
     private readonly IHeatEffectsCalculator _heatEffectsCalculator;
@@ -46,6 +47,7 @@ public class GameFactory : IGameFactory
         IToHitCalculator toHitCalculator,
         IDamageTransferCalculator damageTransferCalculator,
         ICriticalHitsCalculator criticalHitsCalculator,
+        IHullBreachCalculator hullBreachCalculator,
         IPilotingSkillCalculator pilotingSkillCalculator,
         IConsciousnessCalculator consciousnessCalculator,
         IHeatEffectsCalculator heatEffectsCalculator,
@@ -65,6 +67,7 @@ public class GameFactory : IGameFactory
         _toHitCalculator = toHitCalculator;
         _damageTransferCalculator = damageTransferCalculator;
         _criticalHitsCalculator = criticalHitsCalculator;
+        _hullBreachCalculator = hullBreachCalculator;
         _pilotingSkillCalculator = pilotingSkillCalculator;
         _consciousnessCalculator = consciousnessCalculator;
         _heatEffectsCalculator = heatEffectsCalculator;
@@ -80,8 +83,6 @@ public class GameFactory : IGameFactory
     {
         var logger = _loggerFactory.CreateLogger<ServerGame>();
 
-        var hullBreachCalculator = new HullBreachCalculator(_diceRoller);
-
         return new ServerGame(_rulesProvider,
             _mechFactory,
             commandPublisher,
@@ -89,7 +90,7 @@ public class GameFactory : IGameFactory
             _toHitCalculator,
             _damageTransferCalculator,
             _criticalHitsCalculator,
-            hullBreachCalculator,
+            _hullBreachCalculator,
             _pilotingSkillCalculator,
             _consciousnessCalculator,
             _heatEffectsCalculator,

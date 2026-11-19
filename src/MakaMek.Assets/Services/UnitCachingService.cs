@@ -13,7 +13,7 @@ namespace Sanet.MakaMek.Assets.Services;
 public class UnitCachingService : PackageCacheCore<UnitCachingService.UnitCacheState>, IUnitCachingService
 {
     private readonly ILogger<UnitCachingService> _logger;
-    private readonly MmuxUnitPackageReader _packageReader = new();
+    private readonly MmuxUnitPackageReader _packageReader;
 
     /// <summary>
     /// Snapshot of all cached unit data.
@@ -25,11 +25,11 @@ public class UnitCachingService : PackageCacheCore<UnitCachingService.UnitCacheS
         /// load replaces one complete package instead of an interleaved mixture from concurrent
         /// callers committing into this same state.
         /// </summary>
-        public readonly object SyncRoot = new();
+        public object SyncRoot { get; } = new();
 
-        public readonly ConcurrentDictionary<string, UnitData> UnitDataCache = new();
-        public readonly ConcurrentDictionary<string, byte[]> ImageCache = new();
-        public readonly ConcurrentDictionary<string, UnitAnimationData> AnimationCache = new();
+        public ConcurrentDictionary<string, UnitData> UnitDataCache { get; } = new();
+        public ConcurrentDictionary<string, byte[]> ImageCache { get; } = new();
+        public ConcurrentDictionary<string, UnitAnimationData> AnimationCache { get; } = new();
     }
 
     /// <summary>
@@ -37,14 +37,17 @@ public class UnitCachingService : PackageCacheCore<UnitCachingService.UnitCacheS
     /// </summary>
     /// <param name="streamProviders">Collection of stream providers to load units from</param>
     /// <param name="loggerFactory">Logger factory for logging</param>
+    /// <param name="packageReader">Format-specific reader for MMUX unit packages</param>
     /// <param name="lazyProviders">Optional async factory for lazily resolving providers on first access</param>
     public UnitCachingService(
         IEnumerable<IResourceStreamProvider> streamProviders,
         ILoggerFactory loggerFactory,
+        MmuxUnitPackageReader packageReader,
         Func<Task<IReadOnlyList<IResourceStreamProvider>>>? lazyProviders = null)
         : base(streamProviders)
     {
         _logger = loggerFactory.CreateLogger<UnitCachingService>();
+        _packageReader = packageReader;
         if (lazyProviders is not null)
             SetLazyProviders(lazyProviders);
     }
