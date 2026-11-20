@@ -75,7 +75,7 @@ public class StartNewGameViewModel : NewGameViewModel, ISetupNotificationSink, I
     /// <summary>
     /// Gets the server address if LAN is running
     /// </summary>
-    public string ServerIpAddress => _controller.GetServerIpAddress(_deps);
+    public string ServerIpAddress => _deps.GetServerIpAddress();
 
     public bool CanStartLanServer => _controller.CanStartLanServer;
 

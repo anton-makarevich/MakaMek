@@ -7,6 +7,8 @@ namespace Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 public class PathSegmentViewModel : BaseViewModel
 {
     private readonly PathSegment _segment;
+    private readonly double _startX = HexCoordinatesPixelExtensions.HexWidth;
+    private readonly double _startY = HexCoordinatesPixelExtensions.HexHeight;
     private const double TurnLength = 40;
 
     public PathSegmentViewModel(PathSegment segment, bool isPendingAttackEntry = false)
@@ -35,8 +37,8 @@ public class PathSegmentViewModel : BaseViewModel
     public double FromY => From.Coordinates.V;
 
     // Relative coordinates for path drawing (center of control is at From position)
-    public double StartX => HexCoordinatesPixelExtensions.HexWidth;
-    public double StartY => HexCoordinatesPixelExtensions.HexHeight;
+    public double StartX => _startX;
+    public double StartY => _startY;
     
     public double EndX => IsTurn 
         ? StartX + TurnLength * Math.Sin((int)To.Facing * Math.PI / 3)

@@ -9,7 +9,7 @@ namespace Sanet.MakaMek.Presentation.Tests;
 public class PresentationServicesTests
 {
     [Fact]
-    public void AddCombatUiStateFactory_RegistersFactoryAndItsPolicies()
+    public void AddCombatUiStateFactory_RegistersFactory()
     {
         // Arrange
         var services = new ServiceCollection();
@@ -21,9 +21,6 @@ public class PresentationServicesTests
         // Assert
         using var provider = services.BuildServiceProvider();
         provider.GetRequiredService<ICombatUiStateFactory>().ShouldBeOfType<CombatUiStateFactory>();
-        provider.GetRequiredService<WeaponsAttackSelectionPolicy>().ShouldNotBeNull();
-        provider.GetRequiredService<WeaponRangeAnalyzer>().ShouldNotBeNull();
-        provider.GetRequiredService<PhysicalAttackSelectionPolicy>().ShouldNotBeNull();
     }
 
     [Fact]

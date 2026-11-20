@@ -1729,12 +1729,14 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         }
     });
 
-    public bool CanExportPdf =>
+    private readonly bool _canExportPdf =
 #if DEBUG
         true;
 #else
         false;
 #endif
+
+    public bool CanExportPdf => _canExportPdf;
 
     public ITerrainAssetService TerrainAssetService { get; }
 

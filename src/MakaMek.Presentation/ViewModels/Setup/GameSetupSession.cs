@@ -162,7 +162,7 @@ public sealed class GameSetupSession
     {
         if (LocalGame == null) return;
 
-        _localPlayerCommands.PublishSetReady(LocalGame, playerVm);
+        LocalGame.PublishSetReady(playerVm);
     }
 
     /// <summary>
