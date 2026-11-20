@@ -52,6 +52,8 @@ Tests use **xUnit** + **Shouldly** (assertions) + **NSubstitute** (mocking). UI 
 - Use the C# 14 extension-block form already used across the codebase
   (`public static class FooExtensions { extension(Foo foo) { ... } }`) and place the extension in
   the layer that owns the added behavior.
+- **Exception — source-generated logging:** `[LoggerMessage]` partial methods are declared in the
+  traditional `this ILogger` form.
 - `static` classes remain appropriate for genuine services, factories, and calculators that are
   injected or operate across several unrelated types. The rule targets helpers that only exist to
   graft methods onto one type.
