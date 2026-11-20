@@ -29,7 +29,7 @@ public abstract class NewGameViewModel : BaseViewModel
     /// <summary>
     /// The local player lobby, shared with the setup session.
     /// </summary>
-    protected ObservableCollection<PlayerViewModel> _players => _session.Players;
+    protected ObservableCollection<PlayerViewModel> PlayerCollection => _session.Players;
 
     public ICommand? AddPlayerCommand { get; protected set; }
     public ICommand? AddBotCommand { get; protected set; }
@@ -56,13 +56,13 @@ public abstract class NewGameViewModel : BaseViewModel
     /// <summary>
     /// The number of players currently in the lobby.
     /// </summary>
-    protected int PlayerCount => _players.Count;
+    protected int PlayerCount => PlayerCollection.Count;
 
     /// <summary>
     /// A materialised snapshot of the lobby players, safe to iterate without observing the
     /// collection type.
     /// </summary>
-    protected PlayerViewModel[] PlayerSnapshot => [.. _players];
+    protected PlayerViewModel[] PlayerSnapshot => [.. PlayerCollection];
 
     /// <summary>
     /// Runs a fire-and-forget operation, logging a failure through the screen logger.
@@ -104,7 +104,7 @@ public abstract class NewGameViewModel : BaseViewModel
     }
 
     // Common properties
-    public ObservableCollection<PlayerViewModel> Players => _players;
+    public ObservableCollection<PlayerViewModel> Players => PlayerCollection;
 
     internal ClientGame? LocalGame => _session.LocalGame;
 
