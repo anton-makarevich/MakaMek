@@ -13,7 +13,7 @@ public enum RangeBracket
     /// <summary>
     /// Target is at short rangeBracket
     /// </summary>
-    Short,
+    ShortRange,
     
     /// <summary>
     /// Target is at medium rangeBracket
@@ -23,7 +23,7 @@ public enum RangeBracket
     /// <summary>
     /// Target is at long rangeBracket
     /// </summary>
-    Long,
+    LongRange,
     
     /// <summary>
     /// Target is out of rangeBracket

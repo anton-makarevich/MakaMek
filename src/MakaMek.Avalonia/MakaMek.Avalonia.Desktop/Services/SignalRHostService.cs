@@ -52,7 +52,7 @@ public class SignalRHostService : INetworkHostService
     /// Stops the SignalR host if it is running
     /// </summary>
     /// <returns>A task representing the asynchronous operation</returns>
-    public async Task Stop()
+    public async Task StopAsync()
     {
         if (_hostManager == null) return;
         await _hostManager.DisposeAsync();

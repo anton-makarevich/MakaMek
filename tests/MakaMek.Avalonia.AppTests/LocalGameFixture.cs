@@ -40,14 +40,12 @@ public static class LocalGameFixture
     /// </summary>
     public static ITerrainAssetService CreateLocalTerrainService(ILoggerFactory loggerFactory)
     {
-        var assetCache = new TerrainAssetCache();
         return new TerrainCachingService(
             [new LocalFolderResourceStreamProvider(HexesFolder(), "mmtx", "bundled-hexes")],
             loggerFactory,
             null,
-            assetCache,
             new TerrainImageResolver(),
-            new TerrainPackageLoader(new MmtxTerrainPackageReader(), assetCache));
+            new TerrainPackageLoader(new MmtxTerrainPackageReader()));
     }
 
     /// <summary>

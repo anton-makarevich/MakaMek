@@ -157,7 +157,7 @@ public class MovementState : IUiState, IPhysicalAttackDeclarationState
         _ => string.Empty
     };
 
-    public MovementStep CurrentMovementStep => _step.Step;
+    public MovementStep CurrentMovementStep => _step.StepKind;
 
     public void ExecutePlayerAction()
     {

@@ -123,22 +123,22 @@ public class BattleMap : IBattleMap
     /// Calculates the line of sight between two positions, taking each position's surface and
     /// airborne level directly from the <see cref="HexPosition"/>.
     /// </summary>
-    public LineOfSightResult GetLineOfSight(HexPosition from, HexPosition to, int attackHeight, int targetHeight = 0)
+    public LineOfSightResult GetLineOfSight(HexPosition from, HexPosition target, int attackHeight, int targetHeight = 0)
         => GetLineOfSight(
             from.Coordinates,
-            to.Coordinates,
+            target.Coordinates,
             attackHeight,
             targetHeight,
             from.Surface,
-            to.Surface,
+            target.Surface,
             from.AirborneLevel,
-            to.AirborneLevel);
+            target.AirborneLevel);
 
     /// <summary>
     /// Calculates the line of sight between two hexes and returns a result with full context.
     /// </summary>
     /// <param name="from">Source hex coordinates</param>
-    /// <param name="to">Target hex coordinates</param>
+    /// <param name="target">Target hex coordinates</param>
     /// <param name="attackHeight">Height of the attacking weapon in levels (added to hex level).</param>
     /// <param name="targetHeight">Height of the target unit in levels (added to hex level). Defaults to 0 for no target.</param>
     /// <param name="fromSurface">Surface level of an attacker unit, bull if no attacker (check from the lowest level)</param>
@@ -148,11 +148,11 @@ public class BattleMap : IBattleMap
     /// endpoint is never treated as submerged.</param>
     /// <param name="toBaseLevel">Absolute base level of the target when it is airborne. When supplied,
     /// it replaces the surface standing level and the endpoint is never treated as submerged.</param>
-    public LineOfSightResult GetLineOfSight(HexCoordinates from, HexCoordinates to, int attackHeight,
+    public LineOfSightResult GetLineOfSight(HexCoordinates from, HexCoordinates target, int attackHeight,
         int targetHeight = 0, HexSurface? fromSurface = null, HexSurface? toSurface = null,
         int? fromBaseLevel = null, int? toBaseLevel = null)
     {
-        return _lineOfSight.Get(from, to, attackHeight, targetHeight, fromSurface, toSurface, fromBaseLevel, toBaseLevel);
+        return _lineOfSight.Get(from, target, attackHeight, targetHeight, fromSurface, toSurface, fromBaseLevel, toBaseLevel);
     }
 
     public IEnumerable<Hex> GetHexes()

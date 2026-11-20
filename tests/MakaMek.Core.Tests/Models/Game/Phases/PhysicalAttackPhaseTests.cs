@@ -518,7 +518,7 @@ public class PhysicalAttackPhaseTests : GamePhaseTestsBase
         // Arrange
         var sut = CreateSut();
         sut.Enter();
-        sut.Exit();
+        sut.ExitPhase();
 
         // Act
         sut.HandleCommand(CreateCommand(_player1Id, _attacker.Id, Punch(PartLocation.LeftArm)));

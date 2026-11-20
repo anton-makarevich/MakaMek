@@ -37,6 +37,6 @@ public record LosBlockingHighlight(LineOfSightBlockReason Reason, HexCoordinates
                 localizationService.GetString("HexHighlight_LosBlocked_InvalidCoordinates"),
             LineOfSightBlockReason.WaterSubmersion =>
                 localizationService.GetString("HexHighlight_LosBlocked_WaterSubmersion"),
-            _ => throw new ArgumentOutOfRangeException(nameof(Reason), Reason, null)
+            _ => throw new InvalidOperationException($"Unsupported line-of-sight block reason '{Reason}'.")
         };
 }

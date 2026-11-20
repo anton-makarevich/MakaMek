@@ -23,49 +23,48 @@ internal enum WeaponsAttackSelectionOutcome
 
 /// <summary>
 /// The admissibility rules for picking a unit in the weapons attack phase: an own, live unit that has
-/// not declared yet can attack, an enemy inside a weapon's reach can be targeted.
+/// not declared yet can attack, an enemy inside a weapon's reach can be targeted. Exposed as an
+/// extension on <see cref="WeaponsAttackStep"/> so the decision can be unit tested without an
+/// Avalonia view model.
 /// </summary>
-/// <remarks>
-/// The rules live outside the UiState setter so the setter stays a plain decision plus application,
-/// and so the decision can be unit tested without an Avalonia view model.
-/// </remarks>
-internal sealed class WeaponsAttackSelectionPolicy
+internal static class WeaponsAttackSelectionExtensions
 {
-    /// <summary>
-    /// Decides what selecting <paramref name="candidate"/> means in <paramref name="step"/>.
-    /// </summary>
-    /// <param name="step">The sub-step the selection is made in.</param>
-    /// <param name="candidate">The unit the player picked, if any.</param>
-    /// <param name="canAct">Whether the active player may act at all right now.</param>
-    /// <param name="activePlayerId">Id of the active player, or <c>null</c> when unknown.</param>
-    /// <param name="weaponRanges">The current per-weapon reachable hexes.</param>
-    public WeaponsAttackSelectionOutcome Decide(
-        WeaponsAttackStep step,
-        IUnit? candidate,
-        bool canAct,
-        Guid? activePlayerId,
-        IEnumerable<HashSet<HexCoordinates>> weaponRanges)
+    extension(WeaponsAttackStep step)
     {
-        if (!canAct || candidate is not { } unit || unit.IsDestroyed)
-            return WeaponsAttackSelectionOutcome.Ignore;
-
-        if (step is WeaponsAttackStep.SelectingUnit or WeaponsAttackStep.ActionSelection)
+        /// <summary>
+        /// Decides what selecting <paramref name="candidate"/> means in this sub-step.
+        /// </summary>
+        /// <param name="candidate">The unit the player picked, if any.</param>
+        /// <param name="canAct">Whether the active player may act at all right now.</param>
+        /// <param name="activePlayerId">Id of the active player, or <c>null</c> when unknown.</param>
+        /// <param name="weaponRanges">The current per-weapon reachable hexes.</param>
+        public WeaponsAttackSelectionOutcome DecideWeaponsAttackSelection(
+            IUnit? candidate,
+            bool canAct,
+            Guid? activePlayerId,
+            IEnumerable<HashSet<HexCoordinates>> weaponRanges)
         {
-            return CanSelectAttacker(unit, activePlayerId)
-                ? WeaponsAttackSelectionOutcome.SelectAttacker
-                : WeaponsAttackSelectionOutcome.Ignore;
-        }
+            if (!canAct || candidate is not { } unit || unit.IsDestroyed)
+                return WeaponsAttackSelectionOutcome.Ignore;
 
-        if (step == WeaponsAttackStep.TargetSelection)
-        {
-            return CanSelectTarget(unit, activePlayerId, weaponRanges)
-                ? WeaponsAttackSelectionOutcome.SelectTarget
-                : WeaponsAttackSelectionOutcome.Ignore;
-        }
+            if (step is WeaponsAttackStep.SelectingUnit or WeaponsAttackStep.ActionSelection)
+            {
+                return CanSelectAttacker(unit, activePlayerId)
+                    ? WeaponsAttackSelectionOutcome.SelectAttacker
+                    : WeaponsAttackSelectionOutcome.Ignore;
+            }
 
-        // A sub-step that does not take unit selections (weapon configuration) leaves the selection
-        // untouched, but the state still repaints.
-        return WeaponsAttackSelectionOutcome.NotifyOnly;
+            if (step == WeaponsAttackStep.TargetSelection)
+            {
+                return CanSelectTarget(unit, activePlayerId, weaponRanges)
+                    ? WeaponsAttackSelectionOutcome.SelectTarget
+                    : WeaponsAttackSelectionOutcome.Ignore;
+            }
+
+            // A sub-step that does not take unit selections (weapon configuration) leaves the selection
+            // untouched, but the state still repaints.
+            return WeaponsAttackSelectionOutcome.NotifyOnly;
+        }
     }
 
     private static bool CanSelectAttacker(IUnit candidate, Guid? activePlayerId) =>

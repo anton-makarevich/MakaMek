@@ -8,49 +8,51 @@ namespace Sanet.MakaMek.Presentation.UiStates;
 
 /// <summary>
 /// Builds and publishes the weapon-attack declaration (or the skip/no-targets declaration) for the
-/// current attacker. Kept out of <see cref="WeaponsAttackState"/> so the state does not depend on the
-/// command payload.
+/// current attacker. Exposed as an extension on the client game so <see cref="WeaponsAttackState"/>
+/// does not depend on the command payload.
 /// </summary>
-public sealed class WeaponsAttackSubmitter
+public static class ClientGameWeaponsAttackExtensions
 {
-    /// <summary>
-    /// Creates and sends the declaration for the attacker's weapon targets.
-    /// </summary>
-    public void Submit(
-        IClientGame game,
-        IUnit attacker,
-        Func<Weapon, PartLocation?> getAimedShotTarget)
+    extension(IClientGame game)
     {
-        // Create a weapon target data list
-        var weaponTargetsData = new List<WeaponTargetData>();
-
-        // Only process weapon targets if there are any (otherwise this is a Skip Attack)
-        if (attacker.WeaponAttackState.SelectedWeapons.Any())
+        /// <summary>
+        /// Creates and sends the declaration for the attacker's weapon targets.
+        /// </summary>
+        public void SubmitWeaponAttack(
+            IUnit attacker,
+            Func<Weapon, PartLocation?> getAimedShotTarget)
         {
-            var primaryTarget = attacker.WeaponAttackState.PrimaryTarget;
-            foreach (var (weapon, target) in attacker.WeaponAttackState.WeaponTargets)
+            // Create a weapon target data list
+            var weaponTargetsData = new List<WeaponTargetData>();
+
+            // Only process weapon targets if there are any (otherwise this is a Skip Attack)
+            if (attacker.WeaponAttackState.SelectedWeapons.Any())
             {
-                var isPrimaryTarget = target == primaryTarget;
-
-                weaponTargetsData.Add(new WeaponTargetData
+                var primaryTarget = attacker.WeaponAttackState.PrimaryTarget;
+                foreach (var (weapon, target) in attacker.WeaponAttackState.WeaponTargets)
                 {
-                    Weapon = weapon.ToData(),
-                    TargetId = target.Id,
-                    IsPrimaryTarget = isPrimaryTarget,
-                    AimedShotTarget = getAimedShotTarget(weapon)
-                });
+                    var isPrimaryTarget = target == primaryTarget;
+
+                    weaponTargetsData.Add(new WeaponTargetData
+                    {
+                        Weapon = weapon.ToData(),
+                        TargetId = target.Id,
+                        IsPrimaryTarget = isPrimaryTarget,
+                        AimedShotTarget = getAimedShotTarget(weapon)
+                    });
+                }
             }
+
+            // Create and send the command
+            var command = new WeaponAttackDeclarationCommand
+            {
+                GameOriginId = game.Id,
+                PlayerId = game.PhaseStepState!.Value.ActivePlayer.Id,
+                UnitId = attacker.Id,
+                WeaponTargets = weaponTargetsData
+            };
+
+            game.DeclareWeaponAttack(command);
         }
-
-        // Create and send the command
-        var command = new WeaponAttackDeclarationCommand
-        {
-            GameOriginId = game.Id,
-            PlayerId = game.PhaseStepState!.Value.ActivePlayer.Id,
-            UnitId = attacker.Id,
-            WeaponTargets = weaponTargetsData
-        };
-
-        game.DeclareWeaponAttack(command);
     }
 }
