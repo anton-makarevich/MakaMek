@@ -26,6 +26,7 @@ dotnet_diagnostic.S3776.severity = warning
 # down; the remaining projects keep the latent default until their turn.
 [src/MakaMek.Core/**/*.cs]
 dotnet_diagnostic.CA1305.severity = warning
+dotnet_diagnostic.CA1848.severity = warning
 
 [src/MakaMek.Presentation/**/*.cs]
 dotnet_diagnostic.CA1305.severity = warning

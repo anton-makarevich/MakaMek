@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Logging;
+using Sanet.MakaMek.Core.Models.Logger;
 using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Models.Units;
@@ -23,9 +24,7 @@ public class AttackerPartialCoverGate : IAttackResolutionGate
         if (!attackerHasPartialCover || !canBeCovered)
             return false;
 
-        logger.LogInformation(
-            "Skipping weapon at {Location} attack from {AttackerName} to {TargetName} - attacker has partial cover",
-            primaryAssignment.Location, attacker.Name, target.Name);
+        logger.LogSkippingWeaponAttackDueToPartialCover(primaryAssignment.Location, attacker.Name, target.Name);
         return true;
     }
 }

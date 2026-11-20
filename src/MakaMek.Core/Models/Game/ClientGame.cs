@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using Sanet.MakaMek.Core.Models.Logger;
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Units;
@@ -129,12 +130,7 @@ public sealed class ClientGame : BaseGame, IDisposable, IClientGame
         var validationResult = ValidateCommand(command);
         if (!validationResult.IsValid)
         {
-            Logger.LogWarning(
-                "Command {CommandType} rejected by validation: {ErrorCode}. PlayerId: {PlayerId}, GameOriginId: {GameOriginId}",
-                typeof(T).Name,
-                validationResult.ErrorCode,
-                command.PlayerId,
-                command.GameOriginId);
+            Logger.LogCommandRejectedByValidation(typeof(T).Name, validationResult.ErrorCode, command.PlayerId, command.GameOriginId);
             CommandRejectedLocally?.Invoke(validationResult.ErrorCode ?? ErrorCode.UnknownError);
             return false;
         }
@@ -309,8 +305,7 @@ public sealed class ClientGame : BaseGame, IDisposable, IClientGame
 
         if (success) return;
         
-        Logger.LogWarning("Command {CommandType} (key: {IdempotencyKey}) was rejected",
-            pendingCommand?.CommandType ?? "Unknown", idempotencyKey);
+        Logger.LogCommandRejected(pendingCommand?.CommandType ?? "Unknown", idempotencyKey);
     }
 
     public void Dispose()

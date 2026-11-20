@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using Sanet.MakaMek.Core.Models.Logger;
 using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.Transport;
 
@@ -75,7 +76,7 @@ internal sealed class LanHostController(
         }
         catch (Exception ex)
         {
-            logger.LogDebug(ex, "Failed to stop the network host service");
+            logger.LogFailedToStopNetworkHostService(ex);
         }
     }
 
@@ -92,7 +93,7 @@ internal sealed class LanHostController(
         }
         catch (Exception ex)
         {
-            logger.LogDebug(ex, "Failed to remove LAN publisher from the transport adapter");
+            logger.LogFailedToRemoveLanPublisher(ex);
         }
         _lanPublisher = null;
     }

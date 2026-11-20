@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using Sanet.MakaMek.Core.Models.Logger;
 using Sanet.MakaMek.Core.Models.Game.Factories;
 using Sanet.MakaMek.Core.Services.Logging.Factories;
 using Sanet.MakaMek.Core.Services.Transport;
@@ -85,9 +86,7 @@ public class GameManager : IGameManager
         // subsequent cleanup attempt can retry the lock.
         if (!await LockOnlineRoom(cancellationToken))
         {
-            _logger.LogWarning(
-                "Deferred local lobby initialization: relay room {RoomCode} could not be locked",
-                RoomCode);
+            _logger.LogDeferredLocalLobbyInitialization(RoomCode);
             return false;
         }
 
@@ -179,7 +178,7 @@ public class GameManager : IGameManager
         }
         catch (Exception ex)
         {
-            _logger.LogDebug(ex, "Failed to lock online room during StopHosting");
+            _logger.LogFailedToLockOnlineRoomDuringStopHosting(ex);
             lockSucceeded = false;
         }
 
@@ -187,9 +186,7 @@ public class GameManager : IGameManager
         {
             // Keep the retryable relay state (publisher, room code, session token)
             // intact so a subsequent cleanup attempt can retry locking the room.
-            _logger.LogWarning(
-                "Deferred hosting shutdown: relay room {RoomCode} could not be locked",
-                RoomCode);
+            _logger.LogDeferredHostingShutdown(RoomCode);
             return;
         }
 
@@ -199,7 +196,7 @@ public class GameManager : IGameManager
         }
         catch (Exception ex)
         {
-            _logger.LogDebug(ex, "Failed to remove online publisher during StopHosting");
+            _logger.LogFailedToRemoveOnlinePublisherDuringStopHosting(ex);
         }
 
         // Reset the session-scoped status stream once hosting is torn down

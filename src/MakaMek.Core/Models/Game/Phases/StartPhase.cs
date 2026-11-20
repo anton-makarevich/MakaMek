@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using Sanet.MakaMek.Core.Models.Logger;
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
@@ -15,7 +16,7 @@ public class StartPhase(ServerGame game) : GamePhase(game)
         switch (command)
         {
             case JoinGameCommand joinGameCommand:
-                Game.Logger.LogInformation("JoinGameCommand received: {PlayerName}", joinGameCommand.PlayerName);
+                Game.Logger.LogJoinGameCommandReceived(joinGameCommand.PlayerName);
                 var broadcastJoinCommand = joinGameCommand with { GameOriginId = Game.Id };
                 if (Game.OnPlayerJoined(joinGameCommand))
                 {
@@ -23,7 +24,7 @@ public class StartPhase(ServerGame game) : GamePhase(game)
                 }
                 break;
             case UpdatePlayerStatusCommand playerStatusCommand:
-                Game.Logger.LogInformation("UpdatePlayerStatusCommand received: {PlayerId} - {PlayerStatus}", playerStatusCommand.PlayerId, playerStatusCommand.PlayerStatus);
+                Game.Logger.LogUpdatePlayerStatusCommandReceived(playerStatusCommand.PlayerId, playerStatusCommand.PlayerStatus);
                 var broadcastStatusCommand = playerStatusCommand with { GameOriginId = Game.Id };
                 Game.OnPlayerStatusUpdated(playerStatusCommand);
                 Game.CommandPublisher.PublishCommand(broadcastStatusCommand);

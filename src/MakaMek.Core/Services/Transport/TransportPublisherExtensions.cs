@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using Sanet.MakaMek.Core.Services.Logger;
 using Sanet.Transport;
 
 namespace Sanet.MakaMek.Core.Services.Transport;
@@ -28,7 +29,7 @@ public static class TransportPublisherExtensions
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "Failed to remove {PublisherType} during cleanup", publisherType);
+            logger.LogFailedToRemovePublisherDuringCleanup(publisherType, ex);
         }
 
         try
@@ -37,7 +38,7 @@ public static class TransportPublisherExtensions
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "Failed to dispose {PublisherType} during cleanup", publisherType);
+            logger.LogFailedToDisposePublisherDuringCleanup(publisherType, ex);
         }
         }
     }

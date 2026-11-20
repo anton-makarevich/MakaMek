@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using Sanet.MakaMek.Core.Models.Logger;
 using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Dice;
@@ -107,7 +108,7 @@ public class FallingDamageCalculator : IFallingDamageCalculator
     {
         if (skidDistance < 0)
         {
-            _logger.LogError("Skid distance is negative: {SkidDistance}", skidDistance);
+            _logger.LogSkidDistanceNegative(skidDistance);
             throw new ArgumentOutOfRangeException(nameof(skidDistance), "Skid distance must be non-negative");
         }
 

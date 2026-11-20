@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using Sanet.MakaMek.Core.Models.Logger;
 using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
@@ -37,9 +38,7 @@ internal sealed class ServerCommandProcessor
             if (!_processedCommandKeys.TryAdd(clientCommand.IdempotencyKey.Value, 0))
             {
                 // Duplicate command detected - send error response
-                _game.Logger.LogWarning(
-                    "Command {CommandType} (key: {IdempotencyKey}) was rejected - duplicate command",
-                    command.GetType().Name, clientCommand.IdempotencyKey.Value);
+                _game.Logger.LogCommandRejectedAsDuplicate(command.GetType().Name, clientCommand.IdempotencyKey.Value);
                 _game.CommandPublisher.PublishCommand(new ErrorCommand
                 {
                     GameOriginId = _game.Id,
@@ -57,8 +56,7 @@ internal sealed class ServerCommandProcessor
             var failureIdempotencyKey = command is IClientCommand { IdempotencyKey: not null } failedClientCommand
                 ? failedClientCommand.IdempotencyKey.Value
                 : (Guid?)null;
-            _game.Logger.LogWarning(
-                "Command {CommandType} (key: {IdempotencyKey}) was rejected - validation failed: {ErrorCode}",
+            _game.Logger.LogCommandRejectedByValidationFailure(
                 command.GetType().Name,
                 failureIdempotencyKey?.ToString() ?? "none",
                 validationResult.ErrorCode ?? ErrorCode.UnknownError);

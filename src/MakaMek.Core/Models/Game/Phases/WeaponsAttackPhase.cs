@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using Sanet.MakaMek.Core.Models.Logger;
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
@@ -19,9 +20,7 @@ public class WeaponsAttackPhase(ServerGame game) : MainGamePhase(game)
             case WeaponAttackDeclarationCommand attackCommand:
                 if (IsBlockedByMovementAttack(attackCommand))
                 {
-                    Game.Logger.LogWarning(
-                        "Rejecting weapon attack declaration for unit {UnitId}: the unit has a pending movement attack",
-                        attackCommand.UnitId);
+                    Game.Logger.LogRejectingWeaponAttackDeclarationWithPendingMovementAttack(attackCommand.UnitId);
                     Game.CommandPublisher.PublishCommand(new ErrorCommand
                     {
                         GameOriginId = Game.Id,

@@ -1,4 +1,5 @@
 using System.Security.Cryptography;
+using Sanet.MakaMek.Core.Services.Logger;
 using System.Text;
 using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Services;
@@ -52,7 +53,7 @@ public class FileSystemCachingService : IFileCachingService
         catch (Exception ex)
         {
             // Log error but return null to gracefully handle cache misses
-            _logger.LogError(ex, "Error reading cached file '{CacheKey}'", cacheKey);
+            _logger.LogErrorReadingCachedFile(cacheKey, ex);
             return null;
         }
     }
@@ -110,7 +111,7 @@ public class FileSystemCachingService : IFileCachingService
         catch (Exception ex)
         {
             // Log error but don't throw to avoid impacting normal operations
-            _logger.LogError(ex, "Error saving file to cache '{CacheKey}'", cacheKey);
+            _logger.LogErrorSavingFileToCache(cacheKey, ex);
         }
         finally
         {
@@ -141,13 +142,13 @@ public class FileSystemCachingService : IFileCachingService
                 catch (Exception ex)
                 {
                     // Log error but continue with other files
-                    _logger.LogError(ex, "Error deleting cached file '{File}'", file);
+                    _logger.LogErrorDeletingCachedFile(file, ex);
                 }
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error clearing cache");
+            _logger.LogErrorClearingCache(ex);
         }
         finally
         {
@@ -196,7 +197,7 @@ public class FileSystemCachingService : IFileCachingService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error removing file from cache '{CacheKey}'", cacheKey);
+            _logger.LogErrorRemovingFileFromCache(cacheKey, ex);
         }
         finally
         {
@@ -226,7 +227,7 @@ public class FileSystemCachingService : IFileCachingService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error reading version for cached file '{CacheKey}'", cacheKey);
+            _logger.LogErrorReadingVersionForCachedFile(cacheKey, ex);
             return null;
         }
     }

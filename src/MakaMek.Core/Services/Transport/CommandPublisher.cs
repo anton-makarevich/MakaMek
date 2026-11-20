@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using Sanet.MakaMek.Core.Services.Logger;
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.Transport;
 
@@ -98,7 +99,7 @@ public class CommandPublisher : ICommandPublisher, IAsyncDisposable
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error in command subscriber");
+                _logger.LogErrorInCommandSubscriber(ex);
             }
         }
     }

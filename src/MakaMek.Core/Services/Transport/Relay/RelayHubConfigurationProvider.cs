@@ -1,4 +1,5 @@
 using System.Text;
+using Sanet.MakaMek.Core.Services.Logger;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -341,7 +342,7 @@ public sealed class RelayHubConfigurationProvider : IRelayHubConfigurationProvid
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to load relay hub configurations from cache");
+            _logger.LogFailedToLoadRelayHubConfigurationsFromCache(ex);
         }
     }
 
@@ -367,7 +368,7 @@ public sealed class RelayHubConfigurationProvider : IRelayHubConfigurationProvid
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to save relay hub configurations to cache");
+            _logger.LogFailedToSaveRelayHubConfigurationsToCache(ex);
             throw;
         }
     }

@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using Sanet.MakaMek.Core.Models.Logger;
 using Sanet.MakaMek.Core.Data.Game.Mechanics.PhysicalAttacks;
 
 namespace Sanet.MakaMek.Core.Models.Game.Mechanics.PhysicalAttack;
@@ -17,8 +18,7 @@ public class PhysicalAttackTargetValidityGate(IPhysicalAttackEligibility eligibi
                 context.Map))
             return false;
 
-        logger.LogInformation(
-            "Skipping {AttackType} by {AttackerName} with {Limb} against {TargetName}: the attack can no longer be made",
+        logger.LogSkippingOutdatedPhysicalAttack(
             context.AttackType, context.Attacker.Name, context.AttackerLimb, context.Target.Name);
         return true;
     }

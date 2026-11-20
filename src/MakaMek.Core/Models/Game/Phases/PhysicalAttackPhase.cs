@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using Sanet.MakaMek.Core.Models.Logger;
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
@@ -38,8 +39,7 @@ public class PhysicalAttackPhase(ServerGame game) : MainGamePhase(game)
 
         if (Validate(attackCommand) is { } errorCode)
         {
-            Game.Logger.LogWarning("Rejecting physical attack declaration for unit {UnitId}: {ErrorCode}",
-                attackCommand.UnitId, errorCode);
+            Game.Logger.LogRejectingPhysicalAttackDeclaration(attackCommand.UnitId, errorCode);
             Game.CommandPublisher.PublishCommand(new ErrorCommand
             {
                 GameOriginId = Game.Id,
@@ -84,9 +84,7 @@ public class PhysicalAttackPhase(ServerGame game) : MainGamePhase(game)
                 _unitsToDeclare.Add(unit.Id);
 
             if (declaringUnits.Count == 0)
-                Game.Logger.LogInformation(
-                    "Skipping {PlayerName} in the physical attack phase: no unit has a physical attack option",
-                    player.Name);
+                Game.Logger.LogSkippingPlayerInPhysicalAttackPhase(player.Name);
         }
     }
 

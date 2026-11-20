@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using Sanet.MakaMek.Core.Models.Logger;
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
@@ -29,7 +30,7 @@ internal sealed class MovementStandupResolver(ServerGame game)
                 ErrorCode = ErrorCode.InvalidGameState,
                 Timestamp = DateTime.UtcNow
             });
-            game.Logger.LogWarning("Unit not found");
+            game.Logger.LogUnitNotFound();
             return;
         }
 
