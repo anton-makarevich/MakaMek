@@ -15,7 +15,7 @@ namespace Sanet.MakaMek.Presentation.UiStates;
 
     public abstract class MovementStepBase : IMovementStep
     {
-        protected readonly MovementState State;
+        protected MovementState State { get; }
 
         protected MovementStepBase(MovementState state)
         {
