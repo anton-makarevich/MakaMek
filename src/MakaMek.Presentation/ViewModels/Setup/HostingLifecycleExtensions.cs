@@ -118,9 +118,9 @@ public static class HostingLifecycleExtensions
             CancellationToken cancellationToken)
         {
             var entry = await deps.HubProbe.ResolveActiveHubAsync(
-                cancellationToken,
                 () => controller.IsOnlineMode,
-                () => controller.IsDisposed);
+                () => controller.IsDisposed,
+                cancellationToken);
             // The lookup may straddle a cancellation/disposal/mode switch, in which case a newer
             // lookup may already own the row; only the current one may apply its result.
             if (cancellationToken.IsCancellationRequested || controller.IsDisposed || !controller.IsOnlineMode)
