@@ -40,14 +40,8 @@ public static partial class GameLoggerExtensions
     [LoggerMessage(LogLevel.Warning, "Deferred local lobby initialization: relay room {RoomCode} could not be locked", SkipEnabledCheck = true)]
     public static partial void LogDeferredLocalLobbyInitialization(this ILogger logger, string? roomCode);
 
-    [LoggerMessage(LogLevel.Debug, "Failed to lock online room during StopHosting", SkipEnabledCheck = true)]
-    public static partial void LogFailedToLockOnlineRoomDuringStopHosting(this ILogger logger, Exception exception);
-
     [LoggerMessage(LogLevel.Warning, "Deferred hosting shutdown: relay room {RoomCode} could not be locked", SkipEnabledCheck = true)]
     public static partial void LogDeferredHostingShutdown(this ILogger logger, string? roomCode);
-
-    [LoggerMessage(LogLevel.Debug, "Failed to remove online publisher during StopHosting", SkipEnabledCheck = true)]
-    public static partial void LogFailedToRemoveOnlinePublisherDuringStopHosting(this ILogger logger, Exception exception);
 
     [LoggerMessage(LogLevel.Debug, "Failed to stop the network host service", SkipEnabledCheck = true)]
     public static partial void LogFailedToStopNetworkHostService(this ILogger logger, Exception exception);
