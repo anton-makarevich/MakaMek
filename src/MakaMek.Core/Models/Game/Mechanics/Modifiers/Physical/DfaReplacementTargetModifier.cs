@@ -1,4 +1,5 @@
 using Sanet.Localization;
+using System.Globalization;
 
 namespace Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Physical;
 
@@ -10,5 +11,5 @@ namespace Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Physical;
 public record DfaReplacementTargetModifier : RollModifier
 {
     public override string Render(ILocalizationService localizationService) =>
-        string.Format(localizationService.GetString("Modifier_DfaReplacementTarget"), Value);
+        string.Format(CultureInfo.InvariantCulture, localizationService.GetString("Modifier_DfaReplacementTarget"), Value);
 }

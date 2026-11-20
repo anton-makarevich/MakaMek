@@ -1,4 +1,5 @@
 using Sanet.Localization;
+using System.Globalization;
 
 namespace Sanet.MakaMek.Core.Data.Game.Mechanics.PilotingSkillRollContexts;
 
@@ -6,12 +7,13 @@ public record SkidCheckRollContext(int SkidDistance, int HexesMoved, int Acciden
 {
     public override string Render(ILocalizationService localizationService)
     {
-        var baseString = string.Format(localizationService.GetString("PilotingSkillRollType_SkidCheck_WithHexes"),
+        var baseString = string.Format(CultureInfo.InvariantCulture, localizationService.GetString("PilotingSkillRollType_SkidCheck_WithHexes"),
             base.Render(localizationService), SkidDistance);
 
         if (AccidentalFallLevels > 0)
         {
             baseString += string.Format(
+                CultureInfo.InvariantCulture,
                 localizationService.GetString("PilotingSkillRollType_SkidCheck_CliffFall"),
                 AccidentalFallLevels);
         }

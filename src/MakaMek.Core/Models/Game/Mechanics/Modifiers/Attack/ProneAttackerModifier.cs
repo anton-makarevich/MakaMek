@@ -1,4 +1,5 @@
 ﻿using Sanet.Localization;
+using System.Globalization;
 
 namespace Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Attack;
 
@@ -8,7 +9,7 @@ namespace Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Attack;
 public record ProneAttackerModifier : RollModifier
 {
     public override string Render(ILocalizationService localizationService) =>
-        string.Format(localizationService.GetString("Modifier_ProneFiring"), Value);
+        string.Format(CultureInfo.InvariantCulture, localizationService.GetString("Modifier_ProneFiring"), Value);
 
     public const int DefaultValue = 2;
 }

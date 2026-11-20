@@ -2,6 +2,7 @@ using Sanet.MakaMek.Core.Models.Game;
 using Sanet.Localization;
 using Sanet.MakaMek.Map.Data;
 using Sanet.MakaMek.Map.Models;
+using System.Globalization;
 
 namespace Sanet.MakaMek.Core.Data.Game.Commands.Client;
 
@@ -29,7 +30,7 @@ public record struct DeployUnitCommand : IClientUnitCommand
 
         var localizedTemplate = localizationService.GetString("Command_DeployUnit"); 
         
-        return string.Format(localizedTemplate,
+        return string.Format(CultureInfo.InvariantCulture, localizedTemplate,
             player.Name,
             unit.Model,
             position,

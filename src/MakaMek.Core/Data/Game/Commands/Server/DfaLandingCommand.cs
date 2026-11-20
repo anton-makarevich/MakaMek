@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 using Sanet.Localization;
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
@@ -30,6 +31,7 @@ public record struct DfaLandingCommand : IGameCommand
 
         var stringBuilder = new StringBuilder();
         stringBuilder.AppendFormat(
+            CultureInfo.InvariantCulture,
             localizationService.GetString("Command_DfaLanding"),
             unitName,
             localizationService.GetString($"DfaLandingKind_{command.LandingKind}"));

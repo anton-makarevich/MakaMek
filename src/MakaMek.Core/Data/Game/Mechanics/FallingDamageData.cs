@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 using Sanet.MakaMek.Core.Models.Game.Dice;
 using Sanet.MakaMek.Core.Models.Units;
@@ -18,6 +19,7 @@ public record FallingDamageData(
     public void Render(StringBuilder stringBuilder, ILocalizationService localizationService)
     {
         stringBuilder.AppendFormat(
+            CultureInfo.InvariantCulture,
             localizationService.GetString("Command_MechFalling_Damage"),
             HitLocations.TotalDamage);
 

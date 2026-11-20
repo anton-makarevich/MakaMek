@@ -1,4 +1,5 @@
 using Sanet.Localization;
+using System.Globalization;
 
 namespace Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.PilotingSkill;
 
@@ -13,7 +14,7 @@ public record FallingLevelsModifier : RollModifier
     public required int LevelsFallen { get; init; }
     
     public override string Render(ILocalizationService localizationService) => 
-        string.Format(localizationService.GetString("Modifier_FallingLevels"),
+        string.Format(CultureInfo.InvariantCulture, localizationService.GetString("Modifier_FallingLevels"),
             LevelsFallen,
             localizationService.GetString("Levels"),
             Value);

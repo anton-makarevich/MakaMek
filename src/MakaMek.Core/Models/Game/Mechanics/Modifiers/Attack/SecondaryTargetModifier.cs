@@ -1,4 +1,5 @@
 using Sanet.Localization;
+using System.Globalization;
 
 namespace Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Attack;
 
@@ -18,6 +19,6 @@ public record SecondaryTargetModifier : RollModifier
             ? localizationService.GetString("Attack_SecondaryTargetFrontArc")
             : localizationService.GetString("Attack_SecondaryTargetOtherArc");
         
-        return string.Format(template, Value);
+        return string.Format(CultureInfo.InvariantCulture, template, Value);
     }
 }

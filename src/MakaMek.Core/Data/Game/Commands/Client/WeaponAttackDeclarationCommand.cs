@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.Localization;
@@ -30,7 +31,7 @@ public record struct WeaponAttackDeclarationCommand : IClientUnitCommand
         if (WeaponTargets is not { Count: > 0 })
         {
             var noAttacksTemplate = localizationService.GetString("Command_WeaponAttackDeclaration_NoAttacks");
-            return string.Format(noAttacksTemplate, player.Name, attacker.Model);
+            return string.Format(CultureInfo.InvariantCulture, noAttacksTemplate, player.Name, attacker.Model);
         }
 
         // Build a dictionary of actual target units by the IDs provided in WeaponTargets
@@ -44,12 +45,12 @@ public record struct WeaponAttackDeclarationCommand : IClientUnitCommand
         if (unitsById.Count == 0)
         {
             var noAttacksTemplate = localizationService.GetString("Command_WeaponAttackDeclaration_NoAttacks");
-            return string.Format(noAttacksTemplate, player.Name, attacker.Model);
+            return string.Format(CultureInfo.InvariantCulture, noAttacksTemplate, player.Name, attacker.Model);
         }
 
         var stringBuilder = new StringBuilder();
         var headerTemplate = localizationService.GetString("Command_WeaponAttackDeclaration_Header");
-        stringBuilder.AppendFormat(headerTemplate, player.Name, attacker.Model).AppendLine();
+        stringBuilder.AppendFormat(CultureInfo.InvariantCulture, headerTemplate, player.Name, attacker.Model).AppendLine();
 
         var weaponLineTemplate = localizationService.GetString("Command_WeaponAttackDeclaration_WeaponLine");
 
@@ -61,7 +62,7 @@ public record struct WeaponAttackDeclarationCommand : IClientUnitCommand
             var targetPlayer = targetUnit.Owner;
             if (targetPlayer == null) continue;
 
-            stringBuilder.AppendFormat(weaponLineTemplate,
+            stringBuilder.AppendFormat(CultureInfo.InvariantCulture, weaponLineTemplate,
                 weaponTarget.Weapon.Name,
                 targetPlayer.Name,
                 targetUnit.Model).AppendLine();

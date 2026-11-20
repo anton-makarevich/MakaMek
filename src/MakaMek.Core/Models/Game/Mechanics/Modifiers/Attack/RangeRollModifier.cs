@@ -1,5 +1,6 @@
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Sanet.Localization;
+using System.Globalization;
 
 namespace Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Attack;
 
@@ -10,6 +11,6 @@ public record RangeRollModifier : RollModifier
     public required string WeaponName { get; init; }
 
     public override string Render(ILocalizationService localizationService) =>
-        string.Format(localizationService.GetString("Modifier_Range"), 
+        string.Format(CultureInfo.InvariantCulture, localizationService.GetString("Modifier_Range"), 
             WeaponName, Distance, Range, Value);
 }

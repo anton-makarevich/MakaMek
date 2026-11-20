@@ -20,3 +20,9 @@ dotnet_diagnostic.CA1506.severity = warning
 # Phase 1 enables cognitive complexity only; the rest of the legacy Sonar
 # ruleset stays out of scope to avoid an unrelated-debt avalanche.
 dotnet_diagnostic.S3776.severity = warning
+
+# --- Path-scoped opt-ins ---
+# CA1305 (IFormatProvider) is enforced in MakaMek.Core only; the remaining
+# projects keep the latent default until their own debt is paid down.
+[src/MakaMek.Core/**/*.cs]
+dotnet_diagnostic.CA1305.severity = warning

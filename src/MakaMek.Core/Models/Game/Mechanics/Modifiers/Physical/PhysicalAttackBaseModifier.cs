@@ -1,4 +1,5 @@
 using Sanet.Localization;
+using System.Globalization;
 
 namespace Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Physical;
 
@@ -11,6 +12,6 @@ public record PhysicalAttackBaseModifier : RollModifier
     public required PhysicalAttackType AttackType { get; init; }
 
     public override string Render(ILocalizationService localizationService) =>
-        string.Format(localizationService.GetString("Modifier_PhysicalAttackBase"),
+        string.Format(CultureInfo.InvariantCulture, localizationService.GetString("Modifier_PhysicalAttackBase"),
             localizationService.GetString($"PhysicalAttackType_{AttackType}"), Value);
 }

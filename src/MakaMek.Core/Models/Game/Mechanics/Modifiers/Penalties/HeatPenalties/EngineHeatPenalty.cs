@@ -1,4 +1,5 @@
 ﻿using Sanet.Localization;
+using System.Globalization;
 
 namespace Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Penalties.HeatPenalties;
 
@@ -13,6 +14,6 @@ public record EngineHeatPenalty : RollModifier
     public required int EngineHits { get; init; }
     
     public override string Render(ILocalizationService localizationService) =>
-        string.Format(localizationService.GetString("Penalty_EngineHeat"), 
+        string.Format(CultureInfo.InvariantCulture, localizationService.GetString("Penalty_EngineHeat"), 
             EngineHits, Value);
 }

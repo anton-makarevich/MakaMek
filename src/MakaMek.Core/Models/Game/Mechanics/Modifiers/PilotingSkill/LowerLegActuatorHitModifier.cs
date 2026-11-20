@@ -1,4 +1,5 @@
 using Sanet.Localization;
+using System.Globalization;
 
 namespace Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.PilotingSkill;
 
@@ -15,6 +16,9 @@ public record LowerLegActuatorHitModifier : RollModifier
         // Assuming a localization string like "Modifier_LowerLegActuatorHit" which might be:
         // "Lower Leg Actuator Hit: {0}" or simply "Lower Leg Actuator Hit" if the value is implied.
         // Using a format that includes the value for clarity, similar to DamagedGyroModifier.
-        return string.Format(localizationService.GetString("Modifier_LowerLegActuatorHit"), Value);
+        return string.Format(
+            CultureInfo.InvariantCulture,
+            localizationService.GetString("Modifier_LowerLegActuatorHit"),
+            Value);
     }
 }

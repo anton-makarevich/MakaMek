@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.Globalization;
+using System.Text;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.Localization;
 
@@ -50,11 +51,11 @@ public record struct UnitShutdownCommand : IGameCommand
                     command.AvoidShutdownRoll),
 
             ShutdownReason.Heat when isPilotUnconscious =>
-                string.Format(localizationService.GetString("Command_MechShutdown_UnconsciousPilot"),
+                string.Format(CultureInfo.InvariantCulture, localizationService.GetString("Command_MechShutdown_UnconsciousPilot"),
                     unit.Model, unit.CurrentHeat),
 
             ShutdownReason.Heat when command.IsAutomaticShutdown =>
-                string.Format(localizationService.GetString("Command_MechShutdown_AutomaticHeat"),
+                string.Format(CultureInfo.InvariantCulture, localizationService.GetString("Command_MechShutdown_AutomaticHeat"),
                     unit.Model, unit.CurrentHeat),
 
             ShutdownReason.Heat when command.AvoidShutdownRoll != null =>
@@ -62,10 +63,10 @@ public record struct UnitShutdownCommand : IGameCommand
                     command.AvoidShutdownRoll),
 
             ShutdownReason.Voluntary =>
-                string.Format(localizationService.GetString("Command_MechShutdown_Voluntary"),
+                string.Format(CultureInfo.InvariantCulture, localizationService.GetString("Command_MechShutdown_Voluntary"),
                     unit.Model),
 
-            _ => string.Format(localizationService.GetString("Command_MechShutdown_Generic"),
+            _ => string.Format(CultureInfo.InvariantCulture, localizationService.GetString("Command_MechShutdown_Generic"),
                 unit.Model)
         };
     }
@@ -79,9 +80,15 @@ public record struct UnitShutdownCommand : IGameCommand
         var total = rollData.DiceResults.Sum();
 
         var template = localizationService.GetString(messageKey);
-        stringBuilder.AppendFormat(template, unitModel, rollData.HeatLevel).AppendLine();
-        stringBuilder.AppendFormat(localizationService.GetString("Command_AvoidNumber"), rollData.AvoidNumber).AppendLine();
-        stringBuilder.AppendFormat(localizationService.GetString("Command_RollResult"), total).AppendLine();
+        stringBuilder.AppendFormat(CultureInfo.InvariantCulture, template, unitModel, rollData.HeatLevel).AppendLine();
+        stringBuilder.AppendFormat(
+            CultureInfo.InvariantCulture,
+            localizationService.GetString("Command_AvoidNumber"),
+            rollData.AvoidNumber).AppendLine();
+        stringBuilder.AppendFormat(
+            CultureInfo.InvariantCulture,
+            localizationService.GetString("Command_RollResult"),
+            total).AppendLine();
 
         return stringBuilder.ToString().TrimEnd();
     }

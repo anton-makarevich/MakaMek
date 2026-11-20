@@ -1,4 +1,5 @@
 using Sanet.MakaMek.Core.Models.Units;
+using System.Globalization;
 using System.Text;
 using Sanet.Localization;
 
@@ -37,6 +38,7 @@ public record LocationHitData(
         if (CoveringHexAbsorption == null) return string.Empty;
 
         return string.Format(
+            CultureInfo.InvariantCulture,
             localizationService.GetString("Command_WeaponAttackResolution_DamageAbsorbedByTerrain"),
             CoveringHexAbsorption.CoveringHex,
             CoveringHexAbsorption.AbsorbedDamage);
@@ -53,6 +55,7 @@ public record LocationHitData(
             : "Command_WeaponAttackResolution_AimedShotFailed";
 
         stringBuilder.AppendFormat(
+            CultureInfo.InvariantCulture,
             localizationService.GetString(key),
             localizedInitialLocation,
             aimedShotTotal).AppendLine();
@@ -132,11 +135,17 @@ public record LocationHitData(
         int rollInfo)
     {
         if (structureDamage > 0 && armorDamage > 0)
-            return string.Format(template, localizedLocation, armorDamage, structureDamage, rollInfo);
+            return string.Format(
+                CultureInfo.InvariantCulture,
+                template,
+                localizedLocation,
+                armorDamage,
+                structureDamage,
+                rollInfo);
 
         return armorDamage > 0
-            ? string.Format(template, localizedLocation, armorDamage, rollInfo)
-            : string.Format(template, localizedLocation, structureDamage, rollInfo);
+            ? string.Format(CultureInfo.InvariantCulture, template, localizedLocation, armorDamage, rollInfo)
+            : string.Format(CultureInfo.InvariantCulture, template, localizedLocation, structureDamage, rollInfo);
     }
 
     private static string FormatDamageValues(
@@ -148,11 +157,30 @@ public record LocationHitData(
         int rollInfo)
     {
         if (structureDamage > 0 && armorDamage > 0)
-            return string.Format(template, localizedLocation1, localizedLocation2, armorDamage, structureDamage, rollInfo);
+            return string.Format(
+                CultureInfo.InvariantCulture,
+                template,
+                localizedLocation1,
+                localizedLocation2,
+                armorDamage,
+                structureDamage,
+                rollInfo);
 
         return armorDamage > 0
-            ? string.Format(template, localizedLocation1, localizedLocation2, armorDamage, rollInfo)
-            : string.Format(template, localizedLocation1, localizedLocation2, structureDamage, rollInfo);
+            ? string.Format(
+                CultureInfo.InvariantCulture,
+                template,
+                localizedLocation1,
+                localizedLocation2,
+                armorDamage,
+                rollInfo)
+            : string.Format(
+                CultureInfo.InvariantCulture,
+                template,
+                localizedLocation1,
+                localizedLocation2,
+                structureDamage,
+                rollInfo);
     }
 
     /// <summary>
@@ -174,10 +202,10 @@ public record LocationHitData(
         var template = localizationService.GetString(key);
 
         if (armorDamage > 0 && structureDamage > 0)
-            return string.Format(template, localizedLocation, armorDamage, structureDamage);
+            return string.Format(CultureInfo.InvariantCulture, template, localizedLocation, armorDamage, structureDamage);
 
         return armorDamage > 0
-            ? string.Format(template, localizedLocation, armorDamage)
-            : string.Format(template, localizedLocation, structureDamage);
+            ? string.Format(CultureInfo.InvariantCulture, template, localizedLocation, armorDamage)
+            : string.Format(CultureInfo.InvariantCulture, template, localizedLocation, structureDamage);
     }
 }

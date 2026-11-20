@@ -4,6 +4,7 @@ using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Events;
 using Sanet.MakaMek.Core.Models.Units.Components;
 using Sanet.MakaMek.Map.Models;
+using System.Globalization;
 
 namespace Sanet.MakaMek.Core.Models.Units;
 
@@ -154,11 +155,11 @@ public abstract class UnitPart
         if (CurrentArmor >= damage)
         {
             CurrentArmor -= damage;
-            Unit?.AddEvent(new UiEvent(UiEventType.ArmorDamage,Name,damage.ToString()));
+            Unit?.AddEvent(new UiEvent(UiEventType.ArmorDamage,Name,damage.ToString(CultureInfo.InvariantCulture)));
             return 0;
         }
         damage -= CurrentArmor;
-        Unit?.AddEvent(new UiEvent(UiEventType.ArmorDamage,Name,CurrentArmor.ToString()));
+        Unit?.AddEvent(new UiEvent(UiEventType.ArmorDamage,Name,CurrentArmor.ToString(CultureInfo.InvariantCulture)));
         CurrentArmor = 0;
 
         return damage;
@@ -213,7 +214,7 @@ public abstract class UnitPart
 
         var damageToApply = Math.Min(structureDamage, CurrentStructure);
         CurrentStructure -= damageToApply;
-        Unit?.AddEvent(new UiEvent(UiEventType.StructureDamage, Name, damageToApply.ToString()));
+        Unit?.AddEvent(new UiEvent(UiEventType.StructureDamage, Name, damageToApply.ToString(CultureInfo.InvariantCulture)));
 
         if (CurrentStructure > 0) return 0;
         Unit?.AddEvent(new UiEvent(UiEventType.LocationDestroyed, Name));

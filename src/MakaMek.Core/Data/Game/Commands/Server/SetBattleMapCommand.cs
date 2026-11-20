@@ -1,6 +1,7 @@
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.Localization;
 using Sanet.MakaMek.Map.Data;
+using System.Globalization;
 
 namespace Sanet.MakaMek.Core.Data.Game.Commands.Server;
 
@@ -13,7 +14,7 @@ public record struct SetBattleMapCommand : IGameCommand
     public DateTime Timestamp { get; set; }
     public string Render(ILocalizationService localizationService, IGame game)
     {
-        return string.Format(localizationService.GetString("Command_SetBattleMap"));
+        return string.Format(CultureInfo.InvariantCulture, localizationService.GetString("Command_SetBattleMap"));
     }
 
     public required BattleMapData MapData { get; init; }

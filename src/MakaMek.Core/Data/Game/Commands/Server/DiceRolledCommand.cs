@@ -1,5 +1,6 @@
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.Localization;
+using System.Globalization;
 
 namespace Sanet.MakaMek.Core.Data.Game.Commands.Server;
 
@@ -16,6 +17,6 @@ public record struct DiceRolledCommand : IGameCommand
         var player = game.Players.FirstOrDefault(p => p.Id == command.PlayerId);
         if (player == null) return string.Empty;
         var localizedTemplate = localizationService.GetString("Command_DiceRolled");
-        return string.Format(localizedTemplate, player.Name, Roll);
+        return string.Format(CultureInfo.InvariantCulture, localizedTemplate, player.Name, Roll);
     }
 }

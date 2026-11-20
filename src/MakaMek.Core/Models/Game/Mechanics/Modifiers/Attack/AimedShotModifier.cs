@@ -1,5 +1,6 @@
 ﻿using Sanet.MakaMek.Core.Models.Units;
 using Sanet.Localization;
+using System.Globalization;
 
 namespace Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Attack;
 
@@ -40,6 +41,7 @@ public record AimedShotModifier : RollModifier
             : "Modifier_AimedShotBodyPart";
             
         return string.Format(
+            CultureInfo.InvariantCulture,
             localizationService.GetString(templateKey), 
             partName,
             Value

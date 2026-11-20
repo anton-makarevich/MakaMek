@@ -1,6 +1,7 @@
 ﻿using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Phases;
 using Sanet.Localization;
+using System.Globalization;
 
 namespace Sanet.MakaMek.Core.Data.Game.Commands.Server;
 
@@ -14,6 +15,6 @@ public record struct ChangePhaseCommand : IGameCommand
     {
         var localizedTemplate = localizationService.GetString("Command_ChangePhase"); 
         
-        return string.Format(localizedTemplate, Phase);
+        return string.Format(CultureInfo.InvariantCulture, localizedTemplate, Phase);
     }
 }

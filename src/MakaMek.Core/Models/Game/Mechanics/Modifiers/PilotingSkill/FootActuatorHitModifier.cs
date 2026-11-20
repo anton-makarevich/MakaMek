@@ -1,4 +1,5 @@
 ﻿using Sanet.Localization;
+using System.Globalization;
 
 namespace Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.PilotingSkill;
 
@@ -12,6 +13,6 @@ public record FootActuatorHitModifier : RollModifier
     
     public override string Render(ILocalizationService localizationService)
     {
-        return string.Format(localizationService.GetString("Modifier_FootActuatorHit"), Value);
+        return string.Format(CultureInfo.InvariantCulture, localizationService.GetString("Modifier_FootActuatorHit"), Value);
     }
 }

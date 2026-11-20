@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 using Sanet.MakaMek.Core.Data.Game.Mechanics.PhysicalAttacks;
 using Sanet.MakaMek.Core.Models.Game;
@@ -93,6 +94,7 @@ public record struct PhysicalAttackResolutionCommand : IGameCommand
         if (ResolutionData.Charge is { Outcome: ChargeOutcome.AutoFail } autoFail)
         {
             return string.Format(
+                CultureInfo.InvariantCulture,
                 localizationService.GetString("Command_ChargeResolution_AutoFail"),
                 player.Name,
                 attacker.Model,
@@ -114,6 +116,7 @@ public record struct PhysicalAttackResolutionCommand : IGameCommand
         IUnit target,
         AttackResolutionData resolution) =>
         stringBuilder.AppendFormat(
+            CultureInfo.InvariantCulture,
             localizationService.GetString(resolution.IsHit
                 ? "Command_WeaponAttackResolution_Hit"
                 : "Command_WeaponAttackResolution_Miss"),
@@ -150,6 +153,7 @@ public record struct PhysicalAttackResolutionCommand : IGameCommand
         ChargeResolutionData charge)
     {
         stringBuilder.AppendFormat(
+            CultureInfo.InvariantCulture,
             localizationService.GetString("Command_ChargeResolution_Outcome"),
             localizationService.GetString($"ChargeOutcome_{charge.Outcome}"),
             charge.HexesMoved).AppendLine();
@@ -160,6 +164,7 @@ public record struct PhysicalAttackResolutionCommand : IGameCommand
             .SelectMany(p => p.Units)
             .FirstOrDefault(u => u.Id == charge.OriginalTargetId);
         stringBuilder.AppendFormat(
+            CultureInfo.InvariantCulture,
             localizationService.GetString("Command_ChargeResolution_Replacement"),
             originalTarget?.Model ?? charge.OriginalTargetId.ToString()).AppendLine();
     }
@@ -174,6 +179,7 @@ public record struct PhysicalAttackResolutionCommand : IGameCommand
             .SelectMany(p => p.Units)
             .FirstOrDefault(u => u.Id == dfa.OriginalTargetId);
         stringBuilder.AppendFormat(
+            CultureInfo.InvariantCulture,
             localizationService.GetString("Command_DfaResolution_Replacement"),
             originalTarget?.Model ?? dfa.OriginalTargetId.ToString()).AppendLine();
     }
@@ -189,9 +195,11 @@ public record struct PhysicalAttackResolutionCommand : IGameCommand
         string targetModel)
     {
         stringBuilder.AppendFormat(
+            CultureInfo.InvariantCulture,
             localizationService.GetString("Command_WeaponAttackResolution_Direction"),
             localizationService.GetString($"AttackDirection_{resolution.AttackDirection}")).AppendLine();
         stringBuilder.AppendFormat(
+            CultureInfo.InvariantCulture,
             localizationService.GetString("Command_WeaponAttackResolution_TotalDamage"),
             resolution.HitLocationsData!.TotalDamage).AppendLine();
 
@@ -203,6 +211,7 @@ public record struct PhysicalAttackResolutionCommand : IGameCommand
         if (resolution.UnitDestroyed)
         {
             stringBuilder.AppendFormat(
+                CultureInfo.InvariantCulture,
                 localizationService.GetString("Command_WeaponAttackResolution_UnitDestroyed"),
                 targetModel).AppendLine();
         }
@@ -217,6 +226,7 @@ public record struct PhysicalAttackResolutionCommand : IGameCommand
         if (charge.AttackerCollision is not { } collision) return;
 
         stringBuilder.AppendFormat(
+            CultureInfo.InvariantCulture,
             localizationService.GetString("Command_ChargeResolution_AttackerCollision"),
             attackerModel,
             collision.TotalDamage).AppendLine();
@@ -229,6 +239,7 @@ public record struct PhysicalAttackResolutionCommand : IGameCommand
         if (charge.AttackerUnitDestroyed)
         {
             stringBuilder.AppendFormat(
+                CultureInfo.InvariantCulture,
                 localizationService.GetString("Command_WeaponAttackResolution_UnitDestroyed"),
                 attackerModel).AppendLine();
         }
@@ -255,6 +266,7 @@ public record struct PhysicalAttackResolutionCommand : IGameCommand
         foreach (var location in destroyedParts)
         {
             stringBuilder.AppendFormat(
+                CultureInfo.InvariantCulture,
                 localizationService.GetString("Command_WeaponAttackResolution_DestroyedPart"),
                 localizationService.GetString($"MechPart_{location}")).AppendLine();
         }
@@ -269,11 +281,13 @@ public record struct PhysicalAttackResolutionCommand : IGameCommand
         dfa.Outcome switch
         {
             DfaOutcome.AutoFail => string.Format(
+                CultureInfo.InvariantCulture,
                 localizationService.GetString("Command_DfaResolution_AutoFail"),
                 playerName,
                 attackerModel,
                 target?.Model ?? dfa.OriginalTargetId.ToString()),
             DfaOutcome.AttackerDestroyedNoLanding => string.Format(
+                CultureInfo.InvariantCulture,
                 localizationService.GetString("Command_DfaResolution_AttackerDestroyed"),
                 playerName,
                 attackerModel),
@@ -285,6 +299,7 @@ public record struct PhysicalAttackResolutionCommand : IGameCommand
         ILocalizationService localizationService,
         DfaResolutionData dfa) =>
         stringBuilder.AppendFormat(
+            CultureInfo.InvariantCulture,
             localizationService.GetString("Command_DfaResolution_Outcome"),
             localizationService.GetString($"DfaOutcome_{dfa.Outcome}")).AppendLine();
 
@@ -297,6 +312,7 @@ public record struct PhysicalAttackResolutionCommand : IGameCommand
         if (dfa.AttackerLegHitLocations is not { } attackerLegs) return;
 
         stringBuilder.AppendFormat(
+            CultureInfo.InvariantCulture,
             localizationService.GetString("Command_DfaResolution_AttackerLegDamage"),
             attacker.Model,
             attackerLegs.TotalDamage).AppendLine();
@@ -314,6 +330,7 @@ public record struct PhysicalAttackResolutionCommand : IGameCommand
             foreach (var location in dfaAttackerParts)
             {
                 stringBuilder.AppendFormat(
+                    CultureInfo.InvariantCulture,
                     localizationService.GetString("Command_WeaponAttackResolution_DestroyedPart"),
                     localizationService.GetString($"MechPart_{location}")).AppendLine();
             }
@@ -322,6 +339,7 @@ public record struct PhysicalAttackResolutionCommand : IGameCommand
         if (dfa.AttackerUnitDestroyed)
         {
             stringBuilder.AppendFormat(
+                CultureInfo.InvariantCulture,
                 localizationService.GetString("Command_WeaponAttackResolution_UnitDestroyed"),
                 attacker.Model).AppendLine();
         }

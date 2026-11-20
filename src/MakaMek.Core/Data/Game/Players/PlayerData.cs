@@ -1,4 +1,6 @@
-﻿namespace Sanet.MakaMek.Core.Data.Game.Players;
+﻿using System.Globalization;
+
+namespace Sanet.MakaMek.Core.Data.Game.Players;
 
 /// <summary>
 /// Data structure for player information used for serialization and caching
@@ -26,7 +28,7 @@ public record struct PlayerData
     /// <returns>A new PlayerData with default values</returns>
     public static PlayerData CreateDefault()
     {
-        var randomDigits = Random.Shared.Next(0, 10000).ToString("D4");
+        var randomDigits = Random.Shared.Next(0, 10000).ToString("D4", CultureInfo.InvariantCulture);
         
         return new PlayerData
         {
