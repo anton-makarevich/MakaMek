@@ -100,7 +100,7 @@ public sealed class HostingMapBroadcaster : IDisposable
         var battleMapViewModel = await navigationService.GetNewViewModelAsync<BattleMapViewModel>();
         if (battleMapViewModel == null)
         {
-            throw new Exception("BattleMapViewModel is not registered");
+            throw new InvalidOperationException("BattleMapViewModel is not registered");
         }
         battleMapViewModel.Game = localGame;
 

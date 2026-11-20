@@ -11,11 +11,9 @@ public class WeaponsAttackState : IUiState, ICombatSelectionRoles
 {
     private readonly BattleMapViewModel _viewModel;
     private readonly Lock _stateLock = new();
-    private readonly WeaponsAttackSelectionPolicy _selectionPolicy;
     private readonly WeaponRangeHighlighter _rangeHighlighter;
     private readonly WeaponSelectionPresenter _presenter;
     private readonly WeaponsConfigurationController _configuration;
-    private readonly WeaponsAttackSubmitter _submitter = new();
 
     public IClientGame Game { get; }
 
@@ -61,15 +59,11 @@ public class WeaponsAttackState : IUiState, ICombatSelectionRoles
         }
     }
 
-    internal WeaponsAttackState(
-        BattleMapViewModel viewModel,
-        WeaponsAttackSelectionPolicy selectionPolicy,
-        WeaponRangeAnalyzer rangeAnalyzer)
+    internal WeaponsAttackState(BattleMapViewModel viewModel)
     {
         Game = viewModel.Game! ?? throw new InvalidOperationException("Game is not client game");
         _viewModel = viewModel;
-        _selectionPolicy = selectionPolicy;
-        _rangeHighlighter = new WeaponRangeHighlighter(viewModel, rangeAnalyzer);
+        _rangeHighlighter = new WeaponRangeHighlighter(viewModel);
         _presenter = new WeaponSelectionPresenter(viewModel, Game);
         _configuration = new WeaponsConfigurationController(viewModel, Game);
         if (Game.PhaseStepState?.ActivePlayer == null)
@@ -85,9 +79,7 @@ public class WeaponsAttackState : IUiState, ICombatSelectionRoles
         {
             lock (_stateLock)
             {
-                var outcome = _selectionPolicy.Decide(
-                    CurrentStep,
-                    value,
+                var outcome = CurrentStep.DecideWeaponsAttackSelection(value,
                     this.CanHumanPlayerAct(),
                     Game.PhaseStepState?.ActivePlayer.Id,
                     _rangeHighlighter.WeaponRanges.Values);
@@ -398,7 +390,7 @@ public class WeaponsAttackState : IUiState, ICombatSelectionRoles
         if (Attacker is not { } attacker)
             return;
 
-        _submitter.Submit(Game, attacker, _presenter.GetAimedShotTarget);
+        Game.SubmitWeaponAttack(attacker, _presenter.GetAimedShotTarget);
 
         // Reset state after sending command
         ClearWeaponRangeHighlights();

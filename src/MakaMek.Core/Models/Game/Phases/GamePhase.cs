@@ -5,7 +5,7 @@ namespace Sanet.MakaMek.Core.Models.Game.Phases;
 
 public abstract class GamePhase : IGamePhase
 {
-    protected readonly ServerGame Game;
+    protected ServerGame Game { get; }
 
     protected GamePhase(ServerGame game)
     {
@@ -16,7 +16,7 @@ public abstract class GamePhase : IGamePhase
     {
     }
 
-    public virtual void Exit()
+    public virtual void ExitPhase()
     {
     }
 

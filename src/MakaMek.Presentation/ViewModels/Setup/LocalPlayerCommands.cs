@@ -43,15 +43,4 @@ public sealed class LocalPlayerCommands
 
         game.JoinGameWithUnits(playerVm.Player, unitsData, pilotAssignments);
     }
-
-    public void PublishSetReady(ClientGame game, PlayerViewModel playerVm)
-    {
-        var readyCommand = new UpdatePlayerStatusCommand
-        {
-            GameOriginId = game.Id,
-            PlayerId = playerVm.Player.Id,
-            PlayerStatus = PlayerStatus.Ready
-        };
-        game.SetPlayerReady(readyCommand);
-    }
 }

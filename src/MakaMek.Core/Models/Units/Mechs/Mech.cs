@@ -50,8 +50,8 @@ public class Mech : Unit
         Status = UnitStatus.Active;
     }
 
-    public override int GetMovementPoints(MovementType type) =>
-        this.GetMovementPointsFor(type, ModifiedMovement);
+    public override int GetMovementPoints(MovementType _) =>
+        this.GetMovementPointsFor(_, ModifiedMovement);
     
     public override IReadOnlyList<MovementType> GetAvailableMovementTypes()
     {
@@ -99,8 +99,8 @@ public class Mech : Unit
     public override PartLocation? GetTransferLocation(PartLocation location) =>
         location.GetDamageTransferLocation();
 
-    public override void ApplyWeaponConfiguration(WeaponConfiguration weaponConfiguration) =>
-        this.ApplyConfiguration(weaponConfiguration);
+    public override void ApplyWeaponConfiguration(WeaponConfiguration config) =>
+        this.ApplyConfiguration(config);
     
     public override int EngineHeatSinks => this.GetEngineHeatSinkCount();
 
