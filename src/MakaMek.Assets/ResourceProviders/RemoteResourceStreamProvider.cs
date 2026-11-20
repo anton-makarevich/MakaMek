@@ -12,7 +12,7 @@ namespace Sanet.MakaMek.Assets.ResourceProviders;
 /// caching, hash-based cache versioning and stale/offline fallback semantics through
 /// <see cref="IFileCachingService"/>.
 /// </summary>
-public abstract class RemoteResourceStreamProvider : IResourceStreamProvider
+public abstract class RemoteResourceStreamProvider : IResourceStreamProvider, IDisposable
 {
     private readonly HttpClient _httpClient;
     private readonly bool _disposeHttpClient;
@@ -261,13 +261,22 @@ public abstract class RemoteResourceStreamProvider : IResourceStreamProvider
     }
 
     /// <summary>
-    /// Disposes the HTTP client if it was created internally
+    /// Releases the HTTP client when this provider created it. An injected client belongs to the
+    /// caller and is never disposed here; the injected caching service and logger are shared
+    /// collaborators and are left alone.
     /// </summary>
     public void Dispose()
     {
-        if (_disposeHttpClient)
-        {
-            _httpClient.Dispose();
-        }
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    /// <summary>
+    /// Disposes the resources owned by this provider. Overrides must call the base implementation.
+    /// </summary>
+    protected virtual void Dispose(bool disposing)
+    {
+        if (!disposing || !_disposeHttpClient) return;
+        _httpClient.Dispose();
     }
 }

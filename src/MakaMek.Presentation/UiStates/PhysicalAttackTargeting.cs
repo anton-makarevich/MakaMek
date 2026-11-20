@@ -46,29 +46,6 @@ public sealed class PhysicalAttackTargeting
         _reachableTargets = reachable;
     }
 
-    /// <summary>
-    /// A unit can act as the attacker while it belongs to the active player and the eligibility
-    /// policy still reports an option for it. The policy owns the "not destroyed, not already
-    /// committed" rules.
-    /// </summary>
-    public bool CanActAsAttacker(IUnit unit, IClientGame game, IEnumerable<IUnit> units) =>
-        IsFriendly(unit, game) && HasAnyOption(unit, game, units);
-
-    public bool IsFriendly(IUnit unit, IClientGame game) =>
-        unit.Owner?.Id == game.PhaseStepState?.ActivePlayer.Id;
-
-    public bool HasAnyOption(IUnit unit, IClientGame game, IEnumerable<IUnit> units)
-    {
-        if (game.BattleMap is not { } map) return false;
-
-        // Evaluated against the candidate, not the current attacker: this runs before the
-        // candidate becomes the attacker. The policy filters enemies and unit states itself.
-        return game.PhysicalAttackEligibility.HasAnyOption(unit, units, map);
-    }
-
-    public List<IUnit> GetAllUnits(IClientGame game) =>
-        game.Players.SelectMany(player => player.Units).ToList();
-
     public static IUnit? FindUnitOnHex(IEnumerable<IUnit> units, Hex hex) =>
         units.FirstOrDefault(unit => unit.Position?.Coordinates == hex.Coordinates);
 

@@ -1,4 +1,4 @@
-﻿using JetBrains.Annotations;
+using JetBrains.Annotations;
 using Sanet.MakaMek.Core.Models.Units.Components.Weapons;
 using Shouldly;
 
@@ -14,12 +14,12 @@ public class WeaponRangeTest
     [InlineData(0, RangeBracket.OutOfRange)]
     [InlineData(1, RangeBracket.Minimum)]
     [InlineData(3, RangeBracket.Minimum)]
-    [InlineData(4, RangeBracket.Short)]
-    [InlineData(6, RangeBracket.Short)]
+    [InlineData(4, RangeBracket.ShortRange)]
+    [InlineData(6, RangeBracket.ShortRange)]
     [InlineData(7, RangeBracket.Medium)]
     [InlineData(12, RangeBracket.Medium)]
-    [InlineData(13, RangeBracket.Long)]
-    [InlineData(18, RangeBracket.Long)]
+    [InlineData(13, RangeBracket.LongRange)]
+    [InlineData(18, RangeBracket.LongRange)]
     [InlineData(19, RangeBracket.OutOfRange)]
     public void GetRangeBracket_WithDistance_ReturnsCorrectBracket(int distance, RangeBracket expected)
     {
@@ -33,7 +33,7 @@ public class WeaponRangeTest
     {
         var range = new WeaponRange(MinimumRange: 0, ShortRange: 6, MediumRange: 12, LongRange: 18);
 
-        range.GetRangeBracket(1).ShouldBe(RangeBracket.Short);
+        range.GetRangeBracket(1).ShouldBe(RangeBracket.ShortRange);
     }
 
     [Fact]
@@ -50,9 +50,9 @@ public class WeaponRangeTest
 
     [Theory]
     [InlineData(RangeBracket.Minimum, 3)]
-    [InlineData(RangeBracket.Short, 6)]
+    [InlineData(RangeBracket.ShortRange, 6)]
     [InlineData(RangeBracket.Medium, 12)]
-    [InlineData(RangeBracket.Long, 18)]
+    [InlineData(RangeBracket.LongRange, 18)]
     public void GetRangeValue_WithBracket_ReturnsCorrectValue(RangeBracket bracket, int expected)
     {
         var result = _sut.GetRangeValue(bracket);

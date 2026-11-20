@@ -28,10 +28,8 @@ public class PhysicalAttackState : IUiState, ICombatSelectionRoles, IPhysicalAtt
 
     private readonly BattleMapViewModel _viewModel;
     private readonly Lock _stateLock = new();
-    private readonly PhysicalAttackSelectionPolicy _selectionPolicy;
     private readonly PhysicalAttackOptionBuilder _optionBuilder;
     private readonly PhysicalAttackTargeting _targeting;
-    private readonly PhysicalAttackDeclarationSubmitter _submitter;
 
     private IReadOnlyList<PhysicalAttackOptionViewModel> _options = NoOptions;
     private PhysicalAttackStep _currentStep = PhysicalAttackStep.SelectingUnit;
@@ -119,16 +117,13 @@ public class PhysicalAttackState : IUiState, ICombatSelectionRoles, IPhysicalAtt
 
     internal PhysicalAttackState(
         BattleMapViewModel viewModel,
-        PhysicalAttackSelectionPolicy selectionPolicy,
         PhysicalAttackOptionBuilder optionBuilder,
         PhysicalAttackTargeting targeting)
     {
         Game = viewModel.Game! ?? throw new InvalidOperationException("Game is not client game");
         _viewModel = viewModel;
-        _selectionPolicy = selectionPolicy;
         _optionBuilder = optionBuilder;
         _targeting = targeting;
-        _submitter = new PhysicalAttackDeclarationSubmitter();
         if (Game.PhaseStepState?.ActivePlayer == null)
         {
             throw new InvalidOperationException("Active player is null");
@@ -239,12 +234,11 @@ public class PhysicalAttackState : IUiState, ICombatSelectionRoles, IPhysicalAtt
     /// candidate checks see the same state the outcome is applied to.
     /// </summary>
     private PhysicalAttackSelectionOutcome DecideSelection(IUnit? candidate) =>
-        _selectionPolicy.Decide(
-            _currentStep,
+        _currentStep.DecidePhysicalAttackSelection(
             candidate,
             this.CanHumanPlayerAct(),
-            isFriendly: candidate is not null && _targeting.IsFriendly(candidate, Game),
-            canActAsAttacker: () => candidate is not null && _targeting.CanActAsAttacker(candidate, Game, _viewModel.Units),
+            isFriendly: candidate is not null && candidate.IsFriendly(Game),
+            canActAsAttacker: () => candidate is not null && candidate.CanActAsPhysicalAttacker(Game, _viewModel.Units),
             isReachable: candidate is not null && _targeting.IsReachable(candidate),
             isCurrentTarget: ReferenceEquals(candidate, _selectedTarget));
 
@@ -274,7 +268,7 @@ public class PhysicalAttackState : IUiState, ICombatSelectionRoles, IPhysicalAtt
             case PhysicalAttackStep.Declaration:
                 // Another reachable enemy rebuilds the rows; anything else closes the dialog and
                 // returns to target selection without losing the attacker.
-                if (unit != null && !_targeting.IsFriendly(unit, Game) && _targeting.IsReachable(unit))
+                if (unit != null && !unit.IsFriendly(Game) && _targeting.IsReachable(unit))
                     SelectedUnit = unit;
                 else if (unit == null || !ReferenceEquals(unit, _selectedTarget))
                     CloseDeclaration();
@@ -297,7 +291,7 @@ public class PhysicalAttackState : IUiState, ICombatSelectionRoles, IPhysicalAtt
         lock (_stateLock)
         {
             return _currentStep is PhysicalAttackStep.SelectingUnit or PhysicalAttackStep.TargetSelection
-                   && _targeting.CanActAsAttacker(unit, Game, _viewModel.Units);
+                   && unit.CanActAsPhysicalAttacker(Game, _viewModel.Units);
         }
     }
 
@@ -362,7 +356,7 @@ public class PhysicalAttackState : IUiState, ICombatSelectionRoles, IPhysicalAtt
         return _optionBuilder.Build(
             attacker,
             target,
-            _targeting.GetAllUnits(Game),
+            Game.GetAllPlayerUnits(),
             OnOptionSelectionChanged);
     }
 
@@ -451,7 +445,7 @@ public class PhysicalAttackState : IUiState, ICombatSelectionRoles, IPhysicalAtt
             || option?.SelectedVariant?.Limbs is not { Count: > 0 } limbs)
             return;
 
-        if (!_submitter.TryDeclare(Game, attacker, target, type, limbs, _targeting.GetAllUnits(Game)))
+        if (!Game.TryDeclarePhysicalAttack(attacker, target, type, limbs, Game.GetAllPlayerUnits()))
             return;
 
         ReturnToAttackerSelection();
@@ -465,7 +459,7 @@ public class PhysicalAttackState : IUiState, ICombatSelectionRoles, IPhysicalAtt
         lock (_stateLock) attacker = _attacker;
         if (attacker == null) return;
 
-        _submitter.Submit(Game, attacker, null);
+        Game.SubmitPhysicalAttack(attacker, null);
         ReturnToAttackerSelection();
     }
 

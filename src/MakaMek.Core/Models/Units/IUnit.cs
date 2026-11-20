@@ -69,7 +69,7 @@ public interface IUnit : IUnitHeatPenalties
     bool IsImmobile { get; }
 
     bool IsOutOfCommission { get; }
-    WeightClass Class { get; }
+    WeightClass UnitClass { get; }
     
     /// <summary>
     /// Gets the unit's height in levels. Used for line of sight calculations.
