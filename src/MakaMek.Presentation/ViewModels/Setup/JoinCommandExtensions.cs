@@ -65,20 +65,7 @@ public static class JoinCommandExtensions
                     // The game start signal: navigate to the battle map once the phase leaves Start
                     if (phaseCommand.Phase == PhaseNames.Start) break;
 
-                    var navigationService = controller.NavigationServiceAccessor?.Invoke();
-                    var battleMapViewModel = navigationService?.GetViewModel<BattleMapViewModel>();
-                    if (battleMapViewModel == null)
-                    {
-                        throw new Exception("BattleMapViewModel is not registered");
-                    }
-                    battleMapViewModel.Game = deps.Session.LocalGame;
-
-                    // The lobby view is done: stop listening to game commands so this VM is not
-                    // invoked again during gameplay (re-navigating would recreate the battle map
-                    // view and detach its subscriptions). A new join re-subscribes in JoinRoom.
-                    if (controller.CommandStreamHandler is { } handler) deps.CommandPublisher.Unsubscribe(handler);
-
-                    await navigationService!.NavigateToViewModelAsync(battleMapViewModel);
+                    await controller.NavigateToBattleMapAsync();
                     break;
             }
 

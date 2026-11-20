@@ -712,7 +712,7 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
                     .SelectMany(p => p.Units)
                     .FirstOrDefault(u => u.Id == wt.TargetId);
 
-                if (target?.Position == null) throw new Exception("The target should be deployed");
+                if (target?.Position == null) throw new InvalidOperationException("The target should be deployed");
 
                 // Get or initialize offset for this target
                 var offset = targetOffsets.GetValueOrDefault(target.Id, 5);
@@ -723,7 +723,7 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
                     assignment.Location,
                     assignment.FirstSlot);
 
-                if (weapon == null) throw new Exception("The weapon is not found");
+                if (weapon == null) throw new InvalidOperationException("The weapon is not found");
 
                 var indicator = new WeaponAttackIndicatorViewModel
                 {
