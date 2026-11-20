@@ -220,7 +220,7 @@ internal sealed partial class MtfLocationDataParser
         if (component == MakaMekComponent.Engine
             && mechData.TryGetValue("engine-rating", out var ratingStr)
             && mechData.TryGetValue("engine-type", out var typeStr)
-            && int.TryParse(ratingStr, out var rating)
+            && int.TryParse(ratingStr, CultureInfo.InvariantCulture, out var rating)
             && Enum.TryParse<EngineType>(typeStr, true, out var engineType))
         {
             return new EngineStateData(engineType, rating);
