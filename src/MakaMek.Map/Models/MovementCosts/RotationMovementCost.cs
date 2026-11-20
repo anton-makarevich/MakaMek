@@ -1,3 +1,4 @@
+using System.Globalization;
 using Sanet.Localization;
 
 namespace Sanet.MakaMek.Map.Models.MovementCosts;
@@ -10,6 +11,7 @@ public record RotationMovementCost : MovementCost
     public override string Render(ILocalizationService localizationService)
     {
         var sides = FromFacing.ShortestRotationTo(ToFacing);
-        return string.Format(localizationService.GetString("MovementCost_Rotation"), sides, Value);
+        return string.Format(CultureInfo.InvariantCulture,
+            localizationService.GetString("MovementCost_Rotation"), sides, Value);
     }
 }

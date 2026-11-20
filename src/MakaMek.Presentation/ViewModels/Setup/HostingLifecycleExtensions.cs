@@ -1,3 +1,4 @@
+using System.Globalization;
 using AsyncAwaitBestPractices;
 using Microsoft.Extensions.Logging;
 using Sanet.MVVM.Core.Services;
@@ -215,7 +216,8 @@ public static class HostingLifecycleExtensions
             if (controller.HostingError != null)
                 return controller.HostingError;
             if (controller.IsMultiplayerEnabled && controller.RoomCode != null)
-                return string.Format(deps.LocalizationService.GetString("Hosting_RoomReady"), controller.RoomCode);
+                return string.Format(CultureInfo.InvariantCulture,
+                    deps.LocalizationService.GetString("Hosting_RoomReady"), controller.RoomCode);
             if (controller.IsMultiplayerEnabled && controller.IsLanMode && deps.GameManager.IsLanServerRunning)
                 return deps.LocalizationService.GetString("Hosting_LanEnabled");
             if (controller.IsMultiplayerEnabled)

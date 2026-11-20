@@ -1,3 +1,4 @@
+using System.Globalization;
 using AsyncAwaitBestPractices;
 using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Assets.Configuration;
@@ -127,6 +128,7 @@ public class AssetLoadingViewModel : BaseViewModel
         {
             if (generation != _loadGeneration) return;
             _unitLoadingStatus = string.Format(
+                CultureInfo.InvariantCulture,
                 _localizationService.GetString("MainMenu_Loading_UnitsProgress"),
                 e.LoadedCount, e.TotalCount);
             _unitLoadedCount = e.LoadedCount;
@@ -143,6 +145,7 @@ public class AssetLoadingViewModel : BaseViewModel
         {
             if (generation != _loadGeneration) return;
             _biomeLoadingStatus = string.Format(
+                CultureInfo.InvariantCulture,
                 _localizationService.GetString("MainMenu_Loading_BiomesProgress"),
                 e.LoadedCount, e.TotalCount);
             _biomeLoadedCount = e.LoadedCount;
@@ -174,7 +177,8 @@ public class AssetLoadingViewModel : BaseViewModel
             if (generation != _loadGeneration) return;
             _unitLoadingStatus = modelCount == 0
                 ? _localizationService.GetString("MainMenu_Loading_NoUnitsFound")
-                : string.Format(_localizationService.GetString("MainMenu_Loading_UnitsLoaded"), modelCount);
+                : string.Format(CultureInfo.InvariantCulture,
+                    _localizationService.GetString("MainMenu_Loading_UnitsLoaded"), modelCount);
 
             if (modelCount == 0)
                 throw new Exception(_localizationService.GetString("MainMenu_Loading_NoUnitsFound"));
@@ -183,7 +187,8 @@ public class AssetLoadingViewModel : BaseViewModel
         {
             if (generation != _loadGeneration) return;
             HasError = true;
-            _unitLoadingStatus = string.Format(_localizationService.GetString("MainMenu_Loading_UnitsError"), ex.Message);
+            _unitLoadingStatus = string.Format(CultureInfo.InvariantCulture,
+                _localizationService.GetString("MainMenu_Loading_UnitsError"), ex.Message);
         }
         finally
         {
@@ -206,7 +211,8 @@ public class AssetLoadingViewModel : BaseViewModel
             if (generation != _loadGeneration) return;
             _biomeLoadingStatus = biomeCount == 0
                 ? _localizationService.GetString("MainMenu_Loading_NoBiomesFound")
-                : string.Format(_localizationService.GetString("MainMenu_Loading_BiomesLoaded"), biomeCount);
+                : string.Format(CultureInfo.InvariantCulture,
+                    _localizationService.GetString("MainMenu_Loading_BiomesLoaded"), biomeCount);
 
             if (biomeCount == 0)
                 throw new Exception(_localizationService.GetString("MainMenu_Loading_NoBiomesFound"));
@@ -215,7 +221,8 @@ public class AssetLoadingViewModel : BaseViewModel
         {
             if (generation != _loadGeneration) return;
             HasError = true;
-            _biomeLoadingStatus = string.Format(_localizationService.GetString("MainMenu_Loading_BiomesError"), ex.Message);
+            _biomeLoadingStatus = string.Format(CultureInfo.InvariantCulture,
+                _localizationService.GetString("MainMenu_Loading_BiomesError"), ex.Message);
         }
         finally
         {

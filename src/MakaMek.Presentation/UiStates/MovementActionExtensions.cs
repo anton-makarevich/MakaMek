@@ -1,3 +1,4 @@
+using System.Globalization;
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
 using Sanet.MakaMek.Core.Data.Game.Mechanics.PilotingSkillRollContexts;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
@@ -33,7 +34,9 @@ public static class MovementActionExtensions
     {
         var availableMp = mech.GetMovementPoints(MovementType.Walk);
         return new StateAction(
-            string.Format(state._viewModel.LocalizationService.GetString("Action_ChangeFacing"), availableMp),
+            string.Format(CultureInfo.InvariantCulture,
+                state._viewModel.LocalizationService.GetString("Action_ChangeFacing"),
+                availableMp),
             true,
             () => state.HandleProneFacingChange(mech));
     }
@@ -45,6 +48,7 @@ public static class MovementActionExtensions
 
         var typeKey = movementType == MovementType.Run ? "MovementType_Run" : "MovementType_Walk";
         return string.Format(
+            CultureInfo.InvariantCulture,
             state._viewModel.LocalizationService.GetString("Action_MovementPoints"),
             state._viewModel.LocalizationService.GetString(typeKey),
             state._selectedUnit!.GetMovementPoints(movementType)) + probabilityText;
@@ -128,7 +132,8 @@ public static class MovementActionExtensions
         if (state._selectedUnit!.IsImmobile) return actions;
 
         actions.Add(new StateAction(
-            string.Format(state._viewModel.LocalizationService.GetString("Action_MovementPoints"),
+            string.Format(CultureInfo.InvariantCulture,
+                state._viewModel.LocalizationService.GetString("Action_MovementPoints"),
                 state._viewModel.LocalizationService.GetString("MovementType_Walk"),
                 state._selectedUnit.GetMovementPoints(MovementType.Walk)),
             true,
@@ -137,7 +142,8 @@ public static class MovementActionExtensions
         if (state._selectedUnit is Mech { CanRun: true })
         {
             actions.Add(new StateAction(
-                string.Format(state._viewModel.LocalizationService.GetString("Action_MovementPoints"),
+                string.Format(CultureInfo.InvariantCulture,
+                    state._viewModel.LocalizationService.GetString("Action_MovementPoints"),
                     state._viewModel.LocalizationService.GetString("MovementType_Run"),
                     state._selectedUnit.GetMovementPoints(MovementType.Run)),
                 true,
@@ -147,7 +153,8 @@ public static class MovementActionExtensions
         if (state._selectedUnit is not Mech { CanJump: true }) return actions;
         var jumpPoints = state._selectedUnit.GetMovementPoints(MovementType.Jump);
 
-        var jumpActionText = string.Format(state._viewModel.LocalizationService.GetString("Action_MovementPoints"),
+        var jumpActionText = string.Format(CultureInfo.InvariantCulture,
+            state._viewModel.LocalizationService.GetString("Action_MovementPoints"),
             state._viewModel.LocalizationService.GetString("MovementType_Jump"),
             jumpPoints);
 

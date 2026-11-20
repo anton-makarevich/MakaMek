@@ -1,3 +1,4 @@
+using System.Globalization;
 using Sanet.Localization;
 using Sanet.MakaMek.Map.Data;
 using Sanet.MakaMek.Map.Models.MovementCosts;
@@ -269,9 +270,9 @@ public class MovementPath : IEquatable<MovementPath>
             if (segment.Costs.Count == 0) continue;
             var from = $"{segment.From.Coordinates}:{(int)segment.From.Facing}";
             var to = $"{segment.To.Coordinates}:{(int)segment.To.Facing}";
-            sb.AppendLine($"{segmentNumber++}. {from}->{to}");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"{segmentNumber++}. {from}->{to}");
             foreach (var cost in segment.Costs)
-                sb.AppendLine($"- {cost.Render(localizationService)}");
+                sb.AppendLine(CultureInfo.InvariantCulture, $"- {cost.Render(localizationService)}");
         }
         return sb.ToString().TrimEnd();
     }

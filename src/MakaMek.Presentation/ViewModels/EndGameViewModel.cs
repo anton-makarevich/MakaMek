@@ -1,4 +1,5 @@
 ﻿using System.Collections.ObjectModel;
+using System.Globalization;
 using System.Windows.Input;
 using AsyncAwaitBestPractices.MVVM;
 using Sanet.MakaMek.Core.Models.Game;
@@ -73,7 +74,8 @@ public class EndGameViewModel : BaseViewModel
 
             var victor = Players.FirstOrDefault(p => p.IsVictor);
             return victor != null 
-                ? string.Format(_localizationService.GetString("EndGame_Victory_Subtitle"), victor.Name) 
+                ? string.Format(CultureInfo.InvariantCulture,
+                    _localizationService.GetString("EndGame_Victory_Subtitle"), victor.Name) 
                 : _localizationService.GetString("EndGame_Draw_Subtitle");
         }
     }

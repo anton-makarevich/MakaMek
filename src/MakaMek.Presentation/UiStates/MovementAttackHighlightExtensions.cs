@@ -1,3 +1,4 @@
+using System.Globalization;
 using Sanet.MakaMek.Core.Data.Game.Mechanics.PhysicalAttacks;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Units;
@@ -71,15 +72,18 @@ public static class MovementAttackHighlightExtensions
         if (state._selectedUnit == null || state.Game == null) return lines;
 
         var hexesMoved = declaration.HexesMoved ?? 0;
-        lines.Add(string.Format(state.GetString("PhysicalAttackDeclaration_MovementHexesMoved"), hexesMoved));
+        lines.Add(string.Format(CultureInfo.InvariantCulture,
+            state.GetString("PhysicalAttackDeclaration_MovementHexesMoved"), hexesMoved));
 
         var rules = state.Game.RulesProvider;
         if (declaration.AttackType == PhysicalAttackType.Charge)
         {
             lines.Add(string.Format(
+                CultureInfo.InvariantCulture,
                 state.GetString("PhysicalAttackDeclaration_MovementDamage_Target"),
                 rules.GetChargeDamage(state._selectedUnit.Tonnage, hexesMoved)));
             lines.Add(string.Format(
+                CultureInfo.InvariantCulture,
                 state.GetString("PhysicalAttackDeclaration_MovementDamage_Attacker"),
                 rules.GetChargeCollisionDamage(target.Tonnage)));
             lines.Add(state.GetString("PhysicalAttackDeclaration_ChargePsr"));
@@ -88,9 +92,11 @@ public static class MovementAttackHighlightExtensions
         else
         {
             lines.Add(string.Format(
+                CultureInfo.InvariantCulture,
                 state.GetString("PhysicalAttackDeclaration_MovementDamage_Target"),
                 rules.GetDfaDamage(state._selectedUnit.Tonnage)));
             lines.Add(string.Format(
+                CultureInfo.InvariantCulture,
                 state.GetString("PhysicalAttackDeclaration_MovementDamage_Attacker"),
                 rules.GetDfaAttackerDamage(state._selectedUnit.Tonnage)));
             lines.Add(state.GetString("PhysicalAttackDeclaration_DfaPsr"));

@@ -1,3 +1,4 @@
+using System.Globalization;
 using Sanet.Localization;
 
 namespace Sanet.MakaMek.Map.Models.Highlights;
@@ -27,9 +28,11 @@ public record LosBlockingHighlight(LineOfSightBlockReason Reason, HexCoordinates
             LineOfSightBlockReason.InvalidCoordinates =>
                 localizationService.GetString("HexHighlight_LosBlocked_InvalidCoordinates"),
             LineOfSightBlockReason.Elevation when BlockingHex != null =>
-                string.Format(localizationService.GetString("HexHighlight_LosBlocked_Elevation"), BlockingHex),
+                string.Format(CultureInfo.InvariantCulture,
+                    localizationService.GetString("HexHighlight_LosBlocked_Elevation"), BlockingHex),
             LineOfSightBlockReason.InterveningTerrain when BlockingHex != null =>
-                string.Format(localizationService.GetString("HexHighlight_LosBlocked_InterveningTerrain"), BlockingHex),
+                string.Format(CultureInfo.InvariantCulture,
+                    localizationService.GetString("HexHighlight_LosBlocked_InterveningTerrain"), BlockingHex),
             LineOfSightBlockReason.Elevation or LineOfSightBlockReason.InterveningTerrain =>
                 localizationService.GetString("HexHighlight_LosBlocked_InvalidCoordinates"),
             LineOfSightBlockReason.WaterSubmersion =>

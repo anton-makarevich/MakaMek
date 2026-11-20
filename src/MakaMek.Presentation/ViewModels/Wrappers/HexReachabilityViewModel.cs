@@ -1,4 +1,5 @@
-﻿using Sanet.Localization;
+﻿using System.Globalization;
+using Sanet.Localization;
 using Sanet.MakaMek.Map.Data;
 using Sanet.MakaMek.Map.Models;
 using Sanet.MVVM.Core.ViewModels;
@@ -23,7 +24,8 @@ public class HexReachabilityViewModel:BindableBase
             HexSurface.Ground => localizationService.GetString("Surface_Ground"),
             _ => Surface.ToString()
         };
-        return string.Format(localizationService.GetString("Surface_Option_WithCost"), surfaceName, Cost);
+        return string.Format(CultureInfo.InvariantCulture,
+            localizationService.GetString("Surface_Option_WithCost"), surfaceName, Cost);
     }
     public HexSurface Surface => _hexReachabilityData.Surface;
     public int Cost => _hexReachabilityData.Cost;

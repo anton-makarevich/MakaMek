@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Windows.Input;
 using Microsoft.Extensions.Logging;
 using Sanet.Localization;
@@ -188,8 +189,10 @@ public class JoinGameViewModel : NewGameViewModel, ISetupNotificationSink, IAsyn
                 return string.Empty;
 
             return IsOnlineMode
-                ? string.Format(_localizationService.GetString("Join_RoomJoinedInfo"), RoomCode)
-                : string.Format(_localizationService.GetString("Join_ServerConnectedInfo"), ServerAddress);
+                ? string.Format(CultureInfo.InvariantCulture,
+                    _localizationService.GetString("Join_RoomJoinedInfo"), RoomCode)
+                : string.Format(CultureInfo.InvariantCulture,
+                    _localizationService.GetString("Join_ServerConnectedInfo"), ServerAddress);
         }
     }
 

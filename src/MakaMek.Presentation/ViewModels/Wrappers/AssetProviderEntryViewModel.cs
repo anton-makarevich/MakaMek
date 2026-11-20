@@ -1,4 +1,5 @@
-﻿using System.Windows.Input;
+﻿using System.Globalization;
+using System.Windows.Input;
 using AsyncAwaitBestPractices.MVVM;
 using Sanet.MakaMek.Assets.Configuration;
 using Sanet.MVVM.Core.ViewModels;
@@ -74,8 +75,8 @@ public class AssetProviderEntryViewModel : BindableBase
     /// format string when one is provided (e.g. "{0} items").
     /// </summary>
     public string CachedCountLabel => _cachedCountFormat is null
-        ? _cachedCount.ToString()
-        : string.Format(_cachedCountFormat, _cachedCount);
+        ? _cachedCount.ToString(CultureInfo.InvariantCulture)
+        : string.Format(CultureInfo.InvariantCulture, _cachedCountFormat, _cachedCount);
     public bool IsDefault => _provider.IsDefault;
     public int SortOrder => _provider.SortOrder;
 
