@@ -71,8 +71,7 @@ public static class CoreServices
             });
         });
 
-        // Terrain cache collaborators — stateless, so one instance serves every consumer.
-        services.AddSingleton<TerrainAssetCache>();
+        // Terrain cache collaborators: stateless helpers plus the reader/loader singletons.
         services.AddSingleton<ITerrainImageResolver, TerrainImageResolver>();
         services.AddSingleton<MmtxTerrainPackageReader>();
         services.AddSingleton<TerrainPackageLoader>();
@@ -89,7 +88,6 @@ public static class CoreServices
                 var configs = await configProvider.GetActiveProviders(AssetType.Hexes);
                 return providerFactory.CreateAll(configs);
             },
-            sp.GetRequiredService<TerrainAssetCache>(),
             sp.GetRequiredService<ITerrainImageResolver>(),
             sp.GetRequiredService<TerrainPackageLoader>());
         });

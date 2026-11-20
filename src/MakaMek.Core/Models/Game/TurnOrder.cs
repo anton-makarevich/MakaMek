@@ -56,14 +56,14 @@ public class TurnOrder
             // Process players in reverse initiative order (loser moves first)
             foreach (var player in initiativeOrder.Reverse())
             {
-                if (!remainingUnits.ContainsKey(player) || remainingUnits[player] <= 0)
+                if (!remainingUnits.TryGetValue(player, out var playerRemaining) || playerRemaining <= 0)
                     continue;
 
                 // Calculate how many units this player should move based on ratio
                 // If a team has N times as many units as the minimum, they move N units
-                var ratio = remainingUnits[player] / minUnits;
+                var ratio = playerRemaining / minUnits;
                 var unitsToMove = Math.Max(1, ratio); // At least 1 unit
-                unitsToMove = Math.Min(unitsToMove, remainingUnits[player]); // Don't move more units than remaining
+                unitsToMove = Math.Min(unitsToMove, playerRemaining); // Don't move more units than remaining
 
                 _steps.Add(new TurnStep(player, unitsToMove));
                 remainingUnits[player] -= unitsToMove;

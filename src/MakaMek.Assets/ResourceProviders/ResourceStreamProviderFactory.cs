@@ -50,7 +50,7 @@ public sealed class ResourceStreamProviderFactory : IResourceStreamProviderFacto
                 Path.Combine(config.UrlOrPath, GetAssetTypeSubPath(config.AssetType)),
                 GetFileExtension(config.AssetType),
                 config.Id),
-            _ => throw new ArgumentOutOfRangeException(nameof(config.ProviderType), config.ProviderType,
+            _ => throw new ArgumentOutOfRangeException(nameof(config), config.ProviderType,
                 $"Unsupported provider type '{config.ProviderType}'.")
         };
     }
