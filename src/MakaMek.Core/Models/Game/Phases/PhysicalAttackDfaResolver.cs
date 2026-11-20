@@ -139,13 +139,7 @@ internal sealed class PhysicalAttackDfaResolver
         // A target destroyed in place does not move; the attacker still falls into its hex.
         if (target.IsDestroyed)
         {
-            _publisher.Publish(item, target, resolution);
-            if (target.Position is not null)
-            {
-                var landing = _landing.Execute(item.Attacker);
-                _displacement.RollDominoEffects(landing?.DominoEffect);
-                _landing.ApplyFall(item.Attacker);
-            }
+            ResolveDestroyedTargetMiss(item, target, resolution);
             return;
         }
 
@@ -160,14 +154,7 @@ internal sealed class PhysicalAttackDfaResolver
         if (candidate is null)
         {
             // No legal adjacent hex exists: the attacker is destroyed (Total Warfare, p. 150).
-            // Every DFA resolution path (the to-hit roll and the automatic miss) carries its DFA
-            // payload, so the outcome can be rewritten in place.
-            var dfa = resolution.Dfa!;
-            var destroyed = resolution with
-            {
-                Dfa = dfa with { Outcome = DfaOutcome.AttackerDestroyedNoLanding }
-            };
-            _publisher.Publish(item, target, destroyed);
+            _publisher.Publish(item, target, WithAttackerDestroyedNoLanding(resolution));
             return;
         }
 
@@ -179,6 +166,48 @@ internal sealed class PhysicalAttackDfaResolver
             targetPosition,
             candidate,
             DisplacementReason.DfaTarget);
+    }
+
+    /// <summary>
+    /// A miss against a target destroyed in place: the target stays where it was, so the attacker
+    /// grounds in its hex and takes the automatic two-level fall. A DFA has no side-hex fallback,
+    /// so a landing hex the domino chain cannot vacate destroys the attacker, which then cannot
+    /// fall (Total Warfare, p. 150).
+    /// </summary>
+    private void ResolveDestroyedTargetMiss(
+        DfaQueueItem item,
+        IUnit target,
+        PhysicalAttackResolutionData resolution)
+    {
+        // A destroyed target is selected only while it is deployed in the committed hex, and a
+        // DFA that reaches resolution still carries its jump path, so the landing always resolves.
+        var landing = _landing.Resolve(item.Attacker)!;
+
+        // The outcome is published before the landing applies, so an impossible landing is
+        // rewritten as the attacker's destruction and ends the miss without a fall.
+        if (landing.IsOverlapUnresolved)
+        {
+            _publisher.Publish(item, target, WithAttackerDestroyedNoLanding(resolution));
+            return;
+        }
+
+        _publisher.Publish(item, target, resolution);
+
+        _landing.Apply(item.Attacker, landing, DfaLandingKind.MissLanding);
+        _displacement.RollDominoEffects(landing.DominoEffect);
+        _landing.ApplyFall(item.Attacker);
+    }
+
+    /// <summary>
+    /// Rewrites a DFA resolution as the attacker's destruction: a landing that cannot be resolved
+    /// destroys the attacker (Total Warfare, p. 150). Every DFA resolution path (the to-hit roll and
+    /// the automatic miss) carries its DFA payload, so the outcome can be rewritten in place.
+    /// </summary>
+    private static PhysicalAttackResolutionData WithAttackerDestroyedNoLanding(
+        PhysicalAttackResolutionData resolution)
+    {
+        var dfa = resolution.Dfa!;
+        return resolution with { Dfa = dfa with { Outcome = DfaOutcome.AttackerDestroyedNoLanding } };
     }
 
     /// <summary>

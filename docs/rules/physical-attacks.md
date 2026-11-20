@@ -141,6 +141,10 @@ is added.
   The attacker always lands in the target hex: if a successful DFA's target cannot be displaced,
   the target is destroyed so the hex frees up — unless the impact destroyed the attacker first,
   which then never lands; if a missed DFA's target cannot be displaced, the attacker is destroyed.
+  The same applies when the missed target is already destroyed in place and a living occupant of its
+  hex cannot be forced out: the landing has no side-hex fallback, so the attacker is destroyed
+  (issue [#1745](https://github.com/anton-makarevich/MakaMek/issues/1745)) instead of landing, and
+  a destroyed attacker does not take the miss fall.
   The declaration itself remains turn-scoped and is cleared by `ResetTurnState` at the end of the
   turn.
 * **Landing entry:** the landing hex is not a forced entry. The jump into the target hex was

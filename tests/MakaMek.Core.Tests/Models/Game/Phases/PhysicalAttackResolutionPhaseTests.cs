@@ -2160,6 +2160,43 @@ public class PhysicalAttackResolutionPhaseTests : GamePhaseTestsBase
         _player1Mech.Position.Facing.ShouldBe(HexDirection.Top);
     }
 
+    /// <summary>
+    /// A DFA against a target destroyed in place still lands in its hex, and a DFA has no side-hex
+    /// fallback: when the living occupant cannot be displaced the attacker is destroyed instead of
+    /// landing, and a destroyed attacker does not fall (Total Warfare, p. 150).
+    /// </summary>
+    [Fact]
+    public void Enter_DfaAgainstADestroyedTarget_WhenTheLandingHexCannotBeVacated_DestroysTheAttacker()
+    {
+        SetMap();
+        SetUpDfa(_player1Mech, _player2Mech);
+        _player2Mech.MarkDestroyed();
+        StubDfaFall();
+
+        // The destroyed target keeps its hex and does not count as an occupant. The living occupant
+        // is forced out along the jump vector, but a three-level rise blocks the first domino link.
+        Game.BattleMap!.AddHex(new Hex(TargetHex.GetNeighbour(HexDirection.Bottom), 3));
+        var occupant = CreateMech();
+        ((Player)Game.Players[0]).AddUnit(occupant);
+        occupant.Deploy(new HexPosition(TargetHex, HexDirection.Top), null);
+
+        _sut.Enter();
+
+        _player1Mech.IsDestroyed.ShouldBeTrue();
+        PublishedCommands().OfType<PhysicalAttackResolutionCommand>()
+            .ShouldHaveSingleItem()
+            .ResolutionData.Dfa!.Outcome.ShouldBe(DfaOutcome.AttackerDestroyedNoLanding);
+        PublishedCommands().OfType<DfaLandingCommand>().ShouldBeEmpty();
+        PublishedCommands().OfType<MechFallCommand>().ShouldBeEmpty();
+        MockFallProcessor.DidNotReceive().ProcessMovementAttempt(
+            _player1Mech,
+            Arg.Any<DfaFallRollContext>(),
+            Game,
+            Arg.Any<MovementType>(),
+            Arg.Any<HexPosition?>());
+        occupant.Position!.Coordinates.ShouldBe(TargetHex);
+    }
+
     [Fact]
     public void Enter_DfaHit_WithADestroyedAttackerLeg_AddsItToTheEndOfPhasePsr()
     {
