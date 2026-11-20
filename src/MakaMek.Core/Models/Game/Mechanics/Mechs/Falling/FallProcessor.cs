@@ -16,7 +16,6 @@ public class FallProcessor : IFallProcessor
 {
     private readonly IRulesProvider _rulesProvider;
     private readonly IPilotingSkillCalculator _pilotingSkillCalculator;
-    private readonly FallParametersResolver _fallParametersResolver;
     private readonly FallingDamageResolver _fallingDamageResolver;
 
     /// <summary>
@@ -35,12 +34,10 @@ public class FallProcessor : IFallProcessor
     public FallProcessor(
         IRulesProvider rulesProvider,
         IPilotingSkillCalculator pilotingSkillCalculator,
-        FallParametersResolver fallParametersResolver,
         FallingDamageResolver fallingDamageResolver)
     {
         _rulesProvider = rulesProvider;
         _pilotingSkillCalculator = pilotingSkillCalculator;
-        _fallParametersResolver = fallParametersResolver;
         _fallingDamageResolver = fallingDamageResolver;
     }
 
@@ -128,8 +125,8 @@ public class FallProcessor : IFallProcessor
         {
             var (isFallingNow, fallPsrData) = EvaluateFall(mech, context, game);
 
-            var parameters = _fallParametersResolver.Resolve(
-                mech, game, context, movementType, isFallingNow, fallPosition);
+            var parameters = mech.ResolveFallParameters(
+                game, context, movementType, isFallingNow, fallPosition);
 
             var pilotDamagePsr = isFallingNow
                 ? EvaluatePilotDamage(mech, parameters.LevelsFallen, game)

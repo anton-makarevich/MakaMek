@@ -46,7 +46,6 @@ public class FallProcessorTests
         _sut = new FallProcessor(
             rulesProvider,
             _mockPilotingSkillCalculator,
-            new FallParametersResolver(),
             new FallingDamageResolver(_mockFallingDamageCalculator));
 
         _testMech = new MechFactory(
@@ -2008,7 +2007,6 @@ public class FallProcessorTests
         var paritySut = new FallProcessor(
             new TotalWarfareRulesProvider(),
             _mockPilotingSkillCalculator,
-            new FallParametersResolver(),
             new FallingDamageResolver(realFallingDamageCalculator));
 
         // Water entry PSR fails, pilot damage PSR succeeds

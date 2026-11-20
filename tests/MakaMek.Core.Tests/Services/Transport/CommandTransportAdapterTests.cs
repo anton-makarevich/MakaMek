@@ -162,7 +162,7 @@ public class CommandTransportAdapterTests
         //capturedMessage!.Payload.ShouldContain("\"$type\"");
 
         // Act - attempt round-trip deserialization
-        var roundTripped = (JoinGameCommand)_sut.DeserializeCommand(capturedMessage!);
+        var roundTripped = (JoinGameCommand)CommandJsonSerializer.Deserialize(capturedMessage!);
 
         // Assert
         roundTripped.Units.ShouldNotBeEmpty();
@@ -488,7 +488,7 @@ public class CommandTransportAdapterTests
 
         // Act & Assert
         // Directly call the internal DeserializeCommand method
-        Should.Throw<JsonException>(() => _sut.DeserializeCommand(message));
+        Should.Throw<JsonException>(() => CommandJsonSerializer.Deserialize(message));
     }
 
     [Fact]
@@ -506,7 +506,7 @@ public class CommandTransportAdapterTests
 
         // Act & Assert
         // Directly call the internal DeserializeCommand method
-        var exception = Should.Throw<UnknownCommandTypeException>(() => _sut.DeserializeCommand(message));
+        var exception = Should.Throw<UnknownCommandTypeException>(() => CommandJsonSerializer.Deserialize(message));
         exception.CommandType.ShouldBe("ThisCommandDoesNotExist");
     }
 
@@ -526,7 +526,7 @@ public class CommandTransportAdapterTests
         // Act & Assert
         // All registered commands are value types, so a JSON null literal cannot
         // be deserialized to a command and is rejected rather than silently accepted
-        var exception = Should.Throw<JsonException>(() => _sut.DeserializeCommand(message));
+        var exception = Should.Throw<JsonException>(() => CommandJsonSerializer.Deserialize(message));
         exception.Message.ShouldContain(nameof(TurnIncrementedCommand));
     }
 
@@ -546,7 +546,7 @@ public class CommandTransportAdapterTests
         // Act & Assert
         // HullBreachCommand is a reference-type record, so a JSON null literal
         // deserializes to null rather than throwing; the adapter must reject it
-        var exception = Should.Throw<InvalidOperationException>(() => _sut.DeserializeCommand(message));
+        var exception = Should.Throw<InvalidOperationException>(() => CommandJsonSerializer.Deserialize(message));
         exception.Message.ShouldContain(nameof(HullBreachCommand));
     }
 
@@ -784,7 +784,7 @@ public class CommandTransportAdapterTests
         // Act - Publish and deserialize the command
         _sut.PublishCommand(joinCommand);
         capturedMessage.ShouldNotBeNull();
-        var deserializedCommand = (JoinGameCommand)_sut.DeserializeCommand(capturedMessage!);
+        var deserializedCommand = (JoinGameCommand)CommandJsonSerializer.Deserialize(capturedMessage!);
 
         // Assert - Verify all component types were preserved correctly
         deserializedCommand.Units.ShouldNotBeEmpty();
@@ -841,7 +841,7 @@ public class CommandTransportAdapterTests
             // but that's okay - we're just testing that the type is registered
             try
             {
-                var result = _sut.DeserializeCommand(message);
+                var result = CommandJsonSerializer.Deserialize(message);
                 result.ShouldNotBeNull();
             }
             catch (JsonException)
@@ -912,7 +912,7 @@ public class CommandTransportAdapterTests
         capturedMessage.ShouldNotBeNull();
 
         // Act - Deserialize the command back
-        var roundTripped = (MechStandUpCommand)_sut.DeserializeCommand(capturedMessage!);
+        var roundTripped = (MechStandUpCommand)CommandJsonSerializer.Deserialize(capturedMessage!);
 
         // Assert - Verify the deserialized command retains all data
         roundTripped.UnitId.ShouldBe(standUpCommand.UnitId);

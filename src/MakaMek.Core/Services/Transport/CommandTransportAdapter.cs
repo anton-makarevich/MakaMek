@@ -327,17 +327,6 @@ public partial class CommandTransportAdapter : ICommandTransportAdapter
     /// <returns>JSON representation of the command</returns>
     private static string SerializeCommand(IGameCommand command) => CommandJsonSerializer.Serialize(command);
 
-    /// <summary>
-    /// Deserializes a TransportMessage payload to an IGameCommand
-    /// </summary>
-    /// <param name="message">The transport message to deserialize</param>
-    /// <returns>The deserialized command</returns>
-    /// <exception cref="UnknownCommandTypeException">Thrown when the command type is unknown</exception>
-    /// <exception cref="System.Text.Json.JsonException">Thrown when the JSON is invalid</exception>
-    /// <exception cref="InvalidOperationException">Thrown when deserialization fails or produces an invalid command</exception>
-    internal IGameCommand DeserializeCommand(TransportMessage message) =>
-        CommandJsonSerializer.Deserialize(message);
-    
     // Helper method to encapsulate the subscription logic including error handling
     private void SubscribePublisher(ITransportPublisher publisher, Action<IGameCommand, ITransportPublisher> onCommandReceived)
     {
@@ -345,7 +334,7 @@ public partial class CommandTransportAdapter : ICommandTransportAdapter
             _logger.LogReceivedTransportMessage(message.MessageType, publisher.GetType().Name);
             try
             {
-                var command = DeserializeCommand(message);
+                var command = CommandJsonSerializer.Deserialize(message);
                 onCommandReceived(command, publisher);
             }
             catch (UnknownCommandTypeException uex)

@@ -120,7 +120,7 @@ public class ToHitCalculator : IToHitCalculator
         return scenario.AttackerWaterDepth >= partLevel;
     }
 
-    private FiringArc? GetFiringArc(AttackScenario scenario, Weapon weapon)
+    private static FiringArc? GetFiringArc(AttackScenario scenario, Weapon weapon)
     {
         var arcs = weapon.GetFiringArcs();
         var facing = weapon.FirstMountPart?.Facing;

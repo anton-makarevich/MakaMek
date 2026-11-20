@@ -97,7 +97,7 @@ public class Mech : Unit
     }
 
     public override PartLocation? GetTransferLocation(PartLocation location) =>
-        this.GetDamageTransferLocation(location);
+        location.GetDamageTransferLocation();
 
     public override void ApplyWeaponConfiguration(WeaponConfiguration weaponConfiguration) =>
         this.ApplyConfiguration(weaponConfiguration);
@@ -278,12 +278,5 @@ public class Mech : Unit
         IDiceRoller diceRoller,
         IDamageTransferCalculator damageTransferCalculator) =>
         this.ResolveCriticalHits(location, diceRoller, damageTransferCalculator);
-
-    /// <summary>
-    /// Determines the number of critical hits based on the roll
-    /// </summary>
-    /// <param name="roll">The 2d6 roll result</param>
-    /// <returns>Number of critical hits (0-3)</returns>
-    internal int GetNumCriticalHits(int roll) => MechCriticalHitExtensions.GetNumCriticalHits(roll);
 }
 

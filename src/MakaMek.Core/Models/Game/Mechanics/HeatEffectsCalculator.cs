@@ -236,7 +236,7 @@ public class HeatEffectsCalculator : IHeatEffectsCalculator
         };
     }
 
-    private List<Ammo> GetExplodableAmmoComponents(Mech mech)
+    private static List<Ammo> GetExplodableAmmoComponents(Mech mech)
     {
         return mech.GetAvailableComponents<Ammo>()
             // Only consider ammo with a resolvable mount location

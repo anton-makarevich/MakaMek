@@ -43,7 +43,7 @@ public class DamageTransferCalculator : IDamageTransferCalculator
     }
 
     
-    private List<LocationDamageData> CalculateDamageDistribution(IUnit unit, PartLocation initialLocation, int totalDamage,
+    private static List<LocationDamageData> CalculateDamageDistribution(IUnit unit, PartLocation initialLocation, int totalDamage,
         HitDirection hitDirection, bool isExplosion = false)
     {
         var damageDistribution = new List<LocationDamageData>();
@@ -84,7 +84,7 @@ public class DamageTransferCalculator : IDamageTransferCalculator
         return damageDistribution;
     }
 
-    private LocationDamageData CalculateLocationDamage(UnitPart part, int incomingDamage, HitDirection hitDirection)
+    private static LocationDamageData CalculateLocationDamage(UnitPart part, int incomingDamage, HitDirection hitDirection)
     {
         var armorDamage = 0;
         var structureDamage = 0;
@@ -116,7 +116,7 @@ public class DamageTransferCalculator : IDamageTransferCalculator
         );
     }
 
-    private LocationDamageData CalculateExplosionLocationDamage(UnitPart part, int incomingDamage)
+    private static LocationDamageData CalculateExplosionLocationDamage(UnitPart part, int incomingDamage)
     {
         // Explosion damage bypasses armor entirely
         var availableStructure = part.CurrentStructure;
@@ -131,7 +131,7 @@ public class DamageTransferCalculator : IDamageTransferCalculator
         );
     }
 
-    private (int, bool) GetAvailableArmor(UnitPart part, HitDirection hitDirection)
+    private static (int, bool) GetAvailableArmor(UnitPart part, HitDirection hitDirection)
     {
         return part switch
         {

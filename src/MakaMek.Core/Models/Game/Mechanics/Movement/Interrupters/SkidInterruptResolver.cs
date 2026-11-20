@@ -7,49 +7,49 @@ namespace Sanet.MakaMek.Core.Models.Game.Mechanics.Movement.Interrupters;
 
 /// <summary>
 /// Resolves the skid of a running 'Mech turning on hard pavement: the skid path, the skid PSR,
-/// and the fall/skid commands that follow. Extracted from <see cref="SkidInterruptHandler"/> so
-/// the handler stays a thin dispatcher.
+/// and the fall/skid commands that follow. Exposed as a <see cref="MovementInterruptContext"/>
+/// extension so the handler stays a thin dispatcher.
 /// </summary>
-internal sealed class SkidInterruptResolver
+internal static class SkidInterruptExtensions
 {
-    private readonly SkidPathGenerator _pathGenerator = new();
-    private readonly SkidFallResolver _fallResolver = new();
-
-    public MovementInterruptResult? Check(MovementInterruptContext context)
+    extension(MovementInterruptContext context)
     {
-        if (context.MoveCommand.MovementType != MovementType.Run) return null;
-
-        var segment = context.MoveCommand.MovementPath[context.SegmentIndex];
-        if (segment.From.Coordinates != segment.To.Coordinates) return null;
-
-        var turnHex = context.Game.BattleMap?.GetHex(new HexCoordinates(segment.From.Coordinates));
-        if (turnHex == null || !turnHex.HasHardPavement()) return null;
-
-        if (segment.To.Coordinates == context.MoveCommand.MovementPath.Last().To.Coordinates) return null;
-
-        if (context.Unit is not Mech mech) return null;
-
-        var hexesMoved = CountHexesMoved(context);
-        var maxSkidDistance = (int)Math.Ceiling(hexesMoved / 2.0);
-        var skidResult = _pathGenerator.Generate(context.Game, segment.From, maxSkidDistance, mech);
-
-        var skidFallContext = _fallResolver.ResolveSkidFall(context, mech, segment, skidResult, hexesMoved);
-
-        if (!skidFallContext.IsFalling)
+        public MovementInterruptResult? CheckSkidInterrupt()
         {
-            return new MovementInterruptResult
-            {
-                ShouldStop = false,
-                GameActions = new List<IGameAction>
-                {
-                    new PublishCommandAction(skidFallContext.ToMechFallCommand())
-                }
-            };
-        }
+            if (context.MoveCommand.MovementType != MovementType.Run) return null;
 
-        return skidResult.HasCliffFall
-            ? HandleSkidFailureWithCliffFall(context, mech, skidResult, skidFallContext)
-            : HandleSkidFailure(context, mech, skidResult, skidFallContext);
+            var segment = context.MoveCommand.MovementPath[context.SegmentIndex];
+            if (segment.From.Coordinates != segment.To.Coordinates) return null;
+
+            var turnHex = context.Game.BattleMap?.GetHex(new HexCoordinates(segment.From.Coordinates));
+            if (turnHex == null || !turnHex.HasHardPavement()) return null;
+
+            if (segment.To.Coordinates == context.MoveCommand.MovementPath[^1].To.Coordinates) return null;
+
+            if (context.Unit is not Mech mech) return null;
+
+            var hexesMoved = CountHexesMoved(context);
+            var maxSkidDistance = (int)Math.Ceiling(hexesMoved / 2.0);
+            var skidResult = context.Game.GenerateSkidPath(segment.From, maxSkidDistance, mech);
+
+            var skidFallContext = context.ResolveSkidFall(mech, segment, skidResult, hexesMoved);
+
+            if (!skidFallContext.IsFalling)
+            {
+                return new MovementInterruptResult
+                {
+                    ShouldStop = false,
+                    GameActions = new List<IGameAction>
+                    {
+                        new PublishCommandAction(skidFallContext.ToMechFallCommand())
+                    }
+                };
+            }
+
+            return skidResult.HasCliffFall
+                ? HandleSkidFailureWithCliffFall(context, mech, skidResult, skidFallContext)
+                : HandleSkidFailure(context, mech, skidResult, skidFallContext);
+        }
     }
 
     private static int CountHexesMoved(MovementInterruptContext context)
@@ -81,13 +81,13 @@ internal sealed class SkidInterruptResolver
         return Stopped(actions);
     }
 
-    private MovementInterruptResult HandleSkidFailureWithCliffFall(
+    private static MovementInterruptResult HandleSkidFailureWithCliffFall(
         MovementInterruptContext context,
         Mech mech,
         SkidPathResult skidResult,
         FallContextData skidFallContext)
     {
-        var cliffFallContext = _fallResolver.ResolveCliffFall(context, mech, skidResult, skidFallContext);
+        var cliffFallContext = context.ResolveCliffFall(mech, skidResult, skidFallContext);
 
         var cliffSegments = skidResult.Segments.ToList();
         cliffSegments[^1] = cliffSegments[^1] with

@@ -16,7 +16,6 @@ namespace Sanet.MakaMek.Core.Models.Game.Mechanics.Movement.Interrupters;
 /// </summary>
 internal sealed class BridgeCollapseResolver
 {
-    private readonly BridgeCollapseFallResolver _fallResolver = new();
     private readonly BridgeCollapseDisplacementResolver _displacementResolver;
 
     public BridgeCollapseResolver(DominoEffectResolver dominoEffectResolver)
@@ -60,7 +59,7 @@ internal sealed class BridgeCollapseResolver
                 CreateBridgeCommand(context, bridgeCoords, bridgeTerrain, totalTonnage), publish: true)
         };
 
-        _fallResolver.AppendFallActions(context, actions, bridgeCoords, bridgeTerrain.Height, unitsOnHex);
+        context.AppendBridgeCollapseFallActions(actions, bridgeCoords, bridgeTerrain.Height, unitsOnHex);
         _displacementResolver.AppendDisplacementActions(context, actions, segment, bridgeCoords, unitsOnHex);
 
         return Stopped(actions);
@@ -93,7 +92,7 @@ internal sealed class BridgeCollapseResolver
                 truncatedCommand with { IsCompleted = true, GameOriginId = context.Game.Id }, publish: true)
         };
 
-        _fallResolver.AppendFallActions(context, actions, bridgeCoords, bridgeTerrain.Height, unitsOnHex);
+        context.AppendBridgeCollapseFallActions(actions, bridgeCoords, bridgeTerrain.Height, unitsOnHex);
         _displacementResolver.AppendDisplacementActions(context, actions, segment, bridgeCoords, unitsOnHex);
 
         return Stopped(actions);
