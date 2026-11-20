@@ -319,7 +319,7 @@ public sealed class ClientGame : BaseGame, IDisposable, IClientGame
         _isDisposed = true;
 
         // Unsubscribe from command publisher
-        CommandPublisher.Unsubscribe(HandleCommand);
+        UnsubscribeFromCommands();
 
         // Fail/cancel any pending waits to avoid hangs. Registration in
         // SendClientCommand is synchronized with this cleanup, so no command can be

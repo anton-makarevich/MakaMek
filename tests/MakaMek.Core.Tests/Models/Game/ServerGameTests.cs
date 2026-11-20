@@ -82,6 +82,25 @@ public class ServerGameTests
     {
         _sut.IsDisposed.ShouldBeFalse();
     }
+
+    [Fact]
+    public void Constructor_ShouldSubscribeToCommandPublisherExactlyOnce()
+    {
+        _commandPublisher.Received(1).Subscribe(Arg.Any<Action<IGameCommand>>());
+    }
+
+    [Fact]
+    public void Dispose_ShouldReleaseTheConstructorSubscription()
+    {
+        // Arrange
+        _commandPublisher.Received(1).Subscribe(Arg.Any<Action<IGameCommand>>());
+
+        // Act
+        _sut.Dispose();
+
+        // Assert - one subscription, one unsubscribe
+        _commandPublisher.Received(1).Unsubscribe(Arg.Any<Action<IGameCommand>>());
+    }
     
     [Fact]
     public void DamageTransferCalculator_ShouldReturnInjectedCalculator()

@@ -16,7 +16,7 @@ using Sanet.MakaMek.Core.Models.Game.Mechanics.PhysicalAttack;
 
 namespace Sanet.MakaMek.Core.Models.Game;
 
-public class ServerGame : BaseGame, IDisposable
+public sealed class ServerGame : BaseGame, IDisposable
 {
     private IReadOnlyList<IPlayer> _initiativeOrder = BaseGame.NoPlayers;
     private readonly ServerCommandProcessor _commandProcessor;
@@ -177,7 +177,7 @@ public class ServerGame : BaseGame, IDisposable
         if (IsDisposed) return;
         IsDisposed = true;
         IsGameOver = true; // Ensure the loop in Start() exits
-        CommandPublisher.Unsubscribe(HandleCommand);
+        UnsubscribeFromCommands();
         DisposeCommandResources();
     }
 }
