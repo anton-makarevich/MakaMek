@@ -40,7 +40,7 @@ public class LanHostControllerTests
         // Act & Assert
         await Should.ThrowAsync<OperationCanceledException>(() => sut.StartAsync(cts.Token));
 
-        await _networkHostService.Received(1).Stop();
+        await _networkHostService.Received(1).StopAsync();
         _transportAdapter.DidNotReceive().AddPublisher(Arg.Any<ITransportPublisher>());
     }
 

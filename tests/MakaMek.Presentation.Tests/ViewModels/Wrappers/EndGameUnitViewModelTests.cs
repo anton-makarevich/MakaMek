@@ -42,7 +42,7 @@ public class EndGameUnitViewModelTests
         sut.Chassis.ShouldBe(mech.Chassis);
         sut.Model.ShouldBe(mech.Model);
         sut.Tonnage.ShouldBe(mech.Tonnage);
-        sut.WeightClass.ShouldBe(mech.Class.ToString());
+        sut.WeightClass.ShouldBe(mech.UnitClass.ToString());
         sut.Status.ShouldBe(mech.Status.ToString());
         sut.UnitData.Chassis.ShouldBe(mech.Chassis);
     }
@@ -261,7 +261,7 @@ public class EndGameUnitViewModelTests
         var sut = new EndGameUnitViewModel(mech);
 
         // Assert
-        sut.WeightClass.ShouldBe(mech.Class.ToString());
+        sut.WeightClass.ShouldBe(mech.UnitClass.ToString());
     }
 }
 

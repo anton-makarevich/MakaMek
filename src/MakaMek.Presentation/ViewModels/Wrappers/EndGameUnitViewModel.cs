@@ -54,7 +54,7 @@ public class EndGameUnitViewModel
     /// <summary>
     /// Gets the unit's weight class
     /// </summary>
-    public string WeightClass => _unit.Class.ToString();
+    public string WeightClass => _unit.UnitClass.ToString();
 
     /// <summary>
     /// Gets the unit's status

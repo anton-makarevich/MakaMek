@@ -1072,14 +1072,12 @@ public class TerrainCachingServiceTests
         resolver.ResolveBase(Arg.Any<int?>())
             .Returns(new TerrainImageRequest(TerrainAssetType.Overlay, "lightwoods"));
 
-        var assetCache = new TerrainAssetCache();
         var sut = new TerrainCachingService(
             [],
             _loggerFactory,
             null,
-            assetCache,
             resolver,
-            new TerrainPackageLoader(new MmtxTerrainPackageReader(), assetCache));
+            new TerrainPackageLoader(new MmtxTerrainPackageReader()));
 
         // Act
         await sut.LoadTerrainFromMmtxStream(mmtxStream);
@@ -1097,14 +1095,12 @@ public class TerrainCachingServiceTests
         IEnumerable<IResourceStreamProvider> providers,
         Func<Task<IReadOnlyList<IResourceStreamProvider>>>? lazyProviders = null)
     {
-        var assetCache = new TerrainAssetCache();
         return new TerrainCachingService(
             providers,
             _loggerFactory,
             lazyProviders,
-            assetCache,
             new TerrainImageResolver(),
-            new TerrainPackageLoader(new MmtxTerrainPackageReader(), assetCache));
+            new TerrainPackageLoader(new MmtxTerrainPackageReader()));
     }
 
     private static MemoryStream CreateMmtxPackage(

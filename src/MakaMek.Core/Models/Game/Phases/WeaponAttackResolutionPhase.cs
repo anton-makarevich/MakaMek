@@ -36,7 +36,7 @@ public class WeaponAttackResolutionPhase : GamePhase
 
         if (Game.BattleMap == null)
         {
-            throw new Exception("Battle map is null");
+            throw new InvalidOperationException("Battle map is null");
         }
 
         var playersInOrder = Game.InitiativeOrder.ToList();

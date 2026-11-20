@@ -15,14 +15,12 @@ namespace Sanet.MakaMek.Presentation.UiStates;
 public sealed class WeaponRangeHighlighter
 {
     private readonly BattleMapViewModel _viewModel;
-    private readonly WeaponRangeAnalyzer _rangeAnalyzer;
     private IReadOnlyDictionary<Weapon, HashSet<HexCoordinates>> _weaponRanges =
         new Dictionary<Weapon, HashSet<HexCoordinates>>();
 
-    internal WeaponRangeHighlighter(BattleMapViewModel viewModel, WeaponRangeAnalyzer rangeAnalyzer)
+    internal WeaponRangeHighlighter(BattleMapViewModel viewModel)
     {
         _viewModel = viewModel;
-        _rangeAnalyzer = rangeAnalyzer;
     }
 
     /// <summary>
@@ -41,8 +39,7 @@ public sealed class WeaponRangeHighlighter
         if (attacker.Position is not { } attackerPosition) return;
 
         var candidates = CollectWeaponCandidates(attacker, game, attackerPosition);
-        var analysis = _rangeAnalyzer.Analyze(
-            attacker,
+        var analysis = attacker.AnalyzeWeaponRanges(
             candidates,
             _viewModel.Units,
             game.BattleMap);
@@ -61,12 +58,12 @@ public sealed class WeaponRangeHighlighter
     /// Collects the firing-arc hexes of every weapon that can fire, together with the mount level
     /// line of sight must be checked from. No line-of-sight checks happen here.
     /// </summary>
-    private List<WeaponRangeAnalyzer.WeaponCandidate> CollectWeaponCandidates(
+    private static List<WeaponRangeAnalyzerExtensions.WeaponCandidate> CollectWeaponCandidates(
         IUnit attacker,
         IClientGame game,
         HexPosition unitPosition)
     {
-        var candidates = new List<WeaponRangeAnalyzer.WeaponCandidate>();
+        var candidates = new List<WeaponRangeAnalyzerExtensions.WeaponCandidate>();
 
         foreach (var part in attacker.Parts.Values)
         {
@@ -80,7 +77,7 @@ public sealed class WeaponRangeHighlighter
         return candidates;
     }
 
-    private static WeaponRangeAnalyzer.WeaponCandidate? CreateWeaponCandidate(
+    private static WeaponRangeAnalyzerExtensions.WeaponCandidate? CreateWeaponCandidate(
         Weapon weapon,
         IClientGame game,
         HexCoordinates origin)
@@ -110,7 +107,7 @@ public sealed class WeaponRangeHighlighter
             weaponHexes.RemoveWhere(hex => !game.BattleMap.IsOnMap(hex));
         }
 
-        return new WeaponRangeAnalyzer.WeaponCandidate(weapon, weaponHexes, weapon.FirstMountPart.Level);
+        return new WeaponRangeAnalyzerExtensions.WeaponCandidate(weapon, weaponHexes, weapon.FirstMountPart.Level);
     }
 
     public bool IsHexInRange(HexCoordinates coordinates) =>

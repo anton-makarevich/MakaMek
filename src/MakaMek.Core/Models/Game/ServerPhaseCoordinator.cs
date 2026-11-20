@@ -54,7 +54,7 @@ internal sealed class ServerPhaseCoordinator
     {
         if (_currentPhase is GamePhase currentGamePhase)
         {
-            currentGamePhase.Exit();
+            currentGamePhase.ExitPhase();
         }
         _currentPhase = newPhase;
         _game.SetPhase(newPhase.Name);

@@ -46,7 +46,7 @@ public class DummyNetworkHostServiceTests
     public async Task Stop_ShouldCompleteSuccessfully()
     {
         // Act
-        var task = _service.Stop();
+        var task = _service.StopAsync();
 
         // Assert
         await Should.NotThrowAsync(task);

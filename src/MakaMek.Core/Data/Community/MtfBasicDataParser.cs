@@ -38,7 +38,7 @@ internal sealed partial class MtfBasicDataParser
         var key = line[..colonIndex].ToLowerInvariant().Trim();
         var value = line[(colonIndex + 1)..].Trim();
 
-        if (key.Equals("engine"))
+        if (key.Equals("engine", StringComparison.Ordinal))
             AddEngine(value);
         else
             AddEntry(key, value);

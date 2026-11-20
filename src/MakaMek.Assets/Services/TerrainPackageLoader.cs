@@ -5,23 +5,20 @@ namespace Sanet.MakaMek.Assets.Services;
 
 /// <summary>
 /// Loads an MMTX package from a stream and populates a terrain cache state through
-/// <see cref="TerrainAssetCache"/>. Owns the package reader and the cache-population path so
+/// <see cref="TerrainCacheStateExtensions"/>. Owns the package reader and the cache-population path so
 /// <see cref="TerrainCachingService"/> only coordinates providers, lifecycle and lookups.
 /// </summary>
 public sealed class TerrainPackageLoader
 {
     private readonly MmtxTerrainPackageReader _packageReader;
-    private readonly TerrainAssetCache _assetCache;
 
     /// <summary>
     /// Initializes a new instance of TerrainPackageLoader
     /// </summary>
     /// <param name="packageReader">Format-specific reader for MMTX packages</param>
-    /// <param name="assetCache">Cache bookkeeping used to merge the parsed package</param>
-    public TerrainPackageLoader(MmtxTerrainPackageReader packageReader, TerrainAssetCache assetCache)
+    public TerrainPackageLoader(MmtxTerrainPackageReader packageReader)
     {
         _packageReader = packageReader;
-        _assetCache = assetCache;
     }
 
     /// <summary>
@@ -50,7 +47,7 @@ public sealed class TerrainPackageLoader
         CancellationToken cancellationToken = default)
     {
         var package = await _packageReader.Read(packageStream, cancellationToken);
-        var replacedExistingBiome = _assetCache.AddPackage(stateAccessor(), package, providerId, onDuplicateAsset);
+        var replacedExistingBiome = stateAccessor().AddPackage(package, providerId, onDuplicateAsset);
         return (package.Manifest, replacedExistingBiome);
     }
 }

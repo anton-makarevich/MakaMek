@@ -12,8 +12,5 @@ internal static class TestCombatUiStateFactory
 {
     public static ICombatUiStateFactory Create(ILocalizationService? localizationService = null) =>
         new CombatUiStateFactory(
-            new WeaponsAttackSelectionPolicy(),
-            new WeaponRangeAnalyzer(),
-            new PhysicalAttackSelectionPolicy(),
             localizationService ?? Substitute.For<ILocalizationService>());
 }

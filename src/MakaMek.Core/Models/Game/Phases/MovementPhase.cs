@@ -27,10 +27,10 @@ public class MovementPhase(
         base.Enter();
     }
 
-    public override void Exit()
+    public override void ExitPhase()
     {
         ClearMovementDeferralState();
-        base.Exit();
+        base.ExitPhase();
     }
 
     private bool HasUnitMoved(Guid playerId, Guid unitId, string commandType)
