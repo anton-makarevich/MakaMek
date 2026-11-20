@@ -16,7 +16,7 @@ namespace Sanet.MakaMek.Assets.Services;
 /// services via <see cref="LoadResource"/>.
 /// </summary>
 /// <typeparam name="TState">Type of the immutable-by-publication cache state snapshot</typeparam>
-public abstract class PackageCacheCore<TState> : IProgressReporting
+public abstract class PackageCacheCore<TState> : IProgressReporting, IDisposable
     where TState : PackageCacheState, new()
 {
     /// <summary>
@@ -297,5 +297,25 @@ public abstract class PackageCacheCore<TState> : IProgressReporting
     protected void RaiseLoadProgress(int loadedCount, int totalCount)
     {
         LoadProgress?.Invoke(this, new ResourceLoadProgressEventArgs(loadedCount, totalCount));
+    }
+
+    /// <summary>
+    /// Disposes the initialization lock owned by this cache core. The stream providers are
+    /// injected (created by the composition root's provider factory), so they are shared
+    /// collaborators and are not disposed here.
+    /// </summary>
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    /// <summary>
+    /// Releases the resources owned by the cache core. Overrides must call the base implementation.
+    /// </summary>
+    protected virtual void Dispose(bool disposing)
+    {
+        if (!disposing) return;
+        _initializationLock.Dispose();
     }
 }

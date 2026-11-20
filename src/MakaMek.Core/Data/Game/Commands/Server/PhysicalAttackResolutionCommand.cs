@@ -248,7 +248,7 @@ public record struct PhysicalAttackResolutionCommand : IGameCommand
     private static void AppendHitLocations(
         StringBuilder stringBuilder,
         ILocalizationService localizationService,
-        IReadOnlyList<LocationHitData> hitLocations)
+        List<LocationHitData> hitLocations)
     {
         if (hitLocations.Count == 0) return;
 

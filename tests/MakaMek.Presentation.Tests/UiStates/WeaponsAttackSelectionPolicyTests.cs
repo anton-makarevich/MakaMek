@@ -11,7 +11,6 @@ public class WeaponsAttackSelectionPolicyTests
 {
     private static readonly List<HashSet<HexCoordinates>> NoRanges = [];
 
-    private readonly WeaponsAttackSelectionPolicy _sut = new();
     private readonly IUnit _unit = Substitute.For<IUnit>();
     private readonly Guid _activePlayerId = Guid.NewGuid();
 
@@ -129,5 +128,5 @@ public class WeaponsAttackSelectionPolicyTests
         IUnit? candidate,
         bool canAct,
         IEnumerable<HashSet<HexCoordinates>> ranges) =>
-        _sut.Decide(step, candidate, canAct, _activePlayerId, ranges);
+        step.DecideWeaponsAttackSelection(candidate, canAct, _activePlayerId, ranges);
 }

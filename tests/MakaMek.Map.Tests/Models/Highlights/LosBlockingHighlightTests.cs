@@ -104,11 +104,11 @@ public class LosBlockingHighlightTests
     }
 
     [Fact]
-    public void Render_UnknownReason_ThrowsArgumentOutOfRangeException()
+    public void Render_UnknownReason_ThrowsInvalidOperationException()
     {
         const LineOfSightBlockReason invalidReason = (LineOfSightBlockReason)999;
         var sut = new LosBlockingHighlight(invalidReason);
 
-        Should.Throw<ArgumentOutOfRangeException>(() => sut.Render(_localization));
+        Should.Throw<InvalidOperationException>(() => sut.Render(_localization));
     }
 }

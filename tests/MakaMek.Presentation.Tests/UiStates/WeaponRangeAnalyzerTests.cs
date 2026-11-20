@@ -15,7 +15,6 @@ public class WeaponRangeAnalyzerTests
     private static readonly HexCoordinates SecondHex = new(5, 6);
     private static readonly HexPosition AttackerPosition = new(AttackerHex, HexDirection.Top);
 
-    private readonly WeaponRangeAnalyzer _sut = new();
     private readonly IUnit _attacker = Substitute.For<IUnit>();
     private readonly IBattleMap _map = Substitute.For<IBattleMap>();
 
@@ -33,7 +32,7 @@ public class WeaponRangeAnalyzerTests
         var candidate = Candidate(weapon, mountLevel: 2, FirstHex, SecondHex);
 
         // Act
-        var result = _sut.Analyze(_attacker, [candidate], [], map: null);
+        var result = _attacker.AnalyzeWeaponRanges([candidate], [], map: null);
 
         // Assert
         result.Ranges[weapon].ShouldBe([FirstHex, SecondHex], ignoreOrder: true);
@@ -62,7 +61,7 @@ public class WeaponRangeAnalyzerTests
                 LineOfSightBlockReason.Elevation));
 
         // Act
-        var result = _sut.Analyze(_attacker, [Candidate(weapon, 2, FirstHex, SecondHex)], [], _map);
+        var result = _attacker.AnalyzeWeaponRanges([Candidate(weapon, 2, FirstHex, SecondHex)], [], _map);
 
         // Assert
         result.Ranges[weapon].ShouldBe([FirstHex]);
@@ -92,9 +91,7 @@ public class WeaponRangeAnalyzerTests
             LineOfSightResult.Unblocked(AttackerHex, FirstHex));
 
         // Act
-        var result = _sut.Analyze(
-            _attacker,
-            [Candidate(mediumLaser, 1, FirstHex), Candidate(smallLaser, 2, FirstHex)],
+        var result = _attacker.AnalyzeWeaponRanges([Candidate(mediumLaser, 1, FirstHex), Candidate(smallLaser, 2, FirstHex)],
             [],
             _map);
 
@@ -131,9 +128,7 @@ public class WeaponRangeAnalyzerTests
                 LineOfSightBlockReason.InterveningTerrain));
 
         // Act
-        var result = _sut.Analyze(
-            _attacker,
-            [Candidate(lowerWeapon, 1, FirstHex), Candidate(upperWeapon, 2, FirstHex)],
+        var result = _attacker.AnalyzeWeaponRanges([Candidate(lowerWeapon, 1, FirstHex), Candidate(upperWeapon, 2, FirstHex)],
             [],
             _map);
 
@@ -172,9 +167,7 @@ public class WeaponRangeAnalyzerTests
             LineOfSightResult.Unblocked(AttackerHex, FirstHex));
 
         // Act
-        var result = _sut.Analyze(
-            _attacker,
-            [Candidate(weapon, 2, FirstHex)],
+        var result = _attacker.AnalyzeWeaponRanges([Candidate(weapon, 2, FirstHex)],
             [_attacker, blockedOccupant, openOccupant],
             _map);
 
@@ -201,9 +194,7 @@ public class WeaponRangeAnalyzerTests
         var mediumLaser = new MediumLaser();
 
         // Act
-        var result = _sut.Analyze(
-            _attacker,
-            [Candidate(smallLaser, 2, FirstHex), Candidate(mediumLaser, 2, FirstHex)],
+        var result = _attacker.AnalyzeWeaponRanges([Candidate(smallLaser, 2, FirstHex), Candidate(mediumLaser, 2, FirstHex)],
             [],
             map: null);
 
@@ -212,7 +203,7 @@ public class WeaponRangeAnalyzerTests
             .ShouldBe(["Medium Laser", "Small Laser"]);
     }
 
-    private static WeaponRangeAnalyzer.WeaponCandidate Candidate(
+    private static WeaponRangeAnalyzerExtensions.WeaponCandidate Candidate(
         Weapon weapon,
         int mountLevel,
         params HexCoordinates[] hexes) =>

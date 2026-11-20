@@ -18,7 +18,7 @@ public class Bot : IBot
     private readonly IDecisionEngineProvider _decisionEngineProvider;
     private readonly int _decisionDelayMilliseconds;
     private readonly IClientGame _clientGame;
-    private ITurnState? _currentTurnState;
+    private TurnState? _currentTurnState;
     private IDisposable? _phaseStateSubscription;
     private IDisposable? _phaseSubscription;
     private IDisposable? _gameCommandsSubscription;
