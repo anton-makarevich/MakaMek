@@ -483,5 +483,5 @@ public class MapConfigViewModel : BindableBase, IDisposable
 /// </summary>
 internal readonly struct MapParameterChange
 {
-    public static readonly MapParameterChange Instance = new();
+    public static readonly MapParameterChange Instance;
 }
