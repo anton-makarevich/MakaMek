@@ -35,6 +35,7 @@ dotnet_diagnostic.CA1816.severity = warning
 dotnet_diagnostic.CA1822.severity = warning
 dotnet_diagnostic.CA1826.severity = warning
 dotnet_diagnostic.CA1848.severity = warning
+dotnet_diagnostic.CA1854.severity = warning
 dotnet_diagnostic.CA1859.severity = warning
 dotnet_diagnostic.CA1860.severity = warning
 dotnet_diagnostic.CA1873.severity = warning
@@ -49,6 +50,7 @@ dotnet_diagnostic.CA1816.severity = warning
 dotnet_diagnostic.CA1822.severity = warning
 dotnet_diagnostic.CA1826.severity = warning
 dotnet_diagnostic.CA1848.severity = warning
+dotnet_diagnostic.CA1854.severity = warning
 dotnet_diagnostic.CA1859.severity = warning
 dotnet_diagnostic.CA1860.severity = warning
 dotnet_diagnostic.CA2201.severity = warning
@@ -64,6 +66,7 @@ dotnet_diagnostic.CA1873.severity = warning
 
 [src/MakaMek.Bots/**/*.cs]
 dotnet_diagnostic.CA1848.severity = warning
+dotnet_diagnostic.CA1854.severity = warning
 dotnet_diagnostic.CA1859.severity = warning
 
 [src/MakaMek.Map/**/*.cs]
