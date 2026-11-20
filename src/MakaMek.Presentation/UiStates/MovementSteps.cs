@@ -5,7 +5,7 @@ using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 namespace Sanet.MakaMek.Presentation.UiStates;
     public interface IMovementStep
     {
-        MovementStep Step { get; }
+        MovementStep StepKind { get; }
         string ActionLabel { get; }
         void HandleMovementTypeSelection(MovementType movementType);
         void HandleHexSelection(Hex hex);
@@ -22,7 +22,7 @@ namespace Sanet.MakaMek.Presentation.UiStates;
             State = state;
         }
 
-        public abstract MovementStep Step { get; }
+        public abstract MovementStep StepKind { get; }
         public abstract string ActionLabel { get; }
         public virtual void HandleMovementTypeSelection(MovementType movementType) { }
         public virtual void HandleHexSelection(Hex hex) { }
@@ -33,14 +33,14 @@ namespace Sanet.MakaMek.Presentation.UiStates;
     public sealed class SelectingUnitStep : MovementStepBase
     {
         public SelectingUnitStep(MovementState state) : base(state) { }
-        public override MovementStep Step => MovementStep.SelectingUnit;
+        public override MovementStep StepKind => MovementStep.SelectingUnit;
         public override string ActionLabel => State._viewModel.LocalizationService.GetString("Action_SelectUnitToMove");
     }
 
     public sealed class SelectingMovementTypeStep : MovementStepBase
     {
         public SelectingMovementTypeStep(MovementState state) : base(state) { }
-        public override MovementStep Step => MovementStep.SelectingMovementType;
+        public override MovementStep StepKind => MovementStep.SelectingMovementType;
         public override string ActionLabel => State._viewModel.LocalizationService.GetString("Action_SelectMovementType");
 
         public override void HandleMovementTypeSelection(MovementType movementType)
@@ -69,7 +69,7 @@ namespace Sanet.MakaMek.Presentation.UiStates;
     public sealed class SelectingTargetHexStep : MovementStepBase
     {
         public SelectingTargetHexStep(MovementState state) : base(state) { }
-        public override MovementStep Step => MovementStep.SelectingTargetHex;
+        public override MovementStep StepKind => MovementStep.SelectingTargetHex;
         public override string ActionLabel => State._viewModel.LocalizationService.GetString("Action_SelectTargetHexOrEnemy");
 
         public override void HandleHexSelection(Hex hex)
@@ -102,7 +102,7 @@ namespace Sanet.MakaMek.Presentation.UiStates;
             State._viewModel.ShowSurfaceSelector(targetHex, vm);
             State._viewModel.NotifyStateChanged();
         }
-        public override MovementStep Step => MovementStep.SelectingSurface;
+        public override MovementStep StepKind => MovementStep.SelectingSurface;
         public override string ActionLabel => State._viewModel.LocalizationService.GetString("Action_SelectSurface");
     }
 
@@ -114,7 +114,7 @@ namespace Sanet.MakaMek.Presentation.UiStates;
             State._viewModel.ShowDirectionSelector(targetHex, State._possibleDirections.Keys);
             State._viewModel.NotifyStateChanged();
         }
-        public override MovementStep Step => MovementStep.SelectingDirection;
+        public override MovementStep StepKind => MovementStep.SelectingDirection;
         public override string ActionLabel => State._viewModel.LocalizationService.GetString("Action_SelectFacingDirection");
 
         public override void HandleHexSelection(Hex hex)
@@ -153,7 +153,7 @@ namespace Sanet.MakaMek.Presentation.UiStates;
     public sealed class ConfirmMovementStep : MovementStepBase
     {
         public ConfirmMovementStep(MovementState state) : base(state) { }
-        public override MovementStep Step => MovementStep.ConfirmMovement;
+        public override MovementStep StepKind => MovementStep.ConfirmMovement;
         public override string ActionLabel => GetActionLabel();
 
         private string GetActionLabel()
@@ -203,7 +203,7 @@ namespace Sanet.MakaMek.Presentation.UiStates;
     public sealed class ConfirmMovementAttackStep : MovementStepBase
     {
         public ConfirmMovementAttackStep(MovementState state) : base(state) { }
-        public override MovementStep Step => MovementStep.ConfirmMovementAttack;
+        public override MovementStep StepKind => MovementStep.ConfirmMovementAttack;
         public override string ActionLabel =>
             State._viewModel.LocalizationService.GetString("Action_ConfirmMovementAttack");
 
@@ -221,7 +221,7 @@ namespace Sanet.MakaMek.Presentation.UiStates;
     public sealed class SelectingStandingUpDirectionStep : MovementStepBase
     {
         public SelectingStandingUpDirectionStep(MovementState state) : base(state) { }
-        public override MovementStep Step => MovementStep.SelectingStandingUpDirection;
+        public override MovementStep StepKind => MovementStep.SelectingStandingUpDirection;
         public override string ActionLabel => State._viewModel.LocalizationService.GetString("Action_SelectFacingDirection");
 
         public override void HandleFacingSelection(HexDirection direction)
@@ -233,6 +233,6 @@ namespace Sanet.MakaMek.Presentation.UiStates;
     public sealed class CompletedStep : MovementStepBase
     {
         public CompletedStep(MovementState state) : base(state) { }
-        public override MovementStep Step => MovementStep.Completed;
+        public override MovementStep StepKind => MovementStep.Completed;
         public override string ActionLabel => string.Empty;
     }

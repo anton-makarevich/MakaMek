@@ -139,7 +139,7 @@ public abstract class Unit : IUnit
 
     public bool IsOutOfCommission => IsDestroyed || Pilot?.IsDead == true;
 
-    public WeightClass Class => Tonnage.ToWeightClass();
+    public WeightClass UnitClass => Tonnage.ToWeightClass();
 
     /// <summary>
     /// Gets the unit's height in levels. Used for line of sight calculations.

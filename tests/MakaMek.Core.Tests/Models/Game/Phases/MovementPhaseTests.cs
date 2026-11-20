@@ -1726,7 +1726,7 @@ public class MovementPhaseTests : GamePhaseTestsBase
             ]
         });
 
-        _sut.Exit();
+        _sut.ExitPhase();
 
         var unit2PositionBefore = unit2.Position;
         var newPosition = new HexPosition(5, 1, HexDirection.Bottom);

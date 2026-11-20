@@ -202,7 +202,7 @@ public class GameManagerTests : IDisposable
 
         // Assert
         await Should.ThrowAsync<OperationCanceledException>(() => initTask);
-        await _networkHostService.Received(1).Stop();
+        await _networkHostService.Received(1).StopAsync();
         _transportAdapter.TransportPublishers.Count.ShouldBe(1); // Publisher not added
         _gameFactory.DidNotReceive().CreateServerGame(_commandPublisher);
     }
@@ -578,7 +578,7 @@ public class GameManagerTests : IDisposable
         // Arrange
         using var cts = new CancellationTokenSource();
         _networkHostService.IsRunning.Returns(true);
-        _networkHostService.Stop().Returns(_ =>
+        _networkHostService.StopAsync().Returns(_ =>
         {
             cts.Cancel();
             return Task.CompletedTask;
@@ -634,7 +634,7 @@ public class GameManagerTests : IDisposable
         await _sut.StopHosting();
 
         // Assert
-        await _networkHostService.Received(1).Stop();
+        await _networkHostService.Received(1).StopAsync();
     }
 
     [Fact]
@@ -1631,7 +1631,7 @@ public class GameManagerTests : IDisposable
         // Assert - LAN publisher removed, relay publisher added, host stopped
         _transportAdapter.TransportPublishers.ShouldNotContain(networkPublisher);
         _transportAdapter.TransportPublishers.ShouldContain(relayPublisher);
-        await _networkHostService.Received(1).Stop();
+        await _networkHostService.Received(1).StopAsync();
         await sut.DisposeAsync();
     }
 
@@ -1788,7 +1788,7 @@ public class GameManagerTests : IDisposable
         networkHostService.Publisher.Returns(networkPublisher);
         await gameManager.InitializeLobby();
         networkHostService.IsRunning.Returns(true);
-        networkHostService.Stop().ThrowsAsync(new InvalidOperationException("stop boom"));
+        networkHostService.StopAsync().ThrowsAsync(new InvalidOperationException("stop boom"));
 
         // Act & Assert - should not throw even though Stop throws
         await Should.NotThrowAsync(() => gameManager.InitializeLobby());

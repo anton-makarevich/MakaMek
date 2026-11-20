@@ -34,7 +34,7 @@ public class DummyNetworkHostService : INetworkHostService
     /// <summary>
     /// No-op implementation
     /// </summary>
-    public Task Stop()
+    public Task StopAsync()
     {
         // No-op implementation
         return Task.CompletedTask;

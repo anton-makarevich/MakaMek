@@ -16,7 +16,7 @@ public abstract class GamePhase : IGamePhase
     {
     }
 
-    public virtual void Exit()
+    public virtual void ExitPhase()
     {
     }
 
