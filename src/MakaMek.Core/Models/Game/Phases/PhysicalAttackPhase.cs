@@ -23,10 +23,10 @@ public class PhysicalAttackPhase(ServerGame game) : MainGamePhase(game)
         base.Enter();
     }
 
-    public override void Exit()
+    public override void ExitPhase()
     {
         _unitsToDeclare.Clear();
-        base.Exit();
+        base.ExitPhase();
     }
 
     protected override void CalculateTurnOrder(TurnOrder turnOrder) =>

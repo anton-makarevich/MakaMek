@@ -28,7 +28,7 @@ public abstract class Weapon : Component
     }
 
     // Cast the base definition to WeaponDefinition for weapon-specific properties
-    internal WeaponDefinition WeaponDefinition => (WeaponDefinition)_definition;
+    internal WeaponDefinition WeaponDefinition => (WeaponDefinition)BaseDefinition;
 
     public int Damage => WeaponDefinition.TotalDamage;
     public int Heat => WeaponDefinition.Heat;

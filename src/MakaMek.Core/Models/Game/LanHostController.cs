@@ -72,7 +72,7 @@ internal sealed class LanHostController(
 
         try
         {
-            await networkHostService.Stop();
+            await networkHostService.StopAsync();
         }
         catch (Exception ex)
         {

@@ -42,7 +42,7 @@ public class ToHitCalculator : IToHitCalculator
         PartLocation? aimedShotTarget = null)
     {
         var weaponLocation = weapon.FirstMountPartLocation ??
-            throw new Exception($"Weapon {weapon.Name} is not mounted");
+            throw new InvalidOperationException($"Weapon {weapon.Name} is not mounted");
         var scenario = AttackScenario.FromUnits(attacker, target, weaponLocation, isPrimaryTarget, aimedShotTarget);
         return GetModifierBreakdown(scenario, weapon, map);
     }
@@ -169,7 +169,7 @@ public class ToHitCalculator : IToHitCalculator
         };
     }
 
-    private IReadOnlyList<RollModifier> GetDetailedOtherModifiers(AttackScenario scenario)
+    private List<RollModifier> GetDetailedOtherModifiers(AttackScenario scenario)
     {
         List<RollModifier> modifiers = [];
 
