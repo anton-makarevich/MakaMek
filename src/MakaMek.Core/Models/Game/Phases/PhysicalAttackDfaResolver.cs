@@ -179,17 +179,13 @@ internal sealed class PhysicalAttackDfaResolver
         IUnit target,
         PhysicalAttackResolutionData resolution)
     {
-        if (target.Position is null)
-        {
-            _publisher.Publish(item, target, resolution);
-            return;
-        }
-
-        var landing = _landing.Resolve(item.Attacker);
+        // A destroyed target is selected only while it is deployed in the committed hex, and a
+        // DFA that reaches resolution still carries its jump path, so the landing always resolves.
+        var landing = _landing.Resolve(item.Attacker)!;
 
         // The outcome is published before the landing applies, so an impossible landing is
         // rewritten as the attacker's destruction and ends the miss without a fall.
-        if (landing?.IsOverlapUnresolved == true)
+        if (landing.IsOverlapUnresolved)
         {
             _publisher.Publish(item, target, WithAttackerDestroyedNoLanding(resolution));
             return;
@@ -197,9 +193,8 @@ internal sealed class PhysicalAttackDfaResolver
 
         _publisher.Publish(item, target, resolution);
 
-        var appliedLanding = _landing.Apply(
-            item.Attacker, landing, DfaLandingKind.MissLanding);
-        _displacement.RollDominoEffects(appliedLanding?.DominoEffect);
+        _landing.Apply(item.Attacker, landing, DfaLandingKind.MissLanding);
+        _displacement.RollDominoEffects(landing.DominoEffect);
         _landing.ApplyFall(item.Attacker);
     }
 
