@@ -45,6 +45,10 @@ public abstract class BaseGame : IGame
     // deals its damage once. Resolution ids are globally unique GUIDs, so one set covers both kinds.
     private readonly ConcurrentDictionary<Guid, byte> _appliedAttackResolutions = new();
 
+    // Guards the transport subscription so the lifecycle stays balanced: a duplicate subscription
+    // would leave a live handler behind after the single unsubscribe performed by Dispose.
+    private bool _subscribedToCommands;
+
     public Guid Id { get; }
 
     public IObservable<int> TurnChanges => _turnSubject.AsObservable();
@@ -155,14 +159,31 @@ public abstract class BaseGame : IGame
     }
 
     /// <summary>
-    /// Subscribes the game to the transport. Derived games call this at the end of their own
+    /// Subscribes the game to the transport. Derived games call this as the last step of their own
     /// constructor, once all the state their command handler needs has been initialised: the base
-    /// constructor runs before the derived fields are assigned, so subscribing here would allow a
+    /// constructor runs before the derived fields are assigned, so subscribing there would allow a
     /// command to be delivered to a half-constructed handler.
     /// </summary>
+    /// <remarks>
+    /// The call is idempotent: repeated invocations still register exactly one handler, which
+    /// <see cref="UnsubscribeFromCommands"/> releases on disposal.
+    /// </remarks>
     protected void SubscribeToCommands()
     {
+        if (_subscribedToCommands) return;
         CommandPublisher.Subscribe(HandleCommand);
+        _subscribedToCommands = true;
+    }
+
+    /// <summary>
+    /// Releases the transport subscription taken by <see cref="SubscribeToCommands"/>. Idempotent,
+    /// and a no-op when the game never subscribed.
+    /// </summary>
+    protected void UnsubscribeFromCommands()
+    {
+        if (!_subscribedToCommands) return;
+        _subscribedToCommands = false;
+        CommandPublisher.Unsubscribe(HandleCommand);
     }
 
     public IReadOnlyList<IPlayer> Players => _players;
@@ -713,8 +734,13 @@ public abstract class BaseGame : IGame
         _commandSubject.OnNext(command);
     }
 
+    /// <summary>
+    /// Disposes this game's command subject and releases the transport subscription. Called from
+    /// the derived <c>Dispose</c>, so a disposal path can never leave a live subscriber behind.
+    /// </summary>
     protected void DisposeCommandResources()
     {
+        UnsubscribeFromCommands();
         _commandSubject.OnCompleted();
         _commandSubject.Dispose();
     }

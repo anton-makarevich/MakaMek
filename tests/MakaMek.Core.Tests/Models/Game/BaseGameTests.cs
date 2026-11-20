@@ -42,6 +42,7 @@ public sealed class BaseGameTests : BaseGame
     private static readonly IRulesProvider RulesProviderInstance = new TotalWarfareRulesProvider();
     private static readonly IComponentProvider ComponentProviderInstance = new ClassicBattletechComponentProvider();
     private static readonly IBattleMapFactory BattleMapFactory = new BattleMapFactory();
+    private readonly ICommandPublisher _commandPublisher;
     public BaseGameTests() : base(RulesProviderInstance,
         new MechFactory(
             RulesProviderInstance,
@@ -57,6 +58,7 @@ public sealed class BaseGameTests : BaseGame
         Substitute.For<IMovementAttackValidator>(),
         Substitute.For<ILogger<BaseGame>>())
     {
+        _commandPublisher = CommandPublisher;
         SetBattleMap(
             BattleMapFactory.GenerateMap(5, 5, new SingleTerrainGenerator(5, 5, new ClearTerrain())));
     }
@@ -2869,6 +2871,60 @@ public sealed class BaseGameTests : BaseGame
         // Act & Assert - Should not throw for invalid location
         Should.NotThrow(() => OnHullBreach(command));
     }
+
+    [Fact]
+    public void SubscribeToCommands_ShouldSubscribeOnlyOnce_WhenCalledRepeatedly()
+    {
+        // Act
+        SubscribeToTransport();
+        SubscribeToTransport();
+
+        // Assert
+        _commandPublisher.Received(1).Subscribe(Arg.Any<Action<IGameCommand>>());
+    }
+
+    [Fact]
+    public void UnsubscribeFromCommands_ShouldUnsubscribeOnlyOnce_WhenCalledRepeatedly()
+    {
+        // Arrange
+        SubscribeToTransport();
+
+        // Act
+        UnsubscribeFromTransport();
+        UnsubscribeFromTransport();
+
+        // Assert
+        _commandPublisher.Received(1).Unsubscribe(Arg.Any<Action<IGameCommand>>());
+    }
+
+    [Fact]
+    public void UnsubscribeFromCommands_ShouldDoNothing_WhenNeverSubscribed()
+    {
+        // Act
+        UnsubscribeFromTransport();
+
+        // Assert
+        _commandPublisher.DidNotReceive().Unsubscribe(Arg.Any<Action<IGameCommand>>());
+    }
+
+    [Fact]
+    public void DisposeCommandResources_ShouldReleaseTheSubscription()
+    {
+        // Arrange
+        SubscribeToTransport();
+
+        // Act
+        DisposeCommandResourcesForTests();
+
+        // Assert
+        _commandPublisher.Received(1).Unsubscribe(Arg.Any<Action<IGameCommand>>());
+    }
+
+    public void SubscribeToTransport() => SubscribeToCommands();
+
+    public void UnsubscribeFromTransport() => UnsubscribeFromCommands();
+
+    public void DisposeCommandResourcesForTests() => DisposeCommandResources();
 
     public override void HandleCommand(IGameCommand command)
     {
