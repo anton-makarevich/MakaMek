@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Bots.Data;
+using Sanet.MakaMek.Bots.Models.Logger;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Players;
@@ -36,7 +37,7 @@ public class EndPhaseEngine : IBotDecisionEngine
         catch (Exception ex)
         {
             // Log error but don't throw - graceful degradation
-            _clientGame.Logger.LogError(ex, "EndPhaseEngine error for player {PlayerName}: {Message}", player.Name, ex.Message);
+            _clientGame.Logger.LogEndPhaseEngineError(player.Name, ex.Message, ex);
 
             // Always try to end turn even if other actions failed
             await EndTurn(player);

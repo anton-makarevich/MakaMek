@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using Microsoft.Extensions.Logging;
+using Sanet.MakaMek.Assets.Models.Logger;
 using Sanet.MakaMek.Assets.Models.Terrains;
 using Sanet.MakaMek.Map.Models;
 using Sanet.MakaMek.Assets.ResourceProviders;
@@ -141,7 +142,7 @@ public class TerrainCachingService : PackageCacheCore<TerrainCachingService.Terr
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error loading MMTX package");
+            _logger.LogErrorLoadingMmtxPackage(ex);
             return null;
         }
     }
@@ -158,20 +159,17 @@ public class TerrainCachingService : PackageCacheCore<TerrainCachingService.Terr
         var (manifest, replacedExistingBiome) = await _packageLoader.Load(
             stream, () => state, provider.Id, LogDuplicateAsset, cancellationToken);
         LogDuplicateBiomeIfReplaced(replacedExistingBiome, manifest.Id);
-        _logger.LogInformation("Loaded terrain biome '{BiomeId}' version {Version}",
-            manifest.Id, manifest.Version);
+        _logger.LogLoadedTerrainBiome(manifest.Id, manifest.Version);
     }
 
     private void LogDuplicateBiomeIfReplaced(bool replacedExistingBiome, string biomeId)
     {
         if (replacedExistingBiome)
         {
-            _logger.LogWarning("Duplicate terrain biome '{BiomeId}' found; replacing previously loaded assets",
-                biomeId);
+            _logger.LogDuplicateTerrainBiome(biomeId);
         }
     }
 
     private void LogDuplicateAsset(string cacheKey) =>
-        _logger.LogWarning("Duplicate {ResourceKind} '{Key}' found; overwriting with the value from a lower provider",
-            ResourceKind, cacheKey);
+        _logger.LogDuplicateResourceFound(ResourceKind, cacheKey);
 }

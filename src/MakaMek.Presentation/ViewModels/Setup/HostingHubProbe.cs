@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using Sanet.MakaMek.Presentation.Models.Logger;
 using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 using Sanet.Transport.SignalR.Client.Relay;
 
@@ -66,7 +67,7 @@ public sealed class HostingHubProbe
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Hub status probe failed for hub {HubName}", entry.Name);
+            _logger.LogHubStatusProbeFailed(entry.Name, ex);
             return HubStatus.Offline;
         }
     }

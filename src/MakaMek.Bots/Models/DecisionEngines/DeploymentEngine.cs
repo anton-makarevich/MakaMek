@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Bots.Data;
 using Sanet.MakaMek.Bots.Exceptions;
+using Sanet.MakaMek.Bots.Models.Logger;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Players;
@@ -78,13 +79,13 @@ public class DeploymentEngine : IBotDecisionEngine
         catch (BotDecisionException ex)
         {
             // Rethrow BotDecisionException to let caller handle decision failures
-            _clientGame.Logger.LogError(ex, "DeploymentEngine error for player {PlayerName}: {Message}", player.Name, ex.Message);
+            _clientGame.Logger.LogDeploymentEngineError(player.Name, ex.Message, ex);
             throw;
         }
         catch (Exception ex)
         {
             // Log error but don't throw - graceful degradation for unexpected errors
-            _clientGame.Logger.LogError(ex, "DeploymentEngine error for player {PlayerName}: {Message}", player.Name, ex.Message);
+            _clientGame.Logger.LogDeploymentEngineError(player.Name, ex.Message, ex);
         }
     }
 

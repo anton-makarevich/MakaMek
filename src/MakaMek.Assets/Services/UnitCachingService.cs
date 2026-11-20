@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using Microsoft.Extensions.Logging;
+using Sanet.MakaMek.Assets.Models.Logger;
 using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Assets.Models.Units;
 using Sanet.MakaMek.Assets.ResourceProviders;
@@ -157,8 +158,7 @@ public class UnitCachingService : PackageCacheCore<UnitCachingService.UnitCacheS
 
         if (package.SpriteError is not null)
         {
-            _logger.LogWarning("Unit '{Model}' has unusable sprite data: {SpriteError}", package.Data.Model,
-                package.SpriteError);
+            _logger.LogUnitHasUnusableSpriteData(package.Data.Model, package.SpriteError);
         }
     }
 }

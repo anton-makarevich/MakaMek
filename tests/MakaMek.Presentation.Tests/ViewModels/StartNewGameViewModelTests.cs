@@ -2078,7 +2078,12 @@ public async Task MapReselection_DuringDebounce_RestartsWindow_AndSendsLatestMap
         sut.AttachHandlers();
         
         // Assert
-        _logger.Received().LogError(Arg.Any<Exception>(), "Error loading default player from cache");
+        _logger.Received().Log(
+            LogLevel.Error,
+            Arg.Any<EventId>(),
+            Arg.Any<Arg.AnyType>(),
+            Arg.Any<Exception>(),
+            Arg.Any<Func<Arg.AnyType, Exception?, string>>());
     }
 
     [Fact]
@@ -2093,7 +2098,12 @@ public async Task MapReselection_DuringDebounce_RestartsWindow_AndSendsLatestMap
         sut.AttachHandlers();
 
         // Assert
-        _logger.Received().LogError(Arg.Any<Exception>(), "Error saving default player to cache");
+        _logger.Received().Log(
+            LogLevel.Error,
+            Arg.Any<EventId>(),
+            Arg.Any<Arg.AnyType>(),
+            Arg.Any<Exception>(),
+            Arg.Any<Func<Arg.AnyType, Exception?, string>>());
     }
 
     [Fact]

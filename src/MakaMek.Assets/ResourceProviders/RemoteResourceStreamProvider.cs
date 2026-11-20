@@ -1,6 +1,7 @@
 using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
+using Sanet.MakaMek.Assets.Models.Logger;
 using Sanet.MakaMek.Services;
 
 namespace Sanet.MakaMek.Assets.ResourceProviders;
@@ -102,9 +103,7 @@ public abstract class RemoteResourceStreamProvider : IResourceStreamProvider
             var cachedVersion = await _cachingService.GetCacheVersion(resourceId);
             if (cachedVersion != currentSha)
             {
-                _logger.LogInformation(
-                    "Cache version mismatch for {ResourceId}: cached {CachedVersion} vs current {CurrentVersion}.",
-                    resourceId, cachedVersion ?? "<none>", currentSha);
+                _logger.LogCacheVersionMismatch(resourceId, cachedVersion ?? "<none>", currentSha);
                 needsFreshDownload = true;
             }
         }
@@ -124,11 +123,11 @@ public abstract class RemoteResourceStreamProvider : IResourceStreamProvider
             using var response = await _httpClient.SendAsync(CreateRequest(resourceId));
             if (!response.IsSuccessStatusCode)
             {
-                _logger.LogWarning("Failed to download file from {ResourceId}: {StatusCode}", resourceId, response.StatusCode);
+                _logger.LogFailedToDownloadFile(resourceId, response.StatusCode);
 
                 var fallbackBytes = await _cachingService.TryGetCachedFile(resourceId);
                 if (fallbackBytes == null) return null;
-                _logger.LogInformation("Serving stale cached content for {ResourceId} due to download failure", resourceId);
+                _logger.LogServingStaleCachedContent(resourceId);
                 return new MemoryStream(fallbackBytes);
 
             }
@@ -150,17 +149,17 @@ public abstract class RemoteResourceStreamProvider : IResourceStreamProvider
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error caching file from {ResourceId}", resourceId);
+                _logger.LogErrorCachingFile(resourceId, ex);
             }
             return new MemoryStream(contentBytes);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error downloading file from {ResourceId}", resourceId);
+            _logger.LogErrorDownloadingFile(resourceId, ex);
 
             var fallbackBytes = await _cachingService.TryGetCachedFile(resourceId);
             if (fallbackBytes == null) return null;
-            _logger.LogInformation("Serving stale cached content for {ResourceId} due to download failure", resourceId);
+            _logger.LogServingStaleCachedContent(resourceId);
             return new MemoryStream(fallbackBytes);
         }
     }
@@ -197,8 +196,7 @@ public abstract class RemoteResourceStreamProvider : IResourceStreamProvider
             using var response = await _httpClient.SendAsync(CreateRequest(listingUrl));
             if (!response.IsSuccessStatusCode)
             {
-                _logger.LogWarning("Failed to fetch {ListingDescription} from {ListingUrl}: {StatusCode}",
-                    ListingDescription, listingUrl, response.StatusCode);
+                _logger.LogFailedToFetchListing(ListingDescription, listingUrl, response.StatusCode);
                 return await TryLoadCachedListing(listingUrl, selector);
             }
 
@@ -208,7 +206,7 @@ public abstract class RemoteResourceStreamProvider : IResourceStreamProvider
 
             if (listing == null)
             {
-                _logger.LogWarning("Failed to deserialize {ListingDescription} response", ListingDescription);
+                _logger.LogFailedToDeserializeListing(ListingDescription);
                 return await TryLoadCachedListing(listingUrl, selector);
             }
 
@@ -219,19 +217,17 @@ public abstract class RemoteResourceStreamProvider : IResourceStreamProvider
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error caching {CachedListingDescription} for {ListingUrl}",
-                    CachedListingDescription, listingUrl);
+                _logger.LogErrorCachingListing(CachedListingDescription, listingUrl, ex);
             }
 
             var resourceIds = selector(listing);
 
-            _logger.LogInformation("Found {Count} resources in {ListingDescription} at {ListingUrl}",
-                resourceIds.Count, ListingDescription, listingUrl);
+            _logger.LogFoundResources(resourceIds.Count, ListingDescription, listingUrl);
             return resourceIds;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error loading {ListingDescription}", ListingDescription);
+            _logger.LogErrorLoadingListing(ListingDescription, ex);
             return await TryLoadCachedListing(listingUrl, selector);
         }
     }
@@ -254,13 +250,12 @@ public abstract class RemoteResourceStreamProvider : IResourceStreamProvider
                 return [];
             }
 
-            _logger.LogInformation("Using cached {CachedListingDescription} for offline resource discovery",
-                CachedListingDescription);
+            _logger.LogUsingCachedListing(CachedListingDescription);
             return selector(listing);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error loading cached {CachedListingDescription}", CachedListingDescription);
+            _logger.LogErrorLoadingCachedListing(CachedListingDescription, ex);
             return [];
         }
     }

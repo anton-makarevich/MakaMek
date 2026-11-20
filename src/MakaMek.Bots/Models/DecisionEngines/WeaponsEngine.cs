@@ -145,13 +145,13 @@ public class WeaponsEngine : IBotDecisionEngine
         catch (BotDecisionException ex)
         {
             // Rethrow BotDecisionException to let caller handle decision failures
-            _clientGame.Logger.LogError(ex, "WeaponsEngine error for player {PlayerName}: {Message}", player.Name, ex.Message);
+            _clientGame.Logger.LogWeaponsEngineError(player.Name, ex.Message, ex);
             throw;
         }
         catch (Exception ex)
         {
             // Log error but don't throw - graceful degradation
-            _clientGame.Logger.LogError(ex, "WeaponsEngine error for player {PlayerName}: {Message}", player.Name, ex.Message);
+            _clientGame.Logger.LogWeaponsEngineError(player.Name, ex.Message, ex);
             // If anything fails, skip turn to avoid blocking the game
             await SkipTurn(player);
         }

@@ -5,6 +5,7 @@ using Sanet.MakaMek.Map.Data;
 using Sanet.MakaMek.Map.Factories;
 using Sanet.MakaMek.Map.Models;
 using Sanet.MakaMek.Map.Services;
+using Sanet.MakaMek.Presentation.Models.Logger;
 using Sanet.MakaMek.Services;
 
 namespace Sanet.MakaMek.Presentation.ViewModels.Maps;
@@ -74,7 +75,7 @@ public sealed class AvailableMapsService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error generating preview for map '{MapName}'", item.Name);
+            _logger.LogErrorGeneratingPreviewForMap(item.Name, ex);
             // Leave PreviewImage as null on failure
         }
     }
@@ -126,7 +127,7 @@ public sealed class AvailableMapsService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to export map");
+            _logger.LogFailedToExportMap(ex);
         }
     }
 }

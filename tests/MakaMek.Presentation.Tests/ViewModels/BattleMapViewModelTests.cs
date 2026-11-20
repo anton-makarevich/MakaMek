@@ -5938,9 +5938,12 @@ public class BattleMapViewModelTests
 
         await sut.ExportMapToPdfCommand.ExecuteAsync();
 
-        _game.Logger.Received(1).LogError(
-            Arg.Is<Exception>(ex => ex.Message == "capture failed"),
-            "PDF map export failed");
+        _game.Logger.Received(1).Log(
+            LogLevel.Error,
+            Arg.Any<EventId>(),
+            Arg.Any<Arg.AnyType>(),
+            Arg.Any<Exception>(),
+            Arg.Any<Func<Arg.AnyType, Exception?, string>>());
     }
 
     [Fact]

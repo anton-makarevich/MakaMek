@@ -7,6 +7,7 @@ using AsyncAwaitBestPractices.MVVM;
 using Microsoft.Extensions.Logging;
 using Sanet.Localization;
 using Sanet.MakaMek.Map.Models;
+using Sanet.MakaMek.Presentation.Models.Logger;
 using Sanet.MakaMek.Presentation.ViewModels.Maps;
 using Sanet.MVVM.Core.ViewModels;
 
@@ -50,14 +51,14 @@ public class MapConfigViewModel : BindableBase, IDisposable
             .Throttle(TimeSpan.FromMilliseconds(300))
             .Subscribe( (_) =>
             {
-                UpdateMap().SafeFireAndForget(ex => _logger.LogError(ex, "Error updating map"));
+                UpdateMap().SafeFireAndForget(ex => _logger.LogErrorUpdatingMap(ex));
             });
 
         // Generate an initial map and preview
-        UpdateMap().SafeFireAndForget(ex => _logger.LogError(ex, "Error generating initial map"));
+        UpdateMap().SafeFireAndForget(ex => _logger.LogErrorGeneratingInitialMap(ex));
         
         // Load available pre-existing maps
-        LoadAvailableMaps().SafeFireAndForget(ex => _logger.LogError(ex, "Error loading available maps"));
+        LoadAvailableMaps().SafeFireAndForget(ex => _logger.LogErrorLoadingAvailableMaps(ex));
     }
 
     public string MapWidthFormatted => string.Format(CultureInfo.InvariantCulture,
@@ -344,7 +345,7 @@ public class MapConfigViewModel : BindableBase, IDisposable
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error loading map from file");
+            _logger.LogErrorLoadingMapFromFile(ex);
         }
     }
 
@@ -383,7 +384,7 @@ public class MapConfigViewModel : BindableBase, IDisposable
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error loading available maps");
+            _logger.LogErrorLoadingAvailableMaps(ex);
         }
         finally
         {

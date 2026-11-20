@@ -7,6 +7,7 @@ using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Core.Utils;
 using Sanet.Localization;
 using Sanet.MakaMek.Map.Models;
+using Sanet.MakaMek.Presentation.Models.Logger;
 using Sanet.MakaMek.Presentation.ViewModels;
 
 namespace Sanet.MakaMek.Presentation.UiStates;
@@ -195,7 +196,7 @@ public class EndState : IUiState
     {
         if (_viewModel.IsGameOver)
         {
-            _viewModel.NavigateToEndGame().SafeFireAndForget(ex => Game?.Logger.LogError(ex, "Error navigating to end game"));
+            _viewModel.NavigateToEndGame().SafeFireAndForget(ex => Game?.Logger.LogErrorNavigatingToEndGame(ex));
             return;
         }
 

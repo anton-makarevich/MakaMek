@@ -109,13 +109,13 @@ public class MovementEngine : IBotDecisionEngine
         catch (BotDecisionException ex)
         {
             // Rethrow BotDecisionException to let caller handle decision failures
-            _clientGame.Logger.LogError(ex, "MovementEngine error for player {PlayerName}: {Message}", player.Name, ex.Message);
+            _clientGame.Logger.LogMovementEngineError(player.Name, ex.Message, ex);
             throw;
         }
         catch (Exception ex)
         {
             // Log error but don't throw - graceful degradation for unexpected errors
-            _clientGame.Logger.LogError(ex, "MovementEngine error for player {PlayerName}: {Message}", player.Name, ex.Message);
+            _clientGame.Logger.LogMovementEngineError(player.Name, ex.Message, ex);
             await _commands.SkipTurn(player, unitToMove);
         }
     }

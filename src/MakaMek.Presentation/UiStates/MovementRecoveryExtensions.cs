@@ -3,6 +3,7 @@ using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Sanet.MakaMek.Map.Models;
 using Sanet.MakaMek.Map.Models.MovementCosts;
+using Sanet.MakaMek.Presentation.Models.Logger;
 
 namespace Sanet.MakaMek.Presentation.UiStates;
 
@@ -72,15 +73,13 @@ public static class MovementRecoveryExtensions
             var fallenUnit = state._viewModel.Units.FirstOrDefault(u => u.Id == unitId);
             if (fallenUnit == null)
             {
-                state.Game?.Logger.LogWarning(
-                    "state.ResumeMovementAfterFall: unit {UnitId} not found among alive units", unitId);
+                state.Game?.Logger.LogResumeMovementAfterFallUnitNotFound(unitId);
                 return false;
             }
 
             if (fallenUnit.Owner?.Id != activePlayerId)
             {
-                state.Game?.Logger.LogWarning(
-                    "Resume movement after fall ignored: unit {UnitId} is not controlled by the active player", unitId);
+                state.Game?.Logger.LogResumeMovementAfterFallUnitNotControlled(unitId);
                 return false;
             }
 
@@ -89,24 +88,19 @@ public static class MovementRecoveryExtensions
         }
         else if (state._selectedUnit.Id != unitId)
         {
-            state.Game?.Logger.LogWarning(
-                "Resume movement after fall ignored: command unit {CommandUnit} does not match movement state's selected unit {StateUnit}",
-                unitId,
-                state._selectedUnit.Id);
+            state.Game?.Logger.LogResumeMovementAfterFallUnitMismatch(unitId, state._selectedUnit.Id);
             return false;
         }
 
         if (state._selectedUnit.Owner?.Id == activePlayerId) return true;
 
-        state.Game?.Logger.LogWarning(
-            "Resume movement after fall ignored: unit {UnitId} is not controlled by the active player", unitId);
+        state.Game?.Logger.LogResumeMovementAfterFallUnitNotControlled(unitId);
         return false;
     }
 
     public void CompleteMovementAfterFailedFall(Mech mech, Guid unitId)
     {
-        state.Game?.Logger.LogWarning(
-            "Resume movement after fall: unit {UnitId} is {Reason}, ending movement",
+        state.Game?.Logger.LogResumeMovementAfterFallEndingMovement(
             unitId,
             mech.Position == null ? "not positioned" : "not prone");
 
@@ -124,9 +118,7 @@ public static class MovementRecoveryExtensions
         if (state._selectedPath != null)
             return MovementPath.CreateSingleSegmentPath(mech.Position!, state._selectedPath.MovementType);
 
-        state.Game?.Logger.LogWarning(
-            "Resume movement after fall: no movement path in state for unit {UnitId}, rebuilding at current position",
-            unitId);
+        state.Game?.Logger.LogResumeMovementAfterFallNoPath(unitId);
 
         return MovementPath.CreateSingleSegmentPath(
             mech.Position!,
@@ -188,7 +180,7 @@ public static class MovementRecoveryExtensions
                 var stoodUpUnit = state._viewModel.Units.FirstOrDefault(u => u.Id == unitId);
                 if (stoodUpUnit == null)
                 {
-                    state.Game?.Logger.LogWarning("state.ResumeMovementAfterStandup: unit {UnitId} not found among alive units", unitId);
+                    state.Game?.Logger.LogResumeMovementAfterStandupUnitNotFound(unitId);
                     return;
                 }
                 state._selectedUnit = stoodUpUnit;
@@ -224,8 +216,7 @@ public static class MovementRecoveryExtensions
 
             if (state._selectedUnit is not Mech mech)
             {
-                state.Game?.Logger.LogWarning(
-                    "Resume movement after fall ignored: unit {UnitId} is not a mech", unitId);
+                state.Game?.Logger.LogResumeMovementAfterFallNotMech(unitId);
                 return;
             }
 

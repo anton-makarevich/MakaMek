@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Bots.Data;
+using Sanet.MakaMek.Bots.Models.Logger;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Phases;
@@ -51,9 +52,7 @@ public class PhysicalAttackEngine : IBotDecisionEngine
             var accepted = await _clientGame.DeclarePhysicalAttack(command);
             if (accepted) continue;
 
-            _clientGame.Logger.LogWarning(
-                "Bot {PlayerName} could not declare the end of the physical attack phase for unit {UnitId}",
-                player.Name, unit.Id);
+            _clientGame.Logger.LogBotCouldNotDeclarePhysicalAttackPhaseEnd(player.Name, unit.Id);
             return;
         }
     }

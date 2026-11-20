@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Core.Data.Game.Players;
+using Sanet.MakaMek.Presentation.Models.Logger;
 using Sanet.MakaMek.Services;
 
 namespace Sanet.MakaMek.Presentation.ViewModels.Setup;
@@ -38,7 +39,7 @@ public sealed class DefaultPlayerStore
         }
         catch (Exception ex)
         {
-            gameLogger?.LogError(ex, "Error loading default player from cache");
+            gameLogger?.LogErrorLoadingDefaultPlayerFromCache(ex);
         }
 
         var defaultPlayerData = PlayerData.CreateDefault() with { Tint = PlayerTint.Generate() };
@@ -59,7 +60,7 @@ public sealed class DefaultPlayerStore
         }
         catch (Exception ex)
         {
-            gameLogger?.LogError(ex, "Error saving default player to cache");
+            gameLogger?.LogErrorSavingDefaultPlayerToCache(ex);
         }
     }
 }

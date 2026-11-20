@@ -5,6 +5,7 @@ using AsyncAwaitBestPractices.MVVM;
 using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Assets.Configuration;
 using Sanet.Localization;
+using Sanet.MakaMek.Presentation.Models.Logger;
 using Sanet.MakaMek.Presentation.ViewModels.Settings;
 using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 using Sanet.MVVM.Core.ViewModels;
@@ -160,7 +161,7 @@ public class SettingsViewModel : BaseViewModel
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to clear cache");
+            _logger.LogFailedToClearCache(ex);
             DataStatus = string.Empty;
         }
         finally
@@ -247,7 +248,7 @@ public class SettingsViewModel : BaseViewModel
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to reload asset providers");
+            _logger.LogFailedToReloadAssetProviders(ex);
         }
         finally
         {

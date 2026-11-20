@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Core.Services;
+using Sanet.MakaMek.Presentation.Models.Logger;
 using Sanet.MakaMek.Map.Models;
 
 namespace Sanet.MakaMek.Presentation.ViewModels.Setup;
@@ -79,7 +80,7 @@ public sealed class LobbyMapPreview : IDisposable
         }
         catch (OperationCanceledException)
         {
-            _logger.LogDebug("Map preview generation cancelled - a newer map superseded this preview");
+            _logger.LogMapPreviewGenerationCancelled();
         }
     }
 
