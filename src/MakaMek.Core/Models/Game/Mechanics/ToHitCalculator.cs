@@ -169,7 +169,7 @@ public class ToHitCalculator : IToHitCalculator
         };
     }
 
-    private IReadOnlyList<RollModifier> GetDetailedOtherModifiers(AttackScenario scenario)
+    private List<RollModifier> GetDetailedOtherModifiers(AttackScenario scenario)
     {
         List<RollModifier> modifiers = [];
 
