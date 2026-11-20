@@ -170,7 +170,11 @@ public class StartNewGameViewModel : NewGameViewModel, ISetupNotificationSink, I
 
     public override bool CanPublishCommands => !ConnectionStatus.IsConnectionDegraded;
 
-    public void Dispose() => _controller.Dispose();
+    public void Dispose()
+    {
+        _controller.Dispose();
+        GC.SuppressFinalize(this);
+    }
 
     public override void DetachHandlers()
     {
