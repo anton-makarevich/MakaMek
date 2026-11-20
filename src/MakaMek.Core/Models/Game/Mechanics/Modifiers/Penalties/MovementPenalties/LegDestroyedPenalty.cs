@@ -1,4 +1,5 @@
 ﻿using Sanet.Localization;
+using System.Globalization;
 
 namespace Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Penalties.MovementPenalties;
 
@@ -47,7 +48,10 @@ public record LegDestroyedPenalty : RollModifier
     {
         return DestroyedLegCount switch
         {
-            1 => string.Format(localizationService.GetString("Penalty_LegDestroyed_Single"), Value),
+            1 => string.Format(
+                CultureInfo.InvariantCulture,
+                localizationService.GetString("Penalty_LegDestroyed_Single"),
+                Value),
             2 => localizationService.GetString("Penalty_LegDestroyed_Both"),
             _ => string.Empty
         };

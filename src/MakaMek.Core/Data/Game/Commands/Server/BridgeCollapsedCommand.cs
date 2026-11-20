@@ -1,6 +1,7 @@
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.Localization;
 using Sanet.MakaMek.Map.Data;
+using System.Globalization;
 
 namespace Sanet.MakaMek.Core.Data.Game.Commands.Server;
 
@@ -21,7 +22,7 @@ public record struct BridgeCollapsedCommand : IGameCommand
             .FirstOrDefault(u => u.Id == triggeringUnitId);
         var unitName = unit?.Model ?? triggeringUnitId.ToString();
 
-        return string.Format(localizationService.GetString("Command_BridgeCollapsed"),
+        return string.Format(CultureInfo.InvariantCulture, localizationService.GetString("Command_BridgeCollapsed"),
             unitName, Coordinates, ConstructionFactor, TotalTonnage);
     }
 }

@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game;
@@ -69,6 +70,7 @@ public record struct MechFallCommand : IGameCommand
 
         // Intro line: subject + action/situation summary before any PSR details
         stringBuilder.AppendFormat(
+                        CultureInfo.InvariantCulture,
                         localizationService.GetString("Command_MechFalling_PsrIntro"),
                         unit.Model).AppendLine();
         
@@ -83,12 +85,14 @@ public record struct MechFallCommand : IGameCommand
             return stringBuilder.ToString().TrimEnd();
         // Base message about falling
         stringBuilder.AppendFormat(
+            CultureInfo.InvariantCulture,
             localizationService.GetString("Command_MechFalling_Base"),
             unit.Model);
             
         if (LevelsFallen > 0)
         {
             stringBuilder.AppendFormat(
+                CultureInfo.InvariantCulture,
                 localizationService.GetString("Command_MechFalling_Levels"),
                 LevelsFallen);
         }

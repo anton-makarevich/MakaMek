@@ -1,5 +1,6 @@
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.Localization;
+using System.Globalization;
 
 namespace Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Attack;
 
@@ -19,6 +20,7 @@ public record ShoulderActuatorHitModifier : RollModifier
         var partKey = $"MechPart_{ArmLocation}";
         var partName = localizationService.GetString(partKey);
         return string.Format(
+            CultureInfo.InvariantCulture,
             localizationService.GetString("Modifier_ShoulderActuatorHit"), 
             partName,
             Value

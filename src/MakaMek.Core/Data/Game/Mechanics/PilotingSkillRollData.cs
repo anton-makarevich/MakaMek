@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 using Sanet.MakaMek.Core.Data.Game.Mechanics.PilotingSkillRollContexts;
 using Sanet.Localization;
@@ -48,23 +49,24 @@ public record PilotingSkillRollData
         {
             // Impossible roll case (auto-fail)
             var impossibleTemplate = localizationService.GetString("Command_PilotingSkillRoll_ImpossibleRoll");
-            stringBuilder.AppendFormat(impossibleTemplate, rollTypeName).AppendLine();
+            stringBuilder.AppendFormat(CultureInfo.InvariantCulture, impossibleTemplate, rollTypeName).AppendLine();
         }
         else if (IsSuccessful)
         {
             // Success case
             var successTemplate = localizationService.GetString("Command_PilotingSkillRoll_Success");
-            stringBuilder.AppendFormat(successTemplate, rollTypeName).AppendLine();
+            stringBuilder.AppendFormat(CultureInfo.InvariantCulture, successTemplate, rollTypeName).AppendLine();
         }
         else
         {
             // Failure case
             var failureTemplate = localizationService.GetString("Command_PilotingSkillRoll_Failure");
-            stringBuilder.AppendFormat(failureTemplate, rollTypeName).AppendLine();
+            stringBuilder.AppendFormat(CultureInfo.InvariantCulture, failureTemplate, rollTypeName).AppendLine();
         }
 
         // Add breakdown of modifiers
         stringBuilder.AppendFormat(
+            CultureInfo.InvariantCulture,
             localizationService.GetString("Command_PilotingSkillRoll_BasePilotingSkill"),
             PsrBreakdown.BasePilotingSkill).AppendLine();
 
@@ -80,6 +82,7 @@ public record PilotingSkillRollData
 
         // Add the total target number
         stringBuilder.AppendFormat(
+            CultureInfo.InvariantCulture,
             localizationService.GetString("Command_PilotingSkillRoll_TotalTargetNumber"),
             PsrBreakdown.ModifiedPilotingSkill).AppendLine();
 
@@ -87,6 +90,7 @@ public record PilotingSkillRollData
         if (!PsrBreakdown.IsImpossible)
         {
             stringBuilder.AppendFormat(
+                CultureInfo.InvariantCulture,
                 localizationService.GetString("Command_RollResult"),
                 rollTotal).AppendLine();
         }

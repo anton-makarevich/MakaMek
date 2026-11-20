@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.Localization;
@@ -25,6 +26,7 @@ public record HullBreachCommand : IGameCommand
         var stringBuilder = new StringBuilder();
 
         stringBuilder.AppendFormat(
+            CultureInfo.InvariantCulture,
             localizationService.GetString("Command_HullBreach_Header"),
             target.Model).AppendLine();
 
@@ -35,12 +37,14 @@ public record HullBreachCommand : IGameCommand
             if (breachData.IsAutomatic)
             {
                 stringBuilder.AppendFormat(
+                    CultureInfo.InvariantCulture,
                     localizationService.GetString("Command_HullBreach_Automatic"),
                     localizedLocation).AppendLine();
             }
             else if (breachData.BreachRoll != null)
             {
                 stringBuilder.AppendFormat(
+                    CultureInfo.InvariantCulture,
                     localizationService.GetString("Command_HullBreach_Roll"),
                     localizedLocation,
                     breachData.BreachRoll.Sum()).AppendLine();
@@ -49,6 +53,7 @@ public record HullBreachCommand : IGameCommand
             if (breachData.EngineHitsApplied > 0)
             {
                 stringBuilder.AppendFormat(
+                    CultureInfo.InvariantCulture,
                     localizationService.GetString("Command_HullBreach_EngineDamage"),
                     breachData.EngineHitsApplied).AppendLine();
             }

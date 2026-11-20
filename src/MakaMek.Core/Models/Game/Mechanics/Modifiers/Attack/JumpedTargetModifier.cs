@@ -1,4 +1,5 @@
 using Sanet.Localization;
+using System.Globalization;
 
 namespace Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Attack;
 
@@ -9,5 +10,5 @@ namespace Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Attack;
 public record JumpedTargetModifier : RollModifier
 {
     public override string Render(ILocalizationService localizationService) =>
-        string.Format(localizationService.GetString("Modifier_JumpedTarget"), Value);
+        string.Format(CultureInfo.InvariantCulture, localizationService.GetString("Modifier_JumpedTarget"), Value);
 }

@@ -1,6 +1,7 @@
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.Localization;
 using Sanet.MakaMek.Core.Data.Game.Mechanics.PhysicalAttacks;
+using System.Globalization;
 
 namespace Sanet.MakaMek.Core.Data.Game.Commands.Client;
 
@@ -24,7 +25,7 @@ public record struct PhysicalAttackCommand : IClientUnitCommand
         if (Declaration is not { } declaration)
         {
             var noAttackTemplate = localizationService.GetString("Command_PhysicalAttack_NoAttack");
-            return string.Format(noAttackTemplate, player.Name, unit.Model);
+            return string.Format(CultureInfo.InvariantCulture, noAttackTemplate, player.Name, unit.Model);
         }
 
         var target = game.Players
@@ -33,7 +34,7 @@ public record struct PhysicalAttackCommand : IClientUnitCommand
         if (target == null) return string.Empty;
 
         var localizedTemplate = localizationService.GetString("Command_PhysicalAttack");
-        return string.Format(localizedTemplate,
+        return string.Format(CultureInfo.InvariantCulture, localizedTemplate,
             player.Name,
             unit.Model,
             target.Model,

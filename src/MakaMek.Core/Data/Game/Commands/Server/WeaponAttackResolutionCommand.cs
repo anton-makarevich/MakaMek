@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Models.Game;
@@ -68,6 +69,7 @@ public record struct WeaponAttackResolutionCommand : IGameCommand
             "Command_WeaponAttackResolution_Hit");
 
         stringBuilder.AppendFormat(
+            CultureInfo.InvariantCulture,
             localizationService.GetString("Command_WeaponAttackResolution_Direction"),
             localizationService.GetString($"AttackDirection_{ResolutionData.AttackDirection}")).AppendLine();
 
@@ -83,6 +85,7 @@ public record struct WeaponAttackResolutionCommand : IGameCommand
         if (ResolutionData.UnitDestroyed)
         {
             stringBuilder.AppendFormat(
+                CultureInfo.InvariantCulture,
                 localizationService.GetString("Command_WeaponAttackResolution_UnitDestroyed"),
                 target.Model).AppendLine();
         }
@@ -109,6 +112,7 @@ public record struct WeaponAttackResolutionCommand : IGameCommand
     {
         var rollTotal = ResolutionData.AttackRoll.Sum(d => d.Result);
         stringBuilder.AppendFormat(
+            CultureInfo.InvariantCulture,
             localizationService.GetString(templateKey),
             player.Name,
             attacker.Model,
@@ -124,6 +128,7 @@ public record struct WeaponAttackResolutionCommand : IGameCommand
         ILocalizationService localizationService,
         AttackHitLocationsData hitLocationsData) =>
         stringBuilder.AppendFormat(
+            CultureInfo.InvariantCulture,
             localizationService.GetString("Command_WeaponAttackResolution_TotalDamage"),
             hitLocationsData.TotalDamage).AppendLine();
 
@@ -137,12 +142,14 @@ public record struct WeaponAttackResolutionCommand : IGameCommand
 
         var clusterRollTotal = hitLocationsData.ClusterRoll.Sum(d => d.Result);
         stringBuilder.AppendFormat(
+            CultureInfo.InvariantCulture,
             localizationService.GetString("Command_WeaponAttackResolution_ClusterRoll"),
             clusterRollTotal).AppendLine();
 
         if (hitLocationsData.MissilesHit <= 0) return;
 
         stringBuilder.AppendFormat(
+            CultureInfo.InvariantCulture,
             localizationService.GetString("Command_WeaponAttackResolution_MissilesHit"),
             hitLocationsData.MissilesHit).AppendLine();
     }
@@ -168,6 +175,7 @@ public record struct WeaponAttackResolutionCommand : IGameCommand
         foreach (var location in destroyedParts)
         {
             stringBuilder.AppendFormat(
+                CultureInfo.InvariantCulture,
                 localizationService.GetString("Command_WeaponAttackResolution_DestroyedPart"),
                 localizationService.GetString($"MechPart_{location}")).AppendLine();
         }

@@ -1,6 +1,7 @@
 ﻿using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.Localization;
+using System.Globalization;
 
 namespace Sanet.MakaMek.Core.Data.Game.Commands.Client;
 
@@ -18,7 +19,7 @@ public record struct JoinGameCommand: IClientCommand
     public string Render(ILocalizationService localizationService, IGame game)
     {
         var localizedTemplate = localizationService.GetString("Command_JoinGame"); 
-        return string.Format(localizedTemplate, PlayerName, Units.Count);
+        return string.Format(CultureInfo.InvariantCulture, localizedTemplate, PlayerName, Units.Count);
     }
 
     public Guid PlayerId { get; init; }

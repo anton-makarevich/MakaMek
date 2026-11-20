@@ -1,5 +1,6 @@
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.Localization;
+using System.Globalization;
 
 namespace Sanet.MakaMek.Core.Data.Game.Commands.Server;
 
@@ -12,6 +13,6 @@ public record struct TurnIncrementedCommand : IGameCommand
     public string Render(ILocalizationService localizationService, IGame game)
     {
         var localizedTemplate = localizationService.GetString("Command_TurnIncremented");
-        return string.Format(localizedTemplate, TurnNumber);
+        return string.Format(CultureInfo.InvariantCulture, localizedTemplate, TurnNumber);
     }
 }

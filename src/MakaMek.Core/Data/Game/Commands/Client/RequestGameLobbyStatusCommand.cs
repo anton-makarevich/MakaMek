@@ -1,5 +1,6 @@
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.Localization;
+using System.Globalization;
 
 namespace Sanet.MakaMek.Core.Data.Game.Commands.Client;
 
@@ -14,7 +15,7 @@ public record struct RequestGameLobbyStatusCommand : IClientCommand
     public string Render(ILocalizationService localizationService, IGame game)
     {
         var localizedTemplate = localizationService.GetString("Command_RequestGameLobbyStatus");
-        return string.Format(localizedTemplate, GameOriginId);
+        return string.Format(CultureInfo.InvariantCulture, localizedTemplate, GameOriginId);
     }
 
     public Guid PlayerId { get; init; }

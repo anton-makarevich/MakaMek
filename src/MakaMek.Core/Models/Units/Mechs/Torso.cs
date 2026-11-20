@@ -2,6 +2,7 @@ using Sanet.MakaMek.Core.Data.Game;
 using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Events;
 using Sanet.MakaMek.Map.Models;
+using System.Globalization;
 
 namespace Sanet.MakaMek.Core.Models.Units.Mechs;
 
@@ -45,11 +46,11 @@ public abstract class Torso : UnitPart
         if (CurrentRearArmor >= remainingDamage)
         {
             CurrentRearArmor -= remainingDamage;
-            Unit?.AddEvent(new UiEvent(UiEventType.ArmorDamage, Name, remainingDamage.ToString()));
+            Unit?.AddEvent(new UiEvent(UiEventType.ArmorDamage, Name, remainingDamage.ToString(CultureInfo.InvariantCulture)));
             return 0;
         }
         remainingDamage -= CurrentRearArmor;
-        Unit?.AddEvent(new UiEvent(UiEventType.ArmorDamage, Name, CurrentRearArmor.ToString()));
+        Unit?.AddEvent(new UiEvent(UiEventType.ArmorDamage, Name, CurrentRearArmor.ToString(CultureInfo.InvariantCulture)));
         CurrentRearArmor = 0;
         return remainingDamage;
     }

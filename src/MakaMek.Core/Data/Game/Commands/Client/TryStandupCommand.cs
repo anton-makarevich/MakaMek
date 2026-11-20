@@ -1,6 +1,7 @@
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.Localization;
 using Sanet.MakaMek.Map.Models;
+using System.Globalization;
 
 namespace Sanet.MakaMek.Core.Data.Game.Commands.Client;
 
@@ -29,6 +30,6 @@ public record struct TryStandupCommand : IClientUnitCommand
         if (unit is null) return string.Empty;
         
         var localizedTemplate = localizationService.GetString("Command_TryStandup");
-        return string.Format(localizedTemplate, player?.Name, unit.Model);
+        return string.Format(CultureInfo.InvariantCulture, localizedTemplate, player?.Name, unit.Model);
     }
 }

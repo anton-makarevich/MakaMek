@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.Globalization;
+using System.Text;
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.Localization;
@@ -28,6 +29,7 @@ public record struct MechSkidCommand : IGameCommand
         var stringBuilder = new StringBuilder();
 
         stringBuilder.AppendFormat(
+            CultureInfo.InvariantCulture,
             localizationService.GetString("Command_MechSkid_Base"),
             unit.Model,
             command.SkidDistance);

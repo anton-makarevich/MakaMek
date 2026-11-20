@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.RegularExpressions;
 using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Models.Game.Rules;
@@ -95,7 +96,7 @@ internal sealed partial class MtfLocationDataParser
 
         var locationText = match.Groups[1].Value;
         var location = MtfComponentMapping.ParseLocation(locationText);
-        var value = int.Parse(match.Groups[2].Value);
+        var value = int.Parse(match.Groups[2].Value, CultureInfo.InvariantCulture);
 
         if (!_armorValues.ContainsKey(location))
             _armorValues[location] = new ArmorLocation();
@@ -219,7 +220,7 @@ internal sealed partial class MtfLocationDataParser
         if (component == MakaMekComponent.Engine
             && mechData.TryGetValue("engine-rating", out var ratingStr)
             && mechData.TryGetValue("engine-type", out var typeStr)
-            && int.TryParse(ratingStr, out var rating)
+            && int.TryParse(ratingStr, CultureInfo.InvariantCulture, out var rating)
             && Enum.TryParse<EngineType>(typeStr, true, out var engineType))
         {
             return new EngineStateData(engineType, rating);

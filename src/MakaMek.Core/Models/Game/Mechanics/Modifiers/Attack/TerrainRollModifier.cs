@@ -1,6 +1,7 @@
 using Sanet.Localization;
 using Sanet.MakaMek.Map.Models;
 using Sanet.MakaMek.Map.Models.Terrains;
+using System.Globalization;
 
 namespace Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Attack;
 
@@ -10,6 +11,6 @@ public record TerrainRollModifier : RollModifier
     public required MakaMekTerrains TerrainId { get; init; }
 
     public override string Render(ILocalizationService localizationService) =>
-        string.Format(localizationService.GetString("Modifier_Terrain"), 
+        string.Format(CultureInfo.InvariantCulture, localizationService.GetString("Modifier_Terrain"), 
             TerrainId, Location, Value);
 }

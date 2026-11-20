@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.Localization;
@@ -29,6 +30,7 @@ public record struct HeatUpdatedCommand : IGameCommand
         
         // Unit name and previous heat
         stringBuilder.AppendFormat(
+            CultureInfo.InvariantCulture,
             localizationService.GetString("Command_HeatUpdated_Header"),
             unit.Model,
             PreviousHeat).AppendLine();
@@ -40,6 +42,7 @@ public record struct HeatUpdatedCommand : IGameCommand
         foreach (var source in HeatData.MovementHeatSources)
         {
             stringBuilder.AppendFormat(
+                CultureInfo.InvariantCulture,
                 localizationService.GetString("Command_HeatUpdated_MovementHeat"),
                 source.MovementType,
                 source.MovementPointsSpent,
@@ -50,6 +53,7 @@ public record struct HeatUpdatedCommand : IGameCommand
         foreach (var source in HeatData.WeaponHeatSources)
         {
             stringBuilder.AppendFormat(
+                CultureInfo.InvariantCulture,
                 localizationService.GetString("Command_HeatUpdated_WeaponHeat"),
                 source.WeaponName,
                 source.HeatPoints).AppendLine();
@@ -59,6 +63,7 @@ public record struct HeatUpdatedCommand : IGameCommand
         foreach (var source in HeatData.ExternalHeatSources)
         {
             stringBuilder.AppendFormat(
+                CultureInfo.InvariantCulture,
                 localizationService.GetString("Command_HeatUpdated_ExternalHeat"),
                 source.WeaponName,
                 source.HeatPoints).AppendLine();
@@ -68,17 +73,22 @@ public record struct HeatUpdatedCommand : IGameCommand
         if (HeatData.ExternalHeatPoints < externalHeatTotal)
         {
             var lostHeat = externalHeatTotal - HeatData.ExternalHeatPoints;
-            stringBuilder.AppendFormat(localizationService.GetString("Command_HeatUpdated_ExternalHeat_Lost"), lostHeat)
+            stringBuilder.AppendFormat(
+                CultureInfo.InvariantCulture,
+                localizationService.GetString("Command_HeatUpdated_ExternalHeat_Lost"),
+                lostHeat)
                 .AppendLine();
         }
 
         // Total heat generated
         stringBuilder.AppendFormat(
+            CultureInfo.InvariantCulture,
             localizationService.GetString("Command_HeatUpdated_TotalGenerated"),
             HeatData.TotalHeatPoints).AppendLine();
             
         // Heat dissipation
         stringBuilder.AppendFormat(
+            CultureInfo.InvariantCulture,
             localizationService.GetString("Command_HeatUpdated_Dissipation"),
             HeatData.DissipationData.HeatSinks,
             HeatData.DissipationData.EngineHeatSinks,
@@ -87,6 +97,7 @@ public record struct HeatUpdatedCommand : IGameCommand
         if (HeatData.DissipationData.WaterDissipationBonus > 0)
         {
             stringBuilder.AppendFormat(
+                CultureInfo.InvariantCulture,
                 localizationService.GetString("Command_HeatUpdated_WaterDissipation"),
                 HeatData.DissipationData.WaterDissipationBonus).AppendLine();
         }

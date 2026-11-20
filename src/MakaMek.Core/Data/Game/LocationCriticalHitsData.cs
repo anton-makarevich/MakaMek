@@ -1,4 +1,5 @@
 using Sanet.MakaMek.Core.Models.Units;
+using System.Globalization;
 using System.Text;
 using Sanet.Localization;
 
@@ -28,6 +29,7 @@ public record LocationCriticalHitsData(
 
         // Show location header
         stringBuilder.AppendFormat(
+                CultureInfo.InvariantCulture,
                 localizationService.GetString("Command_CriticalHitsResolution_Location"),
                 localizedLocation).AppendLine();
 
@@ -35,6 +37,7 @@ public record LocationCriticalHitsData(
         {
             // Show critical hit roll
             stringBuilder.AppendFormat(
+                CultureInfo.InvariantCulture,
                 localizationService.GetString("Command_CriticalHitsResolution_CritRoll"),
                 Roll.Sum()).AppendLine();
 
@@ -42,6 +45,7 @@ public record LocationCriticalHitsData(
             if (IsBlownOff)
             {
                 stringBuilder.AppendFormat(
+                    CultureInfo.InvariantCulture,
                     localizationService.GetString("Command_CriticalHitsResolution_BlownOff"),
                     localizedLocation).AppendLine();
                 return stringBuilder.ToString().TrimEnd();
@@ -49,6 +53,7 @@ public record LocationCriticalHitsData(
 
             // Show the number of critical hits
             stringBuilder.AppendFormat(
+                CultureInfo.InvariantCulture,
                 localizationService.GetString("Command_CriticalHitsResolution_NumCrits"),
                 NumCriticalHits).AppendLine();
         }
@@ -64,6 +69,7 @@ public record LocationCriticalHitsData(
             if (component == null || component.ComponentType != componentHit.Type) continue;
 
             stringBuilder.AppendFormat(
+                CultureInfo.InvariantCulture,
                 localizationService.GetString("Command_CriticalHitsResolution_CriticalHit"),
                 componentHit.Slot + 1,
                 component.Name).AppendLine();
@@ -71,6 +77,7 @@ public record LocationCriticalHitsData(
             var explosionDamage = componentHit.ExplosionDamage;
             if (explosionDamage <= 0) continue;
             stringBuilder.AppendFormat(
+                CultureInfo.InvariantCulture,
                 localizationService.GetString("Command_CriticalHitsResolution_Explosion"),
                 component.Name,
                 explosionDamage).AppendLine();
@@ -115,19 +122,24 @@ public record LocationCriticalHitsData(
         {
             key += "_ArmorAndStructure";
             template = localizationService.GetString(key);
-            return string.Format(template, localizedLocation, damageData.ArmorDamage, damageData.StructureDamage);
+            return string.Format(
+                CultureInfo.InvariantCulture,
+                template,
+                localizedLocation,
+                damageData.ArmorDamage,
+                damageData.StructureDamage);
         }
 
         if (hasArmor)
         {
             key += "_ArmorOnly";
             template = localizationService.GetString(key);
-            return string.Format(template, localizedLocation, damageData.ArmorDamage);
+            return string.Format(CultureInfo.InvariantCulture, template, localizedLocation, damageData.ArmorDamage);
         }
 
         // hasStructure must be true
         key += "_StructureOnly";
         template = localizationService.GetString(key);
-        return string.Format(template, localizedLocation, damageData.StructureDamage);
+        return string.Format(CultureInfo.InvariantCulture, template, localizedLocation, damageData.StructureDamage);
     }
 };

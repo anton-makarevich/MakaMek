@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.Globalization;
+using System.Text;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.Localization;
@@ -58,6 +59,7 @@ public record CriticalHitsResolutionCommand : IGameCommand
 
         // Add a header message
         stringBuilder.AppendFormat(
+            CultureInfo.InvariantCulture,
             localizationService.GetString("Command_CriticalHitsResolution_Header"),
             target.Model).AppendLine();
 
@@ -72,6 +74,7 @@ public record CriticalHitsResolutionCommand : IGameCommand
             foreach (var location in DestroyedParts)
             {
                 stringBuilder.AppendFormat(
+                    CultureInfo.InvariantCulture,
                     localizationService.GetString("Command_WeaponAttackResolution_DestroyedPart"),
                     localizationService.GetString($"MechPart_{location}")).AppendLine();
             }
@@ -80,6 +83,7 @@ public record CriticalHitsResolutionCommand : IGameCommand
         if (UnitDestroyed)
         {
             stringBuilder.AppendFormat(
+                CultureInfo.InvariantCulture,
                 localizationService.GetString("Command_WeaponAttackResolution_UnitDestroyed"),
                 target.Model).AppendLine();
         }

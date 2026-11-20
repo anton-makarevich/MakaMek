@@ -1,4 +1,5 @@
 ﻿using Sanet.Localization;
+using System.Globalization;
 
 namespace Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.PilotingSkill;
 
@@ -12,6 +13,9 @@ public record UpperLegActuatorHitModifier : RollModifier
     
     public override string Render(ILocalizationService localizationService)
     {
-        return string.Format(localizationService.GetString("Modifier_UpperLegActuatorHit"), Value);
+        return string.Format(
+            CultureInfo.InvariantCulture,
+            localizationService.GetString("Modifier_UpperLegActuatorHit"),
+            Value);
     }
 }

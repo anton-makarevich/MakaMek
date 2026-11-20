@@ -1,5 +1,6 @@
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.Localization;
+using System.Globalization;
 
 namespace Sanet.MakaMek.Core.Data.Game.Commands.Client;
 
@@ -17,7 +18,7 @@ public record struct PlayerLeftCommand : IClientCommand
         var player = game.Players.FirstOrDefault(p => p.Id == playerId);
         var playerName = player?.Name ?? "Unknown";
         var localizedTemplate = localizationService.GetString("Command_PlayerLeft");
-        return string.Format(localizedTemplate, playerName);
+        return string.Format(CultureInfo.InvariantCulture, localizedTemplate, playerName);
     }
 }
 

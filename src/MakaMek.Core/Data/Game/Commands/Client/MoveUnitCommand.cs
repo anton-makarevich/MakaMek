@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 using Sanet.MakaMek.Core.Data.Game.Mechanics.PhysicalAttacks;
 using Sanet.MakaMek.Core.Models.Game;
@@ -69,7 +70,7 @@ public record struct MoveUnitCommand: IClientUnitCommand
             sb.Append(':');
             sb.Append(declaration.TargetId);
             sb.Append(':');
-            sb.Append(declaration.HexesMoved?.ToString() ?? string.Empty);
+            sb.Append(declaration.HexesMoved?.ToString(CultureInfo.InvariantCulture) ?? string.Empty);
         }
 
         return sb.ToString();
@@ -87,7 +88,7 @@ public record struct MoveUnitCommand: IClientUnitCommand
             : unit.Position.ToData();
         var facingHex = new HexCoordinates(position.Coordinates).GetNeighbour((HexDirection)position.Facing);
         var stringBuilder = new StringBuilder();
-        stringBuilder.AppendFormat(localizedTemplate,
+        stringBuilder.AppendFormat(CultureInfo.InvariantCulture, localizedTemplate,
             player?.Name,
             unit.Model,
             new HexCoordinates(position.Coordinates),
@@ -102,6 +103,7 @@ public record struct MoveUnitCommand: IClientUnitCommand
         {
             stringBuilder.AppendLine();
             stringBuilder.AppendFormat(
+                CultureInfo.InvariantCulture,
                 localizationService.GetString("Command_MoveUnit_Declaration"),
                 player?.Name,
                 unit.Model,

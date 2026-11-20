@@ -2,6 +2,7 @@ using Sanet.MakaMek.Core.Data.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.Localization;
 using Sanet.MakaMek.Map.Data;
+using System.Globalization;
 
 namespace Sanet.MakaMek.Core.Data.Game.Commands.Server;
 
@@ -29,7 +30,7 @@ public record struct DisplaceUnitCommand : IGameCommand
             .FirstOrDefault(u => u.Id == command.UnitId);
         var unitName = unit?.Model ?? command.UnitId.ToString();
 
-        return string.Format(localizationService.GetString("Command_DisplaceUnit"),
+        return string.Format(CultureInfo.InvariantCulture, localizationService.GetString("Command_DisplaceUnit"),
             unitName, FromCoordinates, ToCoordinates);
     }
 }

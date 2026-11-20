@@ -1,5 +1,6 @@
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.Localization;
+using System.Globalization;
 
 namespace Sanet.MakaMek.Core.Data.Game.Commands.Client;
 
@@ -16,6 +17,6 @@ public record struct TurnEndedCommand : IClientCommand
         var playerId = PlayerId;
         var player = game.Players.FirstOrDefault(p => p.Id == playerId);
         var localizedTemplate = localizationService.GetString("Command_TurnEnded");
-        return string.Format(localizedTemplate, player?.Name);
+        return string.Format(CultureInfo.InvariantCulture, localizedTemplate, player?.Name);
     }
 }

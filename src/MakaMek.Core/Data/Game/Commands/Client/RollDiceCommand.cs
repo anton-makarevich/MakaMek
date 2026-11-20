@@ -1,5 +1,6 @@
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.Localization;
+using System.Globalization;
 
 namespace Sanet.MakaMek.Core.Data.Game.Commands.Client;
 
@@ -17,7 +18,7 @@ public record struct RollDiceCommand : IClientCommand
         if (player == null) return string.Empty;
         var localizedTemplate = localizationService.GetString("Command_RollDice");
 
-        return string.Format(localizedTemplate, player.Name);
+        return string.Format(CultureInfo.InvariantCulture, localizedTemplate, player.Name);
     }
 
     public Guid PlayerId { get; init; }

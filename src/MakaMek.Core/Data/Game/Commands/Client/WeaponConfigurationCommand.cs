@@ -2,6 +2,7 @@ using Sanet.MakaMek.Core.Data.Units.Components;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.Localization;
 using Sanet.MakaMek.Map.Models;
+using System.Globalization;
 
 namespace Sanet.MakaMek.Core.Data.Game.Commands.Client;
 
@@ -26,11 +27,13 @@ public record struct WeaponConfigurationCommand : IClientUnitCommand
         return Configuration.Type switch
         {
             WeaponConfigurationType.TorsoRotation => string.Format(
+                CultureInfo.InvariantCulture,
                 localizationService.GetString("Command_WeaponConfiguration_TorsoRotation"),
                 player.Name,
                 unit.Model,
                 unit.Position!.Coordinates.GetNeighbour((HexDirection)Configuration.Value)),
             WeaponConfigurationType.ArmsFlip => string.Format(
+                CultureInfo.InvariantCulture,
                 localizationService.GetString("Command_WeaponConfiguration_ArmsFlip"),
                 player.Name,
                 unit.Model,

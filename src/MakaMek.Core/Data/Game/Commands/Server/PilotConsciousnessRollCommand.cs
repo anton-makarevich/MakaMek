@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.Globalization;
+using System.Text;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.Localization;
 
@@ -35,9 +36,15 @@ public record struct PilotConsciousnessRollCommand : IGameCommand
         var total = DiceResults.Sum();
 
         var template = localizationService.GetString(resultKey);
-        stringBuilder.AppendFormat(template, pilot.Name, rollType).AppendLine();
-        stringBuilder.AppendFormat(localizationService.GetString("Command_PilotConsciousnessRoll_ConsciousnessNumber"), ConsciousnessNumber).AppendLine();
-        stringBuilder.AppendFormat(localizationService.GetString("Command_RollResult"), total).AppendLine();
+        stringBuilder.AppendFormat(CultureInfo.InvariantCulture, template, pilot.Name, rollType).AppendLine();
+        stringBuilder.AppendFormat(
+            CultureInfo.InvariantCulture,
+            localizationService.GetString("Command_PilotConsciousnessRoll_ConsciousnessNumber"),
+            ConsciousnessNumber).AppendLine();
+        stringBuilder.AppendFormat(
+            CultureInfo.InvariantCulture,
+            localizationService.GetString("Command_RollResult"),
+            total).AppendLine();
         return stringBuilder.ToString().TrimEnd();
     }
 }

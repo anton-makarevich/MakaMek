@@ -2,6 +2,7 @@ using Sanet.MakaMek.Core.Data.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.Localization;
 using Sanet.MakaMek.Map.Models;
+using System.Globalization;
 
 namespace Sanet.MakaMek.Core.Data.Game.Commands.Server;
 
@@ -43,6 +44,10 @@ public record struct MechStandUpCommand : IGameCommand
         if (unit is null) return string.Empty;
         
         var localizedTemplate = localizationService.GetString("Command_MechStandup");
-        return string.Format(localizedTemplate, unit.Model, PilotingSkillRoll.Render(localizationService));
+        return string.Format(
+            CultureInfo.InvariantCulture,
+            localizedTemplate,
+            unit.Model,
+            PilotingSkillRoll.Render(localizationService));
     }
 }

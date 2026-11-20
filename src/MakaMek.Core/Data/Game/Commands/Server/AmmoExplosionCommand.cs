@@ -1,4 +1,5 @@
 ﻿using Sanet.MakaMek.Core.Models.Game;
+using System.Globalization;
 using System.Text;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.Localization;
@@ -71,7 +72,7 @@ public record struct AmmoExplosionCommand : IGameCommand
         {
             // Explosion avoided
             var successTemplate = localizationService.GetString("Command_AmmoExplosion_Avoided");
-            stringBuilder.AppendFormat(successTemplate, unit.Model).AppendLine();
+            stringBuilder.AppendFormat(CultureInfo.InvariantCulture, successTemplate, unit.Model).AppendLine();
 
             // Add roll details
         }
@@ -79,12 +80,13 @@ public record struct AmmoExplosionCommand : IGameCommand
         {
             // Explosion occurred due to a failed roll
             var failureTemplate = localizationService.GetString("Command_AmmoExplosion_Failed");
-            stringBuilder.AppendFormat(failureTemplate, unit.Model).AppendLine();
+            stringBuilder.AppendFormat(CultureInfo.InvariantCulture, failureTemplate, unit.Model).AppendLine();
 
             // Add roll details
         }
 
         stringBuilder.AppendFormat(
+            CultureInfo.InvariantCulture,
             localizationService.GetString("Command_AmmoExplosion_RollDetails"),
             AvoidExplosionRoll.HeatLevel,
             rollTotal,
@@ -106,6 +108,7 @@ public record struct AmmoExplosionCommand : IGameCommand
             foreach (var location in DestroyedParts)
             {
                 stringBuilder.AppendFormat(
+                    CultureInfo.InvariantCulture,
                     localizationService.GetString("Command_WeaponAttackResolution_DestroyedPart"),
                     localizationService.GetString($"MechPart_{location}")).AppendLine();
             }
@@ -114,6 +117,7 @@ public record struct AmmoExplosionCommand : IGameCommand
         if (UnitDestroyed)
         {
             stringBuilder.AppendFormat(
+                CultureInfo.InvariantCulture,
                 localizationService.GetString("Command_WeaponAttackResolution_UnitDestroyed"),
                 unit.Model).AppendLine();
         }

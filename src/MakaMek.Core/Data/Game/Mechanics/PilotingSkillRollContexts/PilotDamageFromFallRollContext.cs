@@ -1,4 +1,5 @@
 using Sanet.Localization;
+using System.Globalization;
 
 namespace Sanet.MakaMek.Core.Data.Game.Mechanics.PilotingSkillRollContexts;
 
@@ -9,6 +10,6 @@ public record PilotDamageFromFallRollContext(int LevelsFallen) : PilotingSkillRo
 {
     /// <inheritdoc />
     public override string Render(ILocalizationService localizationService)
-        => string.Format(localizationService.GetString("PilotingSkillRollType_PilotDamageFromFall_WithLevels"),
+        => string.Format(CultureInfo.InvariantCulture, localizationService.GetString("PilotingSkillRollType_PilotDamageFromFall_WithLevels"),
             base.Render(localizationService), LevelsFallen);
 }

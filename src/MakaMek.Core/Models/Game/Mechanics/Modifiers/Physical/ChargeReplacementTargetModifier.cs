@@ -1,4 +1,5 @@
 using Sanet.Localization;
+using System.Globalization;
 
 namespace Sanet.MakaMek.Core.Models.Game.Mechanics.Modifiers.Physical;
 
@@ -11,5 +12,8 @@ public record ChargeReplacementTargetModifier : RollModifier
     public const int DefaultValue = 1;
 
     public override string Render(ILocalizationService localizationService) =>
-        string.Format(localizationService.GetString("Modifier_ChargeReplacementTarget"), Value);
+        string.Format(
+            CultureInfo.InvariantCulture,
+            localizationService.GetString("Modifier_ChargeReplacementTarget"),
+            Value);
 }

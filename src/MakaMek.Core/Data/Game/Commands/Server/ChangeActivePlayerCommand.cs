@@ -1,5 +1,6 @@
 ﻿using Sanet.MakaMek.Core.Models.Game;
 using Sanet.Localization;
+using System.Globalization;
 
 namespace Sanet.MakaMek.Core.Data.Game.Commands.Server;
 
@@ -20,6 +21,6 @@ public record struct ChangeActivePlayerCommand : IGameCommand
             : "Command_ChangeActivePlayer";
         var localizedTemplate = localizationService.GetString(localizationKey); 
         
-        return string.Format(localizedTemplate, player.Name, UnitsToPlay);
+        return string.Format(CultureInfo.InvariantCulture, localizedTemplate, player.Name, UnitsToPlay);
     }
 }
