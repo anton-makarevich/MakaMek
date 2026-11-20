@@ -8,7 +8,7 @@
              x:Class="Sanet.MakaMek.Avalonia.Controls.UnitBasicInfoPanel"
              mc:Ignorable="d">
     <StackPanel Orientation="Horizontal" Spacing="5">
-        <TextBlock Text="{Binding Class}" VerticalAlignment="Center"/>
+        <TextBlock Text="{Binding UnitClass}" VerticalAlignment="Center"/>
         <TextBlock Text="{Binding Tonnage}" VerticalAlignment="Center"/>
         <TextBlock Text="{extensions:Localize 'UnitBasicInfo_TurnIndicator'}" VerticalAlignment="Center"/>
         <Border Background="{Binding Owner.Tint, Converter={StaticResource HexColorToBrushConverter}}"

@@ -12,7 +12,7 @@ namespace Sanet.MakaMek.Assets.Configuration;
 /// empty, while the (possibly mutated) set of providers is persisted through
 /// <see cref="IFileCachingService"/>.
 /// </summary>
-public sealed class AssetProviderConfigurationProvider : IAssetProviderConfigurationProvider
+public sealed class AssetProviderConfigurationProvider : IAssetProviderConfigurationProvider, IDisposable
 {
     private const string CacheKey = "AssetProviders";
 
@@ -347,6 +347,17 @@ public sealed class AssetProviderConfigurationProvider : IAssetProviderConfigura
             _logger.LogFailedToSaveAssetProviderConfigurationsToCache(ex);
             throw;
         }
+    }
+
+    /// <summary>
+    /// Disposes the semaphore that serializes configuration mutations. The provider is a DI
+    /// singleton, so the container calls this on shutdown; the injected caching service, logger
+    /// and default provider list are not owned and are left alone.
+    /// </summary>
+    public void Dispose()
+    {
+        _operationGate.Dispose();
+        GC.SuppressFinalize(this);
     }
 
     /// <summary>

@@ -22,7 +22,7 @@ namespace Sanet.MakaMek.Core.Models.Units;
 
 public abstract class Unit : IUnit
 {
-    protected readonly Dictionary<PartLocation, UnitPart> _parts;
+    internal readonly Dictionary<PartLocation, UnitPart> _parts;
     private readonly Queue<UiEvent> _notifications = new();
     private readonly List<UiEvent> _events = [];
 
@@ -139,7 +139,7 @@ public abstract class Unit : IUnit
 
     public bool IsOutOfCommission => IsDestroyed || Pilot?.IsDead == true;
 
-    public WeightClass Class => Tonnage.ToWeightClass();
+    public WeightClass UnitClass => Tonnage.ToWeightClass();
 
     /// <summary>
     /// Gets the unit's height in levels. Used for line of sight calculations.

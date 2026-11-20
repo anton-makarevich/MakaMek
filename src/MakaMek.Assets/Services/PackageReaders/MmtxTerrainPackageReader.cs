@@ -59,7 +59,7 @@ public class MmtxTerrainPackageReader
         return new TerrainPackage(manifest, assets);
     }
 
-    private async Task ExtractImagesFromDirectory(
+    private static async Task ExtractImagesFromDirectory(
         ZipArchive archive,
         string directory,
         TerrainAssetType assetType,
@@ -83,7 +83,7 @@ public class MmtxTerrainPackageReader
         }
     }
 
-    private async Task ExtractEdgeImages(ZipArchive archive, List<TerrainAssetEntry> assets, CancellationToken cancellationToken = default)
+    private static async Task ExtractEdgeImages(ZipArchive archive, List<TerrainAssetEntry> assets, CancellationToken cancellationToken = default)
     {
         const string edgesDirectory = "edges/";
         var edgeEntries = archive.Entries

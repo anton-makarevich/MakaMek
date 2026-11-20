@@ -13,27 +13,29 @@ namespace Sanet.MakaMek.Presentation.UiStates;
 /// Kept outside <see cref="WeaponsAttackState"/> so the state only stores the result and applies one
 /// batched highlight update, and so the geometry can be exercised without a UI state.
 /// </remarks>
-internal sealed class WeaponRangeAnalyzer
+internal static class WeaponRangeAnalyzerExtensions
 {
-    /// <summary>
-    /// Computes the reachable hexes of the supplied weapon candidates together with the highlights
-    /// that visualise them: the hexes whose line of sight is blocked from every mount level and the
-    /// hexes reachable by at least one weapon. A missing map skips the line-of-sight checks and the
-    /// blocking highlights, exactly like the uncached pre-move state.
-    /// </summary>
-    public WeaponRangeAnalysis Analyze(
-        IUnit attacker,
-        IReadOnlyList<WeaponCandidate> weaponCandidates,
-        IEnumerable<IUnit> otherUnits,
-        IBattleMap? map)
+    extension(IUnit attacker)
     {
-        var losResults = ComputeLineOfSightResults(attacker, otherUnits, map, weaponCandidates);
-        var ranges = PopulateWeaponRanges(weaponCandidates, losResults, map);
+        /// <summary>
+        /// Computes the reachable hexes of the supplied weapon candidates together with the highlights
+        /// that visualise them: the hexes whose line of sight is blocked from every mount level and the
+        /// hexes reachable by at least one weapon. A missing map skips the line-of-sight checks and the
+        /// blocking highlights, exactly like the uncached pre-move state.
+        /// </summary>
+        public WeaponRangeAnalysis AnalyzeWeaponRanges(
+            IReadOnlyList<WeaponCandidate> weaponCandidates,
+            IEnumerable<IUnit> otherUnits,
+            IBattleMap? map)
+        {
+            var losResults = ComputeLineOfSightResults(attacker, otherUnits, map, weaponCandidates);
+            var ranges = PopulateWeaponRanges(weaponCandidates, losResults, map);
 
-        return new WeaponRangeAnalysis(
-            ranges,
-            BuildLineOfSightBlockingHighlights(weaponCandidates, losResults, map),
-            BuildReachableHighlights(ranges));
+            return new WeaponRangeAnalysis(
+                ranges,
+                BuildLineOfSightBlockingHighlights(weaponCandidates, losResults, map),
+                BuildReachableHighlights(ranges));
+        }
     }
 
     /// <summary>

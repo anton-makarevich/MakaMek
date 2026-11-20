@@ -28,7 +28,7 @@ using Sanet.MakaMek.Core.Models.Game.Mechanics.PhysicalAttack;
 
 namespace Sanet.MakaMek.Core.Models.Game;
 
-public abstract class BaseGame : IGame
+public abstract class BaseGame : IGame, IDisposable
 {
     public ILogger Logger { get; }
     
@@ -49,6 +49,14 @@ public abstract class BaseGame : IGame
     // Guards the transport subscription so the lifecycle stays balanced: a duplicate subscription
     // would leave a live handler behind after the single unsubscribe performed by Dispose.
     private bool _subscribedToCommands;
+
+    // Guards the owned Rx subjects so a disposal path that runs twice (for example a derived
+    // game disposing explicitly and the DI container disposing it again) stays a no-op.
+    private bool _commandResourcesDisposed;
+
+    // Guards the full disposal sequence; DisposeCommandResources has its own flag because the
+    // derived games (and tests) may release the command subject before the full disposal.
+    private bool _disposed;
 
     public Guid Id { get; }
 
@@ -737,13 +745,44 @@ public abstract class BaseGame : IGame
 
     /// <summary>
     /// Disposes this game's command subject and releases the transport subscription. Called from
-    /// the derived <c>Dispose</c>, so a disposal path can never leave a live subscriber behind.
+    /// <see cref="Dispose()"/>, so a disposal path can never leave a live subscriber behind.
+    /// Idempotent: repeated calls (for example a derived <c>Dispose</c> followed by the base
+    /// implementation) dispose the subject only once.
     /// </summary>
     protected void DisposeCommandResources()
     {
+        if (_commandResourcesDisposed) return;
+        _commandResourcesDisposed = true;
         UnsubscribeFromCommands();
         _commandSubject.OnCompleted();
         _commandSubject.Dispose();
+    }
+
+    /// <summary>
+    /// Releases the resources this game owns. The owned Rx subjects are disposed here so a
+    /// derived game only overrides this to release its own extras and then calls the base
+    /// implementation. Injected collaborators (logger, calculators, command publisher) are not
+    /// owned by the game and are left for the container or the caller that created them.
+    /// </summary>
+    protected virtual void Dispose(bool disposing)
+    {
+        if (!disposing || _disposed) return;
+        _disposed = true;
+
+        DisposeCommandResources();
+        _phaseStepStateSubject.OnCompleted();
+        _phaseStepStateSubject.Dispose();
+        _phaseSubject.OnCompleted();
+        _phaseSubject.Dispose();
+        _turnSubject.OnCompleted();
+        _turnSubject.Dispose();
+    }
+
+    /// <inheritdoc />
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
     }
 
     public abstract void HandleCommand(IGameCommand command);

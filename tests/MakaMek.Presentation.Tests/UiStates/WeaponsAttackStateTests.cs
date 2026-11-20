@@ -165,7 +165,7 @@ public class WeaponsAttackStateTests
     }
 
     private WeaponsAttackState CreateState() =>
-        new(_battleMapViewModel, new WeaponsAttackSelectionPolicy(), new WeaponRangeAnalyzer());
+        new(_battleMapViewModel);
 
     private void AddPlayerUnits(Guid joinCommandIdempotencyKey)
     {
