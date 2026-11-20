@@ -237,7 +237,11 @@ public class JoinGameViewModel : NewGameViewModel, ISetupNotificationSink, IAsyn
 
     public Task Disconnect() => _controller.DisconnectAsync();
 
-    public async ValueTask DisposeAsync() => await _controller.DisposeAsync();
+    public async ValueTask DisposeAsync()
+    {
+        await _controller.DisposeAsync();
+        GC.SuppressFinalize(this);
+    }
 
     // Allow adding the default player before connection, but require connection for additional players
     protected override bool IsConnectedReady => IsConnected;

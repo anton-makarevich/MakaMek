@@ -9,7 +9,7 @@ namespace Sanet.MakaMek.Core.Services;
 /// <summary>
 /// File-system-based caching service for desktop and mobile platforms
 /// </summary>
-public class FileSystemCachingService : IFileCachingService
+public class FileSystemCachingService : IFileCachingService, IDisposable
 {
     private readonly string _cacheDirectory;
     private readonly SemaphoreSlim _semaphore = new(1, 1);
@@ -277,10 +277,12 @@ public class FileSystemCachingService : IFileCachingService
     }
 
     /// <summary>
-    /// Disposes the semaphore
+    /// Disposes the semaphore that guards cache writes. The service is a DI singleton, so the
+    /// container calls this on shutdown; injected loggers are not owned and are left alone.
     /// </summary>
     public void Dispose()
     {
         _semaphore.Dispose();
+        GC.SuppressFinalize(this);
     }
 }

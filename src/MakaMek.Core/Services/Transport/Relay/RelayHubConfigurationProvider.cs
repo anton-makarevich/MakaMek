@@ -13,7 +13,7 @@ namespace Sanet.MakaMek.Core.Services.Transport.Relay;
 /// seeded from <see cref="RelayClientOptions"/> (the environment-variable values), while
 /// user-defined hubs and the active selection are persisted through <see cref="IFileCachingService"/>.
 /// </summary>
-public sealed class RelayHubConfigurationProvider : IRelayHubConfigurationProvider
+public sealed class RelayHubConfigurationProvider : IRelayHubConfigurationProvider, IDisposable
 {
     private const string CacheKey = "HubConfigurations";
     private const string DemoHubId = "demo";
@@ -371,6 +371,17 @@ public sealed class RelayHubConfigurationProvider : IRelayHubConfigurationProvid
             _logger.LogFailedToSaveRelayHubConfigurationsToCache(ex);
             throw;
         }
+    }
+
+    /// <summary>
+    /// Disposes the semaphore that serializes configuration mutations. The provider is a DI
+    /// singleton, so the container calls this on shutdown; the injected caching service and
+    /// logger are not owned and are left alone.
+    /// </summary>
+    public void Dispose()
+    {
+        _operationGate.Dispose();
+        GC.SuppressFinalize(this);
     }
 
     /// <summary>

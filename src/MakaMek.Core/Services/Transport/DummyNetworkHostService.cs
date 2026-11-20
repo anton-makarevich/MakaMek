@@ -34,7 +34,7 @@ public class DummyNetworkHostService : INetworkHostService
     /// <summary>
     /// No-op implementation
     /// </summary>
-    public Task Stop()
+    public Task StopAsync()
     {
         // No-op implementation
         return Task.CompletedTask;
@@ -48,6 +48,7 @@ public class DummyNetworkHostService : INetworkHostService
     public void Dispose()
     {
         // No-op implementation
+        GC.SuppressFinalize(this);
     }
 
     /// <summary>
@@ -56,6 +57,7 @@ public class DummyNetworkHostService : INetworkHostService
     public ValueTask DisposeAsync()
     {
         // No-op implementation
+        GC.SuppressFinalize(this);
         return ValueTask.CompletedTask;
     }
 }

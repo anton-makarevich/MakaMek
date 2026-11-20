@@ -229,6 +229,11 @@ public class GameManager : IGameManager
         _lan.DisposeHost();
 
         _server.DisposeLogging();
+
+        // Release the relay connector's own fallback status subject
+        _relay.Dispose();
+
+        GC.SuppressFinalize(this);
     }
 
     public async ValueTask DisposeAsync()
@@ -255,6 +260,9 @@ public class GameManager : IGameManager
         await _relay.RemovePublisherAsync();
 
         _server.DisposeLogging();
+
+        // Release the relay connector's own fallback status subject
+        _relay.Dispose();
 
         GC.SuppressFinalize(this);
     }

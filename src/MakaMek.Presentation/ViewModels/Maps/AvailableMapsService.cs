@@ -17,6 +17,8 @@ namespace Sanet.MakaMek.Presentation.ViewModels.Maps;
 /// </summary>
 public sealed class AvailableMapsService
 {
+    private static readonly JsonSerializerOptions ExportOptions = new() { WriteIndented = true };
+
     private readonly IMapResourceProvider _mapResourceProvider;
     private readonly IBattleMapFactory _mapFactory;
     private readonly IMapPreviewRenderer _previewRenderer;
@@ -122,7 +124,7 @@ public sealed class AvailableMapsService
         try
         {
             var data = map.ToData();
-            var json = JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true });
+            var json = JsonSerializer.Serialize(data, ExportOptions);
             await _fileService.SaveJsonFile(dialogTitle, "map.json", json);
         }
         catch (Exception ex)
