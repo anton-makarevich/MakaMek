@@ -1,3 +1,4 @@
+using System.Globalization;
 using Sanet.Localization;
 using Sanet.MakaMek.Map.Models.Terrains;
 
@@ -18,10 +19,12 @@ public record TerrainMovementCost : MovementCost
         if (TerrainId == MakaMekTerrains.Water && Depth.HasValue)
         {
             return string.Format(
+                CultureInfo.InvariantCulture,
                 localizationService.GetString("MovementCost_Terrain_Water"),
                 terrainName, Depth.Value, Value);
         }
         return string.Format(
+            CultureInfo.InvariantCulture,
             localizationService.GetString("MovementCost_Terrain"),
             terrainName, Value);
     }

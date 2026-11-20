@@ -1,3 +1,4 @@
+using System.Globalization;
 using Sanet.Localization;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.MVVM.Core.ViewModels;
@@ -44,7 +45,7 @@ public class PhysicalAttackLimbOptionViewModel : BindableBase
 
     public bool HasDamage => Variant.HasDamage;
 
-    public string DamageText => Damage.ToString();
+    public string DamageText => Damage.ToString(CultureInfo.InvariantCulture);
 
     /// <summary>
     /// The localized reason this limb is unavailable, or null when it is available. Falls back to

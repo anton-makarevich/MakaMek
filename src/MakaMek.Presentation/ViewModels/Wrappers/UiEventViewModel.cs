@@ -1,3 +1,4 @@
+using System.Globalization;
 using Sanet.MakaMek.Core.Events;
 using Sanet.Localization;
 
@@ -35,7 +36,7 @@ namespace Sanet.MakaMek.Presentation.ViewModels.Wrappers
             get
             {
                 var template = _localizationService.GetString($"Events_Unit_{_event.Type}");
-                return string.Format(template, _event.Parameters);
+                return string.Format(CultureInfo.InvariantCulture, template, _event.Parameters);
             }
         }
     }

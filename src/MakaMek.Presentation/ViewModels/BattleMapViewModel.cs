@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Globalization;
 using System.Reactive.Concurrency;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
@@ -528,6 +529,7 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         _dispatcherService.RunOnUIThread(() =>
         {
             CommandFeedbackLabel = string.Format(
+                CultureInfo.InvariantCulture,
                 _localizationService.GetString("BattleMap_CommandRejected"),
                 _localizationService.GetString($"Command_Error_{errorCode}"));
         });
@@ -551,6 +553,7 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         if (command is ErrorCommand)
         {
             CommandFeedbackLabel = string.Format(
+                CultureInfo.InvariantCulture,
                 _localizationService.GetString("BattleMap_CommandRejected"),
                 formattedCommand);
         }
@@ -1243,7 +1246,8 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
 
     private void AnnounceTurn(int turnNumber) => Announce(new TurnNotification(
         TurnNotificationKind.Turn,
-        string.Format(_localizationService.GetString("BattleMap_Notification_Turn"), turnNumber)
+        string.Format(CultureInfo.InvariantCulture,
+            _localizationService.GetString("BattleMap_Notification_Turn"), turnNumber)
             .ToUpperInvariant(),
         ActivePlayerTint));
 
@@ -1257,7 +1261,7 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
 
         Announce(new TurnNotification(
             TurnNotificationKind.Phase,
-            string.Format(_localizationService.GetString("BattleMap_Notification_Phase"),
+            string.Format(CultureInfo.InvariantCulture, _localizationService.GetString("BattleMap_Notification_Phase"),
                 _localizationService.GetString($"Phase_{phase}")).ToUpperInvariant(),
             ActivePlayerTint));
     }
@@ -1274,7 +1278,8 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
 
         var text = IsLocalPlayerTurn
             ? _localizationService.GetString("BattleMap_Notification_YourTurn")
-            : string.Format(_localizationService.GetString("BattleMap_Notification_PlayersTurn"),
+            : string.Format(CultureInfo.InvariantCulture,
+                _localizationService.GetString("BattleMap_Notification_PlayersTurn"),
                 activePlayer.Name);
 
         Announce(new TurnNotification(
@@ -1325,7 +1330,8 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         _initiativeWinnerAnnounced = true;
         Announce(new TurnNotification(
             TurnNotificationKind.Initiative,
-            string.Format(_localizationService.GetString("BattleMap_Notification_InitiativeWinner"),
+            string.Format(CultureInfo.InvariantCulture,
+                _localizationService.GetString("BattleMap_Notification_InitiativeWinner"),
                 winner.Name, _initiativeRolls[winner.Id]).ToUpperInvariant(),
             winner.Tint));
     }

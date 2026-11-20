@@ -1,3 +1,4 @@
+using System.Globalization;
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Game.Mechanics;
 using Sanet.MakaMek.Core.Models.Units;
@@ -157,7 +158,8 @@ public class WeaponSelectionViewModel : BindableBase
                 return _localizationService.GetString("Attack_OutOfRange");
             // Check if a weapon is targeting a different target
             if (!_isEnabled && Target != null)
-                return string.Format(_localizationService.GetString("Attack_Targeting"), Target.Name);
+                return string.Format(CultureInfo.InvariantCulture,
+                    _localizationService.GetString("Attack_Targeting"), Target.Name);
             if (!string.IsNullOrEmpty(RestrictionReason))
                 return RestrictionReason;
             // Unavailable for some other reason

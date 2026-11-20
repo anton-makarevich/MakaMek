@@ -1,4 +1,5 @@
-﻿using Sanet.MakaMek.Core.Models.Game.Rules;
+﻿using System.Globalization;
+using Sanet.MakaMek.Core.Models.Game.Rules;
 using Sanet.MakaMek.Core.Models.Units;
 using Sanet.Localization;
 using Sanet.MVVM.Core.ViewModels;
@@ -88,13 +89,18 @@ public class HeatProjectionViewModel : BindableBase
     
     public string HeatProjectionText =>
         CurrentHeat == ProjectedHeat
-            ? string.Format(_localizationService.GetString("HeatProjection_CurrentHeatText"), CurrentHeat)
-            : string.Format(_localizationService.GetString("HeatProjection_ProjectionText"), CurrentHeat,
+            ? string.Format(CultureInfo.InvariantCulture,
+                _localizationService.GetString("HeatProjection_CurrentHeatText"), CurrentHeat)
+            : string.Format(CultureInfo.InvariantCulture,
+                _localizationService.GetString("HeatProjection_ProjectionText"), CurrentHeat,
                 ProjectedHeat);
 
     public string HeatDissipationText
         => WaterDissipationBonus > 0
-            ? string.Format(_localizationService.GetString("HeatProjection_DissipationWithWaterText"), HeatDissipation, WaterDissipationBonus)
-            : string.Format(_localizationService.GetString("HeatProjection_DissipationText"), HeatDissipation);
+            ? string.Format(CultureInfo.InvariantCulture,
+                _localizationService.GetString("HeatProjection_DissipationWithWaterText"),
+                HeatDissipation, WaterDissipationBonus)
+            : string.Format(CultureInfo.InvariantCulture,
+                _localizationService.GetString("HeatProjection_DissipationText"), HeatDissipation);
 }
 

@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Globalization;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using AsyncAwaitBestPractices;
@@ -59,17 +60,28 @@ public class MapConfigViewModel : BindableBase, IDisposable
         LoadAvailableMaps().SafeFireAndForget(ex => _logger.LogError(ex, "Error loading available maps"));
     }
 
-    public string MapWidthFormatted => string.Format(_localizationService.GetString("MapConfig_Width_Formatted"), MapWidth);
-    public string MapHeightFormatted => string.Format(_localizationService.GetString("MapConfig_Height_Formatted"), MapHeight);
-    public string ForestCoverageFormatted => string.Format(_localizationService.GetString("MapConfig_ForestCoverage_Formatted"), ForestCoverage);
-    public string LightWoodsFormatted => string.Format(_localizationService.GetString("MapConfig_LightWoods_Formatted"), LightWoodsPercentage);
-    public string HillCoverageFormatted => string.Format(_localizationService.GetString("MapConfig_HillCoverage_Formatted"), HillCoverage);
-    public string MaxElevationFormatted => string.Format(_localizationService.GetString("MapConfig_MaxElevation_Formatted"), MaxElevation);
-    public string RoughCoverageFormatted => string.Format(_localizationService.GetString("MapConfig_RoughCoverage_Formatted"), RoughCoverage);
-    public string LakeCoverageFormatted => string.Format(_localizationService.GetString("MapConfig_LakeCoverage_Formatted"), LakeCoverage);
-    public string LakeMaxDepthFormatted => string.Format(_localizationService.GetString("MapConfig_LakeMaxDepth_Formatted"), LakeMaxDepth);
-    public string RiverCountFormatted => string.Format(_localizationService.GetString("MapConfig_RiverCount_Formatted"), RiverCount);
-    public string RoadCountFormatted => string.Format(_localizationService.GetString("MapConfig_RoadCount_Formatted"), RoadCount);
+    public string MapWidthFormatted => string.Format(CultureInfo.InvariantCulture,
+        _localizationService.GetString("MapConfig_Width_Formatted"), MapWidth);
+    public string MapHeightFormatted => string.Format(CultureInfo.InvariantCulture,
+        _localizationService.GetString("MapConfig_Height_Formatted"), MapHeight);
+    public string ForestCoverageFormatted => string.Format(CultureInfo.InvariantCulture,
+        _localizationService.GetString("MapConfig_ForestCoverage_Formatted"), ForestCoverage);
+    public string LightWoodsFormatted => string.Format(CultureInfo.InvariantCulture,
+        _localizationService.GetString("MapConfig_LightWoods_Formatted"), LightWoodsPercentage);
+    public string HillCoverageFormatted => string.Format(CultureInfo.InvariantCulture,
+        _localizationService.GetString("MapConfig_HillCoverage_Formatted"), HillCoverage);
+    public string MaxElevationFormatted => string.Format(CultureInfo.InvariantCulture,
+        _localizationService.GetString("MapConfig_MaxElevation_Formatted"), MaxElevation);
+    public string RoughCoverageFormatted => string.Format(CultureInfo.InvariantCulture,
+        _localizationService.GetString("MapConfig_RoughCoverage_Formatted"), RoughCoverage);
+    public string LakeCoverageFormatted => string.Format(CultureInfo.InvariantCulture,
+        _localizationService.GetString("MapConfig_LakeCoverage_Formatted"), LakeCoverage);
+    public string LakeMaxDepthFormatted => string.Format(CultureInfo.InvariantCulture,
+        _localizationService.GetString("MapConfig_LakeMaxDepth_Formatted"), LakeMaxDepth);
+    public string RiverCountFormatted => string.Format(CultureInfo.InvariantCulture,
+        _localizationService.GetString("MapConfig_RiverCount_Formatted"), RiverCount);
+    public string RoadCountFormatted => string.Format(CultureInfo.InvariantCulture,
+        _localizationService.GetString("MapConfig_RoadCount_Formatted"), RoadCount);
 
     /// <summary>
     /// Maximum allowed rough terrain coverage to ensure a hex cannot contain both woods and rough terrain.

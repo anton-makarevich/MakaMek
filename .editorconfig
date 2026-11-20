@@ -22,7 +22,13 @@ dotnet_diagnostic.CA1506.severity = warning
 dotnet_diagnostic.S3776.severity = warning
 
 # --- Path-scoped opt-ins ---
-# CA1305 (IFormatProvider) is enforced in MakaMek.Core only; the remaining
-# projects keep the latent default until their own debt is paid down.
+# CA1305 (IFormatProvider) is enforced in the libraries whose debt is paid
+# down; the remaining projects keep the latent default until their turn.
 [src/MakaMek.Core/**/*.cs]
+dotnet_diagnostic.CA1305.severity = warning
+
+[src/MakaMek.Presentation/**/*.cs]
+dotnet_diagnostic.CA1305.severity = warning
+
+[src/MakaMek.Map/**/*.cs]
 dotnet_diagnostic.CA1305.severity = warning
