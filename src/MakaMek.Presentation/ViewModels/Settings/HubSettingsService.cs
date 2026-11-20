@@ -1,6 +1,7 @@
 using AsyncAwaitBestPractices;
 using Microsoft.Extensions.Logging;
 using Sanet.Localization;
+using Sanet.MakaMek.Presentation.Models.Logger;
 using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 using Sanet.MVVM.Core.Services;
 using Sanet.Transport.SignalR.Client.Relay;
@@ -53,7 +54,7 @@ public sealed class HubSettingsService
         foreach (var entry in entries)
         {
             entry.RefreshStatusAsync().SafeFireAndForget(
-                ex => _logger.LogError(ex, "Error refreshing hub status"));
+                ex => _logger.LogErrorRefreshingHubStatus(ex));
         }
 
         return new HubSettingsSnapshot(entries, activeHubId);
@@ -130,7 +131,7 @@ public sealed class HubSettingsService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to add hub {HubName}", hub.Name);
+            _logger.LogFailedToAddHub(hub.Name, ex);
         }
 
         return true;
@@ -150,7 +151,7 @@ public sealed class HubSettingsService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Hub status probe failed for hub {HubName}", entry.Name);
+            _logger.LogHubStatusProbeFailed(entry.Name, ex);
             return HubStatus.Offline;
         }
     }

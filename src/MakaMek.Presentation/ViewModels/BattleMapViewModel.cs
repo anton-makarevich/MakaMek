@@ -25,6 +25,7 @@ using Sanet.Localization;
 using Sanet.MakaMek.Map.Models;
 using Sanet.MakaMek.Map.Models.Highlights;
 using Sanet.MakaMek.Map.Services;
+using Sanet.MakaMek.Presentation.Models.Logger;
 using Sanet.MakaMek.Presentation.Models.Movement;
 using Sanet.MakaMek.Presentation.UiStates;
 using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
@@ -294,7 +295,7 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         GameEndReason = GameEndReason.HostDisconnected;
         NotifyStateChanged();
         ShowTransportClosedDialogAsync()
-            .SafeFireAndForget(ex => Game?.Logger.LogError(ex, "Error showing transport closed dialog"));
+            .SafeFireAndForget(ex => Game?.Logger.LogErrorShowingTransportClosedDialog(ex));
     }
 
     private async Task ShowTransportClosedDialogAsync()
@@ -612,7 +613,7 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
             case GameEndedCommand gameEndedCommand:
                 // Server ended the game - track state to allow UI to respond
                 ProcessGameEnded(gameEndedCommand).SafeFireAndForget(ex =>
-                    Game?.Logger.LogError(ex, "Error processing game ended command"));
+                    Game?.Logger.LogErrorProcessingGameEndedCommand(ex));
                 break;
             case BridgeCollapsedCommand:
                 // Terrain mutation handled by ClientGame.OnBridgeCollapsed;
@@ -1724,7 +1725,7 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         }
         catch (Exception ex)
         {
-            Game?.Logger.LogError(ex, "PDF map export failed");
+            Game?.Logger.LogPdfMapExportFailed(ex);
         }
     });
 

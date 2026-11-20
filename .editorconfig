@@ -30,6 +30,13 @@ dotnet_diagnostic.CA1848.severity = warning
 
 [src/MakaMek.Presentation/**/*.cs]
 dotnet_diagnostic.CA1305.severity = warning
+dotnet_diagnostic.CA1848.severity = warning
+
+[src/MakaMek.Assets/**/*.cs]
+dotnet_diagnostic.CA1848.severity = warning
+
+[src/MakaMek.Bots/**/*.cs]
+dotnet_diagnostic.CA1848.severity = warning
 
 [src/MakaMek.Map/**/*.cs]
 dotnet_diagnostic.CA1305.severity = warning

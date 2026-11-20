@@ -1,6 +1,7 @@
 using System.Globalization;
 using AsyncAwaitBestPractices;
 using Microsoft.Extensions.Logging;
+using Sanet.MakaMek.Presentation.Models.Logger;
 using Sanet.MVVM.Core.Services;
 
 namespace Sanet.MakaMek.Presentation.ViewModels.Setup;
@@ -48,7 +49,7 @@ public static class HostingLifecycleExtensions
             if (controller.IsMultiplayerEnabled && !deps.GameManager.IsGameStarted)
             {
                 deps.GameManager.StopHosting().SafeFireAndForget(
-                    ex => deps.Logger.LogError(ex, "Error stopping hosting on detach"));
+                    ex => deps.Logger.LogErrorStoppingHostingOnDetach(ex));
             }
             controller.UnsubscribeFromOnlineStatus(deps);
             GetOrCreateBroadcaster(controller, deps).Unsubscribe();
@@ -91,7 +92,7 @@ public static class HostingLifecycleExtensions
             // in parallel with the room-creation round trips below, instead of leaving
             // the online section empty until InitializeLobbyOnline completes.
             controller.ResolveActiveHubAndProbe(deps, cancellationToken).SafeFireAndForget(
-                ex => deps.Logger.LogError(ex, "Error probing active hub"));
+                ex => deps.Logger.LogErrorProbingActiveHub(ex));
 
             await deps.GameManager.InitializeLobbyOnline(cancellationToken);
             if (cancellationToken.IsCancellationRequested || controller.IsDisposed)
@@ -166,12 +167,12 @@ public static class HostingLifecycleExtensions
                 }
                 catch (OperationCanceledException)
                 {
-                    deps.Logger.LogDebug("Lobby initialization cancelled by superseded restart or detach/dispose");
+                    deps.Logger.LogLobbyInitializationCancelled();
                     controller.SetMultiplayerEnabled(false);
                 }
                 catch (Exception ex)
                 {
-                    deps.Logger.LogError(ex, "Error initializing lobby during restart");
+                    deps.Logger.LogErrorInitializingLobbyDuringRestart(ex);
                     controller.SetMultiplayerEnabled(false);
                 }
             }
@@ -189,7 +190,7 @@ public static class HostingLifecycleExtensions
             controller.InitCts = new CancellationTokenSource();
             var cancellationToken = controller.InitCts.Token;
             controller.InitializeLocalLobbyAndSubscribe(deps, cancellationToken).SafeFireAndForget(
-                ex => deps.Logger.LogError(ex, "Error initializing local lobby"));
+                ex => deps.Logger.LogErrorInitializingLocalLobby(ex));
         }
 
         /// <summary>

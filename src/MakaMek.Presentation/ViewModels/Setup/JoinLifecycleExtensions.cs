@@ -69,7 +69,7 @@ public static class JoinLifecycleExtensions
             catch (Exception ex)
             {
                 if (controller.CommandStreamHandler is { } handler) deps.CommandPublisher.Unsubscribe(handler);
-                deps.Session.LocalGame?.Logger.LogError(ex, "Error connecting to server: {Message}", ex.Message);
+                deps.Session.LocalGame?.Logger.LogErrorConnectingToServer(ex.Message, ex);
                 await deps.GameConnector.Disconnect();
             }
         }
@@ -113,12 +113,12 @@ public static class JoinLifecycleExtensions
             }
             catch (OperationCanceledException)
             {
-                deps.Logger.LogInformation("Online game join was cancelled");
+                deps.Logger.LogOnlineGameJoinCancelled();
             }
             catch (Exception ex)
             {
                 if (controller.CommandStreamHandler is { } handler) deps.CommandPublisher.Unsubscribe(handler);
-                deps.Logger.LogError(ex, "Error joining online game");
+                deps.Logger.LogErrorJoiningOnlineGame(ex);
                 await deps.GameConnector.Disconnect();
                 controller.JoinError = GetJoinErrorText(deps, deps.GameConnector.OnlineError);
             }
@@ -147,7 +147,7 @@ public static class JoinLifecycleExtensions
             }
             catch (Exception ex)
             {
-                deps.Logger.LogError(ex, "Error retrying connection");
+                deps.Logger.LogErrorRetryingConnection(ex);
                 controller.JoinError = GetJoinErrorText(deps, deps.GameConnector.OnlineError);
             }
             finally

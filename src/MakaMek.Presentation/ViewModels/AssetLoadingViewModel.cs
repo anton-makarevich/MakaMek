@@ -5,6 +5,7 @@ using Sanet.MakaMek.Assets.Configuration;
 using Sanet.MakaMek.Assets.ResourceProviders;
 using Sanet.MakaMek.Assets.Services;
 using Sanet.Localization;
+using Sanet.MakaMek.Presentation.Models.Logger;
 using Sanet.MakaMek.Services;
 using Sanet.MVVM.Core.ViewModels;
 
@@ -88,7 +89,7 @@ public class AssetLoadingViewModel : BaseViewModel
 
         _activeLoadTask = LoadAsync(messageDelay, generation);
         _activeLoadTask
-            .SafeFireAndForget(ex => _logger.LogError(ex, "Error preloading content"));
+            .SafeFireAndForget(ex => _logger.LogErrorPreloadingContent(ex));
     }
 
     public async Task ReloadAsync(int messageDelay = 1000)

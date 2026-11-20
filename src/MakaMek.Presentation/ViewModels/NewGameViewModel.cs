@@ -7,6 +7,7 @@ using Sanet.MakaMek.Core.Data.Game.Players;
 using Sanet.MakaMek.Core.Data.Units;
 using Sanet.MakaMek.Core.Models.Game;
 using Sanet.MakaMek.Core.Models.Game.Players;
+using Sanet.MakaMek.Presentation.Models.Logger;
 using Sanet.MakaMek.Presentation.ViewModels.Setup;
 using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 using Sanet.MakaMek.Services;
@@ -67,7 +68,7 @@ public abstract class NewGameViewModel : BaseViewModel
     /// Runs a fire-and-forget operation, logging a failure through the screen logger.
     /// </summary>
     protected void RunInBackground(Func<Task> operation, string errorMessage) =>
-        operation().SafeFireAndForget(ex => _logger.LogError(ex, errorMessage));
+        operation().SafeFireAndForget(ex => _logger.LogErrorInBackgroundOperation(errorMessage, ex));
 
     /// <summary>
     /// Image service the lobby unit cards load their preview from. Exposed so the views can
@@ -169,12 +170,12 @@ public abstract class NewGameViewModel : BaseViewModel
     public override void AttachHandlers()
     {
         base.AttachHandlers();
-        _session.LoadAvailableUnitsAsync().SafeFireAndForget(ex => _logger.LogError(ex, "Error loading available units"));
+        _session.LoadAvailableUnitsAsync().SafeFireAndForget(ex => _logger.LogErrorLoadingAvailableUnits(ex));
 
         // Auto-add default player
         if (Players.Count == 0)
             AddDefaultPlayer().SafeFireAndForget(
-                ex => _logger.LogError(ex, "Error adding default player")
+                ex => _logger.LogErrorAddingDefaultPlayer(ex)
                 );
     }
 

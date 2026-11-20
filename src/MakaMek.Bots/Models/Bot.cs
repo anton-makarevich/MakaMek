@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Bots.Data;
 using Sanet.MakaMek.Bots.Models.DecisionEngines;
+using Sanet.MakaMek.Bots.Models.Logger;
 using Sanet.MakaMek.Bots.Services;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
@@ -135,7 +136,7 @@ public class Bot : IBot
         var player = _clientGame.Players.FirstOrDefault(p => p.Id == PlayerId);
         if (player == null)
         {
-            _clientGame.Logger.LogWarning("Bot with PlayerId {PlayerId} not found in game players", PlayerId);
+            _clientGame.Logger.LogBotPlayerNotFound(PlayerId);
             return;
         }
 

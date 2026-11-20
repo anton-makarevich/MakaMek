@@ -1,6 +1,7 @@
 ﻿using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
+using Sanet.MakaMek.Assets.Models.Logger;
 using Sanet.MakaMek.Services;
 
 namespace Sanet.MakaMek.Assets.Configuration;
@@ -299,7 +300,7 @@ public sealed class AssetProviderConfigurationProvider : IAssetProviderConfigura
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to load asset provider configurations from cache");
+            _logger.LogFailedToLoadAssetProviderConfigurationsFromCache(ex);
             lock (_gate)
             {
                 SeedDefaults();
@@ -343,7 +344,7 @@ public sealed class AssetProviderConfigurationProvider : IAssetProviderConfigura
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to save asset provider configurations to cache");
+            _logger.LogFailedToSaveAssetProviderConfigurationsToCache(ex);
             throw;
         }
     }

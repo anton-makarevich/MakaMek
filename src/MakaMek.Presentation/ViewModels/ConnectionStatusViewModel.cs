@@ -2,6 +2,7 @@ using System.Reactive.Concurrency;
 using System.Reactive.Linq;
 using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Core.Services.Transport;
+using Sanet.MakaMek.Presentation.Models.Logger;
 using Sanet.MVVM.Core.ViewModels;
 
 namespace Sanet.MakaMek.Presentation.ViewModels;
@@ -42,7 +43,7 @@ public class ConnectionStatusViewModel : BaseViewModel, IDisposable
         _subscription = source
             .ObserveOn(scheduler)
             .Subscribe(status => OnlineConnectionStatus = status,
-                ex => _logger.LogError(ex, "ConnectionStatus stream error"));
+                ex => _logger.LogConnectionStatusStreamError(ex));
     }
 
     /// <summary>

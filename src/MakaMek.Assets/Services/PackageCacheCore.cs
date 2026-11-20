@@ -1,5 +1,6 @@
 ﻿using System.Collections.Concurrent;
 using Microsoft.Extensions.Logging;
+using Sanet.MakaMek.Assets.Models.Logger;
 using Sanet.MakaMek.Assets.ResourceProviders;
 
 namespace Sanet.MakaMek.Assets.Services;
@@ -125,8 +126,7 @@ public abstract class PackageCacheCore<TState> : IProgressReporting
             catch (Exception ex)
             {
                 // Log error but continue with other providers
-                Logger.LogError(ex, "Error enumerating {ResourceKind} resources from provider {ProviderType}",
-                    ResourceKind, provider.GetType().Name);
+                Logger.LogErrorEnumeratingResources(ResourceKind, provider.GetType().Name, ex);
             }
             providerIndex++;
         }
@@ -177,8 +177,7 @@ public abstract class PackageCacheCore<TState> : IProgressReporting
         catch (Exception ex)
         {
             // Log error but continue processing other resources
-            Logger.LogError(ex, "Error loading {ResourceKind} '{ResourceId}' from provider {ProviderType}",
-                ResourceKind, resourceId, provider.GetType().Name);
+            Logger.LogErrorLoadingResource(ResourceKind, resourceId, provider.GetType().Name, ex);
         }
     }
 
@@ -192,8 +191,7 @@ public abstract class PackageCacheCore<TState> : IProgressReporting
     {
         if (cache.TryAdd(key, value)) return true;
 
-        Logger.LogWarning("Duplicate {ResourceKind} '{Key}' found; overwriting with the value from a lower provider",
-            ResourceKind, key);
+        Logger.LogDuplicateResourceFound(ResourceKind, key);
         cache[key] = value;
         return false;
     }

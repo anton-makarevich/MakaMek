@@ -2,6 +2,7 @@ using Microsoft.Extensions.Logging;
 using Sanet.Localization;
 using Sanet.MakaMek.Assets.Configuration;
 using Sanet.MakaMek.Assets.Services;
+using Sanet.MakaMek.Presentation.Models.Logger;
 using Sanet.MakaMek.Presentation.ViewModels.Wrappers;
 using Sanet.MVVM.Core.Services;
 
@@ -75,7 +76,7 @@ public sealed class AssetProviderSettingsService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to load asset providers");
+            _logger.LogFailedToLoadAssetProviders(ex);
             return new AssetProviderSnapshot([], Succeeded: false);
         }
     }
@@ -93,13 +94,13 @@ public sealed class AssetProviderSettingsService
         }
         catch (InvalidOperationException ex)
         {
-            _logger.LogWarning(ex, "Cannot toggle provider {ProviderId}", entry.Id);
+            _logger.LogCannotToggleProvider(entry.Id, ex);
             // Re-sync the list so row visuals match the persisted active state.
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to toggle provider {ProviderId}", entry.Id);
+            _logger.LogFailedToToggleProvider(entry.Id, ex);
             return false;
         }
     }
@@ -118,12 +119,12 @@ public sealed class AssetProviderSettingsService
         }
         catch (InvalidOperationException ex)
         {
-            _logger.LogWarning(ex, "Cannot remove provider {ProviderId}", entry.Id);
+            _logger.LogCannotRemoveProvider(entry.Id, ex);
             return false;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to remove provider {ProviderId}", entry.Id);
+            _logger.LogFailedToRemoveProvider(entry.Id, ex);
             return false;
         }
     }
@@ -140,12 +141,12 @@ public sealed class AssetProviderSettingsService
         }
         catch (InvalidOperationException ex)
         {
-            _logger.LogWarning(ex, "Cannot update provider {ProviderId}", entry.Id);
+            _logger.LogCannotUpdateProvider(entry.Id, ex);
             throw;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to update provider {ProviderId}", entry.Id);
+            _logger.LogFailedToUpdateProvider(entry.Id, ex);
             throw;
         }
     }
@@ -183,7 +184,7 @@ public sealed class AssetProviderSettingsService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to add asset provider");
+            _logger.LogFailedToAddAssetProvider(ex);
             return false;
         }
     }
