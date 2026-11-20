@@ -118,9 +118,9 @@ public static class HostingLifecycleExtensions
             CancellationToken cancellationToken)
         {
             var entry = await deps.HubProbe.ResolveActiveHubAsync(
-                cancellationToken,
                 () => controller.IsOnlineMode,
-                () => controller.IsDisposed);
+                () => controller.IsDisposed,
+                cancellationToken);
             // The lookup may straddle a cancellation/disposal/mode switch, in which case a newer
             // lookup may already own the row; only the current one may apply its result.
             if (cancellationToken.IsCancellationRequested || controller.IsDisposed || !controller.IsOnlineMode)
@@ -237,26 +237,6 @@ public static class HostingLifecycleExtensions
                 _ => string.Empty
             };
 
-        /// <summary>
-        /// The server host shown while LAN hosting is running.
-        /// </summary>
-        public string GetServerIpAddress(SetupDependencies deps)
-        {
-            var serverUrl = deps.GameManager.GetLanServerAddress();
-            if (string.IsNullOrEmpty(serverUrl))
-                return "LAN Disabled..."; // Indicate status
-            try
-            {
-                // Extract host from the URL
-                var uri = new Uri(serverUrl);
-                return $"{uri.Host}"; // Display only Host name/IP
-            }
-            catch
-            {
-                return "Invalid Address";
-            }
-        }
-
         private async Task InitializeLocalLobbyAndSubscribe(
             SetupDependencies deps,
             CancellationToken cancellationToken)
@@ -297,6 +277,29 @@ public static class HostingLifecycleExtensions
                 deps.GameManager,
                 target.MapConfig,
                 deps.LocalizationService);
+    }
+
+    extension(SetupDependencies deps)
+    {
+        /// <summary>
+        /// The server host shown while LAN hosting is running.
+        /// </summary>
+        public string GetServerIpAddress()
+        {
+            var serverUrl = deps.GameManager.GetLanServerAddress();
+            if (string.IsNullOrEmpty(serverUrl))
+                return "LAN Disabled..."; // Indicate status
+            try
+            {
+                // Extract host from the URL
+                var uri = new Uri(serverUrl);
+                return $"{uri.Host}"; // Display only Host name/IP
+            }
+            catch
+            {
+                return "Invalid Address";
+            }
+        }
     }
 }
 

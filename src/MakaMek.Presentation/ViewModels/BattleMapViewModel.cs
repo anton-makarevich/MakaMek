@@ -89,7 +89,7 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
     private PhaseNames? _commandStreamPhase;
     private IClientGame? _commandFeedbackGame;
 
-    private IReadOnlyDictionary<HexCoordinates, HighlightBoundaryOutline> _highlightBoundaryOutlines =
+    private Dictionary<HexCoordinates, HighlightBoundaryOutline> _highlightBoundaryOutlines =
         new Dictionary<HexCoordinates, HighlightBoundaryOutline>();
 
 
@@ -705,14 +705,14 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         var newIndicators = command.WeaponTargets
             .Select(wt =>
             {
-                var assignment = wt.Weapon.Assignments.FirstOrDefault();
+                var assignment = wt.Weapon.Assignments.Count > 0 ? wt.Weapon.Assignments[0] : null;
                 if (assignment is null) return null;
 
                 var target = Game.Players
                     .SelectMany(p => p.Units)
                     .FirstOrDefault(u => u.Id == wt.TargetId);
 
-                if (target?.Position == null) throw new Exception("The target should be deployed");
+                if (target?.Position == null) throw new InvalidOperationException("The target should be deployed");
 
                 // Get or initialize offset for this target
                 var offset = targetOffsets.GetValueOrDefault(target.Id, 5);
@@ -723,7 +723,7 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
                     assignment.Location,
                     assignment.FirstSlot);
 
-                if (weapon == null) throw new Exception("The weapon is not found");
+                if (weapon == null) throw new InvalidOperationException("The weapon is not found");
 
                 var indicator = new WeaponAttackIndicatorViewModel
                 {
@@ -750,15 +750,16 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
 
     private void ProcessWeaponAttackResolution(WeaponAttackResolutionCommand command)
     {
-        if (Game == null || WeaponAttackIndicators == null || !WeaponAttackIndicators.Any()) return;
+        if (Game == null || WeaponAttackIndicators == null || WeaponAttackIndicators.Count == 0) return;
 
-        var assignment = command.WeaponData.Assignments.FirstOrDefault();
+        var assignment = command.WeaponData.Assignments.Count > 0 ? command.WeaponData.Assignments[0] : null;
         if (assignment is null) return;
 
         // Find and remove the indicator that matches the weapon name and target ID
         var indicatorsToRemove = WeaponAttackIndicators
             .Where(indicator =>
-                indicator.Weapon.SlotAssignments.FirstOrDefault() is { } slotAssignment
+                indicator.Weapon.SlotAssignments.Count > 0
+                && indicator.Weapon.SlotAssignments[0] is { } slotAssignment
                 && slotAssignment.Location == assignment.Location
                 && slotAssignment.FirstSlot == assignment.FirstSlot
                 && indicator.TargetId == command.TargetId)
@@ -935,7 +936,7 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
     /// </summary>
     private void ClearPhysicalAttackIndicators()
     {
-        if (PhysicalAttackIndicators?.Any() != true) return;
+        if (PhysicalAttackIndicators is not { Count: > 0 }) return;
         PhysicalAttackIndicators.Clear();
         NotifyPropertyChanged(nameof(PhysicalAttackIndicators));
     }
@@ -984,7 +985,7 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
     private void ClearWeaponAttackIndicators()
     {
         // Clear weapon attacks during phase transitions
-        if (WeaponAttackIndicators?.Any() != true) return;
+        if (WeaponAttackIndicators is not { Count: > 0 }) return;
         WeaponAttackIndicators.Clear();
         NotifyPropertyChanged(nameof(WeaponAttackIndicators));
     }
@@ -1343,8 +1344,13 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
     /// so a tie left in the round being rolled means another one is still to come. Only called once
     /// a roll has been recorded, so the order is never empty here.
     /// </summary>
-    private IPlayer? GetInitiativeWinner() =>
-        _initiativeOrder.HasTies() ? null : _initiativeOrder.GetOrderedPlayers().FirstOrDefault();
+    private IPlayer? GetInitiativeWinner()
+    {
+        if (_initiativeOrder.HasTies()) return null;
+
+        var orderedPlayers = _initiativeOrder.GetOrderedPlayers();
+        return orderedPlayers.Count > 0 ? orderedPlayers[0] : null;
+    }
 
     /// <summary>
     /// Clears what the initiative phase of a turn collected, which no later turn can contribute to.
@@ -1729,12 +1735,14 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         }
     });
 
-    public bool CanExportPdf =>
+    private readonly bool _canExportPdf =
 #if DEBUG
         true;
 #else
         false;
 #endif
+
+    public bool CanExportPdf => _canExportPdf;
 
     public ITerrainAssetService TerrainAssetService { get; }
 

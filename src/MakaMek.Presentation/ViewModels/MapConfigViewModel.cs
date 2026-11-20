@@ -465,6 +465,7 @@ public class MapConfigViewModel : BindableBase, IDisposable
         ClearAvailableMaps();
         _previewSubscription?.Dispose();
         _mapParametersChanged.Dispose();
+        GC.SuppressFinalize(this);
     }
 
     private void ClearAvailableMaps()
@@ -482,5 +483,5 @@ public class MapConfigViewModel : BindableBase, IDisposable
 /// </summary>
 internal readonly struct MapParameterChange
 {
-    public static readonly MapParameterChange Instance = new();
+    public static readonly MapParameterChange Instance;
 }

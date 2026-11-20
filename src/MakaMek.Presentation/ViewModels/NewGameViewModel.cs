@@ -24,12 +24,12 @@ namespace Sanet.MakaMek.Presentation.ViewModels;
 public abstract class NewGameViewModel : BaseViewModel
 {
     private readonly GameSetupSession _session;
-    protected readonly ILogger _logger;
+    protected ILogger Logger { get; }
 
     /// <summary>
     /// The local player lobby, shared with the setup session.
     /// </summary>
-    protected ObservableCollection<PlayerViewModel> _players => _session.Players;
+    protected ObservableCollection<PlayerViewModel> PlayerCollection => _session.Players;
 
     public ICommand? AddPlayerCommand { get; protected set; }
     public ICommand? AddBotCommand { get; protected set; }
@@ -44,7 +44,7 @@ public abstract class NewGameViewModel : BaseViewModel
         IImageService imageService,
         ILogger logger)
     {
-        _logger = logger;
+        Logger = logger;
         _session = session;
         ImageService = imageService;
 
@@ -56,19 +56,19 @@ public abstract class NewGameViewModel : BaseViewModel
     /// <summary>
     /// The number of players currently in the lobby.
     /// </summary>
-    protected int PlayerCount => _players.Count;
+    protected int PlayerCount => PlayerCollection.Count;
 
     /// <summary>
     /// A materialised snapshot of the lobby players, safe to iterate without observing the
     /// collection type.
     /// </summary>
-    protected PlayerViewModel[] PlayerSnapshot => [.. _players];
+    protected PlayerViewModel[] PlayerSnapshot => [.. PlayerCollection];
 
     /// <summary>
     /// Runs a fire-and-forget operation, logging a failure through the screen logger.
     /// </summary>
     protected void RunInBackground(Func<Task> operation, string errorMessage) =>
-        operation().SafeFireAndForget(ex => _logger.LogErrorInBackgroundOperation(errorMessage, ex));
+        operation().SafeFireAndForget(ex => Logger.LogErrorInBackgroundOperation(errorMessage, ex));
 
     /// <summary>
     /// Image service the lobby unit cards load their preview from. Exposed so the views can
@@ -104,7 +104,7 @@ public abstract class NewGameViewModel : BaseViewModel
     }
 
     // Common properties
-    public ObservableCollection<PlayerViewModel> Players => _players;
+    public ObservableCollection<PlayerViewModel> Players => PlayerCollection;
 
     internal ClientGame? LocalGame => _session.LocalGame;
 
@@ -170,12 +170,12 @@ public abstract class NewGameViewModel : BaseViewModel
     public override void AttachHandlers()
     {
         base.AttachHandlers();
-        _session.LoadAvailableUnitsAsync().SafeFireAndForget(ex => _logger.LogErrorLoadingAvailableUnits(ex));
+        _session.LoadAvailableUnitsAsync().SafeFireAndForget(ex => Logger.LogErrorLoadingAvailableUnits(ex));
 
         // Auto-add default player
         if (Players.Count == 0)
             AddDefaultPlayer().SafeFireAndForget(
-                ex => _logger.LogErrorAddingDefaultPlayer(ex)
+                ex => Logger.LogErrorAddingDefaultPlayer(ex)
                 );
     }
 
