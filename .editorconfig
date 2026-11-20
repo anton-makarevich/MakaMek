@@ -27,6 +27,7 @@ dotnet_diagnostic.S3776.severity = warning
 [src/MakaMek.Core/**/*.cs]
 dotnet_diagnostic.CA1305.severity = warning
 dotnet_diagnostic.CA1822.severity = warning
+dotnet_diagnostic.CA1826.severity = warning
 dotnet_diagnostic.CA1848.severity = warning
 dotnet_diagnostic.CA1859.severity = warning
 dotnet_diagnostic.CA1873.severity = warning
@@ -34,6 +35,7 @@ dotnet_diagnostic.CA1873.severity = warning
 [src/MakaMek.Presentation/**/*.cs]
 dotnet_diagnostic.CA1305.severity = warning
 dotnet_diagnostic.CA1822.severity = warning
+dotnet_diagnostic.CA1826.severity = warning
 dotnet_diagnostic.CA1848.severity = warning
 dotnet_diagnostic.CA1859.severity = warning
 dotnet_diagnostic.CA2254.severity = warning
