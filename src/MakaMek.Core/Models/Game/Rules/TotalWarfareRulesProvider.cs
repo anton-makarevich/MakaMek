@@ -291,9 +291,9 @@ public class TotalWarfareRulesProvider : IRulesProvider
         return rangeBracketType switch
         {
             RangeBracket.Minimum => rangeValue - distance + 1,
-            RangeBracket.Short => 0,
+            RangeBracket.ShortRange => 0,
             RangeBracket.Medium => 2,
-            RangeBracket.Long => 4,
+            RangeBracket.LongRange => 4,
             RangeBracket.OutOfRange => ToHitBreakdown.ImpossibleRoll,
             _ => throw new ArgumentException($"Unknown weapon rangeBracket: {rangeBracketType}")
         };
