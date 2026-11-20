@@ -1,4 +1,5 @@
 using System.Reactive.Subjects;
+using Sanet.MakaMek.Core.Models.Logger;
 using AsyncAwaitBestPractices;
 using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
@@ -84,11 +85,11 @@ public class GameConnector : IGameConnector
 
             ConnectedHostGameId = null;
             IsConnected = true;
-            _logger.LogInformation("Connected to LAN server at {ServerAddress}", serverAddress);
+            _logger.LogConnectedToLanServer(serverAddress);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to connect to LAN server at {ServerAddress}", serverAddress);
+            _logger.LogFailedToConnectToLanServer(serverAddress, ex);
             if (publisher is IAsyncDisposable asyncDisposable)
             {
                 try
@@ -185,12 +186,7 @@ public class GameConnector : IGameConnector
         ConnectedHostGameId = connection.HostGameId;
         IsConnected = true;
         _forwarder?.Start(adapter);
-        _logger.LogInformation(
-            "Joined relay room {RoomCode} for game {GameId} {GameVersion}, connected to host game {HostGameId}",
-            roomCode,
-            connection.GameId,
-            connection.Version,
-            connection.HostGameId);
+        _logger.LogJoinedRelayRoom(roomCode, connection.GameId, connection.Version, connection.HostGameId);
     }
 
     private async Task RemoveRelayMembershipIfJoined(
@@ -261,7 +257,7 @@ public class GameConnector : IGameConnector
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to remove device session from relay room {RoomCode}", roomCode);
+            _logger.LogFailedToRemoveDeviceSessionFromRelayRoom(roomCode, ex);
         }
     }
 
@@ -334,7 +330,7 @@ public class GameConnector : IGameConnector
         }
 
         AwaitCleanupAfterMembershipRemoval().SafeFireAndForget(ex =>
-            _logger.LogError(ex, "Error during GameConnector teardown"));
+            _logger.LogErrorDuringGameConnectorTeardown(ex));
 
         GC.SuppressFinalize(this);
     }

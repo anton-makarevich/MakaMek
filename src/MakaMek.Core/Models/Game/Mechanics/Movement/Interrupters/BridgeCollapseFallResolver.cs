@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using Sanet.MakaMek.Core.Models.Logger;
 using Sanet.MakaMek.Core.Data.Game.Mechanics.PilotingSkillRollContexts;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Movement.Actions;
 using Sanet.MakaMek.Core.Models.Units;
@@ -13,8 +14,6 @@ namespace Sanet.MakaMek.Core.Models.Game.Mechanics.Movement.Interrupters;
 /// </summary>
 internal sealed class BridgeCollapseFallResolver
 {
-    private const string FallRequiredMessage = "Bridge collapse should always result in a fall for unit {UnitId}";
-
     public void AppendFallActions(
         MovementInterruptContext context,
         List<IGameAction> actions,
@@ -36,7 +35,7 @@ internal sealed class BridgeCollapseFallResolver
 
             if (!fallContextData.IsFalling)
             {
-                context.Game.Logger.LogError(FallRequiredMessage, hexMech.Id);
+                context.Game.Logger.LogBridgeCollapseShouldAlwaysResultInFall(hexMech.Id);
                 throw new InvalidOperationException(
                     $"Bridge collapse should always result in a fall for unit {hexMech.Id}");
             }

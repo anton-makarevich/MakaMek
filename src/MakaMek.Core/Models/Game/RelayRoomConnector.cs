@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using Sanet.MakaMek.Core.Models.Logger;
 using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Core.Services.Transport.Relay;
 using Sanet.Transport;
@@ -70,11 +71,7 @@ internal sealed class RelayRoomConnector(
             var gameInfo = joinResult.GameInfo;
             if (!IsCompatibleRoom(gameInfo))
             {
-                logger.LogWarning(
-                    "Refusing relay room {RoomCode}: it reported game {GameId} hosted by {HostGameId}",
-                    roomCode,
-                    gameInfo?.Id,
-                    gameInfo?.HostId);
+                logger.LogRefusingRelayRoom(roomCode, gameInfo?.Id, gameInfo?.HostId);
                 await RemoveMembershipIfJoined(roomCode, joinResult.SessionToken, joinResult.DeviceSessionId);
                 return RelayConnectionResult.Failed(new RelayClientError(
                     RelayClientErrorCode.Unknown,
@@ -166,7 +163,7 @@ internal sealed class RelayRoomConnector(
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "Failed to remove device session from relay room {RoomCode}", roomCode);
+            logger.LogFailedToRemoveDeviceSessionFromRelayRoom(roomCode, ex);
         }
     }
 }

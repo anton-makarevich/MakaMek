@@ -182,7 +182,12 @@ public class CommandPublisherTests
 
         // Assert
         receivedBySubscriber2.ShouldBeTrue();
-        _logger.Received(1).LogError(Arg.Any<Exception>(), "Error in command subscriber");
+        _logger.Received(1).Log(
+            LogLevel.Error,
+            Arg.Any<EventId>(),
+            Arg.Any<Arg.AnyType>(),
+            Arg.Any<Exception>(),
+            Arg.Any<Func<Arg.AnyType, Exception?, string>>());
     }
 
     [Fact]

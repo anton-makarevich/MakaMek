@@ -1,4 +1,5 @@
 using Sanet.MakaMek.Core.Data.Game.Mechanics;
+using Sanet.MakaMek.Core.Models.Logger;
 using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
 using Sanet.MakaMek.Core.Data.Game.Mechanics.PilotingSkillRollContexts;
@@ -81,10 +82,7 @@ internal sealed class PhysicalAttackDfaLandingResolver
             // The caller resolves an impossible landing as the attacker's destruction before
             // publishing when it can know the outcome. Defensively leave it in place otherwise
             // rather than stacking it on the occupant.
-            _game.Logger.LogWarning(
-                "DFA attacker {AttackerName} could not resolve the occupied landing hex {Hex}",
-                attacker.Name,
-                landing.Destination.Coordinates);
+            _game.Logger.LogDfaAttackerCouldNotResolveLandingHex(attacker.Name, landing.Destination.Coordinates);
             return landing;
         }
 

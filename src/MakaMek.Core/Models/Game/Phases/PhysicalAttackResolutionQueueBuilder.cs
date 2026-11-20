@@ -1,4 +1,5 @@
 using Sanet.MakaMek.Core.Models.Game.Mechanics.PhysicalAttack;
+using Sanet.MakaMek.Core.Models.Logger;
 using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Core.Data.Game.Mechanics.PhysicalAttacks;
 using Sanet.MakaMek.Core.Models.Game.Mechanics.Movement;
@@ -108,8 +109,7 @@ internal sealed class PhysicalAttackResolutionQueueBuilder
         var target = allUnits.FirstOrDefault(u => u.Id == declaration.TargetId);
         if (target == null)
         {
-            _game.Logger.LogWarning(
-                "Skipping {AttackType} by {AttackerName}: target {TargetId} is not in the game",
+            _game.Logger.LogSkippingPhysicalAttackTargetNotInGame(
                 declaration.AttackType, attacker.Name, declaration.TargetId);
             return items;
         }

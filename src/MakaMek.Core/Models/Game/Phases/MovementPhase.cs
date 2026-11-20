@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using Sanet.MakaMek.Core.Models.Logger;
 using Sanet.MakaMek.Core.Data.Game.Commands;
 using Sanet.MakaMek.Core.Data.Game.Commands.Client;
 using Sanet.MakaMek.Core.Data.Game.Commands.Server;
@@ -37,8 +38,7 @@ public class MovementPhase(
         var player = Game.Players.FirstOrDefault(p => p.Id == playerId);
         var unit = player?.Units.FirstOrDefault(u => u.Id == unitId);
         if (unit is not { HasMoved: true }) return false;
-        Game.Logger.LogWarning(
-            "Ignoring {CommandType} command for unit {UnitId} — movement already completed", commandType, unit.Id);
+        Game.Logger.LogIgnoringCommandForUnitWithCompletedMovement(commandType, unit.Id);
         return true;
     }
 
@@ -139,9 +139,7 @@ public class MovementPhase(
 
         if (result.IsValid) return command with { Declaration = result.Declaration };
 
-        Game.Logger.LogWarning(
-            "Rejecting {AttackType} declaration for unit {UnitId}: {ErrorCode}",
-            declaration.AttackType, command.UnitId, result.ErrorCode);
+        Game.Logger.LogRejectingMovementAttackDeclaration(declaration.AttackType, command.UnitId, result.ErrorCode);
         Game.CommandPublisher.PublishCommand(new ErrorCommand
         {
             GameOriginId = Game.Id,

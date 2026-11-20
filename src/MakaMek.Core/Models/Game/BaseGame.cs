@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using Sanet.MakaMek.Core.Models.Logger;
 using System.Reactive.Linq;
 using Sanet.MakaMek.Core.Models.Game.Phases;
 using Sanet.MakaMek.Core.Models.Game.Players;
@@ -687,7 +688,7 @@ public abstract class BaseGame : IGame
     {
         var existingPlayer = _players.FirstOrDefault(p => p.Id == joinCommand.PlayerId);
         if (existingPlayer == null) return CommandValidationResult.Valid();
-        Logger.LogInformation("Player {PlayerName} already joined the game.", joinCommand.PlayerName);
+        Logger.LogPlayerAlreadyJoinedGame(joinCommand.PlayerName);
         return CommandValidationResult.Invalid(ErrorCode.ValidationFailed);
     }
 
@@ -700,7 +701,7 @@ public abstract class BaseGame : IGame
                 ? CommandValidationResult.Valid()
                 : CommandValidationResult.Invalid(ErrorCode.ValidationFailed);
         }
-        Logger.LogInformation("Hex {Position} is already occupied.", position);
+        Logger.LogHexAlreadyOccupied(position);
         return CommandValidationResult.Invalid(ErrorCode.ValidationFailed);
     }
 

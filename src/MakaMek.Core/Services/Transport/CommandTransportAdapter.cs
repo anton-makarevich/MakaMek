@@ -1,4 +1,5 @@
 using System.Reactive.Subjects;
+using Sanet.MakaMek.Core.Services.Logger;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Core.Data.Game.Commands;
@@ -165,7 +166,7 @@ public partial class CommandTransportAdapter : ICommandTransportAdapter
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error disposing publisher");
+                _logger.LogErrorDisposingPublisher(ex);
             }
         }
     }
@@ -191,8 +192,7 @@ public partial class CommandTransportAdapter : ICommandTransportAdapter
             publishersSnapshot = _transportPublishers.ToArray();
         }
 
-        _logger.LogDebug(
-            "Publishing command {MessageType} (origin {GameOriginId}) to {PublisherCount} publisher(s)",
+        _logger.LogPublishingCommandToPublishers(
             message.MessageType,
             message.SourceId,
             publishersSnapshot.Length);
@@ -205,7 +205,7 @@ public partial class CommandTransportAdapter : ICommandTransportAdapter
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error publishing to {PublisherType}", publisher.GetType().Name);
+                _logger.LogErrorPublishingToPublisher(publisher.GetType().Name, ex);
             }
         }
     }
@@ -223,8 +223,7 @@ public partial class CommandTransportAdapter : ICommandTransportAdapter
             Timestamp = command.Timestamp
         };
 
-        _logger.LogDebug(
-            "Publishing command {MessageType} (origin {GameOriginId}) to {PublisherType}",
+        _logger.LogPublishingCommandToPublisher(
             message.MessageType,
             message.SourceId,
             targetPublisher.GetType().Name);
@@ -235,7 +234,7 @@ public partial class CommandTransportAdapter : ICommandTransportAdapter
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error publishing to {PublisherType}", targetPublisher.GetType().Name);
+            _logger.LogErrorPublishingToPublisher(targetPublisher.GetType().Name, ex);
         }
     }
     
@@ -307,9 +306,7 @@ public partial class CommandTransportAdapter : ICommandTransportAdapter
 
         if (onCommandReceived == null)
         {
-            _logger.LogDebug(
-                "No command receive callback registered; local command {MessageType} not dispatched",
-                command.GetType().Name);
+            _logger.LogNoCommandReceiveCallbackRegistered(command.GetType().Name);
             return;
         }
 
@@ -319,7 +316,7 @@ public partial class CommandTransportAdapter : ICommandTransportAdapter
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error dispatching local command {MessageType}", command.GetType().Name);
+            _logger.LogErrorDispatchingLocalCommand(command.GetType().Name, ex);
         }
     }
 
@@ -345,10 +342,7 @@ public partial class CommandTransportAdapter : ICommandTransportAdapter
     private void SubscribePublisher(ITransportPublisher publisher, Action<IGameCommand, ITransportPublisher> onCommandReceived)
     {
         publisher.Subscribe(message => {
-            _logger.LogDebug(
-                "Received transport message {MessageType} from publisher {PublisherType}",
-                message.MessageType,
-                publisher.GetType().Name);
+            _logger.LogReceivedTransportMessage(message.MessageType, publisher.GetType().Name);
             try
             {
                 var command = DeserializeCommand(message);
@@ -356,16 +350,16 @@ public partial class CommandTransportAdapter : ICommandTransportAdapter
             }
             catch (UnknownCommandTypeException uex)
             {
-                _logger.LogError(uex, "Unknown command type: {CommandType}", message.MessageType);
+                _logger.LogUnknownCommandType(message.MessageType, uex);
             }
             catch (JsonException jex)
             {
-                _logger.LogError(jex, "JSON error deserializing command: {CommandType}", message.MessageType);
+                _logger.LogJsonErrorDeserializingCommand(message.MessageType, jex);
             }
             catch (Exception ex)
             {
                 // Log error but don't crash the transport subscription
-                _logger.LogError(ex, "Error processing command: {CommandType}", message.MessageType);
+                _logger.LogErrorProcessingCommand(message.MessageType, ex);
             }
         });
     }

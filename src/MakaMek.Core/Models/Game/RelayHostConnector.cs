@@ -1,4 +1,5 @@
 using System.Reactive.Subjects;
+using Sanet.MakaMek.Core.Models.Logger;
 using Microsoft.Extensions.Logging;
 using Sanet.MakaMek.Core.Services.Transport;
 using Sanet.MakaMek.Core.Services.Transport.Relay;
@@ -97,8 +98,7 @@ internal sealed class RelayHostConnector(
             // attempt can be retried and the room is not considered locked prematurely.
             if (!lockResult.Success)
             {
-                logger.LogWarning("Lock relay room {RoomCode} failed: {ErrorCode} {ErrorMessage}",
-                    RoomCode, lockResult.Error?.Code, lockResult.Error?.Message);
+                logger.LogLockRelayRoomFailed(RoomCode, lockResult.Error?.Code, lockResult.Error?.Message);
                 return false;
             }
 
@@ -110,13 +110,13 @@ internal sealed class RelayHostConnector(
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
-            logger.LogWarning("Lock relay room {RoomCode} was cancelled", RoomCode);
+            logger.LogLockRelayRoomCancelled(RoomCode);
             return false;
         }
         catch (Exception ex)
         {
             // Do not clear state; allow caller to retry
-            logger.LogWarning(ex, "Failed to lock relay room {RoomCode}", RoomCode);
+            logger.LogFailedToLockRelayRoom(RoomCode, ex);
             return false;
         }
     }
@@ -171,11 +171,7 @@ internal sealed class RelayHostConnector(
                 ?? new RelayClientError(
                     RelayClientErrorCode.Unknown,
                     "The relay did not return the values required to host.");
-            logger.LogWarning(
-                "Failed to create relay room for game {GameId}: {ErrorCode} {ErrorMessage}",
-                gameId,
-                Error?.Code,
-                Error?.Message);
+            logger.LogFailedToCreateRelayRoom(gameId, Error?.Code, Error?.Message);
 
             // The server game was created by the caller; it disposes it after a false result.
             await CleanupAsync();
@@ -192,11 +188,7 @@ internal sealed class RelayHostConnector(
         RoomCode = createResult.RoomCode;
         _sessionToken = createResult.SessionToken;
         _relayOptions = relayOptions;
-        logger.LogInformation(
-            "Hosted relay room {RoomCode} for game {GameId} {GameVersion}; relay publisher connected",
-            createResult.RoomCode,
-            createResult.GameInfo.HostId,
-            createResult.GameInfo.Version);
+        logger.LogHostedRelayRoom(createResult.RoomCode, createResult.GameInfo.HostId, createResult.GameInfo.Version);
         return true;
     }
 
@@ -305,7 +297,7 @@ internal sealed class RelayHostConnector(
             }
             catch (Exception ex)
             {
-                logger.LogWarning(ex, "Failed to lock relay room {RoomCode} during failure cleanup", roomCode);
+                logger.LogFailedToLockRelayRoomDuringFailureCleanup(roomCode, ex);
             }
         }
 
