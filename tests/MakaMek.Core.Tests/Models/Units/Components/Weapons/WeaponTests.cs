@@ -15,11 +15,11 @@ public class WeaponTests
     [Theory]
     [InlineData(0, RangeBracket.OutOfRange)] // Attacker's position
     [InlineData(6, RangeBracket.Minimum)] // At minimum rangeBracket
-    [InlineData(7, RangeBracket.Short)] // At short rangeBracket boundary
+    [InlineData(7, RangeBracket.ShortRange)] // At short rangeBracket boundary
     [InlineData(10, RangeBracket.Medium)] // Within short rangeBracket
     [InlineData(14, RangeBracket.Medium)] // At a medium rangeBracket boundary
-    [InlineData(17, RangeBracket.Long)] // Within long rangeBracket
-    [InlineData(21, RangeBracket.Long)] // At long rangeBracket boundary
+    [InlineData(17, RangeBracket.LongRange)] // Within long rangeBracket
+    [InlineData(21, RangeBracket.LongRange)] // At long rangeBracket boundary
     [InlineData(22, RangeBracket.OutOfRange)] // Beyond long rangeBracket
     public void GetRangeBracket_ReturnsCorrectRange(int distance, RangeBracket expectedRangeBracket)
     {

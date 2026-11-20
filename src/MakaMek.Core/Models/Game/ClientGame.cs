@@ -308,7 +308,8 @@ public sealed class ClientGame : BaseGame, IDisposable, IClientGame
         Logger.LogCommandRejected(pendingCommand?.CommandType ?? "Unknown", idempotencyKey);
     }
 
-    public void Dispose()
+    /// <inheritdoc />
+    protected override void Dispose(bool disposing)
     {
         if (_isDisposed) return;
         _isDisposed = true;
@@ -338,6 +339,6 @@ public sealed class ClientGame : BaseGame, IDisposable, IClientGame
         if (cancelledAny)
             PendingCommandsChanged?.Invoke();
 
-        DisposeCommandResources();
+        base.Dispose(disposing);
     }
 }

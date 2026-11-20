@@ -32,7 +32,7 @@ public interface INetworkHostService : IDisposable, IAsyncDisposable
     /// Stops the network host if it is running
     /// </summary>
     /// <returns>A task representing the asynchronous operation</returns>
-    Task Stop();
+    Task StopAsync();
     
     /// <summary>
     /// Gets a value indicating whether the host can be started

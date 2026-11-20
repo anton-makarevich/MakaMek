@@ -136,7 +136,7 @@ public class CriticalHitsCalculator : ICriticalHitsCalculator
             !wasDestroyedBefore && simulationUnit.IsDestroyed);
     }
     
-    private List<LocationCriticalHitsData> ProcessAndApplyCriticalHitsDamage(IUnit unit, List<LocationDamageData> hitLocationsData)
+    private List<LocationCriticalHitsData> ProcessAndApplyCriticalHitsDamage(Unit unit, List<LocationDamageData> hitLocationsData)
     {
         var allCriticalHitsData = new List<LocationCriticalHitsData>();
 
@@ -171,7 +171,7 @@ public class CriticalHitsCalculator : ICriticalHitsCalculator
     /// Calculates critical hits for a specific location that received structure damage
     /// </summary>
     private LocationCriticalHitsData? CalculateCriticalHitsForLocation(
-        IUnit unit,
+        Unit unit,
         PartLocation location,
         int structureDamage)
     {

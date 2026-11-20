@@ -6,57 +6,59 @@ using Sanet.MakaMek.Core.Models.Units;
 namespace Sanet.MakaMek.Presentation.UiStates;
 
 /// <summary>
-/// Revalidates and submits a physical-attack declaration. Kept out of
-/// <see cref="PhysicalAttackState"/> so the command payload and the eligibility re-check are not part
-/// of the state's coupling.
+/// Revalidates and submits a physical-attack declaration. Exposed as extensions on the client game
+/// so <see cref="PhysicalAttackState"/> does not depend on the command payload or the eligibility
+/// re-check.
 /// </summary>
-public sealed class PhysicalAttackDeclarationSubmitter
+public static class ClientGamePhysicalAttackExtensions
 {
-    /// <summary>
-    /// Revalidates the pending selection before submitting: a stale selection, a lost permission or an
-    /// eligibility change after the dialog opened must not publish a command. Returns whether the
-    /// declaration was sent.
-    /// </summary>
-    public bool TryDeclare(
-        IClientGame game,
-        IUnit attacker,
-        IUnit target,
-        PhysicalAttackType attackType,
-        IReadOnlyList<PartLocation> limbs,
-        IReadOnlyList<IUnit> allUnits)
+    extension(IClientGame game)
     {
-        if (game.BattleMap is not { } map) return false;
-
-        var eligibleLimbs = game.PhysicalAttackEligibility.GetEligibleLimbs(attacker, target, attackType, map);
-        if (!limbs.All(eligibleLimbs.Contains)) return false;
-
-        if (game.PhysicalAttackEligibility.GetDeclarationRestriction(
-                attacker, target, attackType, map, allUnits) is not null)
-            return false;
-
-        Submit(game, attacker, new PhysicalAttackDeclarationData
+        /// <summary>
+        /// Revalidates the pending selection before submitting: a stale selection, a lost permission or an
+        /// eligibility change after the dialog opened must not publish a command. Returns whether the
+        /// declaration was sent.
+        /// </summary>
+        public bool TryDeclarePhysicalAttack(
+            IUnit attacker,
+            IUnit target,
+            PhysicalAttackType attackType,
+            IReadOnlyList<PartLocation> limbs,
+            IReadOnlyList<IUnit> allUnits)
         {
-            AttackType = attackType,
-            AttackerLimbs = limbs.ToList(),
-            TargetId = target.Id
-        });
-        return true;
-    }
+            if (game.BattleMap is not { } map) return false;
 
-    /// <summary>
-    /// Sends the declaration (or the no-attack command when <paramref name="declaration"/> is null).
-    /// The server advances the turn order on that command.
-    /// </summary>
-    public void Submit(IClientGame game, IUnit attacker, PhysicalAttackDeclarationData? declaration)
-    {
-        var command = new PhysicalAttackCommand
+            var eligibleLimbs = game.PhysicalAttackEligibility.GetEligibleLimbs(attacker, target, attackType, map);
+            if (!limbs.All(eligibleLimbs.Contains)) return false;
+
+            if (game.PhysicalAttackEligibility.GetDeclarationRestriction(
+                    attacker, target, attackType, map, allUnits) is not null)
+                return false;
+
+            game.SubmitPhysicalAttack(attacker, new PhysicalAttackDeclarationData
+            {
+                AttackType = attackType,
+                AttackerLimbs = limbs.ToList(),
+                TargetId = target.Id
+            });
+            return true;
+        }
+
+        /// <summary>
+        /// Sends the declaration (or the no-attack command when <paramref name="declaration"/> is null).
+        /// The server advances the turn order on that command.
+        /// </summary>
+        public void SubmitPhysicalAttack(IUnit attacker, PhysicalAttackDeclarationData? declaration)
         {
-            GameOriginId = game.Id,
-            PlayerId = game.PhaseStepState!.Value.ActivePlayer.Id,
-            UnitId = attacker.Id,
-            Declaration = declaration
-        };
+            var command = new PhysicalAttackCommand
+            {
+                GameOriginId = game.Id,
+                PlayerId = game.PhaseStepState!.Value.ActivePlayer.Id,
+                UnitId = attacker.Id,
+                Declaration = declaration
+            };
 
-        game.DeclarePhysicalAttack(command);
+            game.DeclarePhysicalAttack(command);
+        }
     }
 }

@@ -252,7 +252,7 @@ public class WeaponSelectionViewModel : BindableBase
     /// <summary>
     /// Determines if aimed shots are available for the given weapon and target combination
     /// </summary>
-    private bool CanUseAimedShot(Weapon weapon, IUnit? target)
+    private static bool CanUseAimedShot(Weapon weapon, IUnit? target)
     {
         // Aimed shots require:
         // 1. Target must be immobile

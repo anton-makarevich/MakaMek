@@ -66,7 +66,7 @@ public class ToHitCalculatorTests
         // Default rules setup
         _rules.GetAttackerMovementModifier(MovementType.StandingStill).Returns(0);
         _rules.GetTargetMovementModifier(1).Returns(0);
-        _rules.GetRangeModifier(RangeBracket.Short,Arg.Any<int>(), Arg.Any<int>()).Returns(0);
+        _rules.GetRangeModifier(RangeBracket.ShortRange,Arg.Any<int>(), Arg.Any<int>()).Returns(0);
     }
 
     private void SetupAttackerAndTarget(HexPosition attackerPosition, HexPosition targetEndPosition)
@@ -229,7 +229,7 @@ public class ToHitCalculatorTests
             Scenario(approach, new HexPosition(new HexCoordinates(1, 2), HexDirection.Top)),
             _weapon, map);
         toDeclaredTarget.RangeModifier.Distance.ShouldBe(1);
-        toDeclaredTarget.RangeModifier.Range.ShouldBe(RangeBracket.Short);
+        toDeclaredTarget.RangeModifier.Range.ShouldBe(RangeBracket.ShortRange);
 
         // The distance-based target movement modifier is unchanged.
         reversedResult.TargetMovement.Value.ShouldBe(1);
@@ -340,7 +340,7 @@ public class ToHitCalculatorTests
         result.TargetMovement.Value.ShouldBe(0);
         result.TargetMovement.HexesMoved.ShouldBe(1);
         result.RangeModifier.Value.ShouldBe(0);
-        result.RangeModifier.Range.ShouldBe(RangeBracket.Short);
+        result.RangeModifier.Range.ShouldBe(RangeBracket.ShortRange);
         result.TerrainModifiers.Count.ShouldBe(0); // Number of hexes between units
         result.Total.ShouldBe(4); // Base (4) 
     }
@@ -364,7 +364,7 @@ public class ToHitCalculatorTests
         result.AttackerMovement.Value.ShouldBe(0);
         result.TargetMovement.Value.ShouldBe(0);
         result.RangeModifier.Value.ShouldBe(0);
-        result.RangeModifier.Range.ShouldBe(RangeBracket.Short);
+        result.RangeModifier.Range.ShouldBe(RangeBracket.ShortRange);
         result.TerrainModifiers.Count.ShouldBe(2); // Hexes between units (2,3) + target hex (2,4)
         result.TerrainModifiers.All(t => t.Value == 1).ShouldBeTrue();
         result.TerrainModifiers.All(t => t.TerrainId == (MakaMekTerrains.LightWoods)).ShouldBeTrue();
@@ -1272,13 +1272,13 @@ public class ToHitCalculatorTests
         var map = BattleMapFactory.GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
         SetupAttackerAndTargetOnTerrain(attackerPosition, targetPosition, new ClearTerrain(), map);
 
-        _rules.GetRangeModifier(RangeBracket.Short, Arg.Any<int>(), Arg.Any<int>()).Returns(0);
+        _rules.GetRangeModifier(RangeBracket.ShortRange, Arg.Any<int>(), Arg.Any<int>()).Returns(0);
 
         // Act
         var result = _sut.GetModifierBreakdown(_attacker!, _target!, _weapon, map);
 
         // Assert - standard range at distance 3 should be Short
-        result.RangeModifier.Range.ShouldBe(RangeBracket.Short);
+        result.RangeModifier.Range.ShouldBe(RangeBracket.ShortRange);
     }
 
     [Fact]
@@ -1292,13 +1292,13 @@ public class ToHitCalculatorTests
         var map = BattleMapFactory.GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
         SetupAttackerAndTargetOnTerrain(attackerPosition, targetPosition, new WaterTerrain(0), map);
 
-        _rules.GetRangeModifier(RangeBracket.Short, Arg.Any<int>(), Arg.Any<int>()).Returns(0);
+        _rules.GetRangeModifier(RangeBracket.ShortRange, Arg.Any<int>(), Arg.Any<int>()).Returns(0);
 
         // Act
         var result = _sut.GetModifierBreakdown(_attacker!, _target!, _weapon, map);
 
         // Assert - not submerged, so standard range at distance 3 should be Short
-        result.RangeModifier.Range.ShouldBe(RangeBracket.Short);
+        result.RangeModifier.Range.ShouldBe(RangeBracket.ShortRange);
     }
 
     [Fact]
@@ -1357,7 +1357,7 @@ public class ToHitCalculatorTests
         var map = BattleMapFactory.GenerateMap(10, 10, new SingleTerrainGenerator(10, 10, new ClearTerrain()));
         SetupAttackerAndTargetOnTerrain(attackerPosition, targetPosition, new WaterTerrain(-1), map);
 
-        _rules.GetRangeModifier(RangeBracket.Short, Arg.Any<int>(), Arg.Any<int>()).Returns(0);
+        _rules.GetRangeModifier(RangeBracket.ShortRange, Arg.Any<int>(), Arg.Any<int>()).Returns(0);
 
         // Act
         var result = _sut.GetModifierBreakdown(_attacker!, _target!, _weapon, map);
@@ -1365,7 +1365,7 @@ public class ToHitCalculatorTests
         // Assert - standard range at distance 3 should be Short
         var scenario = AttackScenario.FromUnits(_attacker!, _target!, PartLocation.RightArm);
         scenario.AttackerWaterDepth.ShouldBe(1);
-        result.RangeModifier.Range.ShouldBe(RangeBracket.Short);
+        result.RangeModifier.Range.ShouldBe(RangeBracket.ShortRange);
     }
 
     [Fact]
