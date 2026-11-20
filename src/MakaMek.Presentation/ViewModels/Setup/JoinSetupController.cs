@@ -188,6 +188,28 @@ public sealed class JoinSetupController : SetupState, IAsyncDisposable
     public Task HandleLobbyCommandAsync(IGameCommand command) =>
         this.HandleLobbyCommand(command, _deps);
 
+    /// <summary>
+    /// Replaces the lobby with the battle map once the game starts.
+    /// </summary>
+    internal async Task NavigateToBattleMapAsync()
+    {
+        var navigationService = NavigationServiceAccessor?.Invoke();
+        var battleMapViewModel = navigationService?.GetViewModel<BattleMapViewModel>();
+        if (battleMapViewModel == null)
+        {
+            throw new InvalidOperationException("BattleMapViewModel is not registered");
+        }
+
+        battleMapViewModel.Game = _deps.Session.LocalGame;
+
+        // The lobby view is done: stop listening to game commands so this VM is not
+        // invoked again during gameplay (re-navigating would recreate the battle map
+        // view and detach its subscriptions). A new join re-subscribes in JoinRoom.
+        if (CommandStreamHandler is { } handler) _deps.CommandPublisher.Unsubscribe(handler);
+
+        await navigationService!.NavigateToViewModelAsync(battleMapViewModel);
+    }
+
     private Task ConnectToServerAsync() => this.ConnectToServer(_deps);
 
     private Task JoinRoomAsync() => this.JoinRoom(_deps);

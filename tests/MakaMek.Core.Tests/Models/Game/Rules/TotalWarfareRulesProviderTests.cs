@@ -580,9 +580,9 @@ public class TotalWarfareRulesProviderTests
     [Theory]
     [InlineData(RangeBracket.Minimum, 6, 6, 1)]
     [InlineData(RangeBracket.Minimum, 6, 5, 2)]
-    [InlineData(RangeBracket.Short, 1, 1, 0)]
+    [InlineData(RangeBracket.ShortRange, 1, 1, 0)]
     [InlineData(RangeBracket.Medium, 1, 1, 2)]
-    [InlineData(RangeBracket.Long, 1, 1, 4)]
+    [InlineData(RangeBracket.LongRange, 1, 1, 4)]
     [InlineData(RangeBracket.OutOfRange, 1, 1, ToHitBreakdown.ImpossibleRoll)]
     public void GetRangeModifier_ShouldReturnExpectedValues(RangeBracket rangeBracket, int rangeValue, int distance,
         int expectedModifier)

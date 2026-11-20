@@ -182,7 +182,7 @@ public class AssetLoadingViewModel : BaseViewModel
                     _localizationService.GetString("MainMenu_Loading_UnitsLoaded"), modelCount);
 
             if (modelCount == 0)
-                throw new Exception(_localizationService.GetString("MainMenu_Loading_NoUnitsFound"));
+                throw new InvalidOperationException(_localizationService.GetString("MainMenu_Loading_NoUnitsFound"));
         }
         catch (Exception ex)
         {
@@ -216,7 +216,7 @@ public class AssetLoadingViewModel : BaseViewModel
                     _localizationService.GetString("MainMenu_Loading_BiomesLoaded"), biomeCount);
 
             if (biomeCount == 0)
-                throw new Exception(_localizationService.GetString("MainMenu_Loading_NoBiomesFound"));
+                throw new InvalidOperationException(_localizationService.GetString("MainMenu_Loading_NoBiomesFound"));
         }
         catch (Exception ex)
         {

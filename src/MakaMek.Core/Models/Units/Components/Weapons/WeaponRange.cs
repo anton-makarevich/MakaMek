@@ -17,9 +17,9 @@ public sealed record WeaponRange(
     {
         if (distance <= 0) return RangeBracket.OutOfRange;
         if (MinimumRange > 0 && distance <= MinimumRange) return RangeBracket.Minimum;
-        if (distance <= ShortRange) return RangeBracket.Short;
+        if (distance <= ShortRange) return RangeBracket.ShortRange;
         if (distance <= MediumRange) return RangeBracket.Medium;
-        if (distance <= LongRange) return RangeBracket.Long;
+        if (distance <= LongRange) return RangeBracket.LongRange;
         return RangeBracket.OutOfRange;
     }
 
@@ -31,9 +31,9 @@ public sealed record WeaponRange(
         return bracket switch
         {
             RangeBracket.Minimum => MinimumRange,
-            RangeBracket.Short => ShortRange,
+            RangeBracket.ShortRange => ShortRange,
             RangeBracket.Medium => MediumRange,
-            RangeBracket.Long => LongRange,
+            RangeBracket.LongRange => LongRange,
             RangeBracket.OutOfRange => LongRange + 1,
             _ => throw new ArgumentException($"Unknown weapon range bracket: {bracket}")
         };

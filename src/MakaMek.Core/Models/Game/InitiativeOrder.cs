@@ -57,7 +57,7 @@ public class InitiativeOrder
             .Where(r => r.HasRoll(_currentRollNumber))
             .ToList();
 
-        if (!playersWithCurrentRoll.Any()) return false;
+        if (playersWithCurrentRoll.Count == 0) return false;
 
         return playersWithCurrentRoll
             .GroupBy(r => r.GetRoll(_currentRollNumber))

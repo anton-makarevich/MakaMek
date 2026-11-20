@@ -172,12 +172,12 @@ public sealed class ServerGame : BaseGame, IDisposable
         CommandPublisher.PublishCommand(this.CreateTurnIncrementedCommand(Turn));
     }
 
-    public void Dispose()
+    /// <inheritdoc />
+    protected override void Dispose(bool disposing)
     {
         if (IsDisposed) return;
         IsDisposed = true;
         IsGameOver = true; // Ensure the loop in Start() exits
-        UnsubscribeFromCommands();
-        DisposeCommandResources();
+        base.Dispose(disposing);
     }
 }

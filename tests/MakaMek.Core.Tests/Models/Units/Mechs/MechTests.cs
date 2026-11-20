@@ -206,7 +206,7 @@ public class MechTests
         sut.Parts.ShouldContainKey(PartLocation.LeftLeg);
         sut.Parts.ShouldContainKey(PartLocation.RightLeg);
         
-        sut.Class.ShouldBe(WeightClass.Medium);
+        sut.UnitClass.ShouldBe(WeightClass.Medium);
     }
 
     [Theory]

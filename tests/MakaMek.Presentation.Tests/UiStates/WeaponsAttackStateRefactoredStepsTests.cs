@@ -122,10 +122,7 @@ public class WeaponsAttackStateRefactoredStepsTests
         _game.LocalPlayers.Returns([playerId]);
 
         _battleMapViewModel.Game = _game;
-        _sut = new WeaponsAttackState(
-            _battleMapViewModel,
-            new WeaponsAttackSelectionPolicy(),
-            new WeaponRangeAnalyzer());
+        _sut = new WeaponsAttackState(_battleMapViewModel);
         BindViewModelCurrentStateTo(_sut, _battleMapViewModel);
     }
 

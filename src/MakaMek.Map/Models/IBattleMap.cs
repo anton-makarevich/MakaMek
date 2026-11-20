@@ -1,4 +1,4 @@
-﻿using Sanet.MakaMek.Map.Data;
+using Sanet.MakaMek.Map.Data;
 
 namespace Sanet.MakaMek.Map.Models;
 
@@ -63,16 +63,16 @@ public interface IBattleMap
     /// treated as submerged and its LOS level is the airborne base plus the supplied height.
     /// </summary>
     /// <param name="from">Source position, including its surface and airborne level.</param>
-    /// <param name="to">Target position, including its surface and airborne level.</param>
+    /// <param name="target">Target position, including its surface and airborne level.</param>
     /// <param name="attackHeight">Height of the attacking weapon in levels (added to the base level).</param>
     /// <param name="targetHeight">Height of the target unit in levels (added to the base level).</param>
-    LineOfSightResult GetLineOfSight(HexPosition from, HexPosition to, int attackHeight, int targetHeight = 0);
+    LineOfSightResult GetLineOfSight(HexPosition from, HexPosition target, int attackHeight, int targetHeight = 0);
 
     /// <summary>
     /// Calculates the line of sight between two hexes and returns a result with full context.
     /// </summary>
     /// <param name="from">Source hex coordinates</param>
-    /// <param name="to">Target hex coordinates</param>
+    /// <param name="target">Target hex coordinates</param>
     /// <param name="attackHeight">Height of the attacking weapon in levels (added to hex level).</param>
     /// <param name="targetHeight">Height of the target unit in levels (added to hex level). Defaults to 0 for no target.</param>
     /// <param name="fromSurface">Surface of the attacker endpoint. When null, the hex optimistically infers Bridge if a bridge is present.</param>
@@ -85,7 +85,7 @@ public interface IBattleMap
     /// A <see cref="LineOfSightResult"/> whose <see cref="LineOfSightResult.HasLineOfSight"/> property
     /// indicates whether LOS exists, with additional details about the blocking hex and reason.
     /// </returns>
-    LineOfSightResult GetLineOfSight(HexCoordinates from, HexCoordinates to, int attackHeight, int targetHeight = 0, HexSurface? fromSurface = null, HexSurface? toSurface = null, int? fromBaseLevel = null, int? toBaseLevel = null);
+    LineOfSightResult GetLineOfSight(HexCoordinates from, HexCoordinates target, int attackHeight, int targetHeight = 0, HexSurface? fromSurface = null, HexSurface? toSurface = null, int? fromBaseLevel = null, int? toBaseLevel = null);
 
     IEnumerable<Hex> GetHexes();
 
