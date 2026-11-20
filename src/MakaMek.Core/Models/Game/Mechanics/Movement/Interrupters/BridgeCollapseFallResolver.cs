@@ -12,35 +12,37 @@ namespace Sanet.MakaMek.Core.Models.Game.Mechanics.Movement.Interrupters;
 /// Resolves the fall of every 'Mech standing on a collapsing bridge deck. Each fall is resolved at
 /// the bridge hex, not at the pre-move position, and must always happen.
 /// </summary>
-internal sealed class BridgeCollapseFallResolver
+internal static class BridgeCollapseFallExtensions
 {
-    public void AppendFallActions(
-        MovementInterruptContext context,
-        List<IGameAction> actions,
-        HexCoordinates bridgeCoords,
-        int bridgeHeight,
-        List<IUnit> unitsOnHex)
+    extension(MovementInterruptContext context)
     {
-        foreach (var hexUnit in unitsOnHex)
+        public void AppendBridgeCollapseFallActions(
+            List<IGameAction> actions,
+            HexCoordinates bridgeCoords,
+            int bridgeHeight,
+            List<IUnit> unitsOnHex)
         {
-            if (hexUnit is not Mech hexMech) continue;
-
-            var movementType = hexUnit.Id == context.Unit.Id
-                ? context.MoveCommand.MovementType
-                : hexMech.MovementTaken?.MovementType ?? MovementType.StandingStill;
-
-            var fallContextData = context.Game.FallProcessor.ProcessMovementAttempt(
-                hexMech, new BridgeCollapseRollContext(bridgeHeight), context.Game, movementType,
-                new HexPosition(bridgeCoords, hexMech.Position!.Facing));
-
-            if (!fallContextData.IsFalling)
+            foreach (var hexUnit in unitsOnHex)
             {
-                context.Game.Logger.LogBridgeCollapseShouldAlwaysResultInFall(hexMech.Id);
-                throw new InvalidOperationException(
-                    $"Bridge collapse should always result in a fall for unit {hexMech.Id}");
-            }
+                if (hexUnit is not Mech hexMech) continue;
 
-            actions.Add(new ApplyFallAction(hexMech, fallContextData.ToMechFallCommand()));
+                var movementType = hexUnit.Id == context.Unit.Id
+                    ? context.MoveCommand.MovementType
+                    : hexMech.MovementTaken?.MovementType ?? MovementType.StandingStill;
+
+                var fallContextData = context.Game.FallProcessor.ProcessMovementAttempt(
+                    hexMech, new BridgeCollapseRollContext(bridgeHeight), context.Game, movementType,
+                    new HexPosition(bridgeCoords, hexMech.Position!.Facing));
+
+                if (!fallContextData.IsFalling)
+                {
+                    context.Game.Logger.LogBridgeCollapseShouldAlwaysResultInFall(hexMech.Id);
+                    throw new InvalidOperationException(
+                        $"Bridge collapse should always result in a fall for unit {hexMech.Id}");
+                }
+
+                actions.Add(new ApplyFallAction(hexMech, fallContextData.ToMechFallCommand()));
+            }
         }
     }
 }

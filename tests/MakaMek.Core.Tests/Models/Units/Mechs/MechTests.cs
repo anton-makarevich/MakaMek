@@ -1005,8 +1005,7 @@ public class MechTests
     [InlineData(13, 0)]
     public void GetNumCriticalHits_ReturnsExpected(int roll, int expected)
     {
-        var sut = new Mech("Test", "TST-1A", 50, CreateBasicPartsData());
-        sut.GetNumCriticalHits(roll).ShouldBe(expected);
+        MechCriticalHitExtensions.GetNumCriticalHits(roll).ShouldBe(expected);
     }
 
     [Fact]

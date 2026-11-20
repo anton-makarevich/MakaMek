@@ -1,5 +1,4 @@
 using Sanet.MakaMek.Core.Models.Units;
-using Sanet.MakaMek.Core.Models.Units.Mechs;
 using Shouldly;
 
 namespace Sanet.MakaMek.Core.Tests.Models.Units.Mechs;
@@ -17,11 +16,8 @@ public class MechStructureExtensionsTests
     [InlineData(PartLocation.CenterTorso, null)]
     public void GetDamageTransferLocation_TransfersToTheAdjacentPart(PartLocation location, PartLocation? expected)
     {
-        // Arrange
-        var sut = new Mech("Test", "TST-1A", 50, []);
-
         // Act
-        var transferLocation = sut.GetDamageTransferLocation(location);
+        var transferLocation = location.GetDamageTransferLocation();
 
         // Assert
         transferLocation.ShouldBe(expected);

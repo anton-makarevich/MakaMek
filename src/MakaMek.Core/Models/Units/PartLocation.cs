@@ -40,5 +40,23 @@ public static class PartLocationExtensions
                 or PartLocation.LeftTorso 
                 or PartLocation.RightTorso;
         }
+
+        /// <summary>
+        /// The location damage transfers to when this one is destroyed, or null when it has none
+        /// (head, center torso).
+        /// </summary>
+        public PartLocation? GetDamageTransferLocation()
+        {
+            return location switch
+            {
+                PartLocation.LeftArm => PartLocation.LeftTorso,
+                PartLocation.RightArm => PartLocation.RightTorso,
+                PartLocation.LeftLeg => PartLocation.LeftTorso,
+                PartLocation.RightLeg => PartLocation.RightTorso,
+                PartLocation.LeftTorso => PartLocation.CenterTorso,
+                PartLocation.RightTorso => PartLocation.CenterTorso,
+                _ => null
+            };
+        }
     }
 }

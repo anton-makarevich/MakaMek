@@ -40,17 +40,6 @@ internal static class MechStructureExtensions
             }
         }
 
-        public PartLocation? GetDamageTransferLocation(PartLocation location) => location switch
-        {
-            PartLocation.LeftArm => PartLocation.LeftTorso,
-            PartLocation.RightArm => PartLocation.RightTorso,
-            PartLocation.LeftLeg => PartLocation.LeftTorso,
-            PartLocation.RightLeg => PartLocation.RightTorso,
-            PartLocation.LeftTorso => PartLocation.CenterTorso,
-            PartLocation.RightTorso => PartLocation.CenterTorso,
-            _ => null
-        };
-
         /// <summary>
         /// Determines if the mech is immobile based on the rules:
         /// </summary>

@@ -185,7 +185,6 @@ public static class CoreServices
         services.AddSingleton<IPilotingSkillCalculator, PilotingSkillCalculator>();
         services.AddSingleton<PilotingSkillModifierCalculator>();
         services.AddSingleton<IFallingDamageCalculator, FallingDamageCalculator>();
-        services.AddSingleton<FallParametersResolver>();
         services.AddSingleton<FallingDamageResolver>();
         services.AddSingleton<IFallProcessor, FallProcessor>();
         services.AddSingleton<IPhaseManager, BattleTechPhaseManager>();

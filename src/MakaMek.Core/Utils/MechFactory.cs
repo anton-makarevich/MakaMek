@@ -103,7 +103,7 @@ public class MechFactory : IMechFactory
         }
     }
 
-    private void RestorePartStates(Mech mech, UnitData unitData)
+    private static void RestorePartStates(Mech mech, UnitData unitData)
     {
         // If no part states are provided, the unit is pristine (no damage)
         if (unitData.State?.UnitPartStates == null || unitData.State?.UnitPartStates.Count == 0)
