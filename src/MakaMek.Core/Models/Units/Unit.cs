@@ -22,7 +22,7 @@ namespace Sanet.MakaMek.Core.Models.Units;
 
 public abstract class Unit : IUnit
 {
-    protected readonly Dictionary<PartLocation, UnitPart> _parts;
+    internal readonly Dictionary<PartLocation, UnitPart> _parts;
     private readonly Queue<UiEvent> _notifications = new();
     private readonly List<UiEvent> _events = [];
 

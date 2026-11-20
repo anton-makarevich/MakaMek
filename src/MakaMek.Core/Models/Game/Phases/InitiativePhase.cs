@@ -30,7 +30,7 @@ public class InitiativePhase : GamePhase
     {
         var playersToRoll = Game.AlivePlayers.Where(p => p.Status == PlayerStatus.Ready).ToList();
         
-        while (playersToRoll.Any())
+        while (playersToRoll.Count > 0)
         {
             foreach (var player in playersToRoll)
             {

@@ -465,6 +465,7 @@ public class MapConfigViewModel : BindableBase, IDisposable
         ClearAvailableMaps();
         _previewSubscription?.Dispose();
         _mapParametersChanged.Dispose();
+        GC.SuppressFinalize(this);
     }
 
     private void ClearAvailableMaps()
