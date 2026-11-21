@@ -831,6 +831,42 @@ public class JoinGameViewModelTests
     }
 
     [Fact]
+    public async Task AttachHandlers_WhenClipboardReadFails_LogsBackgroundError()
+    {
+        // Arrange - a fresh instance so the failing read is the one AttachHandlers starts
+        var sut = CreateSut(attachHandlers: false);
+        _clipboardService.GetText().Throws(new Exception("clipboard failure"));
+
+        // Signal completed when the background-operation error log is observed.
+        var logReceivedTcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        _logger
+            .When(l => l.Log(
+                LogLevel.Error,
+                Arg.Any<EventId>(),
+                Arg.Is<object>(state => state.ToString()!.Contains("Error reading room code from clipboard")),
+                Arg.Is<Exception?>(e => e != null && e.Message == "clipboard failure"),
+                Arg.Any<Func<object, Exception?, string>>()))
+            .Do(_ => logReceivedTcs.TrySetResult());
+
+        // Act - the clipboard read is fire-and-forget, so the failure must be reported asynchronously
+        sut.AttachHandlers();
+
+        // Assert
+        var completed = await Task.WhenAny(
+            logReceivedTcs.Task,
+            Task.Delay(TimeSpan.FromSeconds(5)));
+        completed.ShouldBe(logReceivedTcs.Task,
+            "Timed out waiting for the clipboard error log");
+
+        _logger.Received().Log(
+            LogLevel.Error,
+            Arg.Any<EventId>(),
+            Arg.Is<object>(state => state.ToString()!.Contains("Error reading room code from clipboard")),
+            Arg.Is<Exception?>(e => e != null && e.Message == "clipboard failure"),
+            Arg.Any<Func<object, Exception?, string>>());
+    }
+
+    [Fact]
     public void AttachHandlers_WhenClipboardReadIsDelayed_DoesNotOverwriteUserState()
     {
         // Arrange

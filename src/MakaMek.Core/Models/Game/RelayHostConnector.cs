@@ -27,6 +27,7 @@ internal sealed class RelayHostConnector(
     private ITransportPublisher? _publisher;
     private string? _sessionToken;
     private RelayClientOptions? _relayOptions;
+    private bool _isDisposed;
 
     /// <summary>
     /// Gets the room code of the hosted room, or null when no online lobby is running.
@@ -332,11 +333,15 @@ internal sealed class RelayHostConnector(
     /// disposed here because its teardown is asynchronous and part of the hosting lifecycle
     /// (<see cref="RemovePublisherAsync"/>); the injected room client, publisher factory,
     /// status forwarder and command publisher are shared collaborators and are not owned.
+    /// Idempotent: repeated calls are no-ops because completing an already disposed
+    /// <see cref="BehaviorSubject{T}"/> throws.
     /// </summary>
     public void Dispose()
     {
+        if (_isDisposed) return;
+        _isDisposed = true;
+
         _fallbackStatus.OnCompleted();
         _fallbackStatus.Dispose();
-        GC.SuppressFinalize(this);
     }
 }

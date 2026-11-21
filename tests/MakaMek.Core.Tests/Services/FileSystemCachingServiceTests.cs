@@ -399,6 +399,46 @@ public class FileSystemCachingServiceTests : IDisposable
         version2AfterClear.ShouldBeNull();
     }
 
+    [Fact]
+    public async Task SaveToCache_WhenTheMoveToTheCacheFileFails_LogsErrorAndDoesNotThrow()
+    {
+        // Arrange - a directory occupying the cache file path makes the final atomic move fail
+        await _sut.ClearCache();
+        await _sut.SaveToCache(TestCacheKey, _testContent);
+        var cacheFilePath = Directory
+            .GetFiles(GetCacheDirectory(), "*.cache", SearchOption.AllDirectories)
+            .ShouldHaveSingleItem();
+        File.Delete(cacheFilePath);
+        Directory.CreateDirectory(cacheFilePath);
+
+        try
+        {
+            // Act & Assert - caching is best effort, the IO failure must not surface
+            await Should.NotThrowAsync(() => _sut.SaveToCache(TestCacheKey, _testContent));
+
+            (await _sut.IsCached(TestCacheKey)).ShouldBeFalse();
+            _logger.Received(1).Log(
+                LogLevel.Error,
+                Arg.Any<EventId>(),
+                Arg.Any<object>(),
+                Arg.Any<Exception>(),
+                Arg.Any<Func<object, Exception?, string>>());
+        }
+        finally
+        {
+            Directory.Delete(cacheFilePath);
+            var tempFilePath = cacheFilePath + ".tmp";
+            if (File.Exists(tempFilePath)) File.Delete(tempFilePath);
+        }
+    }
+
+    // Mirrors the cache location chosen by FileSystemCachingService so the test can
+    // provoke an IO failure on the real cache file.
+    private static string GetCacheDirectory() => Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+        "MakaMek",
+        "Cache");
+
     public void Dispose()
     {
         _sut.Dispose();

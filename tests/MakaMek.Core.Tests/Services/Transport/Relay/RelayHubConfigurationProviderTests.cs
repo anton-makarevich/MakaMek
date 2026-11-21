@@ -532,4 +532,24 @@ public class RelayHubConfigurationProviderTests
         sut.Hubs.ShouldNotContain(h => h.Id == "demo" && !h.IsBuiltIn);
         sut.ActiveHubId.ShouldBe("custom-1");
     }
+
+    [Fact]
+    public async Task Dispose_DisposesOperationGate_SoFurtherMutationsThrow()
+    {
+        var sut = CreateSut();
+
+        sut.Dispose();
+
+        await Should.ThrowAsync<ObjectDisposedException>(() => sut.AddHub(
+            new HubConfigData("custom", "Custom Hub", "http://custom.example", "custom-key", IsBuiltIn: false)));
+    }
+
+    [Fact]
+    public void Dispose_WhenCalledTwice_DoesNotThrow()
+    {
+        var sut = CreateSut();
+
+        Should.NotThrow(sut.Dispose);
+        Should.NotThrow(sut.Dispose);
+    }
 }

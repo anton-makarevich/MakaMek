@@ -9,7 +9,7 @@ namespace Sanet.MakaMek.Core.Models.Game.Mechanics.Movement.Interrupters;
 /// <summary>
 /// Builds the command and action list a failed skid produces: the truncated move path with the
 /// skid segments appended, and the ordered fall/skid actions. Extracted from
-/// <see cref="SkidInterruptResolver"/> so the resolver only decides when a skid happens.
+/// <see cref="SkidInterruptExtensions"/> so the interrupter only decides when a skid happens.
 /// </summary>
 internal static class SkidActionBuilder
 {
