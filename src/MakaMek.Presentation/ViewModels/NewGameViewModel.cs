@@ -24,7 +24,7 @@ namespace Sanet.MakaMek.Presentation.ViewModels;
 public abstract class NewGameViewModel : BaseViewModel
 {
     private readonly GameSetupSession _session;
-    protected readonly ILogger _logger;
+    protected ILogger Logger { get; }
 
     /// <summary>
     /// The local player lobby, shared with the setup session.
@@ -44,7 +44,7 @@ public abstract class NewGameViewModel : BaseViewModel
         IImageService imageService,
         ILogger logger)
     {
-        _logger = logger;
+        Logger = logger;
         _session = session;
         ImageService = imageService;
 
@@ -68,7 +68,7 @@ public abstract class NewGameViewModel : BaseViewModel
     /// Runs a fire-and-forget operation, logging a failure through the screen logger.
     /// </summary>
     protected void RunInBackground(Func<Task> operation, string errorMessage) =>
-        operation().SafeFireAndForget(ex => _logger.LogErrorInBackgroundOperation(errorMessage, ex));
+        operation().SafeFireAndForget(ex => Logger.LogErrorInBackgroundOperation(errorMessage, ex));
 
     /// <summary>
     /// Image service the lobby unit cards load their preview from. Exposed so the views can
@@ -170,12 +170,12 @@ public abstract class NewGameViewModel : BaseViewModel
     public override void AttachHandlers()
     {
         base.AttachHandlers();
-        _session.LoadAvailableUnitsAsync().SafeFireAndForget(ex => _logger.LogErrorLoadingAvailableUnits(ex));
+        _session.LoadAvailableUnitsAsync().SafeFireAndForget(ex => Logger.LogErrorLoadingAvailableUnits(ex));
 
         // Auto-add default player
         if (Players.Count == 0)
             AddDefaultPlayer().SafeFireAndForget(
-                ex => _logger.LogErrorAddingDefaultPlayer(ex)
+                ex => Logger.LogErrorAddingDefaultPlayer(ex)
                 );
     }
 

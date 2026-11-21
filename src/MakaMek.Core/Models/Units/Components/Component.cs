@@ -6,11 +6,11 @@ namespace Sanet.MakaMek.Core.Models.Units.Components;
 public abstract class Component : IManufacturedItem
 {
     private readonly List<CriticalSlotAssignment> _slotAssignments = [];
-    protected readonly ComponentDefinition _definition;
+    protected ComponentDefinition BaseDefinition { get; }
 
     protected Component(ComponentDefinition definition, ComponentData? componentData = null)
     {
-        _definition = definition;
+        BaseDefinition = definition;
         Name = definition.Name;
 
         // Restore mutable state if provided
@@ -56,10 +56,10 @@ public abstract class Component : IManufacturedItem
     /// </summary>
     public bool IsSubmerged => MountedOn.Any(part => part.IsSubmerged);
 
-    public int Size => _definition.Size;
+    public int Size => BaseDefinition.Size;
     public string Manufacturer => field ?? "Unknown";
-    public int BattleValue => _definition.BattleValue;
-    public bool IsRemovable => _definition.IsRemovable;
+    public int BattleValue => BaseDefinition.BattleValue;
+    public bool IsRemovable => BaseDefinition.IsRemovable;
 
     // Multi-location slot assignments
     public IReadOnlyList<CriticalSlotAssignment> SlotAssignments => _slotAssignments.AsReadOnly();
@@ -69,7 +69,7 @@ public abstract class Component : IManufacturedItem
         .Distinct().ToList();
 
     // Component type property for mapping to MakaMekComponent enum
-    public MakaMekComponent ComponentType => _definition.ComponentType;
+    public MakaMekComponent ComponentType => BaseDefinition.ComponentType;
 
     // component is mounted when all required slots are assigned
     public bool IsMounted => SlotAssignments.Sum(a => a.Length) == Size && SlotAssignments.Count > 0;
@@ -222,11 +222,11 @@ public abstract class Component : IManufacturedItem
         FirstMountPart?.Unit?.Pilot?.ExplosionHit();
     }
 
-    public int HealthPoints => _definition.HealthPoints;
+    public int HealthPoints => BaseDefinition.HealthPoints;
     public int Hits { get; private set; }
     public bool IsDestroyed => Hits >= HealthPoints;
 
-    public decimal Mass => _definition.Mass;
+    public decimal Mass => BaseDefinition.Mass;
 
     public virtual void Activate() => IsActive = true;
     public virtual void Deactivate() => IsActive = false;
