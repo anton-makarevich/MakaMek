@@ -71,6 +71,7 @@ dotnet_diagnostic.CA1859.severity = warning
 
 [src/MakaMek.Map/**/*.cs]
 dotnet_diagnostic.CA1305.severity = warning
+dotnet_diagnostic.CA1510.severity = warning
 dotnet_diagnostic.CA2208.severity = warning
 dotnet_diagnostic.CA1707.severity = warning
 dotnet_diagnostic.CA1822.severity = warning

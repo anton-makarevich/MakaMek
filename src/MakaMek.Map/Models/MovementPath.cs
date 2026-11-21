@@ -166,7 +166,7 @@ public class MovementPath : IEquatable<MovementPath>
 
     public MovementPath Append(MovementPath path)
     {
-        if (path == null) throw new ArgumentNullException(nameof(path));
+        ArgumentNullException.ThrowIfNull(path);
         if (MovementType != path.MovementType)
             throw new ArgumentException("Movement types must match", nameof(path));
 
