@@ -31,9 +31,9 @@ public sealed class HostingHubProbe
     /// hub row. The caller applies the row and probes its status so the badge settles in place.
     /// </summary>
     public async Task<HubEntryViewModel?> ResolveActiveHubAsync(
-        CancellationToken cancellationToken,
         Func<bool> isOnlineMode,
-        Func<bool> isDisposed)
+        Func<bool> isDisposed,
+        CancellationToken cancellationToken)
     {
         var hubs = await _hubConfigurationProvider.GetHubs();
         if (cancellationToken.IsCancellationRequested || isDisposed() || !isOnlineMode())
