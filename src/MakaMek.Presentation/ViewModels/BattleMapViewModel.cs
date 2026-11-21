@@ -750,7 +750,7 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
 
     private void ProcessWeaponAttackResolution(WeaponAttackResolutionCommand command)
     {
-        if (Game == null || WeaponAttackIndicators == null || !WeaponAttackIndicators.Any()) return;
+        if (Game == null || WeaponAttackIndicators == null || WeaponAttackIndicators.Count == 0) return;
 
         var assignment = command.WeaponData.Assignments.Count > 0 ? command.WeaponData.Assignments[0] : null;
         if (assignment is null) return;
@@ -936,7 +936,7 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
     /// </summary>
     private void ClearPhysicalAttackIndicators()
     {
-        if (PhysicalAttackIndicators?.Any() != true) return;
+        if (PhysicalAttackIndicators is not { Count: > 0 }) return;
         PhysicalAttackIndicators.Clear();
         NotifyPropertyChanged(nameof(PhysicalAttackIndicators));
     }
@@ -985,7 +985,7 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
     private void ClearWeaponAttackIndicators()
     {
         // Clear weapon attacks during phase transitions
-        if (WeaponAttackIndicators?.Any() != true) return;
+        if (WeaponAttackIndicators is not { Count: > 0 }) return;
         WeaponAttackIndicators.Clear();
         NotifyPropertyChanged(nameof(WeaponAttackIndicators));
     }
