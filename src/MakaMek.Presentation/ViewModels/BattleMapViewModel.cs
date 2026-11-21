@@ -89,7 +89,7 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
     private PhaseNames? _commandStreamPhase;
     private IClientGame? _commandFeedbackGame;
 
-    private IReadOnlyDictionary<HexCoordinates, HighlightBoundaryOutline> _highlightBoundaryOutlines =
+    private Dictionary<HexCoordinates, HighlightBoundaryOutline> _highlightBoundaryOutlines =
         new Dictionary<HexCoordinates, HighlightBoundaryOutline>();
 
 
