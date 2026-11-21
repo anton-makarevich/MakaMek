@@ -151,7 +151,7 @@ internal sealed class LineOfSightCalculator(IHexGrid grid, LineOfSightCache cach
     /// Evaluates one intervening hex, updating the accumulator, and returns a blocked result when
     /// the hex ends the line of sight.
     /// </summary>
-    private LineOfSightResult? EvaluateHex(
+    private static LineOfSightResult? EvaluateHex(
         HexCoordinates from,
         HexCoordinates to,
         Hex hex,

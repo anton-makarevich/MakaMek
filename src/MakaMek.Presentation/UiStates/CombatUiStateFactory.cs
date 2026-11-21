@@ -22,22 +22,18 @@ public interface ICombatUiStateFactory
 }
 
 /// <summary>
-/// Default composition of the combat UiStates. The policies and analyzers are stateless, so they are
-/// shared; the targeting and option-building helpers are per state because they hold selection state
+/// Default composition of the combat UiStates. The stateless policies and analyzers are static
+/// helpers; the targeting and option-building helpers are per state because they hold selection state
 /// and read the game the board is bound to.
 /// </summary>
 internal sealed class CombatUiStateFactory(
-    WeaponsAttackSelectionPolicy weaponsSelectionPolicy,
-    WeaponRangeAnalyzer rangeAnalyzer,
-    PhysicalAttackSelectionPolicy physicalSelectionPolicy,
     ILocalizationService localizationService) : ICombatUiStateFactory
 {
     public WeaponsAttackState CreateWeaponsAttackState(BattleMapViewModel viewModel) =>
-        new(viewModel, weaponsSelectionPolicy, rangeAnalyzer);
+        new(viewModel);
 
     public PhysicalAttackState CreatePhysicalAttackState(BattleMapViewModel viewModel) =>
         new(viewModel,
-            physicalSelectionPolicy,
             new PhysicalAttackOptionBuilder(
                 viewModel.Game ?? throw new InvalidOperationException("Game is not client game"),
                 localizationService),

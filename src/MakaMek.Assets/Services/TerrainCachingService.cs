@@ -11,13 +11,12 @@ namespace Sanet.MakaMek.Assets.Services;
 /// <summary>
 /// Service for caching and retrieving terrain assets from MMTX packages.
 /// Owns the cache state and its lifetime; terrain → image mapping is delegated to
-/// <see cref="ITerrainImageResolver"/>, cache bookkeeping to <see cref="TerrainAssetCache"/>
+/// <see cref="ITerrainImageResolver"/>, cache bookkeeping to <see cref="TerrainCacheStateExtensions"/>
 /// and package loading to <see cref="TerrainPackageLoader"/>.
 /// </summary>
 public class TerrainCachingService : PackageCacheCore<TerrainCachingService.TerrainCacheState>, ITerrainAssetService
 {
     private readonly ILogger<TerrainCachingService> _logger;
-    private readonly TerrainAssetCache _assetCache;
     private readonly ITerrainImageResolver _imageResolver;
     private readonly TerrainPackageLoader _packageLoader;
 
@@ -44,20 +43,17 @@ public class TerrainCachingService : PackageCacheCore<TerrainCachingService.Terr
     /// <param name="streamProviders">Collection of stream providers to load terrain from</param>
     /// <param name="loggerFactory">Logger factory for logging</param>
     /// <param name="lazyProviders">Optional async factory for lazily resolving providers on first access</param>
-    /// <param name="assetCache">Cache bookkeeping used for image and variant lookups</param>
     /// <param name="imageResolver">Maps terrain requests to package asset coordinates</param>
     /// <param name="packageLoader">Loads MMTX packages and merges them into the cache state</param>
     public TerrainCachingService(
         IEnumerable<IResourceStreamProvider> streamProviders,
         ILoggerFactory loggerFactory,
         Func<Task<IReadOnlyList<IResourceStreamProvider>>>? lazyProviders,
-        TerrainAssetCache assetCache,
         ITerrainImageResolver imageResolver,
         TerrainPackageLoader packageLoader)
         : base(streamProviders)
     {
         _logger = loggerFactory.CreateLogger<TerrainCachingService>();
-        _assetCache = assetCache;
         _imageResolver = imageResolver;
         _packageLoader = packageLoader;
         if (lazyProviders is not null)
@@ -88,14 +84,14 @@ public class TerrainCachingService : PackageCacheCore<TerrainCachingService.Terr
     public async Task<byte[]?> GetBaseBiomeImage(string biomeId, int? variant = null)
     {
         var state = await EnsureInitialized();
-        return _assetCache.GetImage(state, biomeId, _imageResolver.ResolveBase(variant));
+        return state.GetImage(biomeId, _imageResolver.ResolveBase(variant));
     }
 
     /// <inheritdoc />
     public async Task<byte[]?> GetTerrainOverlayImage(string biomeId, string terrainType, int? variant = null)
     {
         var state = await EnsureInitialized();
-        return _assetCache.GetImage(state, biomeId, _imageResolver.ResolveOverlay(terrainType, variant));
+        return state.GetImage(biomeId, _imageResolver.ResolveOverlay(terrainType, variant));
     }
 
     /// <inheritdoc />
@@ -104,28 +100,28 @@ public class TerrainCachingService : PackageCacheCore<TerrainCachingService.Terr
         var state = await EnsureInitialized();
 
         var request = _imageResolver.ResolveEdge(direction, edgeType, coordinates);
-        return request is null ? null : _assetCache.GetImage(state, biomeId, request.Value);
+        return request is null ? null : state.GetImage(biomeId, request.Value);
     }
 
     /// <inheritdoc />
     public async Task<byte[]?> GetWaterTextureImage(string biomeId, CanonicalBitmaskResult canonicalBitmask)
     {
         var state = await EnsureInitialized();
-        return _assetCache.GetImage(state, biomeId, _imageResolver.ResolveWaterTexture(canonicalBitmask));
+        return state.GetImage(biomeId, _imageResolver.ResolveWaterTexture(canonicalBitmask));
     }
 
     /// <inheritdoc />
     public async Task<byte[]?> GetRoadTextureImage(string biomeId, CanonicalBitmaskResult canonicalBitmask)
     {
         var state = await EnsureInitialized();
-        return _assetCache.GetImage(state, biomeId, _imageResolver.ResolveRoadTexture(canonicalBitmask));
+        return state.GetImage(biomeId, _imageResolver.ResolveRoadTexture(canonicalBitmask));
     }
 
     /// <inheritdoc />
     public async Task<IReadOnlyList<int>> GetAvailableVariants(string biomeId, TerrainAssetType assetType, string assetName)
     {
         var state = await EnsureInitialized();
-        return _assetCache.GetVariants(state, biomeId, assetType, assetName);
+        return state.GetVariants(biomeId, assetType, assetName);
     }
 
     /// <inheritdoc />

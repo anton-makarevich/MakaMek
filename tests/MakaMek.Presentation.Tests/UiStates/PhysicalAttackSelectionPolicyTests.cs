@@ -7,7 +7,6 @@ namespace Sanet.MakaMek.Presentation.Tests.UiStates;
 
 public class PhysicalAttackSelectionPolicyTests
 {
-    private readonly PhysicalAttackSelectionPolicy _sut = new();
     private readonly IUnit _candidate = Substitute.For<IUnit>();
 
     [Fact]
@@ -21,9 +20,7 @@ public class PhysicalAttackSelectionPolicyTests
     [Fact]
     public void Decide_WithNoCandidate_IgnoresTheRequest()
     {
-        var result = _sut.Decide(
-            PhysicalAttackStep.SelectingUnit,
-            candidate: null,
+        var result = PhysicalAttackStep.SelectingUnit.DecidePhysicalAttackSelection(candidate: null,
             canAct: true,
             isFriendly: false,
             canActAsAttacker: () => false,
@@ -125,9 +122,7 @@ public class PhysicalAttackSelectionPolicyTests
         bool canActAsAttacker = false,
         bool isReachable = false,
         bool isCurrentTarget = false) =>
-        _sut.Decide(
-            step,
-            _candidate,
+        step.DecidePhysicalAttackSelection(_candidate,
             canAct,
             isFriendly,
             () => canActAsAttacker,

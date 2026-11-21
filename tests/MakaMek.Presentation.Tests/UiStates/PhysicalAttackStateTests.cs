@@ -91,7 +91,6 @@ public class PhysicalAttackStateTests
 
     private PhysicalAttackState CreateState() =>
         new(_viewModel,
-            new PhysicalAttackSelectionPolicy(),
             new PhysicalAttackOptionBuilder(_game, _localizationService),
             new PhysicalAttackTargeting());
 
