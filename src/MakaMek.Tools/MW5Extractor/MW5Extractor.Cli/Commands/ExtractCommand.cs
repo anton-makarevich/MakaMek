@@ -48,7 +48,7 @@ internal static class ExtractCommand
                 var assetName = Path.GetFileNameWithoutExtension(assetPath.Replace('\\', '/'));
                 var output = ArtifactPaths.Resolve(parseResult.GetValue(outOption), Path.Combine("extract", assetName));
 
-                var result = await AssetExtractor.ExportAsync(
+                var result = await AssetExtractor.Export(
                     archive,
                     new ExtractRequest { AssetPath = assetPath, Format = format, OutputDirectory = output },
                     cancellationToken);
