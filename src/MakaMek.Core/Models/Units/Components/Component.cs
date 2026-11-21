@@ -236,7 +236,7 @@ public abstract class Component : IManufacturedItem
         .Distinct();
 
     // Backward compatibility methods
-    public UnitPart? FirstMountPart => SlotAssignments.FirstOrDefault()?.UnitPart;
+    public UnitPart? FirstMountPart => SlotAssignments.Count > 0 ? SlotAssignments[0].UnitPart : null;
     public PartLocation? FirstMountPartLocation => FirstMountPart?.Location;
 
     public ComponentStatus Status

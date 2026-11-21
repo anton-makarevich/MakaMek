@@ -705,7 +705,7 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
         var newIndicators = command.WeaponTargets
             .Select(wt =>
             {
-                var assignment = wt.Weapon.Assignments.FirstOrDefault();
+                var assignment = wt.Weapon.Assignments.Count > 0 ? wt.Weapon.Assignments[0] : null;
                 if (assignment is null) return null;
 
                 var target = Game.Players
@@ -752,13 +752,14 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
     {
         if (Game == null || WeaponAttackIndicators == null || !WeaponAttackIndicators.Any()) return;
 
-        var assignment = command.WeaponData.Assignments.FirstOrDefault();
+        var assignment = command.WeaponData.Assignments.Count > 0 ? command.WeaponData.Assignments[0] : null;
         if (assignment is null) return;
 
         // Find and remove the indicator that matches the weapon name and target ID
         var indicatorsToRemove = WeaponAttackIndicators
             .Where(indicator =>
-                indicator.Weapon.SlotAssignments.FirstOrDefault() is { } slotAssignment
+                indicator.Weapon.SlotAssignments.Count > 0
+                && indicator.Weapon.SlotAssignments[0] is { } slotAssignment
                 && slotAssignment.Location == assignment.Location
                 && slotAssignment.FirstSlot == assignment.FirstSlot
                 && indicator.TargetId == command.TargetId)
@@ -1343,8 +1344,13 @@ public class BattleMapViewModel : BaseViewModel, IDisposable
     /// so a tie left in the round being rolled means another one is still to come. Only called once
     /// a roll has been recorded, so the order is never empty here.
     /// </summary>
-    private IPlayer? GetInitiativeWinner() =>
-        _initiativeOrder.HasTies() ? null : _initiativeOrder.GetOrderedPlayers().FirstOrDefault();
+    private IPlayer? GetInitiativeWinner()
+    {
+        if (_initiativeOrder.HasTies()) return null;
+
+        var orderedPlayers = _initiativeOrder.GetOrderedPlayers();
+        return orderedPlayers.Count > 0 ? orderedPlayers[0] : null;
+    }
 
     /// <summary>
     /// Clears what the initiative phase of a turn collected, which no later turn can contribute to.
