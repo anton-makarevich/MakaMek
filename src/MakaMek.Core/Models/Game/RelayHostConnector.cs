@@ -20,13 +20,14 @@ internal sealed class RelayHostConnector(
     IPublisherFactory? relayPublisherFactory,
     IRelayHubConfigurationProvider? relayHubConfigurationProvider,
     IOnlineStatusForwarder? forwarder,
-    ILogger logger)
+    ILogger logger) : IDisposable
 {
     private readonly BehaviorSubject<ConnectionStatus> _fallbackStatus =
         new(Sanet.MakaMek.Core.Services.Transport.ConnectionStatus.NotConnected);
     private ITransportPublisher? _publisher;
     private string? _sessionToken;
     private RelayClientOptions? _relayOptions;
+    private bool _isDisposed;
 
     /// <summary>
     /// Gets the room code of the hosted room, or null when no online lobby is running.
@@ -325,5 +326,22 @@ internal sealed class RelayHostConnector(
         _sessionToken = null;
         _relayOptions = null;
         RoomCode = null;
+    }
+
+    /// <summary>
+    /// Releases the fallback status subject this connector owns. The relay publisher is not
+    /// disposed here because its teardown is asynchronous and part of the hosting lifecycle
+    /// (<see cref="RemovePublisherAsync"/>); the injected room client, publisher factory,
+    /// status forwarder and command publisher are shared collaborators and are not owned.
+    /// Idempotent: repeated calls are no-ops because completing an already disposed
+    /// <see cref="BehaviorSubject{T}"/> throws.
+    /// </summary>
+    public void Dispose()
+    {
+        if (_isDisposed) return;
+        _isDisposed = true;
+
+        _fallbackStatus.OnCompleted();
+        _fallbackStatus.Dispose();
     }
 }

@@ -367,6 +367,26 @@ public class AssetProviderConfigurationProviderTests
         providers.ShouldAllBe(p => p.IsDefault);
     }
 
+    [Fact]
+    public async Task Dispose_DisposesOperationGate_SoFurtherMutationsThrow()
+    {
+        var sut = new AssetProviderConfigurationProvider(Defaults, new FakeFileCachingService(), Logger());
+
+        sut.Dispose();
+
+        await Should.ThrowAsync<ObjectDisposedException>(() => sut.AddProvider(new AssetProviderConfigData(
+            "local", ProviderType.Filesystem, AssetType.Hexes, "C:\\assets", IsActive: true, IsDefault: false, SortOrder: 5)));
+    }
+
+    [Fact]
+    public void Dispose_WhenCalledTwice_DoesNotThrow()
+    {
+        var sut = new AssetProviderConfigurationProvider(Defaults, new FakeFileCachingService(), Logger());
+
+        Should.NotThrow(sut.Dispose);
+        Should.NotThrow(sut.Dispose);
+    }
+
     private sealed class FailingSaveCachingService : IFileCachingService
     {
         public bool FailNextSave { get; set; }
