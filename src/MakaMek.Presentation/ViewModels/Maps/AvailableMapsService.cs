@@ -119,7 +119,7 @@ public sealed class AvailableMapsService
     /// <summary>
     /// Serialises <paramref name="map"/> and saves it through the file service.
     /// </summary>
-    public async Task ExportAsync(BattleMap map, string dialogTitle)
+    public async Task Export(BattleMap map, string dialogTitle)
     {
         try
         {

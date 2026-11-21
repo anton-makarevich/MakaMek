@@ -38,7 +38,7 @@ public sealed record ExtractResult
 /// <summary>One asset → files on disk, through CUE4Parse's exporters.</summary>
 public static class AssetExtractor
 {
-    public static async Task<ExtractResult> ExportAsync(
+    public static async Task<ExtractResult> Export(
         UnrealArchive archive,
         ExtractRequest request,
         CancellationToken cancellationToken = default)

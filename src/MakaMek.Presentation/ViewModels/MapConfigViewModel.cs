@@ -317,7 +317,7 @@ public class MapConfigViewModel : BindableBase, IDisposable
     public IAsyncCommand ExportMapCommand => field ??= new AsyncCommand(async () =>
     {
         if (Map == null) return;
-        await _availableMaps.ExportAsync(Map, _localizationService.GetString("EditMap_ExportMapDialogTitle"));
+        await _availableMaps.Export(Map, _localizationService.GetString("EditMap_ExportMapDialogTitle"));
     });
 
     private async Task LoadMap()
