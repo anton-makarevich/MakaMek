@@ -94,4 +94,31 @@ public class OnlineStatusForwarderTests
         statuses.Last().ShouldBe(ConnectionStatus.NotConnected);
         statuses.ShouldNotContain(ConnectionStatus.Closed);
     }
+
+    [Fact]
+    public void Dispose_WhenCalledTwice_CompletesStreamOnceAndDoesNotThrow()
+    {
+        // Arrange
+        var completions = 0;
+        _sut.OnlineConnectionStatus.Subscribe(_ => { }, _ => { }, () => completions++);
+
+        // Act & Assert - the IDisposable contract requires repeated calls to be no-ops
+        Should.NotThrow(_sut.Dispose);
+        Should.NotThrow(_sut.Dispose);
+        completions.ShouldBe(1);
+    }
+
+    [Fact]
+    public void Dispose_AfterStart_DisposesTheAdapterSubscription()
+    {
+        // Arrange
+        _sut.Start(_adapter);
+        _connectionStatusSubject.HasObservers.ShouldBeTrue();
+
+        // Act
+        _sut.Dispose();
+
+        // Assert - the forwarder owns the subscription and must release it
+        _connectionStatusSubject.HasObservers.ShouldBeFalse();
+    }
 }

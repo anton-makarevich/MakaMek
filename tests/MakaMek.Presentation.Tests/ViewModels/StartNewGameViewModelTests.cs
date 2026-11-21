@@ -2107,6 +2107,62 @@ public async Task MapReselection_DuringDebounce_RestartsWindow_AndSendsLatestMap
     }
 
     [Fact]
+    public async Task AttachHandlers_WhenDefaultPlayerCreationFails_LogsBackgroundError()
+    {
+        // Arrange - the player view model factory throws, so the auto-add task faults
+        var sut = new FailingDefaultPlayerViewModel(
+            CreateSession(),
+            CreateDependenciesFactory(null, null),
+            CreateMapConfig(),
+            _imageService,
+            _vmLogger);
+
+        // Signal completed when the background-operation error log is observed.
+        var logReceivedTcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        _vmLogger
+            .When(l => l.Log(
+                LogLevel.Error,
+                Arg.Any<EventId>(),
+                Arg.Is<object>(state => state.ToString()!.Contains("Error adding default player")),
+                Arg.Is<Exception?>(e => e is InvalidOperationException),
+                Arg.Any<Func<object, Exception?, string>>()))
+            .Do(_ => logReceivedTcs.TrySetResult());
+
+        // Act - the default player is added fire-and-forget, so the failure must be logged
+        sut.AttachHandlers();
+
+        // Assert
+        var completed = await Task.WhenAny(
+            logReceivedTcs.Task,
+            Task.Delay(TimeSpan.FromSeconds(5)));
+        completed.ShouldBe(logReceivedTcs.Task,
+            "Timed out waiting for the default-player error log");
+
+        _vmLogger.Received().Log(
+            LogLevel.Error,
+            Arg.Any<EventId>(),
+            Arg.Is<object>(state => state.ToString()!.Contains("Error adding default player")),
+            Arg.Is<Exception?>(e => e is InvalidOperationException),
+            Arg.Any<Func<object, Exception?, string>>());
+    }
+
+    private sealed class FailingDefaultPlayerViewModel : StartNewGameViewModel
+    {
+        public FailingDefaultPlayerViewModel(
+            GameSetupSession session,
+            SetupDependenciesFactory setupDependencies,
+            MapConfigViewModel mapConfig,
+            IImageService imageService,
+            ILogger<StartNewGameViewModel> logger)
+            : base(session, setupDependencies, mapConfig, imageService, logger)
+        {
+        }
+
+        protected override PlayerViewModel CreatePlayerViewModel(Player player, bool isDefaultPlayer = false) =>
+            throw new InvalidOperationException("default player creation failed");
+    }
+
+    [Fact]
     public void RemovePlayer_ShouldRemoveNonDefaultPlayer_WhenNotJoined()
     {
         // Arrange

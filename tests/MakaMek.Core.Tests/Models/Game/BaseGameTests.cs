@@ -2920,11 +2920,55 @@ public sealed class BaseGameTests : BaseGame
         _commandPublisher.Received(1).Unsubscribe(Arg.Any<Action<IGameCommand>>());
     }
 
-    public void SubscribeToTransport() => SubscribeToCommands();
+    [Fact]
+    public void DisposeCommandResources_WhenCalledTwice_CompletesCommandStreamOnce()
+    {
+        // Arrange - a derived game may release the command resources before the base Dispose
+        SubscribeToTransport();
+        var completions = 0;
+        Commands.Subscribe(_ => { }, () => completions++);
 
-    public void UnsubscribeFromTransport() => UnsubscribeFromCommands();
+        // Act & Assert - the second call must be a no-op instead of completing a disposed subject
+        Should.NotThrow(DisposeCommandResourcesForTests);
+        Should.NotThrow(DisposeCommandResourcesForTests);
+        completions.ShouldBe(1);
+        _commandPublisher.Received(1).Unsubscribe(Arg.Any<Action<IGameCommand>>());
+    }
 
-    public void DisposeCommandResourcesForTests() => DisposeCommandResources();
+    [Fact]
+    public void Dispose_WhenCalledTwice_CompletesStreamsOnceAndDoesNotThrow()
+    {
+        // Arrange
+        var turnCompletions = 0;
+        TurnChanges.Subscribe(_ => { }, () => turnCompletions++);
+
+        // Act & Assert - explicit disposal followed by container disposal must stay a no-op
+        Should.NotThrow(Dispose);
+        Should.NotThrow(Dispose);
+        turnCompletions.ShouldBe(1);
+    }
+
+    [Fact]
+    public void Dispose_WithDisposingFalse_DoesNotReleaseManagedResources()
+    {
+        // Arrange - a derived type without managed cleanup still reaches the base through this path
+        var turnCompletions = 0;
+        TurnChanges.Subscribe(_ => { }, () => turnCompletions++);
+
+        // Act
+        Dispose(false);
+
+        // Assert - owned Rx subjects stay alive for a later managed disposal
+        turnCompletions.ShouldBe(0);
+        Should.NotThrow(Dispose);
+        turnCompletions.ShouldBe(1);
+    }
+
+    private void SubscribeToTransport() => SubscribeToCommands();
+
+    private void UnsubscribeFromTransport() => UnsubscribeFromCommands();
+
+    private void DisposeCommandResourcesForTests() => DisposeCommandResources();
 
     public override void HandleCommand(IGameCommand command)
     {
