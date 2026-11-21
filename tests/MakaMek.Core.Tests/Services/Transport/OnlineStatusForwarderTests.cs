@@ -107,4 +107,18 @@ public class OnlineStatusForwarderTests
         Should.NotThrow(_sut.Dispose);
         completions.ShouldBe(1);
     }
+
+    [Fact]
+    public void Dispose_AfterStart_DisposesTheAdapterSubscription()
+    {
+        // Arrange
+        _sut.Start(_adapter);
+        _connectionStatusSubject.HasObservers.ShouldBeTrue();
+
+        // Act
+        _sut.Dispose();
+
+        // Assert - the forwarder owns the subscription and must release it
+        _connectionStatusSubject.HasObservers.ShouldBeFalse();
+    }
 }
