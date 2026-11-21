@@ -455,7 +455,7 @@ public static class MechAssembler
         }
 
         var blueprintDirectory = Path.Combine(dataDirectory, "cockpit");
-        var export = await AssetExtractor.ExportAsync(
+        var export = await AssetExtractor.Export(
             archive,
             new ExtractRequest { AssetPath = blueprint, Format = ExtractFormat.Json, OutputDirectory = blueprintDirectory },
             cancellationToken);
@@ -548,7 +548,7 @@ public static class MechAssembler
         string directory,
         CancellationToken cancellationToken)
     {
-        var result = await AssetExtractor.ExportAsync(
+        var result = await AssetExtractor.Export(
             archive,
             new ExtractRequest { AssetPath = assetPath, Format = ExtractFormat.Gltf, OutputDirectory = directory },
             cancellationToken);
@@ -562,7 +562,7 @@ public static class MechAssembler
         string directory,
         CancellationToken cancellationToken)
     {
-        var result = await AssetExtractor.ExportAsync(
+        var result = await AssetExtractor.Export(
             archive,
             new ExtractRequest { AssetPath = assetPath, Format = ExtractFormat.Json, OutputDirectory = directory },
             cancellationToken);
