@@ -171,18 +171,7 @@ public class GameManager : IGameManager
 
     public async Task StopHosting()
     {
-        bool lockSucceeded;
-        try
-        {
-            lockSucceeded = await LockOnlineRoom();
-        }
-        catch (Exception ex)
-        {
-            _logger.LogFailedToLockOnlineRoomDuringStopHosting(ex);
-            lockSucceeded = false;
-        }
-
-        if (!lockSucceeded)
+        if (!await LockOnlineRoom())
         {
             // Keep the retryable relay state (publisher, room code, session token)
             // intact so a subsequent cleanup attempt can retry locking the room.
@@ -190,14 +179,7 @@ public class GameManager : IGameManager
             return;
         }
 
-        try
-        {
-            await _relay.RemovePublisherAsync();
-        }
-        catch (Exception ex)
-        {
-            _logger.LogFailedToRemoveOnlinePublisherDuringStopHosting(ex);
-        }
+        await _relay.RemovePublisherAsync();
 
         // Reset the session-scoped status stream once hosting is torn down
         _relay.ResetForwarding();
