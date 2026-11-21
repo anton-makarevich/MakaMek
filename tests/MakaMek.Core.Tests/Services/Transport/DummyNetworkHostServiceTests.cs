@@ -58,4 +58,15 @@ public class DummyNetworkHostServiceTests
     {
         Should.NotThrow(() => _service.Dispose());
     }
+
+    [Fact]
+    public async Task DisposeAsync_ShouldCompleteSuccessfully()
+    {
+        // Act
+        var task = _service.DisposeAsync();
+
+        // Assert
+        task.IsCompletedSuccessfully.ShouldBeTrue();
+        await Should.NotThrowAsync(async () => await task);
+    }
 }
