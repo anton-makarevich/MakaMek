@@ -12,6 +12,10 @@
     <ItemGroup>
         <None Include="../../README.md" Pack="true" PackagePath="" />
     </ItemGroup>
+    
+    <ItemGroup>
+      <PackageReference Update="SonarAnalyzer.CSharp" Version="10.37.0.15768" PrivateAssets="all" IncludeAssets="runtime; build; native; contentfiles; analyzers; buildtransitive" />
+    </ItemGroup>
 
     <!-- Debug target to print properties -->
     <Target Name="PrintProperties" BeforeTargets="Build" Condition="'$(Configuration)' == 'Debug'">

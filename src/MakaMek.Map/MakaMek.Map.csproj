@@ -20,6 +20,7 @@
     <ItemGroup>
         <PackageReference Include="Sanet.Localization" Version="0.3.0" />
         <PackageReference Include="System.Reactive" Version="7.0.0" />
+        <PackageReference Update="SonarAnalyzer.CSharp" Version="10.37.0.15768" PrivateAssets="all" IncludeAssets="runtime; build; native; contentfiles; analyzers; buildtransitive" />
     </ItemGroup>
 
     <!-- Debug target to print properties -->
