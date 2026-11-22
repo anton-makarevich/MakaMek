@@ -5,84 +5,142 @@
 root = true
 
 [*.cs]
-# Disable every analyzer rule by default ("Sonar way" is too noisy for this
-# phase); the deterministic gates below opt individual rules back in.
+# Disable every analyzer rule by default ("Sonar way" is too noisy);
+# the deterministic gates below opt individual rules back in.
 dotnet_analyzer_diagnostic.severity = none
 
 # --- Built-in .NET code-metrics rules (thresholds in CodeMetricsConfig.txt) ---
+# Avoid excessive inheritance depth.
 dotnet_diagnostic.CA1501.severity = warning
+# Avoid excessive cyclomatic complexity.
 dotnet_diagnostic.CA1502.severity = warning
+# Avoid unmaintainable code (low maintainability index).
 dotnet_diagnostic.CA1505.severity = warning
+# Avoid excessive class coupling.
 dotnet_diagnostic.CA1506.severity = warning
 # CA1509 (invalid CodeMetricsConfig.txt) must live in .globalconfig.
 
 # --- SonarAnalyzer.CSharp ---
 # Phase 1 enables cognitive complexity only; the rest of the legacy Sonar
 # ruleset stays out of scope to avoid an unrelated-debt avalanche.
+# Cognitive complexity of methods should not be too high.
 dotnet_diagnostic.S3776.severity = warning
 
 # --- Path-scoped opt-ins ---
 # CA1305 (IFormatProvider) is enforced in the libraries whose debt is paid
 # down; the remaining projects keep the latent default until their turn.
 [src/MakaMek.Core/**/*.cs]
+# Types that own disposable fields should be disposable.
 dotnet_diagnostic.CA1001.severity = warning
+# Do not declare visible instance fields.
 dotnet_diagnostic.CA1051.severity = warning
+# CancellationToken parameters must come last.
 dotnet_diagnostic.CA1068.severity = warning
+# Specify IFormatProvider on culture-sensitive calls.
 dotnet_diagnostic.CA1305.severity = warning
+# Identifiers should differ by more than case.
 dotnet_diagnostic.CA1708.severity = warning
+# Identifiers should not contain underscores.
 dotnet_diagnostic.CA1707.severity = warning
+# Use ordinal StringComparison for non-linguistic comparisons.
 dotnet_diagnostic.CA1309.severity = warning
+# Parameter names should match base declaration.
 dotnet_diagnostic.CA1725.severity = warning
+# Do not initialize unnecessarily (default field values).
 dotnet_diagnostic.CA1805.severity = warning
+# Call GC.SuppressFinalize correctly in Dispose.
 dotnet_diagnostic.CA1816.severity = warning
+# Mark members as static when they do not use instance state.
 dotnet_diagnostic.CA1822.severity = warning
+# Use indexer/Count/Length instead of LINQ First/Last/Count.
 dotnet_diagnostic.CA1826.severity = warning
+# Use LoggerMessage delegates instead of Logger extension methods.
 dotnet_diagnostic.CA1848.severity = warning
+# Prefer IDictionary.TryGetValue over ContainsKey + indexer.
 dotnet_diagnostic.CA1854.severity = warning
+# Use concrete types when possible for improved performance.
 dotnet_diagnostic.CA1859.severity = warning
+# Avoid Enumerable.Any(); use Count/Length.
 dotnet_diagnostic.CA1860.severity = warning
+# Cache and reuse JsonSerializerOptions instances.
 dotnet_diagnostic.CA1869.severity = warning
+# Avoid potentially expensive logging argument evaluations.
 dotnet_diagnostic.CA1873.severity = warning
+# Do not raise reserved exception types (Exception, SystemException, ...).
 dotnet_diagnostic.CA2201.severity = warning
 
 [src/MakaMek.Presentation/**/*.cs]
+# Do not declare visible instance fields.
 dotnet_diagnostic.CA1051.severity = warning
+# CancellationToken parameters must come last.
 dotnet_diagnostic.CA1068.severity = warning
+# Specify IFormatProvider on culture-sensitive calls.
 dotnet_diagnostic.CA1305.severity = warning
+# Identifiers should not contain underscores.
 dotnet_diagnostic.CA1707.severity = warning
+# Use ordinal StringComparison for non-linguistic comparisons.
 dotnet_diagnostic.CA1309.severity = warning
+# Parameter names should match base declaration.
 dotnet_diagnostic.CA1725.severity = warning
+# Do not initialize unnecessarily (default field values).
 dotnet_diagnostic.CA1805.severity = warning
+# Call GC.SuppressFinalize correctly in Dispose.
 dotnet_diagnostic.CA1816.severity = warning
+# Mark members as static when they do not use instance state.
 dotnet_diagnostic.CA1822.severity = warning
+# Use indexer/Count/Length instead of LINQ First/Last/Count.
 dotnet_diagnostic.CA1826.severity = warning
+# Use LoggerMessage delegates instead of Logger extension methods.
 dotnet_diagnostic.CA1848.severity = warning
+# Prefer IDictionary.TryGetValue over ContainsKey + indexer.
 dotnet_diagnostic.CA1854.severity = warning
+# Use concrete types when possible for improved performance.
 dotnet_diagnostic.CA1859.severity = warning
+# Avoid Enumerable.Any(); use Count/Length.
 dotnet_diagnostic.CA1860.severity = warning
+# Do not raise reserved exception types (Exception, SystemException, ...).
 dotnet_diagnostic.CA2201.severity = warning
+# Log message template should be a static expression.
 dotnet_diagnostic.CA2254.severity = warning
 
 [src/MakaMek.Assets/**/*.cs]
+# Types that own disposable fields should be disposable.
 dotnet_diagnostic.CA1001.severity = warning
+# Instantiate argument exceptions correctly (correct param name).
 dotnet_diagnostic.CA2208.severity = warning
+# Do not declare visible instance fields.
 dotnet_diagnostic.CA1051.severity = warning
+# Mark members as static when they do not use instance state.
 dotnet_diagnostic.CA1822.severity = warning
+# Use LoggerMessage delegates instead of Logger extension methods.
 dotnet_diagnostic.CA1848.severity = warning
+# Cache and reuse JsonSerializerOptions instances.
 dotnet_diagnostic.CA1869.severity = warning
+# Avoid potentially expensive logging argument evaluations.
 dotnet_diagnostic.CA1873.severity = warning
 
 [src/MakaMek.Bots/**/*.cs]
+# Use LoggerMessage delegates instead of Logger extension methods.
 dotnet_diagnostic.CA1848.severity = warning
+# Prefer IDictionary.TryGetValue over ContainsKey + indexer.
 dotnet_diagnostic.CA1854.severity = warning
+# Use concrete types when possible for improved performance.
 dotnet_diagnostic.CA1859.severity = warning
 
 [src/MakaMek.Map/**/*.cs]
+# CancellationToken parameters must come last.
 dotnet_diagnostic.CA1068.severity = warning
+# Specify IFormatProvider on culture-sensitive calls.
 dotnet_diagnostic.CA1305.severity = warning
+# Use ArgumentNullException.ThrowIfNull instead of manual throw.
 dotnet_diagnostic.CA1510.severity = warning
+# Instantiate argument exceptions correctly (correct param name).
 dotnet_diagnostic.CA2208.severity = warning
+# Identifiers should not contain underscores.
 dotnet_diagnostic.CA1707.severity = warning
+# Use ordinal StringComparison for non-linguistic comparisons.
 dotnet_diagnostic.CA1309.severity = warning
+# Mark members as static when they do not use instance state.
 dotnet_diagnostic.CA1822.severity = warning
+# Prefer IDictionary.TryGetValue over ContainsKey + indexer.
 dotnet_diagnostic.CA1854.severity = warning
