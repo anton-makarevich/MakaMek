@@ -17,6 +17,7 @@
       <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.14" />
       <PackageReference Include="System.Reactive" Version="7.0.0" />
       <PackageReference Include="System.Security.Cryptography.Pkcs" Version="10.0.14" />
+      <PackageReference Update="SonarAnalyzer.CSharp" Version="10.37.0.15768" PrivateAssets="all" IncludeAssets="runtime; build; native; contentfiles; analyzers; buildtransitive" />
     </ItemGroup>
 
 </Project>

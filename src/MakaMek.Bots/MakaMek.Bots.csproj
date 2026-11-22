@@ -16,6 +16,10 @@
     <ItemGroup>
       <ProjectReference Include="..\MakaMek.Core\MakaMek.Core.csproj" />
     </ItemGroup>
+    
+    <ItemGroup>
+      <PackageReference Update="SonarAnalyzer.CSharp" Version="10.37.0.15768" PrivateAssets="all" IncludeAssets="runtime; build; native; contentfiles; analyzers; buildtransitive" />
+    </ItemGroup>
 
 </Project>
 

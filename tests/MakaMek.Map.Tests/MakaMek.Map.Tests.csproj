@@ -20,7 +20,7 @@
     </PackageReference>
     <PackageReference Include="JetBrains.Annotations" Version="2026.2.0" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.14" />
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.11.0" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.12.0" />
     <PackageReference Include="NSubstitute" Version="6.2.0" />
     <PackageReference Include="Sanet.Localization" Version="0.3.0" />
     <PackageReference Include="Shouldly" Version="4.3.0" />
