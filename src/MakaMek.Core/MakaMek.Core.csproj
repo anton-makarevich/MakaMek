@@ -14,7 +14,7 @@
     </ItemGroup>
     
     <ItemGroup>
-      <PackageReference Include="AsyncAwaitBestPractices" Version="10.0.0" />
+      <PackageReference Include="AsyncAwaitBestPractices" Version="11.0.0" />
       <PackageReference Include="Microsoft.AspNetCore.SignalR.Common" Version="11.0.0" />
       <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="11.0.0" />
       <PackageReference Include="Microsoft.Extensions.Http" Version="11.0.0" />
