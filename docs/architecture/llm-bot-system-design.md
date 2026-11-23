@@ -226,7 +226,7 @@ The LLM bot system introduces two containerized applications that integrate with
 ### 2.2 Component Responsibilities
 
 #### Container 1: LLM Agent Application
-**Type**: ASP.NET Core Web API (.NET 10)
+**Type**: ASP.NET Core Web API (.NET 11)
 **Technology**: Microsoft Agent Framework + LLM SDKs
 **Port**: 5000 (configurable)
 
@@ -252,7 +252,7 @@ The LLM bot system introduces two containerized applications that integrate with
 - `GET /api/health` - Health check
 
 #### Container 2: Integration Bot Application
-**Type**: ASP.NET Core Application (.NET 10)
+**Type**: ASP.NET Core Application (.NET 11)
 **Technology**: MCP SDK + MakaMek.Core + Reactive Extensions
 **Port**: 5001 (configurable, one per bot instance)
 
@@ -363,7 +363,7 @@ sequenceDiagram
 ### 2.4 Technology Stack
 
 #### Container 1: LLM Agent Application
-- **Framework**: .NET 10
+- **Framework**: .NET 11
 - **Web Framework**: ASP.NET Core Web API
 - **Agent Framework**: [Microsoft Agent Framework](https://github.com/microsoft/agent-framework)
 - **LLM SDKs**:
@@ -376,7 +376,7 @@ sequenceDiagram
 - **Dependency Injection**: Microsoft.Extensions.DependencyInjection
 
 #### Container 2: Integration Bot Application
-- **Framework**: .NET 10
+- **Framework**: .NET 11
 - **Web Framework**: ASP.NET Core (for MCP Server hosting)
 - **Dependencies**: MakaMek.Core, MakaMek.Bots
 - **MCP SDK**: ModelContextProtocol.SDK (C# implementation)
@@ -1128,11 +1128,11 @@ OPENAI_API_KEY=sk-your-api-key-here
 
 **LLM Agent Dockerfile**:
 ```dockerfile
-FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS base
+FROM mcr.microsoft.com/dotnet/aspnet:11.0 AS base
 WORKDIR /app
 EXPOSE 5000
 
-FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:11.0 AS build
 WORKDIR /src
 COPY ["MakaMek.LlmAgent/MakaMek.LlmAgent.csproj", "MakaMek.LlmAgent/"]
 RUN dotnet restore "MakaMek.LlmAgent/MakaMek.LlmAgent.csproj"
@@ -1151,11 +1151,11 @@ ENTRYPOINT ["dotnet", "MakaMek.LlmAgent.dll"]
 
 **Integration Bot Dockerfile**:
 ```dockerfile
-FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS base
+FROM mcr.microsoft.com/dotnet/aspnet:11.0 AS base
 WORKDIR /app
 EXPOSE 5001
 
-FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:11.0 AS build
 WORKDIR /src
 COPY ["MakaMek.Bots.Llm/MakaMek.Bots.Llm.csproj", "MakaMek.Bots.Llm/"]
 COPY ["MakaMek.Core/MakaMek.Core.csproj", "MakaMek.Core/"]

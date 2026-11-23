@@ -1,6 +1,6 @@
 # MakaMek
 
-A cross-platform implementation of turn-based tabletop tactics BattleTech, built with .NET 10 and AvaloniaUI.
+A cross-platform implementation of turn-based tabletop tactics BattleTech, built with .NET 11 and AvaloniaUI.
 
 ## Overview
 
@@ -101,7 +101,7 @@ An [LLM-powered bot system](docs/architecture/llm-bot-system-design.md), with de
 
 ## Technology Stack
 
-- .NET 10
+- .NET 11
 - AvaloniaUI for cross-platform UI
 - xUnit for testing
 
@@ -148,7 +148,7 @@ MakaMek/
 ## Development Setup
 ### Prerequisites
 
-- .NET 10 SDK
+- .NET 11 SDK
 - Your favorite IDE (Visual Studio, Rider or VS Code)
 
 ### Building

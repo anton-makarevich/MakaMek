@@ -54,7 +54,7 @@ jobs:
           # workflows, so the release:published notification workflow would
           # never fire. Falls back to github.token until RELEASE_TOKEN is set.
           token: ${{ secrets.RELEASE_TOKEN || github.token }}
-          files: src/MakaMek.Avalonia/MakaMek.Avalonia.Android/bin/Release/net10.0-android/*-Signed.apk
+          files: src/MakaMek.Avalonia/MakaMek.Avalonia.Android/bin/Release/net11.0-android/*-Signed.apk
           draft: false
           prerelease: false
           generate_release_notes: false # Only one pipeline generates release notes
@@ -64,5 +64,5 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: MakaMek-Android
-          path: src/MakaMek.Avalonia/MakaMek.Avalonia.Android/bin/Release/net10.0-android/*-Signed.apk
+          path: src/MakaMek.Avalonia/MakaMek.Avalonia.Android/bin/Release/net11.0-android/*-Signed.apk
           retention-days: 90  # Keep artifacts for 90 days

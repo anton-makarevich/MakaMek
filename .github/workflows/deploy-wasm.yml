@@ -49,7 +49,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v5
         with:
-          path: src/MakaMek.Avalonia/MakaMek.Avalonia.Browser/bin/Release/net10.0-browser/publish/wwwroot
+          path: src/MakaMek.Avalonia/MakaMek.Avalonia.Browser/bin/Release/net11.0-browser/publish/wwwroot
 
   deploy:
     environment:

@@ -167,7 +167,7 @@ If the pipeline needs to run for 76 chassis repeatedly, write it as a scripted t
 | Mesh → file | CUE4Parse exporters (PSK/glTF), or shell out to `umodel -export` |
 | Render | `blender -b -P tools/blender/render.py` — this **is** the pipeline's renderer (see `../architecture/blender-render-driver.md`); the same install also covers PSK/PSA round-tripping |
 
-A C# tool on CUE4Parse fits this repo's stack (net10.0, no Python build step needed for extraction) and can emit the `.mmux` packages directly.
+A C# tool on CUE4Parse fits this repo's stack (net11.0, no Python build step needed for extraction) and can emit the `.mmux` packages directly.
 
 **This now exists:** [`src/MakaMek.Tools/MW5Extractor`](../../src/MakaMek.Tools/MW5Extractor/README.md) mounts the paks, enumerates and classifies all 104 chassis into `discovery-report.json`, reads meshes/skeletons/sockets, exports glTF/PSK/JSON, and dumps the custom hardpoint/loadout data assets — headless, read-only, no GUI. It is the intended `unreal` adapter of `MakaMek.Pipeline.Import`.
 

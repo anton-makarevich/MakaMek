@@ -9,19 +9,19 @@ updates:
     schedule:
       interval: "weekly"
 
-  # .NET SDK pinned in global.json (10.0.x)
+  # .NET SDK pinned in global.json (11.0.x)
   - package-ecosystem: "dotnet-sdk"
     directory: "/"
     schedule:
       interval: "weekly"
 
-  # BotAgent Docker image (.NET 10 base images)
+  # BotAgent Docker image (.NET 11 base images)
   - package-ecosystem: "docker"
     directory: "/src/MakaMek.Tools/BotAgent"
     schedule:
       interval: "weekly"
 
-  # BotContainer Docker image (.NET 10 base images)
+  # BotContainer Docker image (.NET 11 base images)
   - package-ecosystem: "docker"
     directory: "/src/MakaMek.Tools/BotContainer"
     schedule:
