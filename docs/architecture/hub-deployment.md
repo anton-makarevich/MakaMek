@@ -22,7 +22,7 @@ CI in the Sanet.Transport repository publishes the image to GHCR; there is norma
 docker build -f src/Sanet.Transport.SignalR.Hub/Dockerfile -t sanet-transport-hub .
 ```
 
-The resulting image is based on `mcr.microsoft.com/dotnet/aspnet:11.0` and exposes **port 8080** over plain HTTP (TLS termination is handled by Caddy — see below).
+The resulting image is based on `mcr.microsoft.com/dotnet/aspnet:10.0` and exposes **port 8080** over plain HTTP (TLS termination is handled by Caddy — see below).
 
 ## Running the Container
 

@@ -24,7 +24,7 @@
 
   <ItemGroup>
     <PackageReference Include="AsyncAwaitBestPractices" Version="11.0.0" />
-    <PackageReference Include="Avalonia" Version="12.2.0" />
+    <PackageReference Include="Avalonia" Version="$(AvaloniaVersion)" />
     <PackageReference Include="Avalonia.Skia" Version="$(AvaloniaVersion)" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="11.0.0" />
     <PackageReference Include="Microsoft.Extensions.Logging" Version="11.0.0" />
