@@ -68,7 +68,7 @@ tested later; verify changes by running the verbs against a real install and rea
 
 ## Conventions
 
-- net10.0, nullable enabled, file-scoped namespaces, records for DTOs, `System.CommandLine` for verbs.
+- net11.0, nullable enabled, file-scoped namespaces, records for DTOs, `System.CommandLine` for verbs.
 - Exit codes: `0` ok, `1` error, `2` bad arguments, `3` input missing, `4` export failed.
 - Sort everything that ends up in JSON (ordinal, invariant culture) so reports diff cleanly.
 - Bump `Directory.Build.props` `VersionPrefix` (patch only) when changing `src/` code.

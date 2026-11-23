@@ -4,7 +4,7 @@ This project hosts the integration bot logic as a standalone service. It connect
 
 ## Prerequisites
 
-- .NET 10 SDK
+- .NET 11 SDK
 - Running MakaMek Game Server (usually started via `MakaMek Desktop` application, see AvaloniaUI implementation)
 
 ## Configuration

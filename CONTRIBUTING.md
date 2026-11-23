@@ -4,7 +4,7 @@ Thank you for helping to improve MakaMek, a cross-platform BattleTech implementa
 
 ## Before you start
 
-- Install Git, the .NET 10 SDK and platform workloads for the targets you need.
+- Install Git, the .NET 11 SDK and platform workloads for the targets you need.
 - Check the existing issues before starting substantial work. For a new feature or a change to game rules, open an issue first so the design can be discussed.
 - Fork the repository, create a focused branch, and keep unrelated formatting or refactoring out of the change.
 

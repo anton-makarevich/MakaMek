@@ -500,7 +500,7 @@ Non-goals for the MCP surface: no GUI automation, no "click here" instructions, 
 
 ## 7. Project layout & testing
 
-Mirrors existing `src/MakaMek.Tools` conventions (`net10.0`, `System.CommandLine 2.0.13`, one console app per concern, `README.md` per tool). Blender is the only Python, isolated under `tools/blender/` as a build tool:
+Mirrors existing `src/MakaMek.Tools` conventions (`net11.0`, `System.CommandLine 2.0.13`, one console app per concern, `README.md` per tool). Blender is the only Python, isolated under `tools/blender/` as a build tool:
 
 ```
 src/MakaMek.Tools/

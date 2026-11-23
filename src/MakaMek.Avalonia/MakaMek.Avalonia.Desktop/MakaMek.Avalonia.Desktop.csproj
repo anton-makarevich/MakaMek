@@ -2,8 +2,8 @@
     <PropertyGroup>
         <OutputType>WinExe</OutputType>
         <!--If you are willing to use Windows/MacOS native APIs you will need to create 3 projects.
-        One for Windows with net10.0-windows TFM, one for MacOS with net10.0-macos and one with net10.0 TFM for Linux.-->
-        <TargetFramework>net10.0</TargetFramework>
+        One for Windows with net11.0-windows TFM, one for MacOS with net11.0-macos and one with net11.0 TFM for Linux.-->
+        <TargetFramework>net11.0</TargetFramework>
         <Nullable>enable</Nullable>
         <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
         <AssemblyName>MakaMek</AssemblyName>
@@ -23,7 +23,7 @@
     <ItemGroup>
         <PackageReference Include="Avalonia.Desktop" Version="$(AvaloniaVersion)" />
         <PackageReference Include="AvaloniaUI.DiagnosticsSupport" Version="$(AvaloniaDevToolsVersion)" Condition="'$(Configuration)' == 'Debug'" />
-        <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="10.0.14" />
+        <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="11.0.0" />
         <PackageReference Include="Sanet.MVVM.ExternalNavigation.Desktop" Version="1.7.1" />
         <PackageReference Include="Sanet.Transport.SignalR.Server" Version="1.8.0" />
         <PackageReference Include="Velopack" Version="0.0.1298" />
