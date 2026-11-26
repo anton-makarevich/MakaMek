@@ -21,7 +21,6 @@ namespace Sanet.MakaMek.Core.Models.Game.Phases;
 /// </remarks>
 public class PhysicalAttackResolutionPhase : GamePhase
 {
-    private readonly IReadOnlyList<IPhysicalAttackResolutionGate> _gates;
     private readonly PhysicalAttackPhaseState _state = new();
     private readonly PhysicalAttackResolutionQueueBuilder _queueBuilder;
     private readonly PhysicalAttackSingleResolver _singleResolver;
@@ -41,13 +40,14 @@ public class PhysicalAttackResolutionPhase : GamePhase
         DfaDisplacementResolver dfaDisplacementResolver,
         IDfaAttackResolver dfaAttackResolver) : base(game)
     {
-        // The eligibility policy owns the attacker and target state as well as the reach rules, so
-        // this gate is the only pre-attack check: it re-runs the same evaluation the declaration used.
-        _gates = [new PhysicalAttackTargetValidityGate(game.PhysicalAttackEligibility)];
+        IReadOnlyList<IPhysicalAttackResolutionGate> gates =
+            // The eligibility policy owns the attacker and target state as well as the reach rules, so
+            // this gate is the only pre-attack check: it re-runs the same evaluation the declaration used.
+            [new PhysicalAttackTargetValidityGate(game.PhysicalAttackEligibility)];
 
         var displacement = new PhysicalAttackDisplacementService(game);
         var consequences = new PhysicalAttackConsequenceApplier(game, _state);
-        _queueBuilder = new PhysicalAttackResolutionQueueBuilder(game, _gates);
+        _queueBuilder = new PhysicalAttackResolutionQueueBuilder(game, gates);
         _singleResolver = new PhysicalAttackSingleResolver(game, consequences);
         _chargeResolver = new PhysicalAttackChargeResolver(
             game, chargeDisplacementResolver, displacement, consequences);
