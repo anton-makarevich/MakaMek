@@ -28,7 +28,7 @@
     <PackageReference Include="Avalonia.Skia" Version="$(AvaloniaVersion)" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="11.0.0" />
     <PackageReference Include="Microsoft.Extensions.Logging" Version="11.0.0" />
-    <PackageReference Include="Sanet.MVVM.Core" Version="1.7.0" />
+    <PackageReference Include="Sanet.MVVM.Core" Version="1.7.3" />
     <PackageReference Include="System.Reactive" Version="7.0.0" />
   </ItemGroup>
 
