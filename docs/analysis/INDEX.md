@@ -26,6 +26,7 @@ Technical analyses, integration studies, design evaluations, and race condition 
 | [mw5-variant-coverage.md](mw5-variant-coverage.md) | Which of the 199 shipped unit variants exist as MW5 variant assets (137 available, 15 chassis-only, 47 absent) and the derived MW5-folder → chassis-code map |
 | [animated-mech-integration.md](animated-mech-integration.md) | mmux v2 sprite atlas, AS7-D Walk/Run calibration (`distancePerCycle`), and the fixed-5 s distance-driven movement playback prototype |
 | [avalonia-3d-renderer-evaluation.md](avalonia-3d-renderer-evaluation.md) | Avalonia-hosted 3D vs MonoGame vs Blender automation for the sprite renderer: API survey with package evidence, comparison, and why Blender automation won (superseded verdict, kept for interactive-3D planning) |
+| [unit-preview-render-spike.md](unit-preview-render-spike.md) | Requirements analysis and render spike for the non-board `unit-preview.png` (#1831): 128×128 luminance-only front previews, measured mesh volumes (Atlas vs Locust), the accepted shared tonnage-volume scale with the Atlas as fixed reference, and the renderer/packaging/UI changes they imply |
 
 ## Reachability Analyses
 

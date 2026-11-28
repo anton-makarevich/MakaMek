@@ -144,11 +144,11 @@ Because step 3 is data, adding a new "cheat" animation for a whole family of sou
   },
   "tonnage": 100,
   "volume": {
-    "method": "voxel", "grid": 64,
-    "modelCubicMeters": 1520.4,
-    "targetCubicMeters": 666.7,
-    "correctionScale": 0.7597,          // (target/model)^(1/3) — authoritative; computed at import
-    "densityTonsPerCubicMeter": 0.15,   // provenance for the 3D client only; does not affect sprites (§4.3)
+    "method": "voxel", "grid": 64, "fillPolicy": "holes",  // pinned: open shells undercount unless closed
+    "modelCubicMeters": 318.9,           // measured on the canonical AS7 mesh
+    "correctionReference": "AS7",         // 100 t = 100 %; the reference is never rescaled
+    "correctionScale": 1.0,               // relative to AS7; (tonnage/tonnage_ref × V_ref/V)^(1/3)
+    "densityTonsPerCubicMeter": 0.15,    // provenance for the 3D client only; cancels from the correction (§4.3)
     "includesAttachments": true,
     "canonicalLoadout": ["arm_ra_std", "ac20"]
   },
@@ -253,7 +253,7 @@ The look lives in `presets/*.json`, not in code:
   "camera": { "projection": "ortho", "pitchDegrees": 90, "yawDegrees": 0 },
   "scale": {
     "mode": "tonnage-volume",       // tonnage-volume | uniform | none
-    "referenceChassis": "AS7",      // the chassis that calibrates pixelsPerMetre (§4.3)
+    "referenceChassis": "AS7",      // 100 t = 100 %; calibrates pixelsPerMetre and is never rescaled (§4.3)
     "referenceCoverage": 0.90,      // of the 84×72 draw-box height, for the reference chassis
     "minimumCoverage": 0.55,        // readability floor: silhouette area ÷ hex area
     "drawBoxHeightPx": 72,          // the slot the sprite is drawn into
@@ -304,30 +304,40 @@ Sprite size must express **tonnage**, not the artist's opinion of bulk. MW5 is t
 The model is three independent factors:
 
 ```text
-V_model     = voxelised displacement volume of the canonical mesh (m³)
-s_volume    = volume.correctionScale from model.json   // (density·tonnage / V_model)^(1/3)
-s_override  = scale-overrides.json[chassis] ?? 1.0      // human review, persisted
+V_model      = voxelised displacement volume of the canonical mesh (m³)
+reference    = referenceChassis (AS7: 100 t = 100 %)   // never rescaled
+s_volume_ref = 1.0
+s_volume_i   = ((tonnage_i / tonnage_ref) × (V_ref / V_model_i))^(1/3)
+s_override   = scale-overrides.json[chassis] ?? 1.0     // human review, persisted
 
 // calibration: the reference chassis's plan-view extent fills referenceCoverage
-// of the 84×72 slot. planView.maxExtentMeters, not heightMeters — at 90° a mech's
-// standing height is invisible; its footprint is what fills the frame.
-pxPerMetre  = (referenceCoverage × drawBoxHeightPx)
-              / (planView.maxExtentMeters[referenceChassis] × s_volume[referenceChassis])
+// of the draw box. s_volume_ref is 1.0 by definition, so the reference is never rescaled.
+pxPerMetre   = (referenceCoverage × drawBoxHeightPx)
+               / planView.maxExtentMeters[referenceChassis]
 
-spriteScale = pxPerMetre × s_volume × s_override
+spriteScale_i = pxPerMetre × s_volume_i × s_override
 ```
 
-`spriteScale` is the **`--scale` value the driver receives** (pixel space: after it, 1 model unit = 1 px, §3.2 of [blender-render-driver.md](blender-render-driver.md)).
+`spriteScale` is the **`--scale` value the driver receives** (pixel space: after it, 1 model unit = 1 px, §3.2 of [blender-render-driver.md](blender-render-driver.md)). Density cancels out of the relative correction and is provenance for the 3D client only.
 
 Why this shape:
 
-- **Volume correction is a measurement, not a geometry edit.** `correctionScale` is computed once at import and stored in the manifest (`model.json`), so the `.glb` stays a faithful copy of the source and rendering applies one number.
+- **Volume correction is a measurement, not a geometry edit.** `correctionScale` is computed once at import and stored in the manifest (`model.json`), relative to the reference chassis (AS7 = 1.0), so the `.glb` stays a faithful copy of the source and rendering applies one number. The reference chassis is never rescaled: both its correction (1.0) and the preset calibration stay anchored to its current output, so introducing the correction must not move the Atlas.
 - **The pixel factor is global and derived**, not configured. `referenceChassis` + `referenceCoverage` fully determine it from that chassis's manifest, so there is exactly **one** place each value lives: corrections in manifests, calibration in the preset, deviations in `scale-overrides.json`. Nothing is duplicated and nothing goes stale.
 - **At 90° the frame is filled by the footprint, not the standing height.** A mech's height is invisible from directly above; what fills the 84×72 slot is the plan-view extent (nose-to-tail / widest horizontal span). Calibration therefore uses `planView.maxExtentMeters` and the floor uses silhouette *area*; `metrics.heightMeters` is recorded for the future 3D client, never used for sprite scale. Expressing `referenceCoverage` as a fraction of the **draw box** (not of the hex) also means the reference chassis cannot be clipped by construction.
-- **Density is provenance, not a render input.** It is recorded in the manifest for the 3D client's physical units; sprite size depends only on `correctionScale` and the calibration. Changing density requires re-importing that model (to recompute `correctionScale`) but never touches the preset — and because every correction moves by `density^(1/3)` while `pxPerMetre` moves by the inverse, a global change cancels out of the result anyway.
-- **The size gradient comes from the calibration, not from a per-chassis rule.** Once the reference chassis fills `referenceCoverage`, size falls out as `∝ tonnage^(1/3)`: a 20 t Locust is ~58% the linear size of a 100 t Atlas, not 20% — physically honest, and the thing the current flat 84×72 art cannot express.
+- **Density is provenance, not a render input.** The correction is relative: `(tonnage_i/tonnage_ref × V_ref/V_i)^(1/3)`, so density cancels exactly. It is recorded in the manifest for the 3D client's physical units and never affects sprite size.
+- **The size gradient comes from the calibration, not from a per-chassis rule.** Once the reference chassis fills `referenceCoverage`, the rendered **volume** falls out as `∝ tonnage`. Linear size is only `∝ tonnage^(1/3)` when two chassis have the same proportions: the measured MW5 Atlas/Locust pair gives a corrected **height** ratio of ~0.72–0.78, not `0.585`, because the Locust is much narrower. Volume is the invariant, not screen height.
 - **Volume is measured on a declared loadout**, not on whatever the variant happens to carry (`volume.includesAttachments` + `canonicalLoadout` per chassis), so `AS7-D` and `AS7-K` produce identical sprites.
-- **Voxel, not tetrahedron.** Game meshes are open (missing arms, unwelded shells) so signed-tetrahedron volume is garbage. Voxelising the bounds at a fixed grid (default 64³) and counting occupied cells × cell volume is robust, deterministic, and cheap. `--volume-method hull` is available when a watertight mesh is expected.
+- **Voxel, not tetrahedron.** Game meshes are open (missing arms, unwelded shells) so signed-tetrahedron volume is garbage. Voxelising the bounds at a fixed grid (default 64³) and counting occupied cells × cell volume is robust, deterministic, and cheap. `--volume-method hull` is available when a watertight mesh is expected. Open shells still undercount a solid voxelisation: close the mesh (or record the fill policy) before measuring, and pin the method so a re-import cannot silently change the correction.
+
+**One correction, every render product.** `correctionScale` is a property of the model, not of a preset: it is computed once at import, stored in `model.json`, and applied unchanged by every render product. Each product owns only its `pxPerMetre` calibration — the board uses the plan-view extent (§4.3) and the non-board preview uses the front-silhouette extent at its own pitch:
+
+```text
+pxPerMetre_preview = usablePx / projectedFrontHeight[referenceChassis]   // s_volume_ref = 1.0
+effectiveScale_i   = pxPerMetre_preview × correctionScale_i × override_i × floorClamp_i
+```
+
+A preview therefore never re-measures volume. Re-importing a model updates the board sprite and the preview together; switching a preview camera changes only the calibration, never the correction.
 
 Tuning knobs, in order: `referenceCoverage` (all sprites), `scale-overrides.json[chassis]` (one chassis), `minimumCoverage` (the readability floor). Density is not a knob — it cancels.
 
@@ -562,7 +572,7 @@ Everything else — adapters, normalizer, renderer, presets, format — ships. T
 | **P4** | animation extraction + clip resolution/synthesis + `.mmux` v2 + `pack` | `Idle`/`Walk`/`Run`/`ProneEnter`/`ProneIdle`/`StandUp` shipped for one chassis |
 | **P5** | MCP server, diff reports, `run`/`batch` orchestration, optional asset previewer | an agent can go from pak → `.mmux` with no human steps |
 
-P2a/P2b is the go/no-go gate: it must answer two questions at board size, not one. (1) Does a 90° render read better than the current line art? (2) Is the tonnage-driven size range — roughly 0.58× linear from 20 t to 100 t — readable for lights without an override? If either fails, stop before P3. P2a is deliberately small: the driver, one preset and one model, because that is the whole renderer.
+P2a/P2b is the go/no-go gate: it must answer two questions at board size, not one. (1) Does a 90° render read better than the current line art? (2) Is the tonnage-driven size range — measured for the MW5 Atlas/Locust pair as a ~0.20 volume ratio and a ~0.72–0.78× corrected height ratio, not a flat 0.58× height — readable for lights without an override? If either fails, stop before P3. P2a is deliberately small: the driver, one preset and one model, because that is the whole renderer.
 
 ---
 

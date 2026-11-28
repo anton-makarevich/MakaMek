@@ -79,19 +79,25 @@ Scale policy has exactly one owner — the C# pipeline — and the driver receiv
 
 ```text
 pxPerMetre     = (referenceCoverage × drawBoxHeightPx)          // from the preset
-                 / (planView.maxExtentMeters[referenceChassis]
-                    × correctionScale[referenceChassis])        // from that chassis's manifest
+                 / planView.maxExtentMeters[referenceChassis]   // correctionScale[reference] = 1.0
 
 effectiveScale = pxPerMetre
-               × model.volume.correctionScale                   // measured at import
-               × (variant overrides[chassis][variant]            // optional, most specific first
+               × model.volume.correctionScale                   // relative to the reference, measured at import
+               × (variant overrides[chassis][variant]           // optional, most specific first
                   ?? overrides[chassis])
                × floorClamp                                     // minimumCoverage, if triggered
+```
+
+`correctionScale` is measured **once at import**, relative to the reference chassis (AS7 = 1.0; the reference is never rescaled), and stored in the manifest; it is not a render-preset value. Every render product uses the same stored correction and supplies only its own `pxPerMetre` — the board calibrates on the plan-view extent, the front preview on the projected front silhouette:
+
+```text
+pxPerMetre_preview = usablePx / projectedFrontHeight[referenceChassis]   // correctionScale[reference] = 1.0
 ```
 
 - The pipeline computes it and passes `--scale`; the driver applies that uniform scale to the imported armature root and sets `ortho_scale = output.cellWidth`, so **after scaling, 1 model unit = 1 pixel** and framing is direct. The camera never depends on which mech it is looking at.
 - The driver does **not** read `model.json`, `scale-overrides.json`, `planView.*`, tonnage or coverage thresholds. That keeps the calibration and override logic in C# (where it is unit-covered) and makes the Python side purely mechanical.
 - The driver echoes `{"appliedScale": <value>}` in its stdout report; the pipeline asserts it matches what it passed and writes the breakdown (`pxPerMetre`, `correctionScale`, `override`, `floorClamp`, `effectiveScale`) into `render-report.json`.
+- A preview must never re-measure volume or own a second correction: changing the preview camera or canvas changes only `pxPerMetre_preview`, while a re-import changes the shared `correctionScale` for every product at once.
 - A pre-scaled model (`--scale 1.0` with the scale baked into the `.glb`) is deliberately **not** supported: it would make the canonical model depend on a presentation preset and break reuse by a future 3D client.
 
 ### 3.3 Animated clips
