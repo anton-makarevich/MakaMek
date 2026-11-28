@@ -16,7 +16,7 @@ Date: 2026-11-28 · Status: spike verdict — **tonnage-volume scale accepted (A
 
 | Item | Issue #1831 | Clarified requirement |
 |---|---|---|
-| Canvas | 256 × 256 at 1× | **Accepted: 128 × 128 at 1×**, 4× supersampled then downsampled. 128×64 was evaluated and rejected — it halves the on-screen mech (§3.3). HiDPI can be regenerated later if needed |
+| Canvas | 256 × 256 at 1× | **Accepted: 128 × 128 at 1×**, 4× supersampled then downsampled. 64×128 and 128×64 were evaluated and rejected; 96×128 is the only viable portrait alternative (§3.3). HiDPI can be regenerated later if needed |
 | Colour | authored albedo / `rgba`; luminance only for board | **Luminance only.** The runtime owner tint must still apply, exactly as it does to `unit.png`. No albedo; keep `board-look` and neutral white lights |
 | Camera | fixed 40° pitch / 35° yaw | **Accepted: front elevations only, 10° pitch / 0° yaw. No iso.** |
 | Scale | one global `pxPerMetre`, derive from tallest chassis | **Accepted: tonnage-volume correction, with the Atlas as the fixed 100 t / 100 % reference.** Measured once at import and reused by every render product. `uniform` and `--fit` remain comparison/fallback options |
@@ -215,35 +215,45 @@ If the import-time volume is not yet implemented, the preview falls back to `uni
 report marks `volumeCorrection: null`; it must not measure volume itself. The import-time measurement is the
 single source of truth.
 
-### 3.3 Canvas aspect: 128×64 evaluated, 128×128 retained
+### 3.3 Canvas aspect: 64×128 evaluated, 128×128 retained
 
-Both UI slots are square — 84 × 84 on the card and 44 × 44 on the squad tile — and draw with `Uniform`. A
-non-square source is therefore letterboxed, and its **height** is the limiting dimension. Re-framing the
-accepted AS7 and Locust images to each candidate (mech fitted to the canvas height, 6 px margins) gives:
+The proposal was a **64 × 128 portrait** canvas (mechs are usually taller than wide), not a 128 × 64
+landscape. Both UI slots are square — 84 × 84 on the card and 44 × 44 on the squad tile — and draw with
+`Uniform`, so a portrait source is letterboxed to the slot height.
 
-| Canvas | Card display (84 × 84) | Tile display (44 × 44) | Atlas PNG | Locust PNG |
+The Atlas is the problem: at the accepted preview scale it is **82 × 108 px** (aspect ≈ 0.76), not 2:1. The
+Locust is 44 × 83 (aspect ≈ 0.53). A 64-wide canvas therefore cannot hold the Atlas at full height: with
+6 px margins the global scale has to drop to 52/82 = **0.634**, making the Atlas 52 × 68 and leaving 54 px of
+empty height. Fitting each mech to the 64 × 128 frame instead would let the Locust fill 98 px of height while
+the Atlas stays at 68 — the Locust would appear **taller than the Atlas**, breaking the reference rule.
+
+| Canvas / mode | Display in 84 × 84 | Mech height on card (A / L) | Mech height on tile (A / L) | PNG A / L |
 |---|---|---|---|---|
-| **128 × 128** | 84 × 84, mech 71 / 54 px | 44 × 44, mech 37 / 28 px | 12.7 KB | 6.0 KB |
-| 128 × 96 | 84 × 63, mech 55 px both | 44 × 33, mech 29 px both | 10.0 KB | 7.1 KB |
-| 96 × 128 (crop) | 63 × 84, mech 71 / 54 px | 33 × 44, mech 37 / 28 px | 12.4 KB | 5.9 KB |
-| 128 × 64 | 84 × 42, mech 34 px both | 44 × 22, mech 18 px both | 4.5 KB | 3.2 KB |
+| **128 × 128** | 84 × 84 | 71 / 54 px | 37 / 28 px | 12.7 / 6.0 KB |
+| 96 × 128 (crop) | 63 × 84 | 71 / 54 px | 37 / 28 px | 12.4 / 5.9 KB |
+| 64 × 128, global scale | 42 × 84 | 45 / 34 px | 23 / 18 px | 6.9 / 3.3 KB |
+| 64 × 128, per-mech fit | 42 × 84 | 45 / 64 px | 23 / 34 px | 6.9 / 9.0 KB |
+| 128 × 64, landscape | 84 × 42 | 34 / 34 px | 18 / 18 px | 4.5 / 3.2 KB |
 
-(The two mech numbers are Atlas / Locust; the 128×64 and 128×96 variants fit both to the same height.)
+- **64 × 128 with the correct global scale** preserves the Atlas:Locust ratio but shrinks the card mech from
+  71 → 45 px and the tile from 37 → 23 px; the Locust tile falls to 18 px, undoing the volume correction.
+  It saves ~45 % of the preview PNG (3–7 KB vs 6–13 KB), but the preview is not the file-size driver.
+- **64 × 128 with a per-mech fit** is worse: the Locust becomes 64 px on the card vs the Atlas's 45 px.
+- **96 × 128** is the portrait canvas that matches the reference Atlas aspect (≈ 0.75). It is visually
+  identical to 128 × 128 on screen (same mech heights) and saves only ~2 %, because empty transparent
+  columns compress almost for free. It is the only portrait worth considering.
+- **128 × 64 landscape** halves the on-screen mech and is the worst option.
+- A 64 × 128 image shown **1:1 in a portrait card** would put the Atlas at 68 px tall — close to today's
+  84 × 84 display (71 px) — but the 44 × 44 tile would need a separate square artifact. That is two images
+  per chassis, out of scope.
 
-- **128 × 64** halves the on-screen mech (34 px on the card, 18 px on the tile). The Locust returns to the
-  pre-correction size and is no longer readable at 44 px; the whole point of the volume correction is lost.
-- **96 × 128** is visually identical to 128 × 128 on screen (same mech height) but saves only ~2 %: empty
-  transparent columns compress almost for free. Not worth changing the canvas contract.
-- **128 × 96** cuts the displayed height by 25 % and is *larger* for the Locust because the extra resampling
-  adds detail; it is the worst of both.
-- The preview PNG is only 3–13 KB. A `.mmux` already carries `unit.json` (~10 KB), `unit.png` (~4 KB) and,
-  for v2, a sprite atlas (~120 KB); the preview is not the file-size driver. If size becomes critical,
-  optimize PNG encoding (palette/quantization, strip metadata) or reduce sprite frames — not the aspect.
+The preview PNG is only 3–13 KB; a `.mmux` already carries `unit.json` (~10 KB), `unit.png` (~4 KB) and, for
+v2, a sprite atlas (~120 KB). If size becomes critical, optimize PNG encoding (palette/quantization, strip
+metadata) or reduce sprite frames — not the aspect.
 
-**Decision: retain 128 × 128** for the shared card/tile preview. A wide 128 × 64 banner could exist later as
-a *separate* artifact if the UI gains a 2:1 slot, but it should not replace the square preview. A 128 × 64
-bust crop (head/torso) would fill a 2:1 frame better, but it is a different product: it loses the full-body
-silhouette and the relative-size cue, and the square tile would still letterbox it.
+**Decision: retain 128 × 128** for the shared card/tile preview. If a portrait canvas is ever required for
+layout, use **96 × 128**, not 64 × 128. A 64 × 128 portrait is only viable as a separate card-only artifact
+with a square tile fallback.
 
 ---
 
@@ -396,7 +406,7 @@ measurement is an import-time cost (one voxel pass per chassis), not a per-previ
 | `views` and `preview` schemas diverge from #1832 | settle one `views` block first; both issues consume it |
 | Animated source yaw sign confusion | use `modelYawDegrees` from the assembly report; fix the docs to match |
 | 128 px is soft on 2× HiDPI (84 logical = 168 device px) | accepted for the first path; file size is a constraint. Regenerate a higher-res set later if HiDPI needs it |
-| 128×64 proposed to save bytes | measured: halves on-screen height (34 px card / 18 px tile) and saves only 3–8 KB per unit. Keep 128×128; optimize PNG encoding instead |
+| 64×128 or 128×64 proposed to save bytes | 64×128 global saves ~45 % but shrinks the card mech 71→45 px and the tile 37→23 px; per-mech fit makes the Locust taller than the Atlas. Keep 128×128 (96×128 if a portrait canvas is needed) |
 | Uniform or fitted fallback weakens "relative size reads" | tonnage-volume is the default; `uniform`/`--fit` are comparison or unavailable-volume fallbacks, not shipping policies |
 
 Open question for the product owner:
