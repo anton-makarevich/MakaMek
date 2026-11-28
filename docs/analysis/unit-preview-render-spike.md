@@ -314,14 +314,59 @@ The driver has to do more than accept a second preset:
 
 | Layer | Requirement |
 |---|---|
-| `MmuxPackager` | Copy an optional `unit-preview.png` next to `unit.png`. Absent = valid package. **Do not bump the manifest version**: the entry is optional in both `1.0` and `2.0`, so packages without a preview stay byte-compatible and older readers ignore the extra zip entry |
-| `MmuxUnitPackageReader` | Expose `UnitPackage.PreviewImage` (nullable). Missing or corrupt preview returns `null` plus a diagnostic (same pattern as `SpriteError`); it must never throw and never drop the unit. Read it for any supported manifest major version |
-| `UnitCachingService` | Cache the preview bytes alongside `unit.png`; an absent preview is not an error and is not retried on every request |
-| `IImageService` | Add an optional `GetUnitPreview(model)` with a default implementation returning `null`; override in `CachedImageService`/`HybridImageService`. The UI owns the `preview ?? unit.png` fallback so the fallback exists in one place |
-| `UnitItemControl` | Use the preview at 84 × 84 when present (default `Stretch` is `Uniform`). **Skip the `RotateTransform Angle="180"`** for previews — it exists to orient the top-down token, not a portrait |
-| `SquadUnitTile` | Use the preview at 44 × 44 when present. **Skip the `facing × 60°` rotation** for previews; `ShowFacing` must not rotate a portrait. Keep the 0.7-opacity owner tint on both controls — verified visually on the 128/84/44 sheets |
+| `MmuxPackager` | Copy an optional `unit-preview.png` **and its `unit-preview.json`** next to `unit.png`. Absent = valid package. **Do not bump the manifest version**: the entries are optional in both `1.0` and `2.0`, so packages without a preview stay byte-compatible and older readers ignore the extra zip entries |
+| `MmuxUnitPackageReader` | Expose `UnitPackage.PreviewImage` (nullable) and `UnitPackage.PreviewMetadata` (nullable: canvas, `unitRect`, pivot). Missing or corrupt preview/metadata returns `null` plus a diagnostic (same pattern as `SpriteError`); it must never throw and never drop the unit. Read it for any supported manifest major version |
+| `UnitCachingService` | Cache the preview bytes and metadata alongside `unit.png`; an absent preview is not an error and is not retried on every request |
+| `IImageService` | Add an optional `GetUnitPreview(model)` returning the image **and** its metadata (a small `UnitPreview` DTO), with a default implementation returning `null`; override in `CachedImageService`/`HybridImageService`. The UI owns the `preview ?? unit.png` fallback so the fallback exists in one place |
+| `UnitItemControl` | Use the preview at 84 × 84 when present (default `Stretch` is `Uniform`). Use `unitRect` to place the tint/pattern overlay over the unit instead of the full canvas. **Skip the `RotateTransform Angle="180"`** for previews — it exists to orient the top-down token, not a portrait |
+| `SquadUnitTile` | Use the preview at 44 × 44 when present. Use `unitRect` for the tint overlay. **Skip the `facing × 60°` rotation** for previews; `ShowFacing` must not rotate a portrait. Keep the 0.7-opacity owner tint on both controls — verified visually on the 128/84/44 sheets |
 | Record sheet | Use the preview wherever the existing `unit.png` is shown as identification; the board token stays `unit.png` |
 | Licensing | A preview is *more* identifiable than a grey top-down token. It obeys the same rule: tooling ships, output never does; `not-redistributable` refuses it; never promote to `data/` |
+
+### 5.1 Preview metadata: `unit-preview.json`
+
+The PNG alone is not enough for the tint overlay. A 128 × 128 preview contains the unit only inside its
+silhouette bbox (e.g. the Atlas occupies 82 × 108 px with 23 px side margins), so the overlay needs the
+**actual unit rect**, not the canvas.
+
+```jsonc
+{
+  "version": 1,
+  "image": "unit-preview.png",
+  "canvas": { "width": 128, "height": 128 },
+  "unitRect": { "x": 23, "y": 12, "width": 82, "height": 108 },  // alpha bbox, canvas px
+  "pivot": { "x": 64, "y": 120 },                                 // footprint centre on the ground line
+  "colorSpace": "luminance",
+  "view": { "name": "preview", "pitchDegrees": 10, "yawDegrees": 0 },
+  "scale": { "pxPerMetre": 5.39, "correctionScale": 1.0 }
+}
+```
+
+Measured examples:
+
+| Chassis | unitRect (x, y, w, h) | pivot | canvas |
+|---|---|---|---|
+| AS7-D (Atlas) | 23, 12, 82, 108 | 64, 120 | 128 × 128 |
+| LCT-1E (Locust, volume-corrected) | 42, 36, 44, 83 | 64, 119 | 128 × 128 |
+
+Rules:
+
+- `unitRect` is the **alpha bounding box after downsampling** (including the 1 px outline and antenna), not
+  a hand-authored crop. The pipeline measures it and writes it; it must be inside the canvas and must not
+  touch the edge (already the render assertion).
+- `pivot` is the footprint centre on the ground line: `x = canvas.width / 2`, `y = unitRect.y + unitRect.height`.
+  It is the anchor for a future tint pattern/decal and for any rotation.
+- The UI maps the image into its slot with `Uniform`, then scales the rect by the same factor:
+  `s = displayWidth / canvas.width`; `unitDisplayRect = imageOffset + unitRect × s`. The tint/pattern
+  overlay is clipped to `unitDisplayRect` (or its alpha mask), not the whole canvas. This also keeps a
+  future non-square canvas aligned.
+- The existing **solid owner tint** already works from the image alpha mask; the rect makes the anchor
+  explicit and is required for a tiled/patterned tint, which cannot infer the unit bounds from transparency
+  alone once the pattern ignores alpha.
+- Missing or corrupt `unit-preview.json`: use the PNG with `unitRect = full canvas` and `pivot = canvas
+  centre/bottom`, log a diagnostic, never drop the unit. Missing PNG: no preview, fall back to `unit.png`.
+- `render-report.json` records the same `preview.unitRect` and `preview.pivot` so a sprite directory is
+  self-describing.
 
 ---
 
@@ -334,7 +379,8 @@ The driver has to do more than accept a second preset:
    path.
 3. **Pipeline** — compute the product `pxPerMetre` from the tallest chassis at the chosen view, then
    multiply the **shared** `volume.correctionScale` from `model.json`; apply the 65 % floor; luminance
-   conversion; downsample; write `preview` metadata. The driver still receives only `--scale`.
+   conversion; downsample; measure the alpha bbox and write `unit-preview.json` (`unitRect`, `pivot`,
+   canvas, view, scale); write `preview` metadata. The driver still receives only `--scale`.
 4. **Volume correction (accepted, shared)** — the import-time voxel measurement
    (`volume.modelCubicMeters` + `volume.correctionScale`) is the single source of truth for every render
    product. Implement it once in stage 1 (`assemble`/normalizer, where the canonical mesh and canonical
@@ -344,9 +390,11 @@ The driver has to do more than accept a second preset:
 5. **Board-sprite impact** — the Atlas stays at its current size (it is the reference); other chassis are
    adjusted relative to it, which changes their existing board sprites. Re-render the pilot board sprites
    and review the lineup together with the previews; this is intended, not a preview-only change.
-6. **Packaging** — optional `unit-preview.png`, no manifest bump.
-7. **Runtime** — reader/cache/image-service/`UnitPackage.PreviewImage` as in §5.
-8. **UI** — both controls bind the preview, skip rotation, keep tint, fall back to `unit.png`.
+6. **Packaging** — optional `unit-preview.png` + `unit-preview.json`, no manifest bump.
+7. **Runtime** — reader/cache/image-service expose `UnitPackage.PreviewImage` and `PreviewMetadata` (canvas,
+   `unitRect`, pivot) as in §5.1.
+8. **UI** — both controls bind the preview, skip rotation, keep tint, use `unitRect` to position the
+   tint/pattern overlay, fall back to `unit.png`.
 9. **Docs** — `asset-pipeline.md` §2.5/§4.2/§4.3/§4.4/§5, `blender-render-driver.md` §3/§4,
    `tools/blender/README.md`, `mw5-model-extraction.md` §4.5, `animated-mech-integration.md` §2, and the
    `modelYawDegrees` sign inconsistency. Coordinate the `views` schema with #1832.
@@ -373,13 +421,18 @@ measurement is an import-time cost (one voxel pass per chassis), not a per-previ
 - [ ] A silhouette touching the canvas edge fails the run with the chassis id and margin; the check uses
       the rendered silhouette/projected vertices, not bounding-box corners.
 - [ ] `render-report.json` records the preview view, camera, effective `pxPerMetre`, volume correction,
-      applied floor and canvas.
+      applied floor, canvas, `unitRect` and `pivot`.
+- [ ] `unit-preview.json` is written next to the PNG with `canvas`, `unitRect`, `pivot`, `colorSpace`, view
+      and scale; `unitRect` is the measured alpha bbox, lies inside the canvas, and does not touch the edge.
 - [ ] The preview is luminance-only (`R = G = B`, alpha = silhouette) and the UI still applies the owner
       tint at 0.7 opacity; no albedo/colour path exists.
-- [ ] `pack` copies `unit-preview.png` when present; packages without it remain byte-compatible and their
-      manifest version is unchanged.
+- [ ] The UI maps `unitRect` through the same `Uniform` scale as the image at 84 × 84 and 44 × 44, and the
+      tint/pattern overlay is anchored to that rect rather than the full canvas.
+- [ ] `pack` copies `unit-preview.png` and `unit-preview.json` when present; packages without them remain
+      byte-compatible and their manifest version is unchanged.
 - [ ] Missing/corrupt preview returns `null`, logs a diagnostic, and the UI falls back to `unit.png`; a
-      unit is never dropped.
+      missing/corrupt `unit-preview.json` keeps the PNG with a full-canvas rect and logs a diagnostic; a unit
+      is never dropped.
 - [ ] Preview images are not rotated by the card's 180° transform or the squad tile's facing rotation.
 - [ ] AS7-D and a Locust are rendered and eyeballed at 84 × 84 and 44 × 44 (local asset is `LCT-1E`; the
       final pilot set still includes COM-2D and LCT-1V): each is recognisably a mech, Atlas > Locust still
@@ -397,6 +450,7 @@ measurement is an import-time cost (one voxel pass per chassis), not a per-previ
 |---|---|
 | 44 px is too small for a light mech under strict uniform scale | volume correction lands at ~28 px; the 65 % floor guarantees it. Review at 44 px |
 | Volume method changes the correction by ~20 % | pin the method (voxel + hole-fill policy), store it in `model.json`, record the value in the report |
+| Preview metadata drifts from the PNG (hand-edited, re-cropped) | generate `unitRect` from the alpha channel in the pipeline, validate it is inside the canvas and non-zero, record it in `render-report.json` |
 | A render product re-measures volume and drifts from the board sprite | one `correctionScale` in the manifest; render products only apply it. A unit test asserts both products read the same manifest field |
 | Shared correction changes non-reference board sprites | expected; the Atlas stays put. Re-render the pilot board sprites and review the lineup with the previews before rolling out |
 | Volume correction compresses height differences (Atlas/Locust height ≈ 71–78 %) | expected: it normalises 3D volume, not silhouette height; the board sprite remains the size cue |

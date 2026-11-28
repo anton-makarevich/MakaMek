@@ -378,6 +378,8 @@ artifacts/sprites/AS7/
   unit-sprites.png               # atlas, one row per clip (packed by the pipeline, not by Blender)
   unit-sprites.json              # frame rects, fps, loop, hold, pivot (schema from the analysis doc)
   unit.png                       # static Idle frame, already at the 84×72 slot (no resampling)
+  unit-preview.png               # non-board front preview (128×128, luminance-only)
+  unit-preview.json              # canvas, unitRect, pivot, view and scale for the tint overlay
   contact-sheet.png              # every clip/frame in one image, for human review
   lineup.png                     # (batch only) all chassis at effective scale on a hex grid
   scene.blend                    # optional, --save-blend only: the generated scene, for inspection
@@ -452,6 +454,8 @@ makamek-pipeline pack --model artifacts/models/AS7 --unit data/units/mechs/AS7-D
 ```
 
 `pack` takes the **manifest** as well as the artefacts: `model.json` is the only place `source.licenseStatus` and `volume.correctionScale` live, so without it the tool cannot enforce the §8 refusal or record what it packed. `render-report.json` copies `licenseStatus` + the source URI forward, so a sprite directory is self-describing even when the model directory is gone.
+
+For previews, `pack` copies `unit-preview.png` **only together with** `unit-preview.json`: the JSON carries the canvas, the actual `unitRect` and the pivot, which the UI needs to anchor the tint/pattern overlay. Both are optional; a package without them is valid and keeps its manifest version. A missing or corrupt JSON must fall back to the PNG with a full-canvas rect, never drop the unit.
 
 Rule: the pipeline **writes to `artifacts/`**, never to `data/`. Promoting a pack into `data/` is a deliberate, reviewable copy — and for MW5-derived assets, never (see §8).
 
