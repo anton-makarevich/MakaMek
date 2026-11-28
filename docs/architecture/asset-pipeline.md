@@ -254,7 +254,7 @@ The look lives in `presets/*.json`, not in code:
   "scale": {
     "mode": "tonnage-volume",       // tonnage-volume | uniform | none
     "referenceChassis": "AS7",      // 100 t = 100 %; calibrates pixelsPerMetre and is never rescaled (§4.3)
-    "referenceCoverage": 0.90,      // of the 84×72 draw-box height, for the reference chassis
+    "referenceCoverage": 0.90,      // of the 84×72 draw-box height; anchored to the current Atlas output (§4.3)
     "minimumCoverage": 0.55,        // readability floor: silhouette area ÷ hex area
     "drawBoxHeightPx": 72,          // the slot the sprite is drawn into
     "hexAreaPx": 8660               // 100 × 86.6, used only by the coverage floor
