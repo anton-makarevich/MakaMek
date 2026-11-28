@@ -94,6 +94,8 @@ effectiveScale = pxPerMetre
 pxPerMetre_preview = usablePx / projectedFrontHeight[referenceChassis]   // correctionScale[reference] = 1.0
 ```
 
+A hand-calibrated `--scale` is this `pxPerMetre` — one global multiplier for every chassis. It can be layered on top of the correction, but only `correctionScale` changes relative sizes; hand calibration never does.
+
 - The pipeline computes it and passes `--scale`; the driver applies that uniform scale to the imported armature root and sets `ortho_scale = output.cellWidth`, so **after scaling, 1 model unit = 1 pixel** and framing is direct. The camera never depends on which mech it is looking at.
 - The driver does **not** read `model.json`, `scale-overrides.json`, `planView.*`, tonnage or coverage thresholds. That keeps the calibration and override logic in C# (where it is unit-covered) and makes the Python side purely mechanical.
 - The driver echoes `{"appliedScale": <value>}` in its stdout report; the pipeline asserts it matches what it passed and writes the breakdown (`pxPerMetre`, `correctionScale`, `override`, `floorClamp`, `effectiveScale`) into `render-report.json`.

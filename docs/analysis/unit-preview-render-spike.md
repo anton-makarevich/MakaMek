@@ -16,7 +16,7 @@ Date: 2026-11-28 · Status: spike verdict — **tonnage-volume scale accepted (A
 
 | Item | Issue #1831 | Clarified requirement |
 |---|---|---|
-| Canvas | 256 × 256 at 1× | **Accepted: 128 × 128 at 1×**, 4× supersampled then downsampled. Keeps the `.mmux` entry small; HiDPI can be regenerated later if needed |
+| Canvas | 256 × 256 at 1× | **Accepted: 128 × 128 at 1×**, 4× supersampled then downsampled. 128×64 was evaluated and rejected — it halves the on-screen mech (§3.3). HiDPI can be regenerated later if needed |
 | Colour | authored albedo / `rgba`; luminance only for board | **Luminance only.** The runtime owner tint must still apply, exactly as it does to `unit.png`. No albedo; keep `board-look` and neutral white lights |
 | Camera | fixed 40° pitch / 35° yaw | **Accepted: front elevations only, 10° pitch / 0° yaw. No iso.** |
 | Scale | one global `pxPerMetre`, derive from tallest chassis | **Accepted: tonnage-volume correction, with the Atlas as the fixed 100 t / 100 % reference.** Measured once at import and reused by every render product. `uniform` and `--fit` remain comparison/fallback options |
@@ -157,8 +157,13 @@ per render product (the same correction is reused):
                         / planViewExtent_ref
   pxPerMetre_preview  = usablePx
                         / projectedFrontHeight_ref
-  effectiveScale_i    = pxPerMetre_product × correctionScale_i × override_i × floorClamp_i
+  effectiveScale_i    = pxPerMetre_global × correctionScale_i × override_i × floorClamp_i
 ```
+
+`pxPerMetre_global` is exactly what a hand-calibrated `--scale` is: **one multiplier for every chassis**.
+It can be layered on top of the correction to tune the overall size, but it cannot change the Atlas:Locust
+ratio — that ratio comes only from `correctionScale_i`. Do not encode hand calibration as a per-chassis
+value; it is the same number for every model.
 
 Density cancels out of this relative form and remains provenance for the 3D client only. The Atlas has
 `correctionScale = 1.0`, so it never shrinks or grows; a 100 t chassis with a different mesh volume would
@@ -209,6 +214,36 @@ The Atlas stays at 108 px on the 5.2 base and 112 px when calibrated; it is neve
 If the import-time volume is not yet implemented, the preview falls back to `uniform` with the floor and the
 report marks `volumeCorrection: null`; it must not measure volume itself. The import-time measurement is the
 single source of truth.
+
+### 3.3 Canvas aspect: 128×64 evaluated, 128×128 retained
+
+Both UI slots are square — 84 × 84 on the card and 44 × 44 on the squad tile — and draw with `Uniform`. A
+non-square source is therefore letterboxed, and its **height** is the limiting dimension. Re-framing the
+accepted AS7 and Locust images to each candidate (mech fitted to the canvas height, 6 px margins) gives:
+
+| Canvas | Card display (84 × 84) | Tile display (44 × 44) | Atlas PNG | Locust PNG |
+|---|---|---|---|---|
+| **128 × 128** | 84 × 84, mech 71 / 54 px | 44 × 44, mech 37 / 28 px | 12.7 KB | 6.0 KB |
+| 128 × 96 | 84 × 63, mech 55 px both | 44 × 33, mech 29 px both | 10.0 KB | 7.1 KB |
+| 96 × 128 (crop) | 63 × 84, mech 71 / 54 px | 33 × 44, mech 37 / 28 px | 12.4 KB | 5.9 KB |
+| 128 × 64 | 84 × 42, mech 34 px both | 44 × 22, mech 18 px both | 4.5 KB | 3.2 KB |
+
+(The two mech numbers are Atlas / Locust; the 128×64 and 128×96 variants fit both to the same height.)
+
+- **128 × 64** halves the on-screen mech (34 px on the card, 18 px on the tile). The Locust returns to the
+  pre-correction size and is no longer readable at 44 px; the whole point of the volume correction is lost.
+- **96 × 128** is visually identical to 128 × 128 on screen (same mech height) but saves only ~2 %: empty
+  transparent columns compress almost for free. Not worth changing the canvas contract.
+- **128 × 96** cuts the displayed height by 25 % and is *larger* for the Locust because the extra resampling
+  adds detail; it is the worst of both.
+- The preview PNG is only 3–13 KB. A `.mmux` already carries `unit.json` (~10 KB), `unit.png` (~4 KB) and,
+  for v2, a sprite atlas (~120 KB); the preview is not the file-size driver. If size becomes critical,
+  optimize PNG encoding (palette/quantization, strip metadata) or reduce sprite frames — not the aspect.
+
+**Decision: retain 128 × 128** for the shared card/tile preview. A wide 128 × 64 banner could exist later as
+a *separate* artifact if the UI gains a 2:1 slot, but it should not replace the square preview. A 128 × 64
+bust crop (head/torso) would fill a 2:1 frame better, but it is a different product: it loses the full-body
+silhouette and the relative-size cue, and the square tile would still letterbox it.
 
 ---
 
@@ -323,6 +358,8 @@ measurement is an import-time cost (one voxel pass per chassis), not a per-previ
 - [ ] `volume.correctionScale` is computed once at import relative to the Atlas (Atlas = `1.0`, never
       rescaled), stored in `model.json`, and consumed unchanged by the board sprite and the preview;
       changing it affects both at the next render without changing either product's calibration.
+- [ ] Any hand-calibrated scale is a single global multiplier applied equally to every chassis; it changes
+      the overall size but never the Atlas:others ratio.
 - [ ] A silhouette touching the canvas edge fails the run with the chassis id and margin; the check uses
       the rendered silhouette/projected vertices, not bounding-box corners.
 - [ ] `render-report.json` records the preview view, camera, effective `pxPerMetre`, volume correction,
@@ -359,6 +396,7 @@ measurement is an import-time cost (one voxel pass per chassis), not a per-previ
 | `views` and `preview` schemas diverge from #1832 | settle one `views` block first; both issues consume it |
 | Animated source yaw sign confusion | use `modelYawDegrees` from the assembly report; fix the docs to match |
 | 128 px is soft on 2× HiDPI (84 logical = 168 device px) | accepted for the first path; file size is a constraint. Regenerate a higher-res set later if HiDPI needs it |
+| 128×64 proposed to save bytes | measured: halves on-screen height (34 px card / 18 px tile) and saves only 3–8 KB per unit. Keep 128×128; optimize PNG encoding instead |
 | Uniform or fitted fallback weakens "relative size reads" | tonnage-volume is the default; `uniform`/`--fit` are comparison or unavailable-volume fallbacks, not shipping policies |
 
 Open question for the product owner:

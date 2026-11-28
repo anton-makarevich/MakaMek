@@ -155,7 +155,7 @@ effectiveScale = (referenceCoverage x hexWidthPx) / planView.maxExtentMeters[ref
                = 5.460
 ```
 
-`correctionScale` is **1.0 for the reference chassis**: the Atlas is never rescaled, so its hand-calibrated size is the baseline and it needs no volume measurement.
+`correctionScale` is **1.0 for the reference chassis**: the Atlas is never rescaled, so its hand-calibrated size is the baseline and it needs no volume measurement. The hand-calibrated `--scale` itself is a **single global multiplier** for every chassis; layering a different value changes overall size only, never the Atlas:Locust ratio.
 
 `correctionScale` is **product-independent**: measured once at import, normalized to the Atlas (100 t = 100 %), and stored in `model.json`, it is reused by the board sprite and the unit preview. Only `pxPerMetre` differs per product — plan-view extent for the board, front-silhouette height for the preview — so a preview never re-measures volume. Measured on the assembled AS7-D / LCT-1E pair the Locust's volume is ~0.05–0.07 of the Atlas's, not the tonnage ratio 0.20, so the Locust is scaled up ~1.4–1.6× relative to the Atlas; details in
 [../../docs/analysis/unit-preview-render-spike.md](../../docs/analysis/unit-preview-render-spike.md).
